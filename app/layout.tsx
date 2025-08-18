@@ -44,7 +44,9 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
+  maximumScale: 5.0,
+  userScalable: true,
+  viewportFit: "cover",
   themeColor: "#0ea5e9",
 };
 
@@ -59,8 +61,10 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
       </head>
-      <body className="font-inter antialiased">
-        {children}
+      <body className="font-inter antialiased min-h-screen">
+        <div className="safe-area-container">
+          {children}
+        </div>
       </body>
     </html>
   );

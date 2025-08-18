@@ -2,32 +2,43 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import Button from '@/components/ui/Button';
+import { 
+  PageContainer, 
+  ResponsiveContainer, 
+  ResponsiveHeader, 
+  HeaderActionButton,
+  ResponsiveCard,
+  CardContent,
+  InfoRow
+} from '@/components/patterns';
+import { useBreakpoint } from '@/hooks';
 
 export default function Home() {
   const [isLoaded, setIsLoaded] = useState(false);
-  const [particles, setParticles] = useState<JSX.Element[]>([]);
+  const [particles, setParticles] = useState<React.ReactElement[]>([]);
+  const { width } = useBreakpoint();
 
+  // Génération des particules adaptatives
   useEffect(() => {
     setIsLoaded(true);
     
-    // Générer les particules adaptatives selon la taille d'écran
     const getParticleCount = () => {
-      if (typeof window === 'undefined') return 20;
-      const width = window.innerWidth;
-      if (width < 640) return 15; // Mobile
-      if (width < 1024) return 25; // Tablette
-      if (width < 1440) return 35; // Desktop
-      return 45; // Large Desktop
+      if (width < 480) return 12;   // Très petit mobile
+      if (width < 640) return 18;   // Mobile
+      if (width < 768) return 25;   // Mobile large
+      if (width < 1024) return 30;  // Tablette
+      if (width < 1280) return 40;  // Desktop
+      return 50; // Large Desktop
     };
 
     const particleCount = getParticleCount();
     const generatedParticles = Array.from({ length: particleCount }, (_, i) => (
       <div
-        key={i}
-        className="absolute w-1 h-1 bg-orange-400/40 rounded-full animate-float-particles will-change-transform"
+        key={`particle-${i}-${width}`}
+        className="absolute w-1 h-1 bg-orange-400/40 rounded-full animate-float-particles gpu-accelerated"
         style={{
           left: `${Math.random() * 100}%`,
+          top: `${Math.random() * 100}%`,
           animationDelay: `${Math.random() * 12}s`,
           animationDuration: `${12 + Math.random() * 8}s`,
         }}
@@ -35,200 +46,234 @@ export default function Home() {
     ));
     
     setParticles(generatedParticles);
-
-    // Ajuster les particules lors du redimensionnement
-    const handleResize = () => {
-      const newCount = getParticleCount();
-      if (newCount !== particleCount) {
-        const newParticles = Array.from({ length: newCount }, (_, i) => (
-          <div
-            key={`resize-${i}`}
-            className="absolute w-1 h-1 bg-orange-400/40 rounded-full animate-float-particles will-change-transform"
-            style={{
-              left: `${Math.random() * 100}%`,
-              animationDelay: `${Math.random() * 12}s`,
-              animationDuration: `${12 + Math.random() * 8}s`,
-            }}
-          />
-        ));
-        setParticles(newParticles);
-      }
-    };
-
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
+  }, [width]);
 
   return (
-    <div className="min-h-screen relative gradient-primary overflow-hidden">
-      {/* Particules d'arrière-plan */}
+    <PageContainer className="relative gradient-primary overflow-hidden">
+      {/* Particules d'arrière-plan optimisées */}
       <div className="fixed inset-0 z-0 overflow-hidden">
         {particles}
       </div>
 
-      {/* Container Principal Universel */}
-      <div className="universal-container relative z-10 animate-slide-up">
-        {/* Hero Section Immersive */}
-        <div className="relative overflow-hidden gradient-hero">
-          {/* Pattern d'arrière-plan animé */}
-          <div className="absolute inset-0 opacity-20">
-            <div className="absolute inset-0 bg-gradient-to-br from-white/30 to-transparent animate-sparkle" />
-            <div className="absolute top-10 left-10 w-32 h-32 bg-white/10 rounded-full blur-xl animate-float" />
-            <div className="absolute bottom-10 right-10 w-24 h-24 bg-orange-400/20 rounded-full blur-lg animate-float" style={{animationDelay: '2s'}} />
-          </div>
+      <div className="relative z-10 animate-slide-up">
+        {/* Header responsive avec nouvelles classes */}
+        <ResponsiveHeader
+          title="FayClick"
+          subtitle="La Super App du Sénégal"
+          navigation={{
+            logo: {
+              icon: (
+                <div className="w-8 h-8 sm:w-10 sm:w-10 bg-white/90 backdrop-blur-md rounded-2xl flex items-center justify-center shadow-lg animate-icon-pulse border border-white/20">
+                  <span className="text-lg sm:text-xl font-bold gradient-text">FC</span>
+                </div>
+              ),
+              text: "FayClick",
+            }
+          }}
+          actions={
+            <HeaderActionButton href="/login" aria-label="Mon espace">
+              <span className="text-lg">👤</span>
+              <span className="sr-only-sm">Mon Espace</span>
+            </HeaderActionButton>
+          }
+        />
 
-          {/* Contenu Hero Ultra-Responsive */}
-          <div className="relative z-10 section-padding text-center">
-            {/* Logo animé optimisé */}
-            <div className={`transform transition-all duration-1000 ${isLoaded ? 'scale-100 opacity-100' : 'scale-75 opacity-0'}`}>
-              <div className="w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 lg:w-32 lg:h-32 xl:w-36 xl:h-36 mx-auto mb-4 sm:mb-6 md:mb-8 bg-white/90 backdrop-blur-md rounded-3xl flex items-center justify-center shadow-2xl animate-icon-pulse border border-white/20">
-                <span className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold gradient-text">FC</span>
+        <ResponsiveContainer>
+          {/* Hero content amélioré */}
+          <div className={`text-center mb-8 sm:mb-12 lg:mb-16 transform transition-all duration-1000 ${isLoaded ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
+            {/* Logo principal responsive */}
+            <div className="mb-6 sm:mb-8">
+              <div className="w-24 h-24 sm:w-32 sm:h-32 md:w-40 md:h-40 lg:w-48 lg:h-48 mx-auto bg-white/95 backdrop-blur-md rounded-3xl flex items-center justify-center shadow-2xl animate-icon-pulse border border-white/30">
+                <span className="text-responsive-hero font-bold gradient-text">FC</span>
               </div>
             </div>
 
-            {/* Titre principal optimisé */}
-            <h1 className={`text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold text-white mb-2 sm:mb-3 md:mb-4 text-shadow-lg transform transition-all duration-1000 delay-200 ${isLoaded ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
-              FayClick
-            </h1>
-            
-            {/* Sous-titre compact */}
-            <p className={`text-base sm:text-lg md:text-xl lg:text-2xl xl:text-3xl text-white/95 mb-1 sm:mb-2 md:mb-3 font-semibold transform transition-all duration-1000 delay-300 ${isLoaded ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
-              La Super App du Sénégal
-            </p>
-            
-            {/* Tagline compact */}
-            <p className={`text-sm sm:text-base md:text-lg lg:text-xl text-white/85 mb-4 sm:mb-6 md:mb-8 transform transition-all duration-1000 delay-400 ${isLoaded ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
-              Gérez votre business en toute simplicité
+            {/* Tagline responsive */}
+            <p className="text-responsive-base text-white/90 mb-6 sm:mb-8 max-w-2xl mx-auto">
+              Gérez votre business en toute simplicité avec la première Super App du Sénégal
             </p>
 
-            {/* CTA Buttons Ultra-Responsive */}
-            <div className={`space-y-3 sm:space-y-4 md:space-y-0 md:space-x-4 lg:space-x-6 xl:space-x-8 md:flex md:justify-center md:items-center transform transition-all duration-1000 delay-500 ${isLoaded ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
-              <Link href="/login" className="block md:inline-block">
-                <button className="btn-gradient touch-target interactive-element px-6 py-3 sm:px-8 sm:py-4 md:px-10 md:py-4 text-sm sm:text-base md:text-lg lg:text-xl w-full md:w-auto animate-glow">
-                  Se Connecter
+            {/* CTA Buttons améliorés */}
+            <div className="flex flex-col xs:flex-row gap-4 xs:gap-6 justify-center max-w-md mx-auto">
+              <Link href="/login" className="flex-1">
+                <button className="btn-gradient btn-touch-optimized w-full animate-glow">
+                  <span className="mobile-only">Connexion</span>
+                  <span className="hidden-mobile">Se Connecter</span>
                 </button>
               </Link>
               
-              <Link href="/register" className="block md:inline-block">
-                <button className="btn-secondary touch-target interactive-element px-6 py-3 sm:px-8 sm:py-4 md:px-10 md:py-4 text-sm sm:text-base md:text-lg lg:text-xl w-full md:w-auto bg-white/90 backdrop-blur-sm border-white/30">
-                  Créer un Compte
+              <Link href="/register" className="flex-1">
+                <button className="btn-secondary btn-touch-optimized w-full bg-white/90 backdrop-blur-sm border-white/30">
+                  <span className="mobile-only">Inscription</span>
+                  <span className="hidden-mobile">Créer un Compte</span>
                 </button>
               </Link>
             </div>
           </div>
-        </div>
 
-        {/* Section Segments Métier Ultra-Responsive */}
-        <div className="section-padding bg-gradient-to-b from-white to-gray-50">
-          {/* Titre section adaptatif */}
-          <div className={`text-center mb-8 sm:mb-10 md:mb-12 lg:mb-16 xl:mb-20 transform transition-all duration-1000 delay-600 ${isLoaded ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
-            <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold text-gray-800 mb-2 sm:mb-3 md:mb-4 lg:mb-6">
-              Votre Secteur d'Activité
-            </h2>
-            <p className="text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl text-gray-600 leading-relaxed max-w-4xl mx-auto">
-              Une solution adaptée à chaque métier
-            </p>
-          </div>
-
-          {/* Grid des segments universel */}
-          <div className={`grid grid-cols-2 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-4 gap-3 sm:gap-4 md:gap-6 lg:gap-8 xl:gap-10 2xl:gap-12 mb-8 sm:mb-10 md:mb-12 lg:mb-16 xl:mb-20 transform transition-all duration-1000 delay-700 ${isLoaded ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
-            {[
-              { icon: '🛠️', title: 'Prestataires', desc: 'Services & Artisans', gradient: 'from-blue-500 to-blue-600' },
-              { icon: '🏪', title: 'Commerce', desc: 'Boutiques & Ventes', gradient: 'from-orange-500 to-orange-600' },
-              { icon: '🎓', title: 'Scolaire', desc: 'Écoles & Formation', gradient: 'from-green-500 to-green-600' },
-              { icon: '🏢', title: 'Immobilier', desc: 'Location & Gestion', gradient: 'from-purple-500 to-purple-600' }
-            ].map((segment, index) => (
-              <div 
-                key={segment.title}
-                className={`segment-card card-hover interactive-element desktop-hover p-3 sm:p-4 md:p-6 lg:p-8 xl:p-10 text-center bg-gradient-to-br ${segment.gradient} text-white transform transition-all duration-300`}
-                style={{animationDelay: `${800 + index * 100}ms`}}
-              >
-                <div className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl mb-2 sm:mb-3 md:mb-4 lg:mb-6 animate-float" style={{animationDelay: `${index * 0.5}s`}}>
-                  {segment.icon}
-                </div>
-                <h3 className="font-montserrat font-bold text-sm sm:text-base md:text-lg lg:text-xl xl:text-2xl mb-1 sm:mb-2">{segment.title}</h3>
-                <p className="text-white/90 text-xs sm:text-sm md:text-base lg:text-lg xl:text-xl">{segment.desc}</p>
-              </div>
-            ))}
-          </div>
-
-          {/* Section Avantages */}
-          <div className={`glass-strong rounded-2xl p-6 mb-10 transform transition-all duration-1000 delay-900 ${isLoaded ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
-            <h3 className="heading-sm text-gray-800 mb-6 text-center">
-              Pourquoi choisir FayClick ?
-            </h3>
-            
-            <div className="space-y-4">
-              {[
-                { icon: '⚡', text: 'Facturation instantanée et automatisée' },
-                { icon: '📊', text: 'Gestion de stock en temps réel' },
-                { icon: '💳', text: 'Paiements Orange Money & Wave intégrés' },
-                { icon: '📈', text: 'Rapports et analytics avancés' },
-                { icon: '🌐', text: 'Fonctionne même hors ligne' },
-                { icon: '🔒', text: 'Sécurité bancaire garantie' }
-              ].map((feature, index) => (
-                <div 
-                  key={index}
-                  className="flex items-center gap-4 p-3 rounded-xl bg-white/50 backdrop-blur-sm transform transition-all duration-300 hover:bg-white/70 hover:scale-105"
-                  style={{animationDelay: `${1000 + index * 100}ms`}}
-                >
-                  <span className="text-2xl">{feature.icon}</span>
-                  <span className="text-gray-700 font-medium">{feature.text}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* CTA Section Finale */}
-          <div className={`text-center transform transition-all duration-1000 delay-1000 ${isLoaded ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
-            <div className="mb-6">
-              <h3 className="heading-sm text-gray-800 mb-2">
-                Prêt à transformer votre business ?
-              </h3>
-              <p className="text-gray-600">
-                Rejoignez plus de 10,000 entrepreneurs
+          {/* Section Segments Métier avec patterns eTicket */}
+          <div className="bg-gradient-to-b from-white to-gray-50 padding-spacious">
+            {/* Titre section responsive */}
+            <div className={`text-center mb-8 sm:mb-12 lg:mb-16 transform transition-all duration-1000 delay-600 ${isLoaded ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
+              <h2 className="text-responsive-heading font-bold text-gray-800 mb-4">
+                Votre Secteur d&apos;Activité
+              </h2>
+              <p className="text-responsive-base text-gray-600 leading-relaxed max-w-3xl mx-auto">
+                Une solution adaptée à chaque métier, optimisée pour le marché sénégalais
               </p>
             </div>
 
-            <div className="flex gap-3">
-              <button className="btn-ghost flex-1 px-6 py-3">
-                Explorer la Démo
-              </button>
-              <Link href="/register" className="flex-1">
-                <button className="btn-gradient px-6 py-3 w-full">
-                  Commencer Gratuitement
-                </button>
-              </Link>
+            {/* Grid responsive avec nouvelles classes */}
+            <div className={`grid-responsive-1-2-4 auto-rows-fr mb-12 lg:mb-16 transform transition-all duration-1000 delay-700 ${isLoaded ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
+              {[
+                { icon: '🛠️', title: 'Prestataires', desc: 'Services & Artisans', gradient: 'from-blue-500 to-blue-600', features: ['Devis', 'Planning', 'Factures'] },
+                { icon: '🏪', title: 'Commerce', desc: 'Boutiques & Ventes', gradient: 'from-orange-500 to-orange-600', features: ['POS', 'Stock', 'Clients'] },
+                { icon: '🎓', title: 'Scolaire', desc: 'Écoles & Formation', gradient: 'from-green-500 to-green-600', features: ['Élèves', 'Notes', 'Parents'] },
+                { icon: '🏢', title: 'Immobilier', desc: 'Location & Gestion', gradient: 'from-purple-500 to-purple-600', features: ['Biens', 'Contrats', 'Locataires'] }
+              ].map((segment, index) => (
+                <ResponsiveCard
+                  key={segment.title}
+                  variant="eticket"
+                  className={`transform transition-all duration-300 ${isLoaded ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}
+                >
+                  {/* Header avec gradient */}
+                  <div className={`card-header-gradient bg-gradient-to-br ${segment.gradient} text-white text-center relative overflow-hidden`}>
+                    {/* Effet de lumière pour desktop */}
+                    <div className="absolute inset-0 opacity-30 hidden sm:block">
+                      <div className="absolute -top-1/2 -left-1/2 w-full h-full bg-white rounded-full blur-3xl animate-float" />
+                    </div>
+                    
+                    {/* Contenu header */}
+                    <div className="relative padding-comfortable flex flex-col items-center justify-center">
+                      <div className="text-4xl sm:text-5xl lg:text-6xl mb-3 sm:mb-4 animate-float" style={{animationDelay: `${index * 0.5}s`}}>
+                        {segment.icon}
+                      </div>
+                      <h3 className="text-responsive-title font-bold mb-2">
+                        {segment.title}
+                      </h3>
+                      <p className="text-white/90 text-responsive-small">
+                        {segment.desc}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Contenu carte */}
+                  <CardContent padding="comfortable">
+                    <div className="text-center">
+                      <h4 className="text-micro text-gray-600 uppercase tracking-wide font-bold mb-3">
+                        Fonctionnalités clés
+                      </h4>
+                      <div className="flex justify-center gap-2 flex-wrap">
+                        {segment.features.map((feature) => (
+                          <span
+                            key={feature}
+                            className="px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-micro font-medium"
+                          >
+                            {feature}
+                          </span>
+                        ))}
+                      </div>
+                      
+                      {/* CTA pour chaque segment */}
+                      <div className="mt-4">
+                        <button className="btn-gradient btn-touch-optimized w-full text-responsive-small">
+                          <span className="mobile-only">Découvrir</span>
+                          <span className="hidden-mobile">Découvrir {segment.title}</span>
+                        </button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </ResponsiveCard>
+              ))}
+            </div>
+
+            {/* Section Avantages avec InfoRows */}
+            <ResponsiveCard variant="featured" className={`mb-12 lg:mb-16 transform transition-all duration-1000 delay-900 ${isLoaded ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
+              <CardContent padding="comfortable">
+                <div className="text-center mb-6">
+                  <h3 className="text-responsive-title font-bold text-gray-800 mb-3">
+                    Pourquoi choisir FayClick ?
+                  </h3>
+                  <p className="text-responsive-base text-gray-600">
+                    Les avantages qui font la différence
+                  </p>
+                </div>
+                
+                <div className="spacing-normal grid grid-cols-1 sm:grid-cols-2">
+                  {[
+                    { icon: '⚡', title: 'Instantané', text: 'Facturation automatisée en temps réel' },
+                    { icon: '📊', title: 'Analytics', text: 'Gestion de stock et rapports avancés' },
+                    { icon: '💳', title: 'Paiements', text: 'Orange Money & Wave intégrés' },
+                    { icon: '🌐', title: 'Offline', text: 'Fonctionne même sans connexion' },
+                    { icon: '🔒', title: 'Sécurisé', text: 'Sécurité bancaire garantie' },
+                    { icon: '🎯', title: 'Adapté', text: 'Optimisé pour le Sénégal' }
+                  ].map((feature, index) => (
+                    <InfoRow
+                      key={index}
+                      icon={<span className="text-xl">{feature.icon}</span>}
+                      label={feature.title}
+                      value={feature.text}
+                      className={`transform transition-all duration-300 ${isLoaded ? 'translate-y-0 opacity-100' : 'translate-y-5 opacity-0'}`}
+                    />
+                  ))}
+                </div>
+              </CardContent>
+            </ResponsiveCard>
+
+            {/* CTA Section Finale optimisée */}
+            <div className={`text-center transform transition-all duration-1000 delay-1100 ${isLoaded ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
+              <div className="mb-8">
+                <h3 className="text-responsive-title font-bold text-gray-800 mb-3">
+                  Prêt à transformer votre business ?
+                </h3>
+                <p className="text-responsive-base text-gray-600 mb-6">
+                  Rejoignez plus de 10,000 entrepreneurs qui font confiance à FayClick
+                </p>
+                
+                <div className="flex flex-col sm:flex-row gap-4 justify-center max-w-lg mx-auto">
+                  <button className="btn-ghost btn-touch-optimized flex-1">
+                    <span className="mobile-only">Démo</span>
+                    <span className="hidden-mobile">Explorer la Démo</span>
+                  </button>
+                  <Link href="/register" className="flex-1">
+                    <button className="btn-gradient btn-touch-optimized w-full">
+                      <span className="mobile-only">Gratuit</span>
+                      <span className="hidden-mobile">Commencer Gratuitement</span>
+                    </button>
+                  </Link>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Footer Premium */}
-        <footer className="px-6 py-8 bg-gradient-to-t from-gray-100 to-white text-center border-t">
-          <div className="mb-4">
-            <div className="flex justify-center items-center gap-6 text-sm text-gray-600 mb-3">
-              <Link href="/terms" className="hover:text-primary-600 transition-colors">
+        </ResponsiveContainer>
+
+        {/* Footer responsive */}
+        <footer className="responsive-container bg-gradient-to-t from-gray-100 to-white text-center border-t safe-area-bottom">
+          <div className="padding-normal">
+            <div className="flex flex-wrap justify-center items-center gap-4 sm:gap-6 text-responsive-small text-gray-600 mb-4">
+              <Link href="/terms" className="hover:text-primary-600 transition-colors focus-responsive">
                 Conditions
               </Link>
-              <span>•</span>
-              <Link href="/privacy" className="hover:text-primary-600 transition-colors">
+              <span className="hidden xs:inline">•</span>
+              <Link href="/privacy" className="hover:text-primary-600 transition-colors focus-responsive">
                 Confidentialité
               </Link>
-              <span>•</span>
-              <Link href="/support" className="hover:text-primary-600 transition-colors">
+              <span className="hidden xs:inline">•</span>
+              <Link href="/support" className="hover:text-primary-600 transition-colors focus-responsive">
                 Support
               </Link>
             </div>
+            
+            <p className="text-gray-600 text-responsive-small mb-2">
+              © 2025 FayClick - Tous droits réservés
+            </p>
+            <p className="text-micro text-gray-500 flex items-center justify-center gap-1">
+              Conçu avec <span className="text-red-500 animate-pulse">❤️</span> au Sénégal
+            </p>
           </div>
-          
-          <p className="text-gray-600 text-sm mb-2">
-            © 2025 FayClick - Tous droits réservés
-          </p>
-          <p className="text-gray-500 text-xs flex items-center justify-center gap-1">
-            Conçu avec <span className="text-red-500 animate-pulse">❤️</span> au Sénégal
-          </p>
         </footer>
       </div>
-    </div>
+    </PageContainer>
   );
 }
