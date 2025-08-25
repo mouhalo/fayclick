@@ -46,27 +46,41 @@ export const useBreakpoint = (): BreakpointState => {
         breakpoint = 'mobile';
       }
 
-      setState({
-        breakpoint,
-        isMobile: breakpoint === 'mobile',
-        isMobileLarge: breakpoint === 'mobile-large',
-        isTablet: breakpoint === 'tablet',
-        isDesktop: breakpoint === 'desktop',
-        isDesktopLarge: breakpoint === 'desktop-large',
-        width,
+      // Only update state if breakpoint actually changed (plus optimisé)
+      setState(prevState => {
+        // Éviter les re-renders si le breakpoint et la largeur n'ont pas significativement changé
+        if (prevState.breakpoint === breakpoint && Math.abs(prevState.width - width) < 100) {
+          return prevState;
+        }
+
+        return {
+          breakpoint,
+          isMobile: breakpoint === 'mobile',
+          isMobileLarge: breakpoint === 'mobile-large',
+          isTablet: breakpoint === 'tablet',
+          isDesktop: breakpoint === 'desktop',
+          isDesktopLarge: breakpoint === 'desktop-large',
+          width,
+        };
       });
     };
 
-    // Initial check
-    updateBreakpoint();
+    // Initial check avec un petit délai pour éviter les calculs prématurés
+    const initialTimeout = setTimeout(updateBreakpoint, 10);
 
-    // Listen for resize events
+    // Throttled resize handler avec debounce plus long
+    let timeoutId: NodeJS.Timeout;
     const handleResize = () => {
-      updateBreakpoint();
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(updateBreakpoint, 200); // Augmenté de 100 à 200ms
     };
 
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    window.addEventListener('resize', handleResize, { passive: true });
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      clearTimeout(timeoutId);
+      clearTimeout(initialTimeout);
+    };
   }, []);
 
   return state;

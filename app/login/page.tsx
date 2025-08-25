@@ -11,38 +11,89 @@ import {
   CardHeader,
   CardContent
 } from '@/components/patterns';
-import { useBreakpoint } from '@/hooks';
+import { authService, ApiException } from '@/services/auth.service';
+import { getUserRedirectRoute } from '@/types/auth';
 
 export default function LoginPage() {
   const router = useRouter();
   const [isLoaded, setIsLoaded] = useState(false);
   const [formData, setFormData] = useState({
-    email: '',
+    login: '',
     password: '',
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  const { isMobile } = useBreakpoint();
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     setIsLoaded(true);
-  }, []);
+    
+    // Vérifier si on doit forcer la déconnexion (par exemple après une erreur 401)
+    const urlParams = new URLSearchParams(window.location.search);
+    const forceLogout = urlParams.get('logout') === 'true';
+    
+    if (forceLogout) {
+      // Nettoyer la session
+      authService.clearSession();
+      // Retirer le paramètre de l'URL
+      window.history.replaceState({}, document.title, '/login');
+      return;
+    }
+    
+    // Vérifier si déjà connecté SEULEMENT si pas de logout forcé
+    if (authService.isAuthenticated()) {
+      const user = authService.getUser();
+      if (user) {
+        // Vérifier que le token est valide (optionnel, vous pouvez ajouter une vérification API)
+        router.push(getUserRedirectRoute(user));
+      } else {
+        // Si on a un token mais pas d'user, nettoyer la session
+        authService.clearSession();
+      }
+    }
+  }, [router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
 
-    // Simulation de connexion
-    setTimeout(() => {
-      if (formData.email && formData.password) {
-        console.log('Connexion réussie', formData);
-        router.push('/dashboard');
-      } else {
-        setError('Veuillez remplir tous les champs');
+    try {
+      // Validation basique
+      if (!formData.login || !formData.password) {
+        throw new Error('Veuillez remplir tous les champs');
       }
+
+      // Appel API
+      const response = await authService.login({
+        login: formData.login.toLowerCase().trim(),
+        pwd: formData.password
+      });
+
+      // Sauvegarder token et user
+      authService.saveToken(response.token);
+      authService.saveUser(response.user);
+
+      // Message de bienvenue
+      console.log(`Bienvenue ${response.user.username} de ${response.user.nom_structure}`);
+
+      // Redirection selon le type d'utilisateur
+      const redirectRoute = getUserRedirectRoute(response.user);
+      router.push(redirectRoute);
+
+    } catch (error) {
+      console.error('Erreur de connexion:', error);
+      
+      if (error instanceof ApiException) {
+        setError(error.message);
+      } else if (error instanceof Error) {
+        setError(error.message);
+      } else {
+        setError('Une erreur inattendue s\'est produite');
+      }
+    } finally {
       setIsLoading(false);
-    }, 1500);
+    }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -50,6 +101,8 @@ export default function LoginPage() {
       ...prev,
       [e.target.name]: e.target.value
     }));
+    // Effacer l'erreur quand l'utilisateur tape
+    if (error) setError('');
   };
 
   return (
@@ -102,20 +155,22 @@ export default function LoginPage() {
                 <CardContent padding="comfortable">
                   {/* Formulaire de Connexion Premium */}
                   <form onSubmit={handleSubmit} className={`spacing-normal transform transition-all duration-1000 delay-500 ${isLoaded ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
-                    {/* Email optimisé */}
+                    {/* Login/Identifiant */}
                     <div>
-                      <label htmlFor="email" className="block text-gray-700 font-semibold mb-3 text-responsive-small">
-                        Adresse email <span className="text-error-500">*</span>
+                      <label htmlFor="login" className="block text-gray-700 font-semibold mb-3 text-responsive-small">
+                        Identifiant <span className="text-error-500">*</span>
                       </label>
                       <input
-                        type="email"
-                        id="email"
-                        name="email"
-                        value={formData.email}
+                        type="text"
+                        id="login"
+                        name="login"
+                        value={formData.login}
                         onChange={handleChange}
                         className="input-premium w-full max-w-full focus-responsive touch-surface transform transition-all duration-300 hover:scale-[1.01] focus:scale-[1.01]"
-                        placeholder="votre@email.com"
+                        placeholder="Votre identifiant"
                         required
+                        autoComplete="username"
+                        disabled={isLoading}
                       />
                     </div>
 
@@ -124,16 +179,37 @@ export default function LoginPage() {
                       <label htmlFor="password" className="block text-gray-700 font-semibold mb-3 text-responsive-small">
                         Mot de passe <span className="text-error-500">*</span>
                       </label>
-                      <input
-                        type="password"
-                        id="password"
-                        name="password"
-                        value={formData.password}
-                        onChange={handleChange}
-                        className="input-premium w-full max-w-full focus-responsive touch-surface transform transition-all duration-300 hover:scale-[1.01] focus:scale-[1.01]"
-                        placeholder="••••••••"
-                        required
-                      />
+                      <div className="relative">
+                        <input
+                          type={showPassword ? "text" : "password"}
+                          id="password"
+                          name="password"
+                          value={formData.password}
+                          onChange={handleChange}
+                          className="input-premium w-full max-w-full focus-responsive touch-surface transform transition-all duration-300 hover:scale-[1.01] focus:scale-[1.01] pr-12"
+                          placeholder="••••••••"
+                          required
+                          autoComplete="current-password"
+                          disabled={isLoading}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none"
+                          tabIndex={-1}
+                        >
+                          {showPassword ? (
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                            </svg>
+                          ) : (
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                            </svg>
+                          )}
+                        </button>
+                      </div>
                     </div>
 
                     {/* Mot de passe oublié */}
@@ -177,43 +253,23 @@ export default function LoginPage() {
                     </button>
                   </form>
 
-                  {/* Divider avec design premium */}
-                  <div className={`flex items-center spacing-normal my-6 transform transition-all duration-1000 delay-600 ${isLoaded ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
-                    <div className="flex-1 h-px bg-gradient-to-r from-transparent via-gray-300 to-transparent" />
-                    <span className="text-gray-500 text-responsive-small font-medium px-4">ou</span>
-                    <div className="flex-1 h-px bg-gradient-to-r from-transparent via-gray-300 to-transparent" />
-                  </div>
-
-                  {/* Options de connexion alternatives optimisées */}
-                  <div className={`spacing-normal transform transition-all duration-1000 delay-700 ${isLoaded ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
-                    <button className="btn-secondary btn-touch-optimized w-full flex items-center justify-center spacing-tight bg-orange-50 border-orange-200 text-orange-700 hover:bg-orange-100 focus-responsive">
-                      <span className="text-xl">📱</span>
-                      <span className="font-semibold text-responsive-small">
-                        <span className="mobile-only">Orange Money</span>
-                        <span className="hidden-mobile">Continuer avec Orange Money</span>
-                      </span>
-                    </button>
-                    
-                    <button className="btn-secondary btn-touch-optimized w-full flex items-center justify-center spacing-tight bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100 focus-responsive">
-                      <span className="text-xl">💳</span>
-                      <span className="font-semibold text-responsive-small">
-                        <span className="mobile-only">Wave</span>
-                        <span className="hidden-mobile">Continuer avec Wave</span>
-                      </span>
-                    </button>
+                  {/* Séparateur avec texte */}
+                  <div className={`my-6 flex items-center transform transition-all duration-1000 delay-700 ${isLoaded ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
+                    <div className="flex-1 border-t border-gray-300"></div>
+                    <span className="px-4 text-gray-500 text-responsive-small">ou</span>
+                    <div className="flex-1 border-t border-gray-300"></div>
                   </div>
 
                   {/* Lien vers inscription */}
-                  <div className={`mt-6 text-center transform transition-all duration-1000 delay-800 ${isLoaded ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
-                    <p className="text-gray-600 text-responsive-small">
-                      Nouveau sur FayClick ?{' '}
-                      <Link 
-                        href="/register" 
-                        className="text-primary-600 font-bold hover:text-primary-700 transition-colors hover:underline focus-responsive"
-                      >
-                        Créer un compte gratuitement
-                      </Link>
+                  <div className={`text-center transform transition-all duration-1000 delay-800 ${isLoaded ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
+                    <p className="text-gray-600 text-responsive-small mb-4">
+                      Nouveau sur FayClick ?
                     </p>
+                    <Link href="/register">
+                      <button className="btn-secondary btn-touch-optimized w-full bg-white/90 backdrop-blur-sm border-white/30">
+                        <span>Créer un compte gratuitement</span>
+                      </button>
+                    </Link>
                   </div>
                 </CardContent>
               </ResponsiveCard>

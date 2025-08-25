@@ -74,7 +74,7 @@ export default function RegisterPage() {
     switch (currentStep) {
       case 1:
         if (!formData.businessType) {
-          setError('Veuillez sélectionner un type d\'activité');
+          setError('Veuillez sélectionner un type d&apos;activité');
           return false;
         }
         break;
@@ -100,7 +100,7 @@ export default function RegisterPage() {
           return false;
         }
         if (!formData.acceptTerms) {
-          setError('Veuillez accepter les conditions d\'utilisation');
+          setError('Veuillez accepter les conditions d&apos;utilisation');
           return false;
         }
         break;
@@ -130,7 +130,7 @@ export default function RegisterPage() {
           <div className="space-y-6">
             <div className="text-center mb-6">
               <h2 className="heading-sm text-gray-800 mb-2">
-                Quel est votre secteur d'activité ?
+                Quel est votre secteur d&apos;activité ?
               </h2>
               <p className="text-gray-600 text-sm">
                 Choisissez le domaine qui correspond à votre business
@@ -255,7 +255,7 @@ export default function RegisterPage() {
 
             <div>
               <label className="block text-gray-700 font-semibold mb-2 text-sm">
-                Nom de l'entreprise/Activité <span className="text-red-500">*</span>
+                Nom de l&apos;entreprise/Activité <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
@@ -359,9 +359,9 @@ export default function RegisterPage() {
                 required
               />
               <label htmlFor="acceptTerms" className="text-sm text-gray-700">
-                J'accepte les{' '}
+                J&apos;accepte les{' '}
                 <Link href="/terms" className="text-primary-600 hover:text-primary-700">
-                  conditions d'utilisation
+                  conditions d&apos;utilisation
                 </Link>{' '}
                 et la{' '}
                 <Link href="/privacy" className="text-primary-600 hover:text-primary-700">
