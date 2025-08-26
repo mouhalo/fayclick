@@ -382,9 +382,9 @@ body {
     }
   }
 
-  /* ===== NOUVELLES CLASSES ETICKET RESPONSIVE ===== */
+  /* ===== NOUVELLES CLASSES fayclick RESPONSIVE ===== */
 
-  /* Container System Intelligent eTicket */
+  /* Container System Intelligent fayclick */
   .page-container {
     @apply min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50;
   }
@@ -482,8 +482,8 @@ body {
     @apply min-h-[44px] min-w-[44px];
   }
 
-  /* Card System Premium eTicket */
-  .card-eticket {
+  /* Card System Premium fayclick */
+  .card-fayclick {
     @apply bg-white rounded-xl sm:rounded-2xl shadow-lg hover:shadow-xl;
     @apply overflow-hidden cursor-pointer transform transition-all duration-300;
     @apply hover:scale-[1.02] hover:-translate-y-1 touch-manipulation;

@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
-import { dashboardService, DashboardStats, FinancialData } from '@/services/dashboard.service';
+import { dashboardService } from '@/services/dashboard.service';
 import { 
+  DashboardStats,
+  FinancialData,
   StatsCardData, 
   DashboardState, 
   UseDashboardDataReturn, 
@@ -19,12 +21,30 @@ export function useDashboardData(structureId: number, autoRefresh: boolean = tru
     lastUpdated: null,
   });
 
+  // Obtenir le montant total selon le type de structure
+  const getTotalAmount = useCallback((stats: DashboardStats): number => {
+    switch (stats.type_structure) {
+      case 'SCOLAIRE':
+      case 'IMMOBILIER':
+        return stats.mt_total_factures || 0;
+      case 'COMMERCIALE':
+        return stats.mt_valeur_stocks || 0;
+      case 'PRESTATAIRE DE SERVICES':
+        return stats.mt_chiffre_affaire || 0;
+      default:
+        return 0;
+    }
+  }, []);
+
   // Transformer les stats en données d'affichage pour les cards
   const transformStatsToCardData = useCallback((stats: DashboardStats): StatsCardData => {
     const config = getStructureConfig(stats.type_structure);
     
-    // Calcul du nombre approximatif de factures
-    const invoicesCount = dashboardService.calculateInvoicesCount(stats.mt_total_factures);
+    // Obtenir le montant total selon le type
+    const totalAmount = getTotalAmount(stats);
+    
+    // Calcul du nombre approximatif de factures (basé sur le montant total)
+    const invoicesCount = dashboardService.calculateInvoicesCount(totalAmount);
     
     // Obtenir la valeur primaire selon le type de structure
     let primaryCount = 0;
@@ -52,16 +72,25 @@ export function useDashboardData(structureId: number, autoRefresh: boolean = tru
         primaryGrowth = 5;
     }
 
+    // Calculer le taux de recouvrement si applicable
+    const recoveryRate = (stats.mt_total_factures && stats.mt_total_factures > 0) 
+      ? Math.round((stats.mt_total_payees / stats.mt_total_factures) * 100)
+      : 0;
+
     return {
-      totalAmount: stats.mt_total_factures,
+      totalAmount,
       invoicesCount,
       growthPercentage: 15, // Croissance des factures, pourrait être calculée
       primaryCount,
       primaryLabel: config.primaryMetric.label,
       primaryIcon: config.primaryMetric.icon,
       primaryGrowth,
+      // Données financières réelles depuis l'API
+      totalPaid: stats.mt_total_payees || 0,
+      totalUnpaid: stats.mt_total_impayees || 0,
+      recoveryRate,
     };
-  }, []);
+  }, [getTotalAmount]);
 
   // Fonction pour charger les données
   const loadDashboardData = useCallback(async (): Promise<void> => {

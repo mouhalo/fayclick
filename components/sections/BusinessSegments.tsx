@@ -19,7 +19,7 @@ export default function BusinessSegments({ isLoaded }: BusinessSegmentsProps) {
       {segments.map((segment, index) => (
         <ResponsiveCard
           key={segment.title}
-          variant="eticket"
+          variant="fayclick"
           className={`transform transition-all duration-300 ${isLoaded ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}
         >
           {/* Header avec gradient */}

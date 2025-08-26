@@ -16,7 +16,7 @@ export interface BreakpointState {
 
 /**
  * Hook pour détecter les breakpoints responsive en JavaScript
- * Basé sur les patterns du guide eTicket PWA
+ * Basé sur les patterns du guide fayclick PWA
  */
 export const useBreakpoint = (): BreakpointState => {
   const [state, setState] = useState<BreakpointState>({

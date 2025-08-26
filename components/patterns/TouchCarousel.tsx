@@ -16,7 +16,7 @@ export interface TouchCarouselProps {
 
 /**
  * Carrousel tactile responsive avec gestes swipe
- * Basé sur les patterns du guide eTicket
+ * Basé sur les patterns du guide fayclick
  */
 export const TouchCarousel: React.FC<TouchCarouselProps> = ({
   children,

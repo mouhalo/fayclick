@@ -5,7 +5,7 @@ import { clsx } from 'clsx';
 
 export interface ResponsiveCardProps {
   children: React.ReactNode;
-  variant?: 'default' | 'featured' | 'urgent' | 'eticket';
+  variant?: 'default' | 'featured' | 'urgent' | 'fayclick';
   className?: string;
   onClick?: () => void;
   tabIndex?: number;
@@ -13,7 +13,7 @@ export interface ResponsiveCardProps {
 }
 
 /**
- * Composant carte responsive universel inspiré du guide eTicket
+ * Composant carte responsive universel inspiré du guide fayclick
  * Supporte différents variants et est optimisé pour le tactile
  */
 export const ResponsiveCard: React.FC<ResponsiveCardProps> = ({
@@ -36,11 +36,11 @@ export const ResponsiveCard: React.FC<ResponsiveCardProps> = ({
     default: 'border border-gray-100 focus:ring-primary-500',
     featured: 'border-2 border-primary-200 shadow-primary-100/50 focus:ring-primary-500',
     urgent: 'border-2 border-error-200 shadow-error-100/50 focus:ring-error-500',
-    eticket: 'card-eticket', // Utilise la classe CSS du guide eTicket
+    fayclick: 'card-fayclick', // Utilise la classe CSS du guide fayclick
   };
 
-  const cardClasses = variant === 'eticket' 
-    ? `card-eticket ${className}`
+  const cardClasses = variant === 'fayclick' 
+    ? `card-fayclick ${className}`
     : clsx(baseClasses, variants[variant], className);
 
   const handleClick = () => {

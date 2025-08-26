@@ -3,7 +3,7 @@
 // Interface principale pour les statistiques dashboard
 export interface DashboardStats {
   nom_structure: string;
-  type_structure: 'SCOLAIRE' | 'COMMERCIALE' | 'IMMOBILIER' | 'PRESTATAIRE DE SERVICES' | 'FORMATION PRO';
+  type_structure: string;
   mt_total_factures: number;
   mt_total_payees: number;
   mt_total_impayees: number;
@@ -23,15 +23,27 @@ export interface DashboardStats {
   mt_chiffre_affaire?: number;
 }
 
-// Interface pour les données financières calculées
+// Interface pour les données financières calculées - flexible selon le type
 export interface FinancialData {
+  // Propriétés communes (quand disponibles)
   totalRevenues: number;
   totalPaid: number;
   totalUnpaid: number;
   netBalance: number;
-  // Données supplémentaires selon le type
-  totalStock?: number;
-  totalRevenueBusiness?: number;
+  
+  // Propriétés spécifiques SCOLAIRE & IMMOBILIER
+  totalInvoices?: number;      // Calculé à partir des factures
+  
+  // Propriétés spécifiques COMMERCIALE
+  totalCharges?: number;       // Charges et achats (calculé)
+  soldeNet?: number;          // Solde net après charges
+  totalStock?: number;         // mt_valeur_stocks
+  
+  // Propriétés spécifiques IMMOBILIER
+  totalCommissions?: number;   // Commissions perçues
+  
+  // Propriétés spécifiques PRESTATAIRE DE SERVICES
+  totalRevenueBusiness?: number; // mt_chiffre_affaire
 }
 
 // Interface pour les données d'affichage des stats cards
@@ -46,6 +58,11 @@ export interface StatsCardData {
   primaryLabel: string;  // "Élèves", "Produits", "Clients", etc.
   primaryIcon: string;   // emoji pour l'icône
   primaryGrowth: number; // pourcentage de croissance
+  
+  // Données financières détaillées (pour affichage réel)
+  totalPaid?: number;     // mt_total_payees
+  totalUnpaid?: number;   // mt_total_impayees
+  recoveryRate?: number;  // Taux de recouvrement en %
 }
 
 // Interface pour l'état de chargement

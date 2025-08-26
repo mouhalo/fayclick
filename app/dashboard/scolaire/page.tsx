@@ -6,10 +6,12 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { authService } from '@/services/auth.service';
 import { useDashboardData } from '@/hooks/useDashboardData';
 import MainMenu from '@/components/layout/MainMenu';
+import { formatAmount } from '@/utils/formatAmount';
 
 export default function ScolaireDashboard() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [showMenu, setShowMenu] = useState(false);
   const [showFinancesModal, setShowFinancesModal] = useState(false);
   const [notifications, setNotifications] = useState(2);
@@ -25,19 +27,35 @@ export default function ScolaireDashboard() {
   } = useDashboardData(user?.id_structure || 0);
 
   useEffect(() => {
-    // Vérifier l'authentification
-    if (!authService.isAuthenticated()) {
-      router.push('/login');
-      return;
-    }
+    // Attendre que le composant soit monté côté client avant de vérifier localStorage
+    const checkAuthentication = () => {
+      // Vérifier l'authentification
+      if (!authService.isAuthenticated()) {
+        console.log('❌ [SCOLAIRE] Utilisateur non authentifié, redirection vers login');
+        setIsAuthLoading(false);
+        router.push('/login');
+        return;
+      }
 
-    const userData = authService.getUser();
-    if (!userData || userData.type_structure !== 'SCOLAIRE') {
-      router.push('/dashboard');
-      return;
-    }
+      const userData = authService.getUser();
+      console.log('👤 [SCOLAIRE] Données utilisateur:', userData?.type_structure, userData?.nom_structure);
+      
+      if (!userData || userData.type_structure !== 'SCOLAIRE') {
+        console.log('⚠️ [SCOLAIRE] Type de structure incorrect, redirection vers dashboard général');
+        setIsAuthLoading(false);
+        router.push('/dashboard');
+        return;
+      }
+      
+      console.log('✅ [SCOLAIRE] Authentification validée pour:', userData.nom_structure);
+      setUser(userData);
+      setIsAuthLoading(false);
+    };
+
+    // Attendre un tick pour s'assurer que localStorage est accessible
+    const timer = setTimeout(checkAuthentication, 100);
     
-    setUser(userData);
+    return () => clearTimeout(timer);
   }, [router]);
 
   // Animation du compteur
@@ -80,7 +98,7 @@ export default function ScolaireDashboard() {
     alert('Notifications (2) :\n\n• Nouveau paiement : Classe CM2 - Aminata D.\n• Rappel : Échéance frais inscription CE1');
   };
 
-  if (!user) {
+  if (isAuthLoading || !user) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-sky-400 to-sky-200">
         <div className="text-center">
@@ -90,7 +108,9 @@ export default function ScolaireDashboard() {
               <span className="text-2xl font-black text-white">FC</span>
             </div>
           </div>
-          <p className="text-white text-lg font-medium animate-pulse">Chargement...</p>
+          <p className="text-white text-lg font-medium animate-pulse">
+            {isAuthLoading ? 'Vérification de la session...' : 'Chargement...'}
+          </p>
         </div>
       </div>
     );
@@ -182,7 +202,7 @@ export default function ScolaireDashboard() {
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.6 }}
-            className="grid grid-cols-3 gap-3 mb-6"
+            className="grid grid-cols-2 gap-3 mb-6"
           >
             <motion.div
               whileHover={{ scale: 1.05 }}
@@ -211,30 +231,6 @@ export default function ScolaireDashboard() {
             <motion.div
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              className="bg-white rounded-2xl p-4 shadow-lg border-l-4 border-orange-500 cursor-pointer"
-              onClick={() => router.push('/dashboard/scolaire/invoices')}
-            >
-              <span className="text-2xl mb-2 block">📋</span>
-              <div className="text-2xl font-bold text-gray-800 mb-1">
-                {loadingStats ? (
-                  <div className="w-8 h-6 bg-gray-200 animate-pulse rounded"></div>
-                ) : (
-                  <AnimatedCounter value={statsCardData?.invoicesCount || 0} />
-                )}
-              </div>
-              <div className="text-xs text-gray-600 font-semibold uppercase tracking-wide">Factures</div>
-              <div className="text-xs text-green-600 mt-1 font-semibold">
-                {loadingStats ? (
-                  <div className="w-16 h-3 bg-gray-200 animate-pulse rounded"></div>
-                ) : (
-                  `+${statsCardData?.growthPercentage || 0}% ce mois`
-                )}
-              </div>
-            </motion.div>
-
-            <motion.div
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
               className="bg-white rounded-2xl p-4 shadow-lg border-l-4 border-green-500 cursor-pointer"
               onClick={() => setShowFinancesModal(true)}
             >
@@ -243,11 +239,59 @@ export default function ScolaireDashboard() {
                 {loadingStats ? (
                   <div className="w-12 h-5 bg-gray-200 animate-pulse rounded"></div>
                 ) : (
-                  `${Math.round((statsCardData?.totalAmount || 0) / 1000000)}M`
+                  formatAmount(statsCardData?.totalAmount || 0)
                 )}
               </div>
-              <div className="text-xs text-gray-600 font-semibold uppercase tracking-wide">Total</div>
+              <div className="text-xs text-gray-600 font-semibold uppercase tracking-wide">Total Factures</div>
               <div className="text-xs text-green-600 mt-1 font-semibold">FCFA</div>
+            </motion.div>
+
+            <motion.div
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="bg-white rounded-2xl p-4 shadow-lg border-l-4 border-green-500 cursor-pointer"
+              onClick={() => setShowFinancesModal(true)}
+            >
+              <span className="text-2xl mb-2 block">✅</span>
+              <div className="text-lg font-bold text-gray-800 mb-1">
+                {loadingStats ? (
+                  <div className="w-12 h-5 bg-gray-200 animate-pulse rounded"></div>
+                ) : (
+                  formatAmount(statsCardData?.totalPaid || 0)
+                )}
+              </div>
+              <div className="text-xs text-gray-600 font-semibold uppercase tracking-wide">Payées</div>
+              <div className="text-xs text-green-600 mt-1 font-semibold">
+                {loadingStats ? (
+                  <div className="w-12 h-3 bg-gray-200 animate-pulse rounded"></div>
+                ) : (
+                  `${statsCardData?.recoveryRate || 0}% recouvré`
+                )}
+              </div>
+            </motion.div>
+
+            <motion.div
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="bg-white rounded-2xl p-4 shadow-lg border-l-4 border-red-500 cursor-pointer"
+              onClick={() => router.push('/dashboard/scolaire/unpaid')}
+            >
+              <span className="text-2xl mb-2 block">❌</span>
+              <div className="text-lg font-bold text-gray-800 mb-1">
+                {loadingStats ? (
+                  <div className="w-12 h-5 bg-gray-200 animate-pulse rounded"></div>
+                ) : (
+                  formatAmount(statsCardData?.totalUnpaid || 0)
+                )}
+              </div>
+              <div className="text-xs text-gray-600 font-semibold uppercase tracking-wide">Impayées</div>
+              <div className="text-xs text-red-600 mt-1 font-semibold">
+                {loadingStats ? (
+                  <div className="w-16 h-3 bg-gray-200 animate-pulse rounded"></div>
+                ) : (
+                  `${Math.round((statsCardData?.totalUnpaid || 0) / (statsCardData?.totalAmount || 1) * 100)}% du total`
+                )}
+              </div>
             </motion.div>
           </motion.div>
 

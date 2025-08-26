@@ -42,7 +42,7 @@ const config: Config = {
           800: '#92400e',
           900: '#78350f',
         },
-        // Couleurs de status du guide eTicket
+        // Couleurs de status du guide fayclick
         success: {
           50: '#ecfdf5',
           100: '#d1fae5',
@@ -77,7 +77,7 @@ const config: Config = {
         montserrat: ['var(--font-montserrat)', 'Montserrat', 'sans-serif'],
         sans: ['var(--font-inter)', 'Inter', 'system-ui', 'sans-serif'],
       },
-      // Extensions d'animations du guide eTicket
+      // Extensions d'animations du guide fayclick
       animation: {
         'float-slow': 'float 6s ease-in-out infinite',
         'bounce-slow': 'bounce 3s ease-in-out infinite',

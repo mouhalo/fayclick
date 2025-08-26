@@ -1,56 +1,25 @@
 import { ApiException, authService } from './auth.service';
+import { FinancialData, DashboardStats } from '@/types/dashboard';
+import DatabaseService from './database.service';
+import { extractSingleDataFromResult } from '@/utils/dataExtractor';
 
-// Configuration de l'API
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.icelabsoft.com/api';
-
-// Interface pour les données dashboard
-interface DashboardApiResponse {
-  success: boolean;
-  data: {
-    get_dashboard: {
-      nom_structure: string;
-      type_structure: string;
-      mt_total_factures: number;
-      mt_total_payees: number;
-      mt_total_impayees: number;
-      // Spécifiques selon le type
-      total_eleves?: number;      // SCOLAIRE
-      total_clients?: number;     // IMMOBILIER
-      total_produits?: number;    // COMMERCIALE
-      mt_valeur_stocks?: number;  // COMMERCIALE
-      total_services?: number;    // PRESTATAIRE DE SERVICES
-      mt_chiffre_affaire?: number; // PRESTATAIRE DE SERVICES
-    };
-  };
-}
-
-// Interface unifiée pour les stats dashboard
-export interface DashboardStats {
+// Interface pour les données dashboard (retour direct de PostgreSQL)
+interface DashboardRawData {
   nom_structure: string;
   type_structure: string;
   mt_total_factures: number;
   mt_total_payees: number;
   mt_total_impayees: number;
-  
-  // Données spécifiques selon le type
-  total_eleves?: number;
-  total_clients?: number;
-  total_produits?: number;
-  mt_valeur_stocks?: number;
-  total_services?: number;
-  mt_chiffre_affaire?: number;
+  // Spécifiques selon le type
+  total_eleves?: number;      // SCOLAIRE
+  total_clients?: number;     // IMMOBILIER
+  total_produits?: number;    // COMMERCIALE
+  mt_valeur_stocks?: number;  // COMMERCIALE
+  total_services?: number;    // PRESTATAIRE DE SERVICES
+  mt_chiffre_affaire?: number; // PRESTATAIRE DE SERVICES
 }
 
-// Interface pour les données financières calculées
-export interface FinancialData {
-  totalRevenues: number;
-  totalPaid: number;
-  totalUnpaid: number;
-  netBalance: number;
-  // Données supplémentaires selon le type
-  totalStock?: number;
-  totalRevenueBusiness?: number;
-}
+
 
 // Service Dashboard
 export class DashboardService {
@@ -91,76 +60,52 @@ export class DashboardService {
       }
     }
 
-    const token = authService.getToken();
-    if (!token) {
-      throw new ApiException('Token d\'authentification manquant', 401);
+    // Vérifier l'authentification
+    if (!authService.isAuthenticated()) {
+      throw new ApiException('Utilisateur non authentifié', 401);
     }
 
     try {
-      const response = await fetch(`${API_BASE_URL}/structures/dashboard/${structureId}`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      // Log pour debug
-      if (process.env.NODE_ENV === 'development') {
-        console.log('Dashboard API response status:', response.status);
-      }
-
-      // Gestion des erreurs HTTP
-      if (!response.ok) {
-        let errorMessage = 'Erreur lors du chargement des données';
-        
-        switch (response.status) {
-          case 401:
-            errorMessage = 'Session expirée, veuillez vous reconnecter';
-            // Rediriger vers la page de login
-            if (typeof window !== 'undefined') {
-              window.location.href = '/login?logout=true';
-            }
-            break;
-          case 403:
-            errorMessage = 'Accès non autorisé à cette structure';
-            break;
-          case 404:
-            errorMessage = 'Structure non trouvée';
-            break;
-          case 500:
-            errorMessage = 'Erreur serveur, veuillez réessayer';
-            break;
-          default:
-            errorMessage = `Erreur ${response.status}: ${response.statusText}`;
-        }
-        
-        throw new ApiException(errorMessage, response.status);
-      }
-
-      const apiResponse: DashboardApiResponse = await response.json();
+      console.log(`🔍 [DASHBOARD] Récupération données pour structure ${structureId}`);
       
-      // Vérifier la structure de la réponse
-      if (!apiResponse.success || !apiResponse.data?.get_dashboard) {
-        throw new ApiException('Format de réponse API invalide');
+      // Appel à la nouvelle API XML via DatabaseService
+      const results = await DatabaseService.getDashboard(structureId.toString());
+      
+      console.log('🟢 [DASHBOARD] Résultat brut de l\'API:', results);
+      
+      if (!results || results.length === 0) {
+        throw new ApiException('Aucune donnée trouvée pour cette structure', 404);
       }
 
-      const dashboardData = apiResponse.data.get_dashboard;
+      // Extraire les données avec dataExtractor
+      const rawResult = extractSingleDataFromResult(results[0]);
+      
+      console.log('🟡 [DASHBOARD] Résultat extrait:', rawResult);
+      
+      // Les données sont dans rawResult.get_dashboard
+      const dashboardData = rawResult?.get_dashboard as DashboardRawData;
+      
+      console.log('🟡 [DASHBOARD] Données dashboard finales:', dashboardData);
+      
+      if (!dashboardData) {
+        throw new ApiException('Aucune donnée dashboard trouvée', 404);
+      }
       
       // Convertir en format unifié
       const stats: DashboardStats = {
         nom_structure: dashboardData.nom_structure,
         type_structure: dashboardData.type_structure,
-        mt_total_factures: dashboardData.mt_total_factures || 0,
-        mt_total_payees: dashboardData.mt_total_payees || 0,
-        mt_total_impayees: dashboardData.mt_total_impayees || 0,
-        // Données spécifiques selon le type
-        ...(dashboardData.total_eleves && { total_eleves: dashboardData.total_eleves }),
-        ...(dashboardData.total_clients && { total_clients: dashboardData.total_clients }),
-        ...(dashboardData.total_produits && { total_produits: dashboardData.total_produits }),
-        ...(dashboardData.mt_valeur_stocks && { mt_valeur_stocks: dashboardData.mt_valeur_stocks }),
-        ...(dashboardData.total_services && { total_services: dashboardData.total_services }),
-        ...(dashboardData.mt_chiffre_affaire && { mt_chiffre_affaire: dashboardData.mt_chiffre_affaire }),
+        mt_total_factures: dashboardData.mt_total_factures ?? 0,
+        mt_total_payees: dashboardData.mt_total_payees ?? 0,
+        mt_total_impayees: dashboardData.mt_total_impayees ?? 0,
+        
+        // Données spécifiques selon le type - utiliser typeof pour inclure les valeurs 0
+        ...(typeof dashboardData.total_eleves === 'number' && { total_eleves: dashboardData.total_eleves }),
+        ...(typeof dashboardData.total_clients === 'number' && { total_clients: dashboardData.total_clients }),
+        ...(typeof dashboardData.total_produits === 'number' && { total_produits: dashboardData.total_produits }),
+        ...(typeof dashboardData.mt_valeur_stocks === 'number' && { mt_valeur_stocks: dashboardData.mt_valeur_stocks }),
+        ...(typeof dashboardData.total_services === 'number' && { total_services: dashboardData.total_services }),
+        ...(typeof dashboardData.mt_chiffre_affaire === 'number' && { mt_chiffre_affaire: dashboardData.mt_chiffre_affaire }),
       };
 
       // Mettre en cache
@@ -180,39 +125,156 @@ export class DashboardService {
         throw error;
       }
       
-      // Erreur réseau ou autre
-      console.error('Erreur lors de l\'appel API dashboard:', error);
-      throw new ApiException(
-        'Impossible de charger les données. Vérifiez votre connexion.',
-        0
-      );
+      // Erreur de base de données ou autre
+      console.error('Erreur lors de la récupération des données dashboard:', error);
+      
+      // Analyser le type d'erreur pour un message plus précis
+      let errorMessage = 'Impossible de charger les données du dashboard';
+      
+      if (error instanceof Error) {
+        if (error.message.includes('contacter')) {
+          errorMessage = 'Impossible de contacter le serveur. Vérifiez votre connexion internet.';
+        } else if (error.message.includes('Timeout')) {
+          errorMessage = 'Délai d\'attente dépassé. Veuillez réessayer.';
+        } else {
+          errorMessage = `Erreur: ${error.message}`;
+        }
+      }
+      
+      throw new ApiException(errorMessage, 500);
     }
   }
 
-  // Calculer les données financières à partir des stats
+  // Calculer les données financières à partir des stats selon le type de structure
   calculateFinancialData(stats: DashboardStats): FinancialData {
+    const type = stats.type_structure;
+    
+    switch (type) {
+      case 'SCOLAIRE':
+        return this.calculateScolaireFinancials(stats);
+      
+      case 'COMMERCIALE':
+        return this.calculateCommercialeFinancials(stats);
+      
+      case 'IMMOBILIER':
+        return this.calculateImmobilierFinancials(stats);
+      
+      case 'PRESTATAIRE DE SERVICES':
+        return this.calculatePrestatairesFinancials(stats);
+      
+      default:
+        // Fallback pour types non reconnus
+        return this.calculateDefaultFinancials(stats);
+    }
+  }
+
+  // Calculs spécifiques pour SCOLAIRE
+  private calculateScolaireFinancials(stats: DashboardStats): FinancialData {
     const totalRevenues = stats.mt_total_factures || 0;
     const totalPaid = stats.mt_total_payees || 0;
     const totalUnpaid = stats.mt_total_impayees || 0;
-    const netBalance = totalPaid; // Le solde net est généralement le montant payé
+    const netBalance = totalPaid;
+    const totalInvoices = this.calculateInvoicesCount(totalRevenues);
 
-    const financialData: FinancialData = {
+    return {
       totalRevenues,
       totalPaid,
       totalUnpaid,
       netBalance,
+      totalInvoices,
+      // Pour affichage cohérent dans le dashboard
+      soldeNet: netBalance
     };
+  }
 
-    // Ajouter des données spécifiques selon le type
-    if (stats.mt_valeur_stocks) {
-      financialData.totalStock = stats.mt_valeur_stocks;
-    }
+  // Calculs spécifiques pour COMMERCIALE
+  private calculateCommercialeFinancials(stats: DashboardStats): FinancialData {
+    const totalStock = stats.mt_valeur_stocks || 0;
+    // Pour COMMERCIALE, pas de factures mais stock comme base
+    const totalRevenues = totalStock;
+    const totalPaid = totalStock; // Stock = actif
+    const totalUnpaid = 0; // Pas de factures impayées
+    const netBalance = totalStock;
     
-    if (stats.mt_chiffre_affaire) {
-      financialData.totalRevenueBusiness = stats.mt_chiffre_affaire;
-    }
+    // Estimation des charges (30% du stock comme exemple)
+    const totalCharges = Math.round(totalStock * 0.3);
+    const soldeNet = totalStock - totalCharges;
 
-    return financialData;
+    return {
+      totalRevenues,
+      totalPaid,
+      totalUnpaid,
+      netBalance,
+      totalStock,
+      totalCharges,
+      soldeNet,
+      // Calcul approximatif des ventes basé sur le stock
+      totalInvoices: this.calculateInvoicesCount(totalStock)
+    };
+  }
+
+  // Calculs spécifiques pour IMMOBILIER  
+  private calculateImmobilierFinancials(stats: DashboardStats): FinancialData {
+    const totalRevenues = stats.mt_total_factures || 0;
+    const totalPaid = stats.mt_total_payees || 0;
+    const totalUnpaid = stats.mt_total_impayees || 0;
+    const netBalance = totalPaid;
+    
+    // Pour immobilier, les commissions sont les montants payés
+    const totalCommissions = totalPaid;
+    const totalInvoices = this.calculateInvoicesCount(totalRevenues);
+
+    return {
+      totalRevenues,
+      totalPaid,
+      totalUnpaid,
+      netBalance,
+      totalCommissions,
+      totalInvoices,
+      // Estimation des charges (15% pour immobilier)
+      totalCharges: Math.round(totalRevenues * 0.15),
+      soldeNet: netBalance
+    };
+  }
+
+  // Calculs spécifiques pour PRESTATAIRE DE SERVICES
+  private calculatePrestatairesFinancials(stats: DashboardStats): FinancialData {
+    const totalRevenueBusiness = stats.mt_chiffre_affaire || 0;
+    const totalRevenues = totalRevenueBusiness;
+    const totalPaid = totalRevenueBusiness; // Chiffre d'affaire = revenus
+    const totalUnpaid = 0; // Pas de factures dans les données
+    const netBalance = totalRevenueBusiness;
+    
+    // Estimation des charges (25% du CA)
+    const totalCharges = Math.round(totalRevenueBusiness * 0.25);
+    const soldeNet = totalRevenueBusiness - totalCharges;
+
+    return {
+      totalRevenues,
+      totalPaid,
+      totalUnpaid,
+      netBalance,
+      totalRevenueBusiness,
+      totalCharges,
+      soldeNet,
+      totalInvoices: this.calculateInvoicesCount(totalRevenueBusiness)
+    };
+  }
+
+  // Calculs par défaut pour types non reconnus
+  private calculateDefaultFinancials(stats: DashboardStats): FinancialData {
+    const totalRevenues = stats.mt_total_factures || stats.mt_chiffre_affaire || 0;
+    const totalPaid = stats.mt_total_payees || totalRevenues;
+    const totalUnpaid = stats.mt_total_impayees || 0;
+    const netBalance = totalPaid;
+
+    return {
+      totalRevenues,
+      totalPaid,
+      totalUnpaid,
+      netBalance,
+      soldeNet: netBalance
+    };
   }
 
   // Calculer le nombre approximatif de factures

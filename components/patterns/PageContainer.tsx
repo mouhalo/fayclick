@@ -10,7 +10,7 @@ export interface PageContainerProps {
 }
 
 /**
- * Container de page principal réutilisable inspiré du guide eTicket
+ * Container de page principal réutilisable inspiré du guide fayclick
  * Gère automatiquement les safe areas et la responsivité
  */
 export const PageContainer: React.FC<PageContainerProps> = ({
@@ -19,7 +19,7 @@ export const PageContainer: React.FC<PageContainerProps> = ({
   background = 'default',
 }) => {
   const backgroundClasses = {
-    default: 'page-container', // Utilise la classe du guide eTicket
+    default: 'page-container', // Utilise la classe du guide fayclick
     gradient: 'min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50',
     plain: 'min-h-screen bg-white',
   };
@@ -59,7 +59,7 @@ export const ResponsiveContainer: React.FC<ResponsiveContainerProps> = ({
   const paddingClasses = {
     none: '',
     compact: 'px-3 sm:px-6 py-3 sm:py-6',
-    normal: 'responsive-container', // Utilise la classe du guide eTicket
+    normal: 'responsive-container', // Utilise la classe du guide fayclick
     comfortable: 'px-4 sm:px-8 lg:px-12 py-6 sm:py-10 lg:py-16',
   };
 

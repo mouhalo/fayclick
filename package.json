@@ -9,9 +9,10 @@
     "export": "next build",
     "start": "next start",
     "lint": "next lint",
-    "deploy": "node deploy.js",
-    "deploy:force": "node deploy.js --force",
-    "deploy:build": "node deploy.js --build --force"
+    "deploy": "node deploy.mjs",
+    "deploy:force": "node deploy.mjs --force",
+    "deploy:build": "node deploy.mjs --build --force",
+    "deploy:verbose": "node deploy.mjs --verbose --build"
   },
   "dependencies": {
     "clsx": "^2.1.1",

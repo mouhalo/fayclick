@@ -24,7 +24,7 @@ export interface ResponsiveHeaderProps {
 
 /**
  * Header responsive standard avec navigation
- * Basé sur les patterns du guide eTicket
+ * Basé sur les patterns du guide fayclick
  */
 export const ResponsiveHeader: React.FC<ResponsiveHeaderProps> = ({
   title,

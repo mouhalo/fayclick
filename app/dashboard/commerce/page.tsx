@@ -6,11 +6,13 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { authService } from '@/services/auth.service';
 import { useDashboardData } from '@/hooks/useDashboardData';
 import MainMenu from '@/components/layout/MainMenu';
+import { formatAmount } from '@/utils/formatAmount';
 
 
 export default function CommerceDashboard() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [showCoffreModal, setShowCoffreModal] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [notifications, setNotifications] = useState(3);
@@ -26,19 +28,35 @@ export default function CommerceDashboard() {
   } = useDashboardData(user?.id_structure || 0);
 
   useEffect(() => {
-    // Vérifier l'authentification
-    if (!authService.isAuthenticated()) {
-      router.push('/login');
-      return;
-    }
+    // Attendre que le composant soit monté côté client avant de vérifier localStorage
+    const checkAuthentication = () => {
+      // Vérifier l'authentification
+      if (!authService.isAuthenticated()) {
+        console.log('❌ [COMMERCE] Utilisateur non authentifié, redirection vers login');
+        setIsAuthLoading(false);
+        router.push('/login');
+        return;
+      }
 
-    const userData = authService.getUser();
-    if (!userData || userData.type_structure !== 'COMMERCIALE') {
-      router.push('/dashboard');
-      return;
-    }
+      const userData = authService.getUser();
+      console.log('👤 [COMMERCE] Données utilisateur:', userData?.type_structure, userData?.nom_structure);
+      
+      if (!userData || userData.type_structure !== 'COMMERCIALE') {
+        console.log('⚠️ [COMMERCE] Type de structure incorrect, redirection vers dashboard général');
+        setIsAuthLoading(false);
+        router.push('/dashboard');
+        return;
+      }
+      
+      console.log('✅ [COMMERCE] Authentification validée pour:', userData.nom_structure);
+      setUser(userData);
+      setIsAuthLoading(false);
+    };
+
+    // Attendre un tick pour s'assurer que localStorage est accessible
+    const timer = setTimeout(checkAuthentication, 100);
     
-    setUser(userData);
+    return () => clearTimeout(timer);
   }, [router]);
 
   // Animation du compteur
@@ -81,7 +99,7 @@ export default function CommerceDashboard() {
     alert('Notifications (3) :\n\n• Nouvelle commande de Fatou K.\n• Rappel : Stock faible pour "Riz parfumé"\n• Paiement Orange Money reçu : 15,000 FCFA');
   };
 
-  if (!user) {
+  if (isAuthLoading || !user) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-sky-400 to-sky-200">
         <div className="text-center">
@@ -91,7 +109,9 @@ export default function CommerceDashboard() {
               <span className="text-2xl font-black text-white">FC</span>
             </div>
           </div>
-          <p className="text-white text-lg font-medium animate-pulse">Chargement...</p>
+          <p className="text-white text-lg font-medium animate-pulse">
+            {isAuthLoading ? 'Vérification de la session...' : 'Chargement...'}
+          </p>
         </div>
       </div>
     );
@@ -212,26 +232,52 @@ export default function CommerceDashboard() {
             <motion.div
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              className="bg-white rounded-2xl p-5 shadow-lg border-l-4 border-blue-500 cursor-pointer"
-              onClick={() => router.push('/dashboard/commerce/clients')}
+              className="bg-white rounded-2xl p-5 shadow-lg border-l-4 border-green-500 cursor-pointer"
+              onClick={() => router.push('/dashboard/commerce/stock')}
             >
-              <span className="text-3xl mb-3 block">👥</span>
-              <div className="text-3xl font-bold text-gray-800 mb-1">
+              <span className="text-3xl mb-3 block">💰</span>
+              <div className="text-2xl font-bold text-gray-800 mb-1">
                 {loadingStats ? (
-                  <div className="w-12 h-8 bg-gray-200 animate-pulse rounded"></div>
+                  <div className="w-12 h-6 bg-gray-200 animate-pulse rounded"></div>
                 ) : (
-                  <AnimatedCounter value={statsCardData?.invoicesCount || 0} />
+                  formatAmount(statsCardData?.totalAmount || 0)
                 )}
               </div>
-              <div className="text-xs text-gray-600 font-semibold uppercase tracking-wide">Clients</div>
-              <div className="text-xs text-green-600 mt-2 font-semibold">
-                {loadingStats ? (
-                  <div className="w-16 h-3 bg-gray-200 animate-pulse rounded"></div>
-                ) : (
-                  `+${statsCardData?.growthPercentage || 0}% ce mois`
-                )}
-              </div>
+              <div className="text-xs text-gray-600 font-semibold uppercase tracking-wide">Valeur Stock</div>
+              <div className="text-xs text-green-600 mt-2 font-semibold">FCFA</div>
             </motion.div>
+          </motion.div>
+
+          {/* Clients info section */}
+          <motion.div
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.7 }}
+            className="bg-white rounded-2xl p-4 mb-4 shadow-lg"
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">👥</span>
+                <div>
+                  <div className="text-xl font-bold text-gray-800">
+                    {loadingStats ? (
+                      <div className="w-8 h-5 bg-gray-200 animate-pulse rounded"></div>
+                    ) : (
+                      <AnimatedCounter value={stats?.total_clients || 0} />
+                    )}
+                  </div>
+                  <div className="text-xs text-gray-600 font-semibold uppercase">Clients actifs</div>
+                </div>
+              </div>
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="px-4 py-2 bg-blue-500 text-white text-sm rounded-lg font-semibold"
+                onClick={() => router.push('/dashboard/commerce/clients')}
+              >
+                Voir tous
+              </motion.button>
+            </div>
           </motion.div>
 
           {/* Quick Actions */}

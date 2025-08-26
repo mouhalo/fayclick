@@ -26,7 +26,7 @@ export interface UseSwipeOptions {
 
 /**
  * Hook pour gestion avancée du tactile et des gestes swipe
- * Basé sur les patterns du guide eTicket PWA
+ * Basé sur les patterns du guide fayclick PWA
  */
 export const useSwipe = (options: UseSwipeOptions = {}): SwipeHandlers & TouchState => {
   const {

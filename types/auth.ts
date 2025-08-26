@@ -6,7 +6,11 @@ export interface LoginCredentials {
 
 export interface User {
   id: number;
-  username: string;
+  username?: string;
+  login: string;
+  nom?: string;
+  prenom?: string;
+  email?: string;
   nom_groupe: string;
   id_structure: number;
   nom_structure: string;
@@ -14,12 +18,25 @@ export interface User {
   actif: boolean;
   type_structure: 'SCOLAIRE' | 'COMMERCIALE' | 'IMMOBILIER' | 'PRESTATAIRE DE SERVICES' | 'FORMATION PRO';
   logo: string;
-  login: string;
   pwd: string;
   telephone: string;
   nom_profil: string;
   id_groupe: number;
   id_profil: number;
+  // Propriétés étendues pour compatibilité avec l'ancien système
+  profil?: {
+    id: number;
+    nom: string;
+    id_profil?: number;
+    nom_profil?: string;
+    [key: string]: unknown;
+  };
+  zone?: {
+    id: number;
+    nom: string;
+    [key: string]: unknown;
+  };
+  mode?: string;
 }
 
 export interface LoginResponse {
@@ -50,7 +67,7 @@ export interface Structure {
 export interface ApiError {
   message: string;
   status?: number;
-  details?: any;
+  details?: unknown;
 }
 
 // Routes de redirection selon le groupe utilisateur
