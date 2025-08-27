@@ -1,4 +1,4 @@
-import { LoginCredentials, LoginResponse, User, StructureDetails, UserPermissions, CompleteAuthData, AuthState } from '@/types/auth';
+import { LoginCredentials, LoginResponse, User, StructureDetails, UserPermissions, CompleteAuthData } from '@/types/auth';
 import DatabaseService from './database.service';
 import SecurityService from './security.service';
 import { extractSingleDataFromResult } from '@/utils/dataExtractor';
@@ -39,33 +39,33 @@ export class AuthService {
       }
 
       // La réponse est directe, pas besoin d'extraction comme pour les fonctions
-      const structureData = results[0] as any;
+      const structureData = results[0] as Record<string, unknown>;
       
       const structure: StructureDetails = {
-        id_structure: structureData.id_structure,
-        code_structure: structureData.code_structure,
-        nom_structure: structureData.nom_structure,
-        adresse: structureData.adresse || '',
-        mobile_om: structureData.mobile_om || '',
-        mobile_wave: structureData.mobile_wave || '',
-        numautorisatioon: structureData.numautorisatioon || '',
-        nummarchand: structureData.nummarchand || '',
-        email: structureData.email || '',
-        id_localite: structureData.id_localite || 0,
-        actif: structureData.actif || false,
-        logo: structureData.logo || '',
-        createdat: structureData.createdat || '',
-        updatedat: structureData.updatedat || '',
-        id_type: structureData.id_type || 0,
-        type_structure: structureData.type_structure || '',
-        num_unik_reversement: structureData.num_unik_reversement || '',
+        id_structure: structureData.id_structure as number,
+        code_structure: structureData.code_structure as string,
+        nom_structure: structureData.nom_structure as string,
+        adresse: (structureData.adresse as string) || '',
+        mobile_om: (structureData.mobile_om as string) || '',
+        mobile_wave: (structureData.mobile_wave as string) || '',
+        numautorisatioon: (structureData.numautorisatioon as string) || '',
+        nummarchand: (structureData.nummarchand as string) || '',
+        email: (structureData.email as string) || '',
+        id_localite: (structureData.id_localite as number) || 0,
+        actif: (structureData.actif as boolean) || false,
+        logo: (structureData.logo as string) || '',
+        createdat: (structureData.createdat as string) || '',
+        updatedat: (structureData.updatedat as string) || '',
+        id_type: (structureData.id_type as number) || 0,
+        type_structure: (structureData.type_structure as string) || '',
+        num_unik_reversement: (structureData.num_unik_reversement as string) || '',
         // Champs additionnels
-        created_at: structureData.createdat || '',
-        updated_at: structureData.updatedat || '',
-        description: structureData.description,
-        website: structureData.website,
-        siret: structureData.siret,
-        responsable: structureData.responsable
+        created_at: (structureData.createdat as string) || '',
+        updated_at: (structureData.updatedat as string) || '',
+        description: (structureData.description as string) || undefined,
+        website: (structureData.website as string) || undefined,
+        siret: (structureData.siret as string) || undefined,
+        responsable: (structureData.responsable as string) || undefined
       };
 
       console.log('✅ [AUTH] Détails structure récupérés:', structure.nom_structure);
@@ -127,8 +127,8 @@ export class AuthService {
         timestamp: new Date().toISOString()
       });
 
-      // Appel de la fonction PostgreSQL check_user_credentials
-      const results = await DatabaseService.checkUserCredentials(credentials.login, credentials.pwd);
+      // Appel de la fonction PostgreSQL check_user_credentials (VERSION CORRIGÉE)
+      const results = await DatabaseService.checkUserCredentialsFixed(credentials.login, credentials.pwd);
       
       console.log('🔍 [AUTH] Résultat vérification identifiants:', {
         hasResults: results && results.length > 0,

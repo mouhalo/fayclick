@@ -218,8 +218,21 @@ class DatabaseService {
    * Exécute une fonction PostgreSQL avec paramètres
    */
   async executeFunction(functionName: string, params: string[] = []): Promise<any[]> {
-    const paramStr = params.map(p => `'${p}'`).join(', ');
+    const paramStr = params.map(p => {
+      // Gérer les types numériques (ne pas les entourer de quotes)
+      if (/^\d+$/.test(p)) {
+        return `${p}::integer`;
+      }
+      // Échapper les quotes dans les chaînes
+      const escapedParam = p.replace(/'/g, "''");
+      return `'${escapedParam}'::varchar`;
+    }).join(', ');
     const query = `SELECT * FROM ${functionName}(${paramStr});`;
+    console.log('🔧 [DATABASE] Exécution fonction:', {
+      functionName,
+      params: params.length,
+      query
+    });
     return this.query(query);
   }
 
@@ -235,6 +248,28 @@ class DatabaseService {
    */
   async checkUserCredentials(login: string, password: string): Promise<any[]> {
     return this.executeFunction('check_user_credentials', [login, password]);
+  }
+
+  /**
+   * Vérification des identifiants - VERSION CORRIGÉE
+   * Force les deux paramètres en varchar pour éviter la conversion automatique des mots de passe numériques
+   */
+  async checkUserCredentialsFixed(login: string, password: string): Promise<any[]> {
+    // Échapper les quotes dans les paramètres
+    const escapedLogin = login.replace(/'/g, "''");
+    const escapedPassword = password.replace(/'/g, "''");
+    
+    // Construction manuelle de la requête pour forcer les types varchar
+    const query = `SELECT * FROM check_user_credentials('${escapedLogin}'::varchar, '${escapedPassword}'::varchar);`;
+    
+    console.log('🔐 [DATABASE] Requête auth corrigée:', {
+      functionName: 'check_user_credentials',
+      loginLength: login.length,
+      passwordLength: password.length,
+      query
+    });
+    
+    return this.query(query);
   }
 
   /**
@@ -262,6 +297,46 @@ class DatabaseService {
       query
     });
     return this.query(query);
+  }
+
+  /**
+   * Récupération des types de structure disponibles
+   */
+  async getStructureTypes(): Promise<any[]> {
+    const query = 'SELECT id_type, nom_type FROM type_structure WHERE id_type != 0 ORDER BY nom_type';
+    console.log('📋 [DATABASE] Récupération types structure');
+    return this.query(query);
+  }
+
+  /**
+   * Inscription d'un nouveau marchand via add_edit_inscription
+   */
+  async registerMerchant(
+    p_id_type: number,
+    p_nom_structure: string,
+    p_adresse: string,
+    p_mobile_om: string,
+    p_mobile_wave: string = '',
+    p_numautorisatioon: string = '',
+    p_nummarchand: string = '',
+    p_email: string = '',
+    p_logo: string = '',
+    p_nom_service: string = 'SERVICES',
+    p_id_structure: number = 0
+  ): Promise<any[]> {
+    return this.executeFunction('add_edit_inscription', [
+      p_id_type.toString(),
+      p_nom_structure,
+      p_adresse,
+      p_mobile_om,
+      p_mobile_wave,
+      p_numautorisatioon,
+      p_nummarchand,
+      p_email,
+      p_logo,
+      p_nom_service,
+      p_id_structure.toString()
+    ]);
   }
 
   /**

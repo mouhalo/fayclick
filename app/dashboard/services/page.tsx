@@ -10,7 +10,7 @@ import { formatAmount } from '@/utils/formatAmount';
 import { User } from '@/types/auth';
 
 
-export default function CommerceDashboard() {
+export default function ServicesDashboard() {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
@@ -33,23 +33,23 @@ export default function CommerceDashboard() {
     const checkAuthentication = () => {
       // Vérifier l'authentification
       if (!authService.isAuthenticated()) {
-        console.log('❌ [COMMERCE] Utilisateur non authentifié, redirection vers login');
+        console.log('❌ [SERVICES] Utilisateur non authentifié, redirection vers login');
         setIsAuthLoading(false);
         router.push('/login');
         return;
       }
 
       const userData = authService.getUser();
-      console.log('👤 [COMMERCE] Données utilisateur:', userData?.type_structure, userData?.nom_structure);
+      console.log('👤 [SERVICES] Données utilisateur:', userData?.type_structure, userData?.nom_structure);
       
-      if (!userData || userData.type_structure !== 'COMMERCIALE') {
-        console.log('⚠️ [COMMERCE] Type de structure incorrect, redirection vers dashboard général');
+      if (!userData || userData.type_structure !== 'PRESTATAIRE DE SERVICES') {
+        console.log('⚠️ [SERVICES] Type de structure incorrect, redirection vers dashboard général');
         setIsAuthLoading(false);
         router.push('/dashboard');
         return;
       }
       
-      console.log('✅ [COMMERCE] Authentification validée pour:', userData.nom_structure);
+      console.log('✅ [SERVICES] Authentification validée pour:', userData.nom_structure);
       setUser(userData);
       setIsAuthLoading(false);
     };
@@ -97,7 +97,7 @@ export default function CommerceDashboard() {
 
   const handleNotifications = () => {
     setNotifications(0);
-    alert('Notifications (3) :\n\n• Nouvelle commande de Fatou K.\n• Rappel : Stock faible pour "Riz parfumé"\n• Paiement Orange Money reçu : 15,000 FCFA');
+    alert('Notifications (3) :\n\n• Nouveau client intéressé par vos services\n• Rappel : Facturation en attente pour M. Diallo\n• Paiement Orange Money reçu : 25,000 FCFA');
   };
 
   if (isAuthLoading || !user) {
@@ -119,14 +119,14 @@ export default function CommerceDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-600 via-purple-700 to-purple-800">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-600 via-indigo-700 to-indigo-800">
       <div className="max-w-md mx-auto bg-white min-h-screen relative overflow-hidden">
         {/* Header */}
         <motion.div
           initial={{ y: -50, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 0.6 }}
-          className="bg-gradient-to-r from-green-500 to-green-600 p-5 text-white relative overflow-hidden"
+          className="bg-gradient-to-r from-indigo-500 to-indigo-600 p-5 text-white relative overflow-hidden"
         >
           {/* Pattern Background */}
           <div className="absolute inset-0 opacity-10">
@@ -210,9 +210,9 @@ export default function CommerceDashboard() {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               className="bg-white rounded-2xl p-5 shadow-lg border-l-4 border-orange-500 cursor-pointer"
-              onClick={() => router.push('/dashboard/commerce/products')}
+              onClick={() => router.push('/dashboard/services/prestations')}
             >
-              <span className="text-3xl mb-3 block">📦</span>
+              <span className="text-3xl mb-3 block">🛠️</span>
               <div className="text-3xl font-bold text-gray-800 mb-1">
                 {loadingStats ? (
                   <div className="w-12 h-8 bg-gray-200 animate-pulse rounded"></div>
@@ -220,7 +220,7 @@ export default function CommerceDashboard() {
                   <AnimatedCounter value={statsCardData?.primaryCount || 0} />
                 )}
               </div>
-              <div className="text-xs text-gray-600 font-semibold uppercase tracking-wide">Produits</div>
+              <div className="text-xs text-gray-600 font-semibold uppercase tracking-wide">Services</div>
               <div className="text-xs text-green-600 mt-2 font-semibold">
                 {loadingStats ? (
                   <div className="w-16 h-3 bg-gray-200 animate-pulse rounded"></div>
@@ -234,7 +234,7 @@ export default function CommerceDashboard() {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               className="bg-white rounded-2xl p-5 shadow-lg border-l-4 border-green-500 cursor-pointer"
-              onClick={() => router.push('/dashboard/commerce/stock')}
+              onClick={() => router.push('/dashboard/services/chiffre-affaires')}
             >
               <span className="text-3xl mb-3 block">💰</span>
               <div className="text-2xl font-bold text-gray-800 mb-1">
@@ -244,7 +244,7 @@ export default function CommerceDashboard() {
                   formatAmount(statsCardData?.totalAmount || 0)
                 )}
               </div>
-              <div className="text-xs text-gray-600 font-semibold uppercase tracking-wide">Valeur Stock</div>
+              <div className="text-xs text-gray-600 font-semibold uppercase tracking-wide">Chiffre d'Affaires</div>
               <div className="text-xs text-green-600 mt-2 font-semibold">FCFA</div>
             </motion.div>
           </motion.div>
@@ -274,7 +274,7 @@ export default function CommerceDashboard() {
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 className="px-4 py-2 bg-blue-500 text-white text-sm rounded-lg font-semibold"
-                onClick={() => router.push('/dashboard/commerce/clients')}
+                onClick={() => router.push('/dashboard/services/clients')}
               >
                 Voir tous
               </motion.button>
@@ -294,10 +294,10 @@ export default function CommerceDashboard() {
 
             <div className="grid grid-cols-2 gap-4">
               {[
-                { icon: '📦', title: 'Liste Produits', subtitle: 'Gérer votre stock', color: 'orange', path: '/products' },
-                { icon: '💰', title: 'Liste Ventes', subtitle: 'Historique & factures', color: 'green', path: '/sales' },
-                { icon: '👥', title: 'Liste Clients', subtitle: "Carnet d'adresses", color: 'blue', path: '/clients' },
-                { icon: '📊', title: 'Inventaires', subtitle: 'Statistiques détaillées', color: 'brown', path: '/inventory' }
+                { icon: '🛠️', title: 'Mes Services', subtitle: 'Gérer vos prestations', color: 'orange', path: '/prestations' },
+                { icon: '💰', title: 'Facturations', subtitle: 'Historique & factures', color: 'green', path: '/facturations' },
+                { icon: '👥', title: 'Mes Clients', subtitle: "Carnet d'adresses", color: 'blue', path: '/clients' },
+                { icon: '📊', title: 'Rapports', subtitle: 'Statistiques détaillées', color: 'indigo', path: '/rapports' }
               ].map((action, index) => (
                 <motion.div
                   key={index}
@@ -310,9 +310,9 @@ export default function CommerceDashboard() {
                     action.color === 'orange' ? 'from-orange-50 to-orange-100' :
                     action.color === 'green' ? 'from-green-50 to-green-100' :
                     action.color === 'blue' ? 'from-blue-50 to-blue-100' :
-                    'from-amber-50 to-amber-100'
+                    'from-indigo-50 to-indigo-100'
                   } rounded-2xl p-5 text-center cursor-pointer shadow-md hover:shadow-xl transition-all border-2 border-transparent hover:border-${action.color}-200 relative overflow-hidden`}
-                  onClick={() => router.push(`/dashboard/commerce${action.path}`)}
+                  onClick={() => router.push(`/dashboard/services${action.path}`)}
                 >
                   <div className="relative z-10">
                     <span className="text-4xl mb-3 block">{action.icon}</span>
@@ -336,7 +336,7 @@ export default function CommerceDashboard() {
               <div className="text-center">
                 <span className="text-4xl mb-3 block">🏦</span>
                 <div className="text-base font-bold text-gray-800 mb-1">Coffre-Fort</div>
-                <div className="text-xs text-gray-600">CA réel, ventes, charges & solde</div>
+                <div className="text-xs text-gray-600">CA réel, prestations, charges & solde</div>
               </div>
             </motion.div>
           </motion.div>
@@ -380,7 +380,7 @@ export default function CommerceDashboard() {
                 {/* Modal Body */}
                 <div className="p-6">
                   {/* CA Display */}
-                  <div className="bg-gradient-to-r from-green-500 to-green-600 text-white rounded-2xl p-5 text-center mb-5 relative overflow-hidden">
+                  <div className="bg-gradient-to-r from-indigo-500 to-indigo-600 text-white rounded-2xl p-5 text-center mb-5 relative overflow-hidden">
                     <div className="absolute inset-0 opacity-10">
                       <div className="absolute inset-0" style={{
                         backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.2) 1px, transparent 1px)',
@@ -415,7 +415,7 @@ export default function CommerceDashboard() {
                     >
                       <div className="flex items-center gap-3">
                         <span className="text-2xl">💰</span>
-                        <span className="font-semibold text-gray-700">Total Ventes</span>
+                        <span className="font-semibold text-gray-700">Prestations Réalisées</span>
                       </div>
                       <div className="font-bold text-green-600">
                         {loadingStats ? (
@@ -434,7 +434,7 @@ export default function CommerceDashboard() {
                     >
                       <div className="flex items-center gap-3">
                         <span className="text-2xl">📊</span>
-                        <span className="font-semibold text-gray-700">Charges & Achats</span>
+                        <span className="font-semibold text-gray-700">Prestations Impayées</span>
                       </div>
                       <div className="font-bold text-red-600">
                         {loadingStats ? (

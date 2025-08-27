@@ -1,10 +1,8 @@
 'use client';
 
 import { useIsDesktop } from '@/hooks';
-import { Suspense, useEffect, useState } from 'react';
+import { Suspense } from 'react';
 import dynamic from 'next/dynamic';
-import { authService } from '@/services/auth.service';
-import { useRouter } from 'next/navigation';
 
 // Import dynamique pour optimiser le chargement
 const MobileHome = dynamic(() => import('@/components/home/MobileHome'), {
@@ -36,35 +34,10 @@ function LoadingScreen() {
 
 export default function Home() {
   const isDesktop = useIsDesktop();
-  const router = useRouter();
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-
-  useEffect(() => {
-    setIsAuthenticated(authService.isAuthenticated());
-  }, []);
-
-  const handleLogout = () => {
-    authService.clearSession();
-    router.push('/login');
-  };
 
   return (
-    <>
-      {/* Bouton de déconnexion temporaire pour debug */}
-      {isAuthenticated && (
-        <div className="fixed top-4 right-4 z-50">
-          <button
-            onClick={handleLogout}
-            className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg shadow-lg transition-all text-sm font-medium"
-          >
-            Déconnexion
-          </button>
-        </div>
-      )}
-      
-      <Suspense fallback={<LoadingScreen />}>
-        {isDesktop ? <DesktopHome /> : <MobileHome />}
-      </Suspense>
-    </>
+    <Suspense fallback={<LoadingScreen />}>
+      {isDesktop ? <DesktopHome /> : <MobileHome />}
+    </Suspense>
   );
 }
