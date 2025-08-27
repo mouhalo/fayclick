@@ -253,7 +253,7 @@ export function getStructureConfig(type_structure: string): StructureConfig {
 export interface DashboardError {
   code: 'NETWORK_ERROR' | 'AUTH_ERROR' | 'NOT_FOUND' | 'SERVER_ERROR' | 'INVALID_DATA';
   message: string;
-  details?: any;
+  details?: Record<string, unknown>;
 }
 
 // Interface pour le cache des données
@@ -284,5 +284,5 @@ export enum StructureType {
 export interface DashboardEvent {
   type: 'REFRESH' | 'ERROR' | 'CACHE_HIT' | 'CACHE_MISS' | 'DATA_UPDATED';
   timestamp: Date;
-  details?: any;
+  details?: Record<string, unknown>;
 }

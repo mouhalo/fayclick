@@ -15,11 +15,14 @@
     "deploy:verbose": "node deploy.mjs --verbose --build"
   },
   "dependencies": {
+    "basic-ftp": "^5.0.5",
+    "browser-image-compression": "^2.0.2",
     "clsx": "^2.1.1",
     "framer-motion": "^12.23.12",
     "next": "15.4.6",
     "react": "19.1.0",
     "react-dom": "19.1.0",
+    "recharts": "^3.1.2",
     "styled-jsx": "^5.1.7"
   },
   "devDependencies": {

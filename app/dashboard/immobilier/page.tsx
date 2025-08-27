@@ -168,7 +168,7 @@ function ImmobilierDashboardContent() {
 
             <div className="grid grid-cols-2 gap-4">
               {[
-                { icon: '🏢', title: 'Ma Structure', subtitle: 'Configuration & utilisateurs', color: 'purple', path: '/structure' },
+                { icon: '🏢', title: 'Ma Structure', subtitle: 'Configuration & utilisateurs', color: 'purple', path: '/structure/gestion' },
                 { icon: '🏡', title: 'Mes Données', subtitle: 'Biens & services', color: 'orange', path: '/data' },
                 { icon: '📊', title: 'Mes Factures', subtitle: 'Commissions & recherche', color: 'green', path: '/invoices' },
                 { icon: '💎', title: 'Mes Finances', subtitle: 'Solde & reversements', color: 'gold', path: '/finance' }
@@ -186,7 +186,14 @@ function ImmobilierDashboardContent() {
                     action.color === 'green' ? 'from-green-50 to-green-100' :
                     'from-yellow-50 to-yellow-100'
                   } rounded-2xl p-5 text-center cursor-pointer shadow-md hover:shadow-xl transition-all border-2 border-transparent hover:border-${action.color}-200 relative overflow-hidden`}
-                  onClick={() => router.push(`/dashboard/immobilier${action.path}`)}
+                  onClick={() => {
+                    // Gestion spéciale pour "Ma Structure" qui pointe vers une route absolue
+                    if (action.path === '/structure/gestion') {
+                      router.push(action.path);
+                    } else {
+                      router.push(`/dashboard/immobilier${action.path}`);
+                    }
+                  }}
                 >
                   <div className="relative z-10">
                     <span className="text-4xl mb-3 block">{action.icon}</span>
