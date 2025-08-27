@@ -252,6 +252,19 @@ class DatabaseService {
   }
 
   /**
+   * Récupération des détails complets d'une structure
+   * @param id_structure - ID de la structure
+   */
+  async getStructureDetails(id_structure: number): Promise<any[]> {
+    const query = `SELECT * FROM list_structures WHERE id_structure = ${id_structure};`;
+    console.log('🏢 [DATABASE] Récupération détails structure:', {
+      id_structure,
+      query
+    });
+    return this.query(query);
+  }
+
+  /**
    * Test de connectivité de l'API
    */
   async testConnection(): Promise<boolean> {

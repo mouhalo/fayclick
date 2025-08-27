@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, Montserrat } from "next/font/google";
 import "./globals.css";
+import { AuthProvider } from '@/contexts/AuthContext';
 
 const inter = Inter({
   variable: "--font-inter",
@@ -62,9 +63,11 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
       </head>
       <body className="font-inter antialiased min-h-screen">
-        <div className="safe-area-container">
-          {children}
-        </div>
+        <AuthProvider>
+          <div className="safe-area-container">
+            {children}
+          </div>
+        </AuthProvider>
       </body>
     </html>
   );

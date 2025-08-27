@@ -11,18 +11,18 @@ import {
   CardHeader,
   CardContent
 } from '@/components/patterns';
-import { authService, ApiException } from '@/services/auth.service';
-import { getUserRedirectRoute } from '@/types/auth';
+import { useAuth } from '@/contexts/AuthContext';
+import { authService } from '@/services/auth.service';
 
 export default function LoginPage() {
   const router = useRouter();
+  const { login: authLogin, isAuthenticated, isLoading: authLoading, error: authError, clearError, user } = useAuth();
   const [isLoaded, setIsLoaded] = useState(false);
   const [formData, setFormData] = useState({
     login: '',
     password: '',
   });
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
@@ -41,22 +41,16 @@ export default function LoginPage() {
     }
     
     // Vérifier si déjà connecté SEULEMENT si pas de logout forcé
-    if (authService.isAuthenticated()) {
-      const user = authService.getUser();
-      if (user) {
-        // Vérifier que le token est valide (optionnel, vous pouvez ajouter une vérification API)
-        router.push(getUserRedirectRoute(user));
-      } else {
-        // Si on a un token mais pas d'user, nettoyer la session
-        authService.clearSession();
-      }
+    if (isAuthenticated && user) {
+      // Redirection automatique gérée par AuthContext
+      console.log('Déjà connecté, redirection...', user.login);
     }
-  }, [router]);
+  }, [isAuthenticated, user, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    setError('');
+    clearError();
 
     try {
       // Validation basique
@@ -64,33 +58,17 @@ export default function LoginPage() {
         throw new Error('Veuillez remplir tous les champs');
       }
 
-      // Appel API
-      const response = await authService.login({
+      // Utiliser le login du contexte AuthContext
+      await authLogin({
         login: formData.login.toLowerCase().trim(),
         pwd: formData.password
       });
 
-      // Sauvegarder token et user
-      authService.saveToken(response.token);
-      authService.saveUser(response.user);
-
-      // Message de bienvenue
-      console.log(`Bienvenue ${response.user.username} de ${response.user.nom_structure}`);
-
-      // Redirection selon le type d'utilisateur
-      const redirectRoute = getUserRedirectRoute(response.user);
-      router.push(redirectRoute);
+      // La redirection est gérée automatiquement par AuthContext après connexion réussie
 
     } catch (error) {
       console.error('Erreur de connexion:', error);
-      
-      if (error instanceof ApiException) {
-        setError(error.message);
-      } else if (error instanceof Error) {
-        setError(error.message);
-      } else {
-        setError('Une erreur inattendue s\'est produite');
-      }
+      // L'erreur est gérée par AuthContext et disponible via authError
     } finally {
       setIsLoading(false);
     }
@@ -102,7 +80,7 @@ export default function LoginPage() {
       [e.target.name]: e.target.value
     }));
     // Effacer l'erreur quand l'utilisateur tape
-    if (error) setError('');
+    if (authError) clearError();
   };
 
   return (
@@ -170,7 +148,7 @@ export default function LoginPage() {
                         placeholder="Votre identifiant"
                         required
                         autoComplete="username"
-                        disabled={isLoading}
+                        disabled={isLoading || authLoading}
                       />
                     </div>
 
@@ -190,7 +168,7 @@ export default function LoginPage() {
                           placeholder="••••••••"
                           required
                           autoComplete="current-password"
-                          disabled={isLoading}
+                          disabled={isLoading || authLoading}
                         />
                         <button
                           type="button"
@@ -223,11 +201,11 @@ export default function LoginPage() {
                     </div>
 
                     {/* Message d'erreur */}
-                    {error && (
+                    {authError && (
                       <div className="bg-error-50 border border-error-200 text-error-700 padding-compact rounded-xl text-responsive-small animate-fade-in">
                         <div className="flex items-center gap-2">
                           <span>❌</span>
-                          {error}
+                          {authError}
                         </div>
                       </div>
                     )}
@@ -235,10 +213,10 @@ export default function LoginPage() {
                     {/* Bouton de connexion optimisé */}
                     <button
                       type="submit"
-                      disabled={isLoading}
-                      className={`btn-gradient btn-touch-optimized w-full text-responsive-base ${isLoading ? 'animate-pulse' : 'animate-glow'} transform transition-all duration-300 hover:scale-[1.02] focus-responsive`}
+                      disabled={isLoading || authLoading}
+                      className={`btn-gradient btn-touch-optimized w-full text-responsive-base ${(isLoading || authLoading) ? 'animate-pulse' : 'animate-glow'} transform transition-all duration-300 hover:scale-[1.02] focus-responsive`}
                     >
-                      {isLoading ? (
+                      {(isLoading || authLoading) ? (
                         <div className="flex items-center justify-center spacing-tight">
                           <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                           <span className="mobile-only">Connexion...</span>

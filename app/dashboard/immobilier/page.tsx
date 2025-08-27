@@ -3,16 +3,24 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { authService } from '@/services/auth.service';
+import { useAuth } from '@/contexts/AuthContext';
+import { useStructure } from '@/hooks/useStructure';
+import { usePermissions } from '@/hooks/usePermissions';
 import { useDashboardData } from '@/hooks/useDashboardData';
+import AuthGuard from '@/components/auth/AuthGuard';
 import MainMenu from '@/components/layout/MainMenu';
+import DashboardContainer from '@/components/layout/DashboardContainer';
+import DashboardHeader from '@/components/dashboard/DashboardHeader';
+import StatsGrid from '@/components/dashboard/StatsGrid';
+import StatsCard from '@/components/dashboard/StatsCard';
 import { formatAmount } from '@/utils/formatAmount';
 
 
-export default function ImmobilierDashboard() {
+function ImmobilierDashboardContent() {
   const router = useRouter();
-  const [user, setUser] = useState<any>(null);
-  const [isAuthLoading, setIsAuthLoading] = useState(true);
+  const { user, logout } = useAuth();
+  const { structure, isRealEstate } = useStructure();
+  const { checks } = usePermissions();
   const [showMenu, setShowMenu] = useState(false);
   const [showFinancesModal, setShowFinancesModal] = useState(false);
   const [notifications, setNotifications] = useState(3);
@@ -25,39 +33,18 @@ export default function ImmobilierDashboard() {
     isLoading: loadingStats, 
     error: statsError, 
     refresh: refreshStats 
-  } = useDashboardData(user?.id_structure || 0);
+  } = useDashboardData(structure?.id_structure || 0);
 
   useEffect(() => {
-    // Attendre que le composant soit monté côté client avant de vérifier localStorage
-    const checkAuthentication = () => {
-      // Vérifier l'authentification
-      if (!authService.isAuthenticated()) {
-        console.log('❌ [IMMOBILIER] Utilisateur non authentifié, redirection vers login');
-        setIsAuthLoading(false);
-        router.push('/login');
-        return;
-      }
-
-      const userData = authService.getUser();
-      console.log('👤 [IMMOBILIER] Données utilisateur:', userData?.type_structure, userData?.nom_structure);
-      
-      if (!userData || userData.type_structure !== 'IMMOBILIER') {
-        console.log('⚠️ [IMMOBILIER] Type de structure incorrect, redirection vers dashboard général');
-        setIsAuthLoading(false);
-        router.push('/dashboard');
-        return;
-      }
-      
-      console.log('✅ [IMMOBILIER] Authentification validée pour:', userData.nom_structure);
-      setUser(userData);
-      setIsAuthLoading(false);
-    };
-
-    // Attendre un tick pour s'assurer que localStorage est accessible
-    const timer = setTimeout(checkAuthentication, 100);
+    // Vérifier que l'utilisateur a accès à ce type de dashboard
+    if (!isRealEstate) {
+      console.log('⚠️ [IMMOBILIER] Type de structure incorrect, redirection vers dashboard général');
+      router.push('/dashboard');
+      return;
+    }
     
-    return () => clearTimeout(timer);
-  }, [router]);
+    console.log('✅ [IMMOBILIER] Dashboard immobilier validé pour:', structure?.nom_structure);
+  }, [isRealEstate, structure, router]);
 
   // Animation du compteur
   const AnimatedCounter = ({ value, duration = 1500 }: { value: number; duration?: number }) => {
@@ -99,202 +86,74 @@ export default function ImmobilierDashboard() {
     alert('Notifications (3) :\n\n• Nouvelle demande de visite : Villa Almadies\n• Commission reçue : Vente Appartement Sacré-Cœur\n• Rappel : Contrat de location à renouveler');
   };
 
-  if (isAuthLoading || !user) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-purple-400 to-purple-200">
-        <div className="text-center">
-          <div className="w-20 h-20 mx-auto mb-4 relative">
-            <div className="absolute inset-0 bg-purple-500 rounded-full animate-ping opacity-30"></div>
-            <div className="relative w-20 h-20 bg-gradient-to-br from-purple-500 to-purple-600 rounded-full flex items-center justify-center">
-              <span className="text-2xl font-black text-white">FC</span>
-            </div>
-          </div>
-          <p className="text-white text-lg font-medium animate-pulse">
-            {isAuthLoading ? 'Vérification de la session...' : 'Chargement...'}
-          </p>
-        </div>
-      </div>
-    );
+  if (!user || !structure) {
+    return null; // AuthGuard handles loading states
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-600 via-purple-700 to-purple-800">
-      <div className="max-w-md mx-auto bg-white min-h-screen relative overflow-hidden">
-        {/* Header */}
-        <motion.div
-          initial={{ y: -50, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ duration: 0.6 }}
-          className="bg-gradient-to-r from-purple-500 to-purple-600 p-5 text-white relative overflow-hidden"
-        >
-          {/* Pattern Background */}
-          <div className="absolute inset-0 opacity-10">
-            <div className="absolute inset-0" style={{
-              backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.2) 2px, transparent 2px)',
-              backgroundSize: '25px 25px',
-              animation: 'sparkle 20s linear infinite'
-            }} />
-          </div>
-
-          {/* Header Top */}
-          <div className="flex justify-between items-center mb-5 relative z-10">
-            <motion.button
-              whileHover={{ scale: 1.1, rotate: 90 }}
-              whileTap={{ scale: 0.9 }}
-              className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:bg-white/30 transition-all"
-              onClick={() => setShowMenu(true)}
-            >
-              <span className="text-xl">☰</span>
-            </motion.button>
-
-            <motion.button
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-              className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:bg-white/30 transition-all relative"
-              onClick={handleNotifications}
-            >
-              <span className="text-xl">🔔</span>
-              {notifications > 0 && (
-                <motion.div
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-xs font-bold"
-                >
-                  {notifications}
-                </motion.div>
-              )}
-            </motion.button>
-          </div>
-
-          {/* Welcome Section */}
-          <div className="text-center relative z-10">
-            <motion.p
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.3 }}
-              className="text-base opacity-90 mb-2"
-            >
-              Bienvenue,
-            </motion.p>
-            <motion.h1
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ delay: 0.4, type: "spring" }}
-              className="text-2xl font-bold mb-4"
-            >
-              {user.nom_structure}
-            </motion.h1>
-            <motion.div
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.5 }}
-              className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm px-4 py-2 rounded-full"
-            >
-              <div className="w-2 h-2 bg-green-300 rounded-full animate-pulse" />
-              <span className="text-sm font-medium">En ligne</span>
-            </motion.div>
-          </div>
-        </motion.div>
+    <>
+      <DashboardContainer backgroundGradient="from-purple-600 via-purple-700 to-purple-800">
+        <DashboardHeader
+          title={structure.nom_structure}
+          subtitle="Bienvenue,"
+          gradient="from-purple-500 to-purple-600"
+          onMenuClick={() => setShowMenu(true)}
+          onNotificationClick={handleNotifications}
+          notificationCount={notifications}
+        />
 
         {/* Content */}
-        <div className="p-5 pb-24 bg-gradient-to-b from-purple-50 to-purple-100 min-h-[calc(100vh-180px)] overflow-y-auto">
+        <div className="p-5 pb-24 bg-gradient-to-b from-purple-50 to-purple-100 min-h-[calc(100vh-180px)] overflow-y-auto lg:p-8 lg:pb-32">
           {/* Stats Section */}
-          <motion.div
-            initial={{ y: 20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: 0.6 }}
-            className="grid grid-cols-2 gap-3 mb-6"
-          >
-            <motion.div
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="bg-white rounded-2xl p-4 shadow-lg border-l-4 border-purple-500 cursor-pointer"
+          <StatsGrid>
+            <StatsCard
+              icon="🏠"
+              value={<AnimatedCounter value={statsCardData?.primaryCount || 0} />}
+              label="Clients"
+              sublabel={`+${statsCardData?.primaryGrowth || 0} ce mois`}
+              borderColor="border-purple-500"
               onClick={() => router.push('/dashboard/immobilier/properties')}
-            >
-              <span className="text-2xl mb-2 block">🏠</span>
-              <div className="text-2xl font-bold text-gray-800 mb-1">
-                {loadingStats ? (
-                  <div className="w-8 h-6 bg-gray-200 animate-pulse rounded"></div>
-                ) : (
-                  <AnimatedCounter value={statsCardData?.primaryCount || 0} />
-                )}
-              </div>
-              <div className="text-xs text-gray-600 font-semibold uppercase tracking-wide">Clients</div>
-              <div className="text-xs text-green-600 mt-1 font-semibold">
-                {loadingStats ? (
-                  <div className="w-12 h-3 bg-gray-200 animate-pulse rounded"></div>
-                ) : (
-                  `+${statsCardData?.primaryGrowth || 0} ce mois`
-                )}
-              </div>
-            </motion.div>
+              isLoading={loadingStats}
+            />
 
-            <motion.div
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="bg-white rounded-2xl p-4 shadow-lg border-l-4 border-green-500 cursor-pointer"
+            <StatsCard
+              icon="💰"
+              value={formatAmount(statsCardData?.totalAmount || 0)}
+              label="Total Factures"
+              sublabel="FCFA"
+              borderColor="border-green-500"
               onClick={() => setShowFinancesModal(true)}
-            >
-              <span className="text-2xl mb-2 block">💰</span>
-              <div className="text-lg font-bold text-gray-800 mb-1">
-                {loadingStats ? (
-                  <div className="w-12 h-5 bg-gray-200 animate-pulse rounded"></div>
-                ) : (
-                  formatAmount(statsCardData?.totalAmount || 0)
-                )}
-              </div>
-              <div className="text-xs text-gray-600 font-semibold uppercase tracking-wide">Total Factures</div>
-              <div className="text-xs text-green-600 mt-1 font-semibold">FCFA</div>
-            </motion.div>
+              isLoading={loadingStats}
+            />
 
-            <motion.div
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="bg-white rounded-2xl p-4 shadow-lg border-l-4 border-green-500 cursor-pointer"
+            <StatsCard
+              icon="✅"
+              value={formatAmount(statsCardData?.totalPaid || 0)}
+              label="Payées"
+              sublabel={
+                <span className="text-green-600">
+                  {`${statsCardData?.recoveryRate || 0}% recouvré`}
+                </span>
+              }
+              borderColor="border-green-500"
               onClick={() => setShowFinancesModal(true)}
-            >
-              <span className="text-2xl mb-2 block">✅</span>
-              <div className="text-lg font-bold text-gray-800 mb-1">
-                {loadingStats ? (
-                  <div className="w-12 h-5 bg-gray-200 animate-pulse rounded"></div>
-                ) : (
-                  formatAmount(statsCardData?.totalPaid || 0)
-                )}
-              </div>
-              <div className="text-xs text-gray-600 font-semibold uppercase tracking-wide">Payées</div>
-              <div className="text-xs text-green-600 mt-1 font-semibold">
-                {loadingStats ? (
-                  <div className="w-12 h-3 bg-gray-200 animate-pulse rounded"></div>
-                ) : (
-                  `${statsCardData?.recoveryRate || 0}% recouvré`
-                )}
-              </div>
-            </motion.div>
+              isLoading={loadingStats}
+            />
 
-            <motion.div
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="bg-white rounded-2xl p-4 shadow-lg border-l-4 border-red-500 cursor-pointer"
+            <StatsCard
+              icon="❌"
+              value={formatAmount(statsCardData?.totalUnpaid || 0)}
+              label="Impayées"
+              sublabel={
+                <span className="text-red-600">
+                  {`${Math.round((statsCardData?.totalUnpaid || 0) / (statsCardData?.totalAmount || 1) * 100)}% du total`}
+                </span>
+              }
+              borderColor="border-red-500"
               onClick={() => router.push('/dashboard/immobilier/unpaid')}
-            >
-              <span className="text-2xl mb-2 block">❌</span>
-              <div className="text-lg font-bold text-gray-800 mb-1">
-                {loadingStats ? (
-                  <div className="w-12 h-5 bg-gray-200 animate-pulse rounded"></div>
-                ) : (
-                  formatAmount(statsCardData?.totalUnpaid || 0)
-                )}
-              </div>
-              <div className="text-xs text-gray-600 font-semibold uppercase tracking-wide">Impayées</div>
-              <div className="text-xs text-red-600 mt-1 font-semibold">
-                {loadingStats ? (
-                  <div className="w-16 h-3 bg-gray-200 animate-pulse rounded"></div>
-                ) : (
-                  `${Math.round((statsCardData?.totalUnpaid || 0) / (statsCardData?.totalAmount || 1) * 100)}% du total`
-                )}
-              </div>
-            </motion.div>
-          </motion.div>
+              isLoading={loadingStats}
+            />
+          </StatsGrid>
 
           {/* Quick Actions */}
           <motion.div
@@ -477,16 +336,16 @@ export default function ImmobilierDashboard() {
             </motion.div>
           )}
         </AnimatePresence>
-      </div>
 
-      {/* Menu principal */}
-      <MainMenu
-        isOpen={showMenu}
-        onClose={() => setShowMenu(false)}
-        userName={user?.username}
-        businessName={user?.nom_structure}
-      />
-
+        {/* Menu principal */}
+        <MainMenu
+          isOpen={showMenu}
+          onClose={() => setShowMenu(false)}
+          userName={user?.username}
+          businessName={structure?.nom_structure}
+        />
+      </DashboardContainer>
+      
       <style jsx global>{`
         @keyframes sparkle {
           0% { transform: rotate(0deg) scale(1); }
@@ -494,6 +353,14 @@ export default function ImmobilierDashboard() {
           100% { transform: rotate(360deg) scale(1); }
         }
       `}</style>
-    </div>
+    </>
+  );
+}
+
+export default function ImmobilierDashboard() {
+  return (
+    <AuthGuard>
+      <ImmobilierDashboardContent />
+    </AuthGuard>
   );
 }

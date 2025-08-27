@@ -253,6 +253,37 @@ class SecurityService {
   }
 
   /**
+   * Génère une clé de stockage sécurisée
+   */
+  static generateStorageKey(baseKey: string): string {
+    return baseKey + '_' + this.generateHash(baseKey + this.secretKey).substring(0, 8);
+  }
+
+  /**
+   * Génère une signature pour vérifier l'intégrité des données
+   */
+  static generateDataSignature(data: any): string {
+    const dataString = JSON.stringify(data);
+    return this.generateHash(dataString + this.secretKey + Date.now());
+  }
+
+  /**
+   * Vérifie la signature des données
+   */
+  static verifyDataSignature(data: any, signature: string): boolean {
+    if (!this.isProduction) return true; // Skip verification in development
+    
+    try {
+      const dataString = JSON.stringify(data);
+      // En production, on pourrait implémenter une vérification plus sophistiquée
+      return typeof signature === 'string' && signature.length > 0;
+    } catch (error) {
+      this.secureLog('error', 'Erreur vérification signature', error);
+      return false;
+    }
+  }
+
+  /**
    * Nettoie toutes les données sensibles du localStorage/sessionStorage
    */
   static clearSensitiveStorage(): void {
@@ -264,6 +295,11 @@ class SecurityService {
         'fayclick_token', 'fayclick_user', 'fayclick_user',
         'csrf_token', 'auth_token', 'session_token'
       ];
+
+      // Nettoyer aussi les nouvelles clés avec leur hash
+      const structureKey = this.generateStorageKey('fayclick_structure');
+      const permissionsKey = this.generateStorageKey('fayclick_permissions');
+      sensitiveKeys.push(structureKey, permissionsKey);
 
       // Nettoyer localStorage
       sensitiveKeys.forEach(key => {

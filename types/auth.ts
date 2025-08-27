@@ -64,6 +64,100 @@ export interface Structure {
   num_unik_reversement: string;
 }
 
+// Interface complète pour les détails de structure depuis list_structures
+export interface StructureDetails extends Structure {
+  // Informations supplémentaires qui pourraient être dans la DB
+  description?: string;
+  website?: string;
+  siret?: string;
+  responsable?: string;
+  // Métadonnées de timing
+  created_at: string;
+  updated_at: string;
+}
+
+// Énumération des permissions disponibles
+export enum Permission {
+  // Permissions générales
+  VIEW_DASHBOARD = 'VIEW_DASHBOARD',
+  MANAGE_USERS = 'MANAGE_USERS',
+  ACCESS_FINANCES = 'ACCESS_FINANCES',
+  EXPORT_DATA = 'EXPORT_DATA',
+  EDIT_SETTINGS = 'EDIT_SETTINGS',
+  
+  // Permissions spécifiques SCOLAIRE
+  MANAGE_STUDENTS = 'MANAGE_STUDENTS',
+  VIEW_GRADES = 'VIEW_GRADES',
+  MANAGE_COURSES = 'MANAGE_COURSES',
+  
+  // Permissions spécifiques COMMERCIALE
+  MANAGE_PRODUCTS = 'MANAGE_PRODUCTS',
+  MANAGE_INVENTORY = 'MANAGE_INVENTORY',
+  VIEW_SALES = 'VIEW_SALES',
+  
+  // Permissions spécifiques IMMOBILIER
+  MANAGE_PROPERTIES = 'MANAGE_PROPERTIES',
+  MANAGE_CLIENTS = 'MANAGE_CLIENTS',
+  VIEW_COMMISSIONS = 'VIEW_COMMISSIONS',
+  
+  // Permissions spécifiques PRESTATAIRE DE SERVICES
+  MANAGE_SERVICES = 'MANAGE_SERVICES',
+  MANAGE_APPOINTMENTS = 'MANAGE_APPOINTMENTS',
+  VIEW_REVENUE = 'VIEW_REVENUE',
+  
+  // Permissions ADMIN
+  ADMIN_FULL_ACCESS = 'ADMIN_FULL_ACCESS',
+  MANAGE_STRUCTURES = 'MANAGE_STRUCTURES',
+  VIEW_SYSTEM_LOGS = 'VIEW_SYSTEM_LOGS'
+}
+
+// Interface pour les permissions utilisateur
+export interface UserPermissions {
+  // Liste des permissions accordées
+  permissions: Permission[];
+  
+  // Méthodes d'aide pour vérifier les permissions
+  canViewDashboard: boolean;
+  canManageUsers: boolean;
+  canAccessFinances: boolean;
+  canExportData: boolean;
+  canEditSettings: boolean;
+  
+  // Permissions spécifiques selon le type de structure
+  hasAdminAccess: boolean;
+  hasManagerAccess: boolean;
+  hasReadOnlyAccess: boolean;
+}
+
+// Configuration des permissions par profil
+export interface ProfilePermissions {
+  [profileName: string]: {
+    defaultPermissions: Permission[];
+    structureSpecificPermissions?: {
+      [structureType: string]: Permission[];
+    };
+  };
+}
+
+// État complet d'authentification pour le Context
+export interface AuthState {
+  user: User | null;
+  structure: StructureDetails | null;
+  permissions: UserPermissions | null;
+  isAuthenticated: boolean;
+  isLoading: boolean;
+  isHydrated: boolean; // Pour gérer l'hydration depuis localStorage
+  error: string | null;
+}
+
+// Interface pour les données complètes après connexion réussie
+export interface CompleteAuthData {
+  user: User;
+  structure: StructureDetails;
+  permissions: UserPermissions;
+  token: string;
+}
+
 export interface ApiError {
   message: string;
   status?: number;

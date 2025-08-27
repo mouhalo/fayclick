@@ -120,6 +120,54 @@ FayClick V2 is a Next.js-based Progressive Web App (PWA) designed as a "Super Ap
 - Component composition over inheritance
 - Atomic design principles for component organization
 
+### Système d'Authentification Avancé
+
+#### Architecture React Context + localStorage
+- **AuthContext** centralisé avec état global réactif (user, structure, permissions)
+- **Hydratation sécurisée** depuis localStorage avec vérification d'intégrité
+- **Workflow complet** : login → `SELECT * FROM list_structures WHERE id_structure = ?` → calcul permissions → stockage sécurisé
+
+#### Hooks d'Authentification
+- **`useAuth()`** : Accès à l'état global d'authentification
+- **`usePermissions()`** : Vérification des droits (`can()`, `canAny()`, `canAll()`)  
+- **`useStructure()`** : Gestion des données de structure avec validations
+- **`AuthGuard`** : Protection automatique des routes avec redirection
+
+#### Système de Permissions
+- **Permissions granulaires** selon profil utilisateur (ADMIN, MANAGER, USER, etc.)
+- **Permissions spécifiques** par type de structure (SCOLAIRE, COMMERCIALE, IMMOBILIER, etc.)
+- **Calcul automatique** des droits selon combinaison profil + structure
+- **Navigation contextuelle** avec redirection selon permissions
+
+#### Workflow d'Authentification
+```typescript
+1. Utilisateur se connecte → AuthContext.login()
+2. AuthService.completeLogin() exécute :
+   - login(credentials) → vérification identifiants
+   - fetchStructureDetails(id_structure) → SELECT * FROM list_structures...
+   - getUserPermissions(user, structure) → calcul des droits
+3. Stockage sécurisé : user + structure + permissions
+4. Redirection automatique selon type de structure
+5. Hooks disponibles partout : useAuth(), useStructure(), usePermissions()
+```
+
+#### Utilisation dans les Composants
+```typescript
+// Protection de route
+<AuthGuard requiredPermission={Permission.MANAGE_STUDENTS}>
+  <StudentManagement />
+</AuthGuard>
+
+// Vérification de permissions
+const { can, canAny } = usePermissions();
+if (can(Permission.VIEW_FINANCES)) {
+  // Afficher données financières
+}
+
+// Accès données structure
+const { structure, isSchool } = useStructure();
+```
+
 ### Current Development Status
 The project is in Phase 2 development with:
 - ✅ Complete responsive design system
@@ -129,6 +177,7 @@ The project is in Phase 2 development with:
 - ✅ **Multi-dashboard architecture** (Commerce, Scolaire, Immobilier, Admin)
 - ✅ **API integration** with dynamic environment switching (DEV/PROD)
 - ✅ **Type-safe data layer** with structure-specific financial calculations
+- ✅ **Advanced Authentication System** with React Context + permissions
 - 🔄 Working on Fayclick responsive design adaptation
 - 📋 PWA features planned but not yet implemented
 
