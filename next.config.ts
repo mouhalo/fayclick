@@ -1,9 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Configuration simple pour l'export statique
-  output: 'export',
-  trailingSlash: true,
+  // Configuration pour la production avec export statique
+  output: 'export', // Réactivé pour le déploiement - les routes dynamiques marchent en dev seulement
+  trailingSlash: false, // Désactiver les slashes finaux pour les URLs de factures
   images: {
     unoptimized: true,
   },
