@@ -11,7 +11,10 @@ import { motion } from 'framer-motion';
 import { Receipt, AlertCircle, Loader } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { GlassHeader } from '@/components/ui/GlassHeader';
+import { StatsCardsFacturesGlass } from '@/components/factures/StatsCardsFacturesGlass';
+import { FilterHeaderGlass } from '@/components/factures/FilterHeaderGlass';
 import { FacturesList } from '@/components/factures/FacturesList';
+import { GlassPagination, usePagination } from '@/components/ui/GlassPagination';
 import { ModalPaiement } from '@/components/factures/ModalPaiement';
 import { ModalPartage } from '@/components/factures/ModalPartage';
 import { Toast } from '@/components/ui/Toast';
@@ -30,12 +33,17 @@ export default function FacturesGlassPage() {
   // États principaux
   const [facturesResponse, setFacturesResponse] = useState<GetMyFactureResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string>('');
-  const [filtres] = useState<FiltresFactures>({
+  const [filtres, setFiltres] = useState<FiltresFactures>({
     sortBy: 'date',
     sortOrder: 'desc',
     statut: 'TOUS'
   });
+
+  // États de pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const { getPaginatedItems, totalPages } = usePagination(0, 10);
 
   // États des modals
   const [modalPaiement, setModalPaiement] = useState<{
@@ -86,10 +94,25 @@ export default function FacturesGlassPage() {
     return factureListService.filterFactures(facturesResponse.factures, filtres);
   }, [facturesResponse?.factures, filtres]);
 
+  // Pagination des factures filtrées
+  const { getPaginatedItems: getPaginatedFactures, totalPages: paginationTotalPages } = usePagination(facturesFiltrees.length, 10);
+  const facturesPaginees = useMemo(() => {
+    return getPaginatedFactures(facturesFiltrees, currentPage);
+  }, [facturesFiltrees, currentPage, getPaginatedFactures]);
+
   // Gestionnaires d'événements
   const handleRetour = () => {
     router.push('/dashboard/commerce');
   };
+
+  const handleFiltersChange = useCallback((newFiltres: FiltresFactures) => {
+    setFiltres(newFiltres);
+    setCurrentPage(1); // Remettre à la première page quand on filtre
+  }, []);
+
+  const handlePageChange = useCallback((page: number) => {
+    setCurrentPage(page);
+  }, []);
 
   const handleAjouterAcompte = useCallback((facture: FactureComplete) => {
     setModalPaiement({ isOpen: true, facture });
@@ -128,6 +151,27 @@ export default function FacturesGlassPage() {
   const closeToast = useCallback(() => {
     setToast({ isOpen: false, type: 'info', message: '' });
   }, []);
+
+  // Fonction d'actualisation
+  const handleRefresh = useCallback(async () => {
+    setIsRefreshing(true);
+    try {
+      await loadFactures();
+      setToast({
+        isOpen: true,
+        type: 'success',
+        message: 'Factures actualisées avec succès'
+      });
+    } catch (error) {
+      setToast({
+        isOpen: true,
+        type: 'error',
+        message: 'Erreur lors de l\'actualisation'
+      });
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, [loadFactures]);
 
   // Compteur pour le header
   const compteurFactures = facturesResponse?.resume_global?.nombre_factures || 0;
@@ -168,7 +212,6 @@ export default function FacturesGlassPage() {
         {/* Header glassmorphism */}
         <GlassHeader
           title="Liste des Factures"
-          subtitle={`${compteurFactures} facture${compteurFactures > 1 ? 's' : ''} sur ${compteurFactures}`}
           onBack={handleRetour}
           showBackButton={true}
           rightContent={
@@ -178,14 +221,39 @@ export default function FacturesGlassPage() {
               </div>
             )
           }
+          filterContent={
+            <FilterHeaderGlass
+              onFiltersChange={handleFiltersChange}
+              onRefresh={handleRefresh}
+              isRefreshing={isRefreshing}
+            />
+          }
         />
 
         {/* Contenu scrollable */}
         <div className="px-5 py-6">
           
-          {/* Liste des factures */}
-          <FacturesList
+          {/* Stats Cards */}
+          <StatsCardsFacturesGlass
             factures={facturesFiltrees}
+            loading={loading}
+          />
+
+
+          {/* Pagination */}
+          {!loading && facturesFiltrees.length > 0 && (
+            <GlassPagination
+              currentPage={currentPage}
+              totalPages={paginationTotalPages}
+              totalItems={facturesFiltrees.length}
+              onPageChange={handlePageChange}
+              className="mb-4"
+            />
+          )}
+          
+          {/* Liste des factures paginées */}
+          <FacturesList
+            factures={facturesPaginees}
             loading={loading}
             onVoirDetails={handleVoirDetails}
             onAjouterAcompte={handleAjouterAcompte}
@@ -216,6 +284,26 @@ export default function FacturesGlassPage() {
               >
                 Gérer les produits
               </motion.button>
+            </motion.div>
+          )}
+
+          {/* Message si aucun résultat de filtre */}
+          {!loading && facturesFiltrees.length === 0 && facturesResponse && facturesResponse.factures.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.4 }}
+              className="text-center py-8"
+            >
+              <div className="w-16 h-16 bg-white/10 backdrop-blur-lg rounded-2xl flex items-center justify-center mx-auto mb-4 border border-white/20">
+                <Receipt className="w-8 h-8 text-white/60" />
+              </div>
+              <h3 className="text-lg font-semibold text-white/80 mb-2">
+                Aucun résultat
+              </h3>
+              <p className="text-emerald-100/70 text-sm">
+                Aucune facture ne correspond à vos critères de recherche.
+              </p>
             </motion.div>
           )}
         </div>

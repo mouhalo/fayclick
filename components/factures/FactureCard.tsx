@@ -5,10 +5,12 @@
 
 'use client';
 
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Eye, FileText, Phone, CreditCard } from 'lucide-react';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { StatusBadge } from '@/components/ui/StatusBadge';
+import { FactureDetails } from './FactureDetails';
 import { FactureComplete } from '@/types/facture';
 import { formatAmount, formatDate, cn } from '@/lib/utils';
 
@@ -28,6 +30,12 @@ export const FactureCard = ({
   delay = 0 
 }: FactureCardProps) => {
   const { facture: factureData } = facture;
+  const [isDetailsExpanded, setIsDetailsExpanded] = useState(false);
+
+  const handleVoirDetails = () => {
+    setIsDetailsExpanded(!isDetailsExpanded);
+    onVoirDetails?.(facture);
+  };
 
   // Animation variants pour la card
   const cardVariants = {
@@ -107,7 +115,7 @@ export const FactureCard = ({
           {/* Bouton Voir détails */}
           <motion.button
             whileTap={{ scale: 0.95 }}
-            onClick={() => onVoirDetails?.(facture)}
+            onClick={handleVoirDetails}
             className={cn(
               'flex-1 flex items-center justify-center',
               'px-3 py-2.5 rounded-lg',
@@ -116,11 +124,12 @@ export const FactureCard = ({
               'text-white text-sm font-medium',
               'hover:bg-white/30 hover:scale-105',
               'transition-all duration-200',
-              'shadow-lg'
+              'shadow-lg',
+              isDetailsExpanded && 'bg-white/30'
             )}
           >
             <Eye className="w-4 h-4 mr-1.5" />
-            Voir détails
+            {isDetailsExpanded ? 'Masquer' : 'Voir détails'}
           </motion.button>
 
           {/* Action contextuelle selon le statut */}
@@ -166,6 +175,15 @@ export const FactureCard = ({
         {/* Effet de brillance sur hover */}
         <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-transparent via-white/5 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 pointer-events-none" />
       </GlassCard>
+
+      {/* Détails dépliable */}
+      {facture.details && facture.details.length > 0 && (
+        <FactureDetails
+          facture={facture}
+          isExpanded={isDetailsExpanded}
+          onToggle={() => setIsDetailsExpanded(!isDetailsExpanded)}
+        />
+      )}
     </motion.div>
   );
 };
