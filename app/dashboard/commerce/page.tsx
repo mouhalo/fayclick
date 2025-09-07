@@ -300,7 +300,7 @@ export default function CommerceDashboard() {
             <div className="grid grid-cols-2 gap-4">
               {[
                 { icon: '📦', title: 'Liste Produits', subtitle: 'Gérer votre stock', color: 'orange', path: '/produits' },
-                { icon: '💰', title: 'Liste Ventes', subtitle: 'Historique & factures', color: 'green', path: '/sales' },
+                { icon: '🧾', title: 'Mes Factures', subtitle: 'Gestion des factures', color: 'purple', path: '/factures' },
                 { icon: '👥', title: 'Liste Clients', subtitle: "Carnet d'adresses", color: 'blue', path: '/clients' },
                 { icon: '📊', title: 'Inventaires', subtitle: 'Statistiques détaillées', color: 'brown', path: '/inventory' }
               ].map((action, index) => (
@@ -313,7 +313,7 @@ export default function CommerceDashboard() {
                   whileTap={{ scale: 0.95 }}
                   className={`bg-gradient-to-br ${
                     action.color === 'orange' ? 'from-orange-50 to-orange-100' :
-                    action.color === 'green' ? 'from-green-50 to-green-100' :
+                    action.color === 'purple' ? 'from-purple-50 to-purple-100' :
                     action.color === 'blue' ? 'from-blue-50 to-blue-100' :
                     'from-amber-50 to-amber-100'
                   } rounded-2xl p-5 text-center cursor-pointer shadow-md hover:shadow-xl transition-all border-2 border-transparent hover:border-${action.color}-200 relative overflow-hidden`}

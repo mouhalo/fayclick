@@ -7,6 +7,7 @@ import { authService } from './auth.service';
 import DatabaseService from './database.service';
 import SecurityService from './security.service';
 import { ArticlePanier } from '@/types/produit';
+import { AjouterAcompteData, AjouterAcompteResponse } from '@/types/facture';
 
 // Exceptions personnalisées pour les factures
 export class FactureApiException extends Error {
@@ -291,6 +292,118 @@ class FactureService {
         error
       );
     }
+  }
+
+  /**
+   * Ajouter un acompte à une facture existante
+   */
+  async addAcompte(data: AjouterAcompteData): Promise<AjouterAcompteResponse> {
+    try {
+      const user = authService.getUser();
+      if (!user) {
+        throw new FactureApiException('Utilisateur non authentifié', 401);
+      }
+
+      // Validation des données
+      if (!data.id_facture || data.id_facture <= 0) {
+        throw new FactureApiException('ID de facture invalide', 400);
+      }
+
+      if (!data.montant_acompte || data.montant_acompte <= 0) {
+        throw new FactureApiException('Montant d\'acompte invalide', 400);
+      }
+
+      // Vérification que la structure correspond
+      if (data.id_structure !== user.id_structure) {
+        throw new FactureApiException('Structure non autorisée', 403);
+      }
+
+      SecurityService.secureLog('log', 'Ajout acompte facture', {
+        id_structure: data.id_structure,
+        id_facture: data.id_facture,
+        montant_acompte: data.montant_acompte
+      });
+
+      // Appel de la fonction PostgreSQL add_acompte_facture
+      const query = `SELECT add_acompte_facture(${data.id_structure}, ${data.id_facture}, ${data.montant_acompte})`;
+      
+      const result = await DatabaseService.query(query);
+      
+      if (!result || result.length === 0) {
+        throw new FactureApiException('Aucune réponse de add_acompte_facture', 500);
+      }
+
+      // Récupération du JSON depuis la première ligne
+      const acompteData = result[0].add_acompte_facture;
+      
+      if (!acompteData) {
+        throw new FactureApiException('Format de données invalide', 500);
+      }
+
+      // Parse du JSON si c'est une chaîne
+      const parsedData = typeof acompteData === 'string' 
+        ? JSON.parse(acompteData) 
+        : acompteData;
+
+      if (!parsedData.success) {
+        throw new FactureApiException(
+          parsedData.message || 'Erreur lors de l\'ajout de l\'acompte',
+          400
+        );
+      }
+
+      SecurityService.secureLog('log', 'Acompte ajouté avec succès', {
+        id_facture: parsedData.facture?.id_facture,
+        montant_verse: parsedData.facture?.montant_verse,
+        nouveau_restant: parsedData.facture?.nouveau_restant,
+        statut: parsedData.facture?.statut
+      });
+
+      return parsedData;
+
+    } catch (error) {
+      SecurityService.secureLog('error', 'Erreur ajout acompte', error);
+      
+      if (error instanceof FactureApiException) {
+        throw error;
+      }
+      
+      throw new FactureApiException(
+        'Impossible d\'ajouter l\'acompte',
+        500,
+        error
+      );
+    }
+  }
+
+  /**
+   * Valider les données d'acompte avant ajout
+   */
+  validateAcompteData(
+    data: AjouterAcompteData,
+    montantRestant?: number
+  ): { isValid: boolean; errors: string[] } {
+    const errors: string[] = [];
+
+    // Validation ID facture
+    if (!data.id_facture || data.id_facture <= 0) {
+      errors.push('ID de facture invalide');
+    }
+
+    // Validation montant acompte
+    if (!data.montant_acompte || data.montant_acompte <= 0) {
+      errors.push('Le montant de l\'acompte doit être positif');
+    }
+
+    // Validation par rapport au montant restant si fourni
+    if (montantRestant !== undefined && data.montant_acompte > montantRestant) {
+      errors.push('L\'acompte ne peut pas être supérieur au montant restant');
+    }
+
+    return {
+      isValid: errors.length === 0,
+      errors
+    };
   }
 }
 
