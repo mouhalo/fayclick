@@ -373,9 +373,9 @@ export default function ProduitsCommercePage() {
 
       <ModalPanier />
       <ModalFactureSuccess />
+      
+      {/* Toast Component */}
+      <ToastComponent />
     </div>
-    
-    {/* Toast Component */}
-    <ToastComponent />
   );
 }
