@@ -17,6 +17,7 @@ interface GlassHeaderProps {
   filterContent?: React.ReactNode;
   className?: string;
   showBackButton?: boolean;
+  backgroundGradient?: string;
 }
 
 export const GlassHeader = ({ 
@@ -26,8 +27,20 @@ export const GlassHeader = ({
   rightContent,
   filterContent,
   className,
-  showBackButton = true
+  showBackButton = true,
+  backgroundGradient
 }: GlassHeaderProps) => {
+  const bgClass = backgroundGradient || 'bg-emerald-500/90';
+  const borderClass = backgroundGradient?.includes('green') 
+    ? 'border-green-400/30' 
+    : 'border-emerald-400/30';
+  const shadowClass = backgroundGradient?.includes('green')
+    ? 'shadow-green-500/20'
+    : 'shadow-emerald-500/20';
+  const gradientClass = backgroundGradient?.includes('green')
+    ? 'bg-gradient-to-r from-green-400/10 via-green-300/20 to-green-400/10'
+    : 'bg-gradient-to-r from-emerald-400/10 via-emerald-300/20 to-emerald-400/10';
+
   return (
     <motion.div
       initial={{ y: -50, opacity: 0 }}
@@ -35,14 +48,17 @@ export const GlassHeader = ({
       transition={{ duration: 0.4, ease: 'easeOut' }}
       className={cn(
         'sticky top-0 z-30',
-        'backdrop-blur-xl bg-emerald-500/90',
-        'border-b border-emerald-400/30',
-        'shadow-lg shadow-emerald-500/20',
+        'backdrop-blur-xl',
+        bgClass,
+        'border-b',
+        borderClass,
+        'shadow-lg',
+        shadowClass,
         className
       )}
     >
       {/* Effet de brillance sur le header */}
-      <div className="absolute inset-0 bg-gradient-to-r from-emerald-400/10 via-emerald-300/20 to-emerald-400/10" />
+      <div className={`absolute inset-0 ${gradientClass}`} />
       
       <div className="relative p-5 text-white">
         <div className="flex items-center justify-between mb-2">
