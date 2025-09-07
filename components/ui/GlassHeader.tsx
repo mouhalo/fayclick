@@ -14,6 +14,7 @@ interface GlassHeaderProps {
   subtitle?: string;
   onBack?: () => void;
   rightContent?: React.ReactNode;
+  filterContent?: React.ReactNode;
   className?: string;
   showBackButton?: boolean;
 }
@@ -23,6 +24,7 @@ export const GlassHeader = ({
   subtitle,
   onBack,
   rightContent,
+  filterContent,
   className,
   showBackButton = true
 }: GlassHeaderProps) => {
@@ -84,6 +86,18 @@ export const GlassHeader = ({
             </div>
           )}
         </div>
+        
+        {/* Section de filtres intégrée */}
+        {filterContent && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: 0.1 }}
+            className="mt-4 pt-4 border-t border-white/20"
+          >
+            {filterContent}
+          </motion.div>
+        )}
       </div>
       
       {/* Bordure inférieure avec effet glassmorphism */}

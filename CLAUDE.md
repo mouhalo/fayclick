@@ -190,3 +190,4 @@ The project is in Phase 2 development with:
 Target market: Senegal
 User base: Small businesses across 4 sectors
 Key features: Mobile money integration, offline capabilities, multi-language support (French primary)
+- ne jamais lancer la commande npm run dev aprés des modifications

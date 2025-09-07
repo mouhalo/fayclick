@@ -2,6 +2,9 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Import des styles glassmorphism pour les selects */
+@import '../styles/glassmorphism-select.css';
+
 /* Configuration Body de Base */
 body {
   margin: 0;
