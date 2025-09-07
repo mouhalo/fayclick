@@ -35,10 +35,11 @@ export function encodeFactureParams(id_structure: number, id_facture: number): s
     }
     
     // Nettoyer et transformer pour URL-safe
+    // Utiliser des caractères qui ne peuvent pas apparaître dans Base64 standard
     const urlSafe = encoded
-      .replace(/\+/g, 'x')     // Remplacer + par x
-      .replace(/\//g, 'z')     // Remplacer / par z  
-      .replace(/=/g, '');      // Supprimer les = (pas de limitation de taille)
+      .replace(/\+/g, '-')     // Remplacer + par - (standard URL-safe Base64)
+      .replace(/\//g, '_')     // Remplacer / par _ (standard URL-safe Base64)
+      .replace(/=/g, '');      // Supprimer les = (padding)
     
     console.log('🔐 Encodage facture:', { 
       original: dataToEncode, 
@@ -67,10 +68,10 @@ export function decodeFactureParams(encoded: string): { id_structure: number; id
       return null;
     }
     
-    // Restaurer le format Base64 original
+    // Restaurer le format Base64 original depuis URL-safe
     let restored = encoded
-      .replace(/x/g, '+')    // Restaurer +
-      .replace(/z/g, '/');   // Restaurer /
+      .replace(/-/g, '+')    // Restaurer + depuis -
+      .replace(/_/g, '/');   // Restaurer / depuis _
     
     // Ajouter le padding Base64 correct
     const padding = (4 - (restored.length % 4)) % 4;
