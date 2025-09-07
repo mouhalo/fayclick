@@ -21,12 +21,13 @@ import {
   Info
 } from 'lucide-react';
 import { Produit } from '@/types/produit';
+import { usePanierStore } from '@/stores/panierStore';
+import { useToast } from '@/components/ui/Toast';
 
 interface CarteProduitProps {
   produit: Produit;
   onEdit: (produit: Produit) => void;
   onDelete: (id: number) => void;
-  onAddToCart: (produit: Produit, quantity: number) => void;
   typeStructure: string;
   compactMode?: boolean;
 }
@@ -35,11 +36,12 @@ export function CarteProduit({
   produit, 
   onEdit, 
   onDelete, 
-  onAddToCart, 
   typeStructure, 
   compactMode = false 
 }: CarteProduitProps) {
   const [quantity, setQuantity] = useState(1);
+  const { addArticle } = usePanierStore();
+  const { success: showSuccessToast } = useToast();
 
   // Calculs des données
   const prixVente = produit?.prix_vente || 0;
@@ -62,7 +64,21 @@ export function CarteProduit({
   // Actions
   const handleAddToCart = () => {
     if (quantity > 0 && quantity <= niveauStock) {
-      onAddToCart(produit, quantity);
+      // Le produit est déjà au bon format pour ArticlePanier
+      
+      // Ajouter au panier via le store
+      for (let i = 0; i < quantity; i++) {
+        addArticle(produit);
+      }
+      
+      // Toast de succès
+      showSuccessToast(
+        'Article ajouté !', 
+        `${quantity} x ${produit.nom_produit} ajouté${quantity > 1 ? 's' : ''} au panier`
+      );
+      
+      // Reset de la quantité
+      setQuantity(1);
     }
   };
 
