@@ -32,6 +32,10 @@ import { StatusBarPanier } from '@/components/panier/StatusBarPanier';
 import { ModalPanier } from '@/components/panier/ModalPanier';
 import { ModalFactureSuccess } from '@/components/panier/ModalFactureSuccess';
 import { Toast, useToast } from '@/components/ui/Toast';
+import { GlassHeader } from '@/components/ui/GlassHeader';
+import { ProduitsList } from '@/components/produits/ProduitsList';
+import { ProduitsFilterHeader } from '@/components/produits/ProduitsFilterHeader';
+import { ProduitsStatsHeader } from '@/components/produits/ProduitsStatsHeader';
 import { Produit, ProduitFormData, ProduitFormDataNew, AddEditProduitResponse, FiltreProduits } from '@/types/produit';
 import { User } from '@/types/auth';
 
@@ -244,275 +248,134 @@ export default function ProduitsCommercePage() {
     );
   }
 
+  const renderProduitItem = (produit: Produit, index: number) => (
+    <CarteProduit
+      produit={produit}
+      onEdit={handleEditProduit}
+      onDelete={handleDeleteProduit}
+      typeStructure="COMMERCIALE"
+      compactMode={viewMode === 'list'}
+    />
+  );
+
+  const renderProduitSkeleton = (index: number) => (
+    <CarteProduitSkeleton key={index} compactMode={viewMode === 'list'} />
+  );
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-600 via-green-700 to-green-800">
-        <div className="max-w-md mx-auto bg-white min-h-screen">
+      <div className="max-w-md mx-auto bg-white min-h-screen relative">
+        
+        {/* Header avec design glassmorphism */}
+        <GlassHeader
+          title="Gestion Produits"
+          subtitle={user.nom_structure}
+          onBack={handleRetour}
+          showBackButton={true}
+          backgroundGradient="bg-gradient-to-r from-green-500 to-green-600"
+          rightContent={
+            <ProduitsStatsHeader 
+              produits={produitsFiltered} 
+              loading={isLoadingProduits}
+            />
+          }
+          filterContent={
+            <ProduitsFilterHeader
+              searchTerm={searchTerm}
+              onSearchChange={handleSearchChange}
+              viewMode={viewMode}
+              onViewModeChange={setViewMode}
+              showFilters={showFilters}
+              onToggleFilters={() => setShowFilters(!showFilters)}
+              onRefresh={handleRefresh}
+              refreshing={refreshing}
+            />
+          }
+        />
+
+        {/* Contenu principal */}
+        <div className="p-5 pb-24">
           
-          {/* Header */}
-          <motion.div
-            initial={{ y: -50, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            className="bg-gradient-to-r from-green-500 to-green-600 p-5 text-white sticky top-0 z-30"
-          >
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h1 className="text-xl font-bold">Gestion Produits</h1>
-                <p className="text-green-100 text-sm">{user.nom_structure}</p>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <motion.button
-                  whileTap={{ scale: 0.95 }}
-                  onClick={handleRefresh}
-                  disabled={refreshing}
-                  className="p-2 bg-white/20 rounded-lg hover:bg-white/30 transition-colors"
-                >
-                  <RefreshCw className={`w-5 h-5 ${refreshing ? 'animate-spin' : ''}`} />
-                </motion.button>
-
-                <motion.button
-                  whileTap={{ scale: 0.95 }}
-                  onClick={handleRetour}
-                  className="bg-white text-green-600 px-4 py-2 rounded-lg font-semibold hover:bg-gray-50 transition-colors flex items-center gap-2"
-                >
-                  <ArrowLeft className="w-4 h-4" />
-                  Retour
-                </motion.button>
-              </div>
-            </div>
-
-            {/* Barre de recherche */}
-            <div className="relative mb-4">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={(e) => handleSearchChange(e.target.value)}
-                placeholder="Rechercher un produit..."
-                className="w-full pl-10 pr-4 py-3 rounded-lg text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-green-300"
+          {/* Statistiques */}
+          <div className="mb-6">
+            {isLoadingProduits ? (
+              <StatsCardsNouveauxLoading />
+            ) : (
+              <StatsCardsNouveaux 
+                articles={produitsFiltered}
               />
-            </div>
-
-            {/* Contrôles vue et filtres */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center bg-white/20 rounded-lg p-1">
-                <motion.button
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => setViewMode('grid')}
-                  className={`p-2 rounded-md transition-colors ${
-                    viewMode === 'grid' ? 'bg-white text-green-600' : 'text-white hover:bg-white/20'
-                  }`}
-                >
-                  <Grid className="w-4 h-4" />
-                </motion.button>
-                
-                <motion.button
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => setViewMode('list')}
-                  className={`p-2 rounded-md transition-colors ${
-                    viewMode === 'list' ? 'bg-white text-green-600' : 'text-white hover:bg-white/20'
-                  }`}
-                >
-                  <List className="w-4 h-4" />
-                </motion.button>
-              </div>
-
-              <motion.button
-                whileTap={{ scale: 0.95 }}
-                onClick={() => setShowFilters(!showFilters)}
-                className={`p-2 rounded-lg transition-colors flex items-center gap-2 ${
-                  showFilters ? 'bg-white text-green-600' : 'bg-white/20 text-white hover:bg-white/30'
-                }`}
-              >
-                <Filter className="w-4 h-4" />
-                Filtres
-              </motion.button>
-            </div>
-          </motion.div>
-
-          {/* Contenu principal */}
-          <div className="p-5 pb-24">
-            
-            {/* Statistiques */}
-            <div className="mb-6">
-              {isLoadingProduits ? (
-                <StatsCardsNouveauxLoading />
-              ) : (
-                <StatsCardsNouveaux 
-                  articles={produitsFiltered}
-                />
-              )}
-            </div>
-
-            {/* Message d'erreur */}
-            {errorProduits && (
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl flex items-center gap-3"
-              >
-                <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
-                <div>
-                  <p className="text-red-800 font-medium">Erreur de chargement</p>
-                  <p className="text-red-600 text-sm">{errorProduits}</p>
-                </div>
-                <motion.button
-                  whileTap={{ scale: 0.95 }}
-                  onClick={handleRefresh}
-                  className="ml-auto p-2 text-red-600 hover:bg-red-100 rounded-lg transition-colors"
-                >
-                  <RefreshCw className="w-4 h-4" />
-                </motion.button>
-              </motion.div>
             )}
-
-            {/* Liste des produits */}
-            <div className="mb-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold text-gray-800">
-                  Produits ({produitsFiltered.length})
-                </h2>
-                
-                {produitsFiltered.length > 0 && (
-                  <div className="flex items-center gap-2">
-                    <motion.button
-                      whileTap={{ scale: 0.95 }}
-                      className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-                      title="Exporter"
-                    >
-                      <Download className="w-4 h-4" />
-                    </motion.button>
-                    
-                    <motion.button
-                      whileTap={{ scale: 0.95 }}
-                      className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-                      title="Importer"
-                    >
-                      <Upload className="w-4 h-4" />
-                    </motion.button>
-                  </div>
-                )}
-              </div>
-
-              {/* Grille/Liste des produits */}
-              {isLoadingProduits ? (
-                <div className={`grid gap-4 ${
-                  viewMode === 'grid' 
-                    ? 'grid-cols-1 md:grid-cols-2 xl:grid-cols-3' 
-                    : 'grid-cols-1'
-                }`}>
-                  {[1, 2, 3, 4, 5, 6].map(i => (
-                    <CarteProduitSkeleton key={i} compactMode={viewMode === 'list'} />
-                  ))}
-                </div>
-              ) : produitsFiltered.length === 0 ? (
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="text-center py-12"
-                >
-                  <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold text-gray-700 mb-2">
-                    {searchTerm || Object.keys(filtres).length > 0 
-                      ? 'Aucun produit trouvé' 
-                      : 'Aucun produit enregistré'}
-                  </h3>
-                  <p className="text-gray-500 mb-6">
-                    {searchTerm || Object.keys(filtres).length > 0
-                      ? 'Essayez de modifier vos critères de recherche'
-                      : 'Commencez par ajouter vos premiers produits'}
-                  </p>
-                  
-                  <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                    {(searchTerm || Object.keys(filtres).length > 0) && (
-                      <motion.button
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                        onClick={handleClearFilters}
-                        className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-                      >
-                        Effacer les filtres
-                      </motion.button>
-                    )}
-                    
-                    <motion.button
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={handleAddProduit}
-                      className="px-6 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors flex items-center gap-2"
-                    >
-                      <Plus className="w-4 h-4" />
-                      Ajouter un produit
-                    </motion.button>
-                  </div>
-                </motion.div>
-              ) : (
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className={`grid gap-4 ${
-                    viewMode === 'grid' 
-                      ? 'grid-cols-1 md:grid-cols-2 xl:grid-cols-3' 
-                      : 'grid-cols-1'
-                  }`}
-                >
-                  <AnimatePresence>
-                    {produitsFiltered.map((produit, index) => (
-                      <motion.div
-                        key={produit.id_produit}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, scale: 0.9 }}
-                        transition={{ delay: index * 0.05 }}
-                      >
-                        <CarteProduit
-                          produit={produit}
-                          onEdit={handleEditProduit}
-                          onDelete={handleDeleteProduit}
-                          typeStructure="COMMERCIALE"
-                          compactMode={viewMode === 'list'}
-                        />
-                      </motion.div>
-                    ))}
-                  </AnimatePresence>
-                </motion.div>
-              )}
-            </div>
           </div>
 
-          {/* Modal d'ajout/édition */}
-          <ModalAjoutProduitNew
-            isOpen={isModalAjoutOpen}
-            onClose={handleCloseModal}
-            onSuccess={handleProduitSuccess}
-            onStockUpdate={loadProduits}
-            produitToEdit={produitSelectionne}
-            typeStructure="COMMERCIALE"
-          />
+          {/* Message d'erreur */}
+          {errorProduits && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl flex items-center gap-3"
+            >
+              <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
+              <div>
+                <p className="text-red-800 font-medium">Erreur de chargement</p>
+                <p className="text-red-600 text-sm">{errorProduits}</p>
+              </div>
+              <motion.button
+                whileTap={{ scale: 0.95 }}
+                onClick={handleRefresh}
+                className="ml-auto p-2 text-red-600 hover:bg-red-100 rounded-lg transition-colors"
+              >
+                <RefreshCw className="w-4 h-4" />
+              </motion.button>
+            </motion.div>
+          )}
 
-          {/* Bouton flottant Ajouter */}
-          <motion.button
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-            onClick={handleAddProduit}
-            className="fixed bottom-6 right-6 w-14 h-14 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-full shadow-lg hover:shadow-xl flex items-center justify-center transition-all duration-300 z-40"
-            aria-label="Ajouter un produit"
-          >
-            <Plus className="w-6 h-6" />
-          </motion.button>
-        
+          {/* Liste des produits avec nouveau composant */}
+          <ProduitsList
+            items={produitsFiltered}
+            loading={isLoadingProduits}
+            viewMode={viewMode}
+            renderItem={renderProduitItem}
+            renderSkeleton={renderProduitSkeleton}
+            onAddProduit={handleAddProduit}
+            onClearFilters={handleClearFilters}
+            isEmpty={!isLoadingProduits && produits.length === 0}
+            hasNoResults={!isLoadingProduits && produits.length > 0 && produitsFiltered.length === 0}
+            searchTerm={searchTerm}
+            hasFilters={Object.keys(filtres).length > 0}
+            skeletonCount={6}
+          />
+        </div>
+
+        {/* Bouton flottant Ajouter */}
+        <motion.button
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.9 }}
+          onClick={handleAddProduit}
+          className="fixed bottom-6 right-6 w-14 h-14 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-full shadow-lg hover:shadow-xl flex items-center justify-center transition-all duration-300 z-40"
+          aria-label="Ajouter un produit"
+        >
+          <Plus className="w-6 h-6" />
+        </motion.button>
+      
         {/* StatusBar Panier - fixe en bas */}
         <StatusBarPanier />
-
-        {/* Modal Panier */}
-        <ModalPanier />
-        
-        {/* Modal Facture Success */}
-        <ModalFactureSuccess />
-
-        {/* Toast Component */}
-        <ToastComponent />
-        </div>
       </div>
+
+      {/* Modals */}
+      <ModalAjoutProduitNew
+        isOpen={isModalAjoutOpen}
+        onClose={handleCloseModal}
+        onSuccess={handleProduitSuccess}
+        onStockUpdate={loadProduits}
+        produitToEdit={produitSelectionne}
+        typeStructure="COMMERCIALE"
+      />
+
+      <ModalPanier />
+      <ModalFactureSuccess />
+    </div>
+    
+    {/* Toast Component */}
+    <ToastComponent />
   );
 }
