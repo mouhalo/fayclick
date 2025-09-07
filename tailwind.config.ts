@@ -77,12 +77,35 @@ const config: Config = {
         montserrat: ['var(--font-montserrat)', 'Montserrat', 'sans-serif'],
         sans: ['var(--font-inter)', 'Inter', 'system-ui', 'sans-serif'],
       },
-      // Extensions d'animations du guide fayclick
+      // Extensions d'animations du guide fayclick + glassmorphism
       animation: {
         'float-slow': 'float 6s ease-in-out infinite',
         'bounce-slow': 'bounce 3s ease-in-out infinite',
         'pulse-slow': 'pulse 3s ease-in-out infinite',
         'spin-slow': 'spin 3s linear infinite',
+        'shimmer': 'shimmer 2s linear infinite',
+        'pulse-glass': 'pulse-glass 2s ease-in-out infinite',
+        'float': 'float 3s ease-in-out infinite',
+      },
+      keyframes: {
+        shimmer: {
+          '0%': { transform: 'translateX(-100%)' },
+          '100%': { transform: 'translateX(100%)' },
+        },
+        'pulse-glass': {
+          '0%, 100%': { 
+            opacity: '1',
+            boxShadow: '0 0 0 0 rgba(255, 255, 255, 0.4)'
+          },
+          '50%': { 
+            opacity: '0.8',
+            boxShadow: '0 0 0 10px rgba(255, 255, 255, 0)'
+          },
+        },
+        float: {
+          '0%, 100%': { transform: 'translateY(0px)' },
+          '50%': { transform: 'translateY(-10px)' },
+        },
       },
       // Extensions de transitions
       transitionDuration: {
@@ -112,6 +135,22 @@ const config: Config = {
         '80': '80',
         '90': '90',
         '100': '100',
+      },
+      // Extensions backdrop-blur pour glassmorphism
+      backdropBlur: {
+        'heavy': '20px',
+        'glass': '16px',
+      },
+      // Couleurs glassmorphism
+      backgroundColor: {
+        'glass': 'rgba(255, 255, 255, 0.2)',
+        'glass-hover': 'rgba(255, 255, 255, 0.25)',
+        'glass-dark': 'rgba(0, 0, 0, 0.2)',
+        'glass-dark-hover': 'rgba(0, 0, 0, 0.25)',
+      },
+      borderColor: {
+        'glass': 'rgba(255, 255, 255, 0.3)',
+        'glass-dark': 'rgba(255, 255, 255, 0.1)',
       },
     },
   },

@@ -21,7 +21,7 @@ import {
 import QRCodeLib from 'qrcode';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { FactureComplete } from '@/types/facture';
-import { urlEncoder } from '@/lib/url-encoder';
+import { encodeFactureParams } from '@/lib/url-encoder';
 
 interface ModalPartageProps {
   isOpen: boolean;
@@ -52,7 +52,7 @@ export function ModalPartage({ isOpen, onClose, facture }: ModalPartageProps) {
 
     try {
       // Encodage sécurisé de l'ID structure et facture
-      const token = urlEncoder.encodeFactureParams(
+      const token = encodeFactureParams(
         facture.facture.id_structure,
         facture.facture.id_facture
       );
