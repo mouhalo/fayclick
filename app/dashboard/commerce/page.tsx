@@ -8,6 +8,10 @@ import { useDashboardData } from '@/hooks/useDashboardData';
 import MainMenu from '@/components/layout/MainMenu';
 import { formatAmount } from '@/utils/formatAmount';
 import { User } from '@/types/auth';
+import { StatusBarPanier } from '@/components/panier/StatusBarPanier';
+import { ModalPanier } from '@/components/panier/ModalPanier';
+import { ModalFactureSuccess } from '@/components/panier/ModalFactureSuccess';
+import { Toast, useToast } from '@/components/ui/Toast';
 
 
 export default function CommerceDashboard() {
@@ -17,6 +21,7 @@ export default function CommerceDashboard() {
   const [showCoffreModal, setShowCoffreModal] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [notifications, setNotifications] = useState(3);
+  const { ToastComponent } = useToast();
 
   // Hook pour charger les vraies données depuis l'API
   const { 
@@ -210,7 +215,7 @@ export default function CommerceDashboard() {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               className="bg-white rounded-2xl p-5 shadow-lg border-l-4 border-orange-500 cursor-pointer"
-              onClick={() => router.push('/dashboard/commerce/products')}
+              onClick={() => router.push('/dashboard/commerce/produits')}
             >
               <span className="text-3xl mb-3 block">📦</span>
               <div className="text-3xl font-bold text-gray-800 mb-1">
@@ -294,7 +299,7 @@ export default function CommerceDashboard() {
 
             <div className="grid grid-cols-2 gap-4">
               {[
-                { icon: '📦', title: 'Liste Produits', subtitle: 'Gérer votre stock', color: 'orange', path: '/products' },
+                { icon: '📦', title: 'Liste Produits', subtitle: 'Gérer votre stock', color: 'orange', path: '/produits' },
                 { icon: '💰', title: 'Liste Ventes', subtitle: 'Historique & factures', color: 'green', path: '/sales' },
                 { icon: '👥', title: 'Liste Clients', subtitle: "Carnet d'adresses", color: 'blue', path: '/clients' },
                 { icon: '📊', title: 'Inventaires', subtitle: 'Statistiques détaillées', color: 'brown', path: '/inventory' }
@@ -480,6 +485,18 @@ export default function CommerceDashboard() {
           )}
         </AnimatePresence>
       </div>
+
+      {/* StatusBar Panier - fixe en bas */}
+      <StatusBarPanier />
+
+      {/* Modal Panier */}
+      <ModalPanier />
+
+      {/* Modal Facture Success */}
+      <ModalFactureSuccess />
+
+      {/* Toast Component */}
+      <ToastComponent />
 
       {/* Menu principal */}
       <MainMenu
