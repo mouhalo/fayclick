@@ -1,0 +1,716 @@
+/**
+ * Modal d'ajout/modification de produit - Version complète avec onglets
+ * 3 onglets: Informations, Gestion du stock, Historique des mouvements
+ */
+
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  X, 
+  Package, 
+  Tag, 
+  FileText,
+  Save,
+  Loader2,
+  AlertCircle,
+  Plus,
+  Minus,
+  History,
+  TrendingUp,
+  TrendingDown,
+  Info,
+  Warehouse,
+  Activity,
+  Calendar,
+  DollarSign
+} from 'lucide-react';
+import { Produit, ProduitFormDataNew, AddEditProduitResponse, MouvementStockForm, HistoriqueMouvements, MouvementStock } from '@/types/produit';
+import { produitsService } from '@/services/produits.service';
+
+interface ModalAjoutProduitNewProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSuccess: (produit: AddEditProduitResponse) => void;
+  onStockUpdate?: (id_produit: number, nouveau_stock: number) => void;
+  produitToEdit?: Produit | null;
+  typeStructure: string;
+}
+
+type OngletType = 'informations' | 'gestion-stock' | 'historique';
+
+export function ModalAjoutProduitNew({ 
+  isOpen, 
+  onClose, 
+  onSuccess, 
+  onStockUpdate, 
+  produitToEdit, 
+  typeStructure 
+}: ModalAjoutProduitNewProps) {
+  const [ongletActif, setOngletActif] = useState<OngletType>('informations');
+  const [formData, setFormData] = useState<ProduitFormDataNew>({
+    nom_produit: '',
+    cout_revient: 0,
+    prix_vente: 0,
+    est_service: false,
+    nom_categorie: '',
+    description: ''
+  });
+  const [stockForm, setStockForm] = useState<MouvementStockForm>({
+    quantite: 0,
+    prix_unitaire: 0,
+    type_mouvement: 'ENTREE',
+    description: ''
+  });
+  const [historique, setHistorique] = useState<HistoriqueMouvements | null>(null);
+  const [errors, setErrors] = useState<Partial<ProduitFormDataNew>>({});
+  const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingStock, setIsLoadingStock] = useState(false);
+  const [isLoadingHistorique, setIsLoadingHistorique] = useState(false);
+
+  // Liste des catégories prédéfinies selon le type de structure
+  const categories = typeStructure === 'PRESTATAIRE DE SERVICES' 
+    ? ['Consultation', 'Formation', 'Installation', 'Maintenance', 'Support', 'Autre']
+    : ['Électronique', 'Vêtements', 'Alimentation', 'Mobilier', 'Automobile', 'Santé', 'Autre'];
+
+  // Onglets disponibles
+  const onglets = [
+    {
+      id: 'informations' as OngletType,
+      label: 'Informations',
+      icon: Info,
+      alwaysVisible: true
+    },
+    {
+      id: 'gestion-stock' as OngletType,
+      label: 'Gestion du stock',
+      icon: Warehouse,
+      alwaysVisible: false
+    },
+    {
+      id: 'historique' as OngletType,
+      label: 'Historique',
+      icon: Activity,
+      alwaysVisible: false
+    }
+  ];
+
+  // Onglets filtrés selon le contexte
+  const ongletsAffiches = onglets.filter(onglet => 
+    onglet.alwaysVisible || (produitToEdit && !produitToEdit.est_service)
+  );
+
+  // Initialiser le formulaire quand on modifie un produit
+  useEffect(() => {
+    if (produitToEdit && isOpen) {
+      setFormData({
+        nom_produit: produitToEdit.nom_produit || '',
+        cout_revient: produitToEdit.cout_revient || 0,
+        prix_vente: produitToEdit.prix_vente || 0,
+        est_service: produitToEdit.est_service || false,
+        nom_categorie: produitToEdit.nom_categorie || '',
+        description: produitToEdit.description || ''
+      });
+      setStockForm({
+        quantite: 0,
+        prix_unitaire: produitToEdit.cout_revient || 0,
+        type_mouvement: 'ENTREE',
+        description: ''
+      });
+    } else if (isOpen) {
+      // Reset pour nouveau produit
+      setFormData({
+        nom_produit: '',
+        cout_revient: 0,
+        prix_vente: 0,
+        est_service: typeStructure === 'PRESTATAIRE DE SERVICES',
+        nom_categorie: '',
+        description: ''
+      });
+      setStockForm({
+        quantite: 0,
+        prix_unitaire: 0,
+        type_mouvement: 'ENTREE',
+        description: ''
+      });
+    }
+    setErrors({});
+    setOngletActif('informations');
+    setHistorique(null);
+  }, [produitToEdit, isOpen, typeStructure]);
+
+  // Charger l'historique quand on ouvre l'onglet
+  useEffect(() => {
+    if (ongletActif === 'historique' && produitToEdit && !historique) {
+      loadHistorique();
+    }
+  }, [ongletActif, produitToEdit]);
+
+  // Charger l'historique des mouvements
+  const loadHistorique = async () => {
+    if (!produitToEdit) return;
+    
+    setIsLoadingHistorique(true);
+    try {
+      const data = await produitsService.getHistoriqueMouvements(produitToEdit.id_produit);
+      setHistorique(data);
+    } catch (error) {
+      console.error('Erreur chargement historique:', error);
+    } finally {
+      setIsLoadingHistorique(false);
+    }
+  };
+
+  // Validation du formulaire principal
+  const validateForm = (): boolean => {
+    const newErrors: Partial<ProduitFormDataNew> = {};
+
+    if (!formData.nom_produit.trim()) {
+      newErrors.nom_produit = 'Le nom du produit est requis';
+    }
+
+    if (formData.cout_revient < 0) {
+      newErrors.cout_revient = 'Le coût de revient ne peut pas être négatif' as any;
+    }
+
+    if (formData.prix_vente < 0) {
+      newErrors.prix_vente = 'Le prix de vente ne peut pas être négatif' as any;
+    }
+
+    if (formData.prix_vente <= formData.cout_revient) {
+      newErrors.prix_vente = 'Le prix de vente doit être supérieur au coût de revient' as any;
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  // Calcul de la marge
+  const marge = formData.prix_vente - formData.cout_revient;
+  const margePercentage = formData.cout_revient > 0 
+    ? ((marge / formData.cout_revient) * 100).toFixed(1)
+    : '0';
+
+  // Gestion de la soumission du formulaire principal
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!validateForm()) return;
+
+    setIsLoading(true);
+    
+    try {
+      let result: AddEditProduitResponse;
+      
+      if (produitToEdit) {
+        result = await produitsService.updateProduitNew(produitToEdit.id_produit, formData);
+      } else {
+        result = await produitsService.createProduitNew(formData);
+      }
+
+      onSuccess(result);
+      onClose();
+    } catch (error) {
+      console.error('Erreur lors de la sauvegarde:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Gestion de la soumission du mouvement de stock
+  const handleStockSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!produitToEdit || stockForm.quantite <= 0) return;
+
+    setIsLoadingStock(true);
+    
+    try {
+      const result = await produitsService.addMouvementStockLegacy(produitToEdit.id_produit, stockForm);
+      
+      if (result.success && onStockUpdate) {
+        onStockUpdate(produitToEdit.id_produit, result.nouveau_stock);
+      }
+      
+      // Reset form
+      setStockForm({
+        quantite: 0,
+        prix_unitaire: produitToEdit.cout_revient || 0,
+        type_mouvement: 'ENTREE',
+        description: ''
+      });
+      
+      // Refresh historique si ouvert
+      if (historique) {
+        loadHistorique();
+      }
+      
+      // Message de succès (à implémenter avec votre système de notifications)
+      console.log('Mouvement ajouté avec succès');
+      
+    } catch (error) {
+      console.error('Erreur mouvement stock:', error);
+    } finally {
+      setIsLoadingStock(false);
+    }
+  };
+
+  // Gestion des changements de champs
+  const handleInputChange = (field: keyof ProduitFormDataNew, value: any) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+    
+    if (errors[field]) {
+      setErrors(prev => ({ ...prev, [field]: undefined }));
+    }
+  };
+
+  // Formatage des montants
+  const formatMontant = (montant: number) => `${montant.toLocaleString('fr-FR')} FCFA`;
+
+  if (!isOpen) return null;
+
+  return (
+    <AnimatePresence>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+        onClick={onClose}
+      >
+        <motion.div
+          initial={{ scale: 0.9, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          exit={{ scale: 0.9, opacity: 0 }}
+          onClick={(e) => e.stopPropagation()}
+          className="bg-white rounded-xl w-full max-w-4xl max-h-[90vh] overflow-hidden shadow-2xl"
+        >
+          {/* Header avec onglets */}
+          <div className="bg-sky-50/50 backdrop-blur-sm border-b border-sky-200/50 p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-bold text-slate-900">
+                {produitToEdit ? 'Modifier le produit' : 'Ajouter un produit'}
+              </h3>
+              <button
+                onClick={onClose}
+                className="p-2 hover:bg-sky-100/50 rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5 text-slate-500" />
+              </button>
+            </div>
+
+            {/* Navigation onglets */}
+            <div className="flex space-x-1 bg-sky-100/30 backdrop-blur-sm rounded-lg p-1">
+              {ongletsAffiches.map((onglet) => (
+                <button
+                  key={onglet.id}
+                  onClick={() => setOngletActif(onglet.id)}
+                  className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-md text-sm font-medium transition-all ${
+                    ongletActif === onglet.id
+                      ? 'bg-white shadow-sm text-sky-900'
+                      : 'text-sky-700 hover:text-sky-900 hover:bg-sky-50/50'
+                  }`}
+                >
+                  <onglet.icon className="w-4 h-4" />
+                  <span className="hidden sm:inline">{onglet.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Contenu des onglets */}
+          <div className="p-6 overflow-y-auto max-h-[calc(90vh-200px)]">
+            {/* Onglet Informations */}
+            {ongletActif === 'informations' && (
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                className="space-y-5"
+              >
+                <form onSubmit={handleSubmit} className="space-y-5">
+                  {/* Nom du produit */}
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                      <Package className="w-4 h-4 inline mr-1" />
+                      Nom du {formData.est_service ? 'service' : 'produit'} *
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.nom_produit}
+                      onChange={(e) => handleInputChange('nom_produit', e.target.value)}
+                      className={`w-full px-3 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent backdrop-blur-sm ${
+                        errors.nom_produit ? 'border-red-500' : 'border-sky-300/50'
+                      }`}
+                      placeholder={`Ex: ${formData.est_service ? 'Consultation technique' : 'Samsung Galaxy A10'}`}
+                    />
+                    {errors.nom_produit && (
+                      <p className="text-red-500 text-sm mt-1 flex items-center">
+                        <AlertCircle className="w-4 h-4 mr-1" />
+                        {errors.nom_produit}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Type: Produit ou Service */}
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">Type</label>
+                    <div className="flex gap-4">
+                      <label className="flex items-center">
+                        <input
+                          type="radio"
+                          checked={!formData.est_service}
+                          onChange={() => handleInputChange('est_service', false)}
+                          className="mr-2 text-sky-600"
+                        />
+                        Produit physique
+                      </label>
+                      <label className="flex items-center">
+                        <input
+                          type="radio"
+                          checked={formData.est_service}
+                          onChange={() => handleInputChange('est_service', true)}
+                          className="mr-2 text-sky-600"
+                        />
+                        Service
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* Prix - Grille horizontale 2x1 */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-2">
+                        Prix d'achat (FCFA) *
+                      </label>
+                      <input
+                        type="number"
+                        value={formData.cout_revient}
+                        onChange={(e) => handleInputChange('cout_revient', parseFloat(e.target.value) || 0)}
+                        className={`w-full px-3 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent ${
+                          errors.cout_revient ? 'border-red-500' : 'border-sky-300/50'
+                        }`}
+                        min="0"
+                        step="0.01"
+                      />
+                      {errors.cout_revient && (
+                        <p className="text-red-500 text-sm mt-1">{errors.cout_revient}</p>
+                      )}
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-2">
+                        Prix de vente (FCFA) *
+                      </label>
+                      <input
+                        type="number"
+                        value={formData.prix_vente}
+                        onChange={(e) => handleInputChange('prix_vente', parseFloat(e.target.value) || 0)}
+                        className={`w-full px-3 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent ${
+                          errors.prix_vente ? 'border-red-500' : 'border-sky-300/50'
+                        }`}
+                        min="0"
+                        step="0.01"
+                      />
+                      {errors.prix_vente && (
+                        <p className="text-red-500 text-sm mt-1">{errors.prix_vente}</p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Calcul de la marge */}
+                  {formData.cout_revient > 0 && formData.prix_vente > 0 && (
+                    <div className="bg-sky-50/50 backdrop-blur-sm p-4 rounded-lg border border-sky-200/50">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-slate-600">Marge bénéficiaire:</span>
+                        <div className="text-right">
+                          <div className="font-semibold text-sky-900">
+                            {formatMontant(marge)}
+                          </div>
+                          <div className="text-sky-700">
+                            ({margePercentage}%)
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Catégorie */}
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                      <Tag className="w-4 h-4 inline mr-1" />
+                      Catégorie
+                    </label>
+                    <select
+                      value={formData.nom_categorie}
+                      onChange={(e) => handleInputChange('nom_categorie', e.target.value)}
+                      className="w-full px-3 py-2.5 border border-sky-300/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                    >
+                      <option value="">Sélectionner une catégorie</option>
+                      {categories.map(cat => (
+                        <option key={cat} value={cat}>{cat}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Description */}
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                      <FileText className="w-4 h-4 inline mr-1" />
+                      Description
+                    </label>
+                    <textarea
+                      value={formData.description}
+                      onChange={(e) => handleInputChange('description', e.target.value)}
+                      rows={3}
+                      className="w-full px-3 py-2.5 border border-sky-300/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                      placeholder={`Décrivez votre ${formData.est_service ? 'service' : 'produit'}...`}
+                    />
+                  </div>
+
+                  {/* Boutons d'action */}
+                  <div className="flex gap-3 pt-4">
+                    <button
+                      type="button"
+                      onClick={onClose}
+                      className="flex-1 px-4 py-2.5 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors font-medium"
+                    >
+                      Annuler
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={isLoading}
+                      className="flex-1 px-4 py-2.5 bg-sky-600 text-white rounded-lg hover:bg-sky-700 transition-colors font-medium flex items-center justify-center gap-2 disabled:opacity-50"
+                    >
+                      {isLoading ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Save className="w-4 h-4" />
+                      )}
+                      {isLoading 
+                        ? 'Enregistrement...' 
+                        : produitToEdit 
+                          ? 'Modifier' 
+                          : 'Créer'
+                      }
+                    </button>
+                  </div>
+                </form>
+              </motion.div>
+            )}
+
+            {/* Onglet Gestion du stock */}
+            {ongletActif === 'gestion-stock' && produitToEdit && (
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                className="space-y-6"
+              >
+                <div className="bg-gradient-to-r from-sky-50 to-blue-50 backdrop-blur-sm p-4 rounded-lg border border-sky-200/50">
+                  <h4 className="font-semibold text-slate-900 mb-2">Produit: {produitToEdit.nom_produit}</h4>
+                  <p className="text-sm text-slate-600">Stock actuel: <span className="font-medium">{produitToEdit.niveau_stock || 0} unités</span></p>
+                </div>
+
+                <form onSubmit={handleStockSubmit} className="space-y-5">
+                  {/* Type de mouvement */}
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">Type de mouvement</label>
+                    <div className="grid grid-cols-2 gap-3">
+                      <label className="flex items-center p-3 border border-sky-300/50 rounded-lg hover:bg-sky-50/50 cursor-pointer">
+                        <input
+                          type="radio"
+                          checked={stockForm.type_mouvement === 'ENTREE'}
+                          onChange={() => setStockForm(prev => ({ ...prev, type_mouvement: 'ENTREE' }))}
+                          className="mr-3 text-green-600"
+                        />
+                        <div className="flex items-center gap-2">
+                          <TrendingUp className="w-4 h-4 text-green-600" />
+                          <span className="font-medium text-green-700">Entrée</span>
+                        </div>
+                      </label>
+                      <label className="flex items-center p-3 border border-sky-300/50 rounded-lg hover:bg-sky-50/50 cursor-pointer">
+                        <input
+                          type="radio"
+                          checked={stockForm.type_mouvement === 'SORTIE'}
+                          onChange={() => setStockForm(prev => ({ ...prev, type_mouvement: 'SORTIE' }))}
+                          className="mr-3 text-red-600"
+                        />
+                        <div className="flex items-center gap-2">
+                          <TrendingDown className="w-4 h-4 text-red-600" />
+                          <span className="font-medium text-red-700">Sortie</span>
+                        </div>
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* Quantité et Prix - Grille horizontale 2x1 */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-2">
+                        Quantité *
+                      </label>
+                      <input
+                        type="number"
+                        value={stockForm.quantite}
+                        onChange={(e) => setStockForm(prev => ({ ...prev, quantite: parseInt(e.target.value) || 0 }))}
+                        className="w-full px-3 py-2.5 border border-sky-300/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                        min="1"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-2">
+                        Prix unitaire (FCFA) *
+                      </label>
+                      <input
+                        type="number"
+                        value={stockForm.prix_unitaire}
+                        onChange={(e) => setStockForm(prev => ({ ...prev, prix_unitaire: parseFloat(e.target.value) || 0 }))}
+                        className="w-full px-3 py-2.5 border border-sky-300/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                        min="0"
+                        step="0.01"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  {/* Description */}
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                      Description (optionnelle)
+                    </label>
+                    <textarea
+                      value={stockForm.description}
+                      onChange={(e) => setStockForm(prev => ({ ...prev, description: e.target.value }))}
+                      rows={2}
+                      className="w-full px-3 py-2.5 border border-sky-300/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                      placeholder="Motif du mouvement..."
+                    />
+                  </div>
+
+                  {/* Total calculé */}
+                  {stockForm.quantite > 0 && stockForm.prix_unitaire > 0 && (
+                    <div className="bg-orange-50/50 backdrop-blur-sm p-4 rounded-lg border border-orange-200/50">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-slate-600">Total {stockForm.type_mouvement.toLowerCase()}:</span>
+                        <div className="text-lg font-semibold text-orange-900">
+                          {formatMontant(stockForm.quantite * stockForm.prix_unitaire)}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Bouton de soumission */}
+                  <button
+                    type="submit"
+                    disabled={isLoadingStock || stockForm.quantite <= 0 || stockForm.prix_unitaire <= 0}
+                    className="w-full px-4 py-3 bg-sky-600 text-white rounded-lg hover:bg-sky-700 transition-colors font-medium flex items-center justify-center gap-2 disabled:opacity-50"
+                  >
+                    {isLoadingStock ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Package className="w-4 h-4" />
+                    )}
+                    {isLoadingStock ? 'Enregistrement...' : 'Enregistrer le mouvement'}
+                  </button>
+                </form>
+              </motion.div>
+            )}
+
+            {/* Onglet Historique */}
+            {ongletActif === 'historique' && produitToEdit && (
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                className="space-y-6"
+              >
+                {isLoadingHistorique ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="w-8 h-8 animate-spin text-sky-600" />
+                  </div>
+                ) : historique ? (
+                  <>
+                    {/* Statistiques */}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="bg-gradient-to-r from-green-50/80 to-green-100/80 backdrop-blur-sm p-4 rounded-lg border border-green-200/50">
+                        <div className="flex items-center gap-2 mb-2">
+                          <TrendingUp className="w-5 h-5 text-green-600" />
+                          <span className="font-medium text-green-800">Total Entrées</span>
+                        </div>
+                        <div className="text-lg font-bold text-green-900">{historique.totalEntrees} unités</div>
+                        <div className="text-sm text-green-700">{formatMontant(historique.totalEntriesMontant)}</div>
+                      </div>
+                      <div className="bg-gradient-to-r from-red-50/80 to-red-100/80 backdrop-blur-sm p-4 rounded-lg border border-red-200/50">
+                        <div className="flex items-center gap-2 mb-2">
+                          <TrendingDown className="w-5 h-5 text-red-600" />
+                          <span className="font-medium text-red-800">Total Sorties</span>
+                        </div>
+                        <div className="text-lg font-bold text-red-900">{historique.totalSorties} unités</div>
+                        <div className="text-sm text-red-700">{formatMontant(historique.totalSortiesMontant)}</div>
+                      </div>
+                    </div>
+
+                    {/* Tableau des mouvements */}
+                    {historique.mouvements.length > 0 ? (
+                      <div className="overflow-x-auto">
+                        <table className="w-full border-collapse">
+                          <thead>
+                            <tr className="bg-sky-50/50 backdrop-blur-sm border-b border-sky-200/50">
+                              <th className="text-left p-3 text-sm font-medium text-slate-700 min-w-[100px]">Date</th>
+                              <th className="text-left p-3 text-sm font-medium text-slate-700 min-w-[80px]">Type</th>
+                              <th className="text-left p-3 text-sm font-medium text-slate-700 min-w-[80px]">Quantité</th>
+                              <th className="text-left p-3 text-sm font-medium text-slate-700 min-w-[120px]">Prix Achat (FCFA)</th>
+                              <th className="text-left p-3 text-sm font-medium text-slate-700 min-w-[120px]">Total (FCFA)</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {historique.mouvements.map((mouvement, index) => (
+                              <tr key={index} className="border-b border-slate-100 hover:bg-slate-50/30">
+                                <td className="p-3 text-sm text-slate-600">
+                                  {new Date(mouvement.tms_create).toLocaleDateString('fr-FR')}
+                                </td>
+                                <td className="p-3">
+                                  <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${
+                                    mouvement.type_mouvement === 'ENTREE' 
+                                      ? 'bg-green-100 text-green-800'
+                                      : 'bg-red-100 text-red-800'
+                                  }`}>
+                                    {mouvement.type_mouvement === 'ENTREE' ? (
+                                      <TrendingUp className="w-3 h-3" />
+                                    ) : (
+                                      <TrendingDown className="w-3 h-3" />
+                                    )}
+                                    {mouvement.type_mouvement}
+                                  </span>
+                                </td>
+                                <td className="p-3 text-sm text-slate-900 font-medium">{mouvement.quantite}</td>
+                                <td className="p-3 text-sm text-slate-900">{mouvement.prix_unitaire.toLocaleString('fr-FR')}</td>
+                                <td className="p-3 text-sm text-slate-900 font-medium">
+                                  {(mouvement.quantite * mouvement.prix_unitaire).toLocaleString('fr-FR')}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    ) : (
+                      <div className="text-center py-8">
+                        <History className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+                        <p className="text-slate-500">Aucun mouvement de stock enregistré</p>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div className="text-center py-8">
+                    <AlertCircle className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+                    <p className="text-slate-500">Erreur lors du chargement de l'historique</p>
+                  </div>
+                )}
+              </motion.div>
+            )}
+          </div>
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
+  );
+}
