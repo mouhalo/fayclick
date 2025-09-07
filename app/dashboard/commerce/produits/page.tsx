@@ -25,7 +25,7 @@ import {
 import { authService } from '@/services/auth.service';
 import { produitsService, ProduitsApiException } from '@/services/produits.service';
 import { useProduits, useProduitsUI } from '@/hooks/useProduits';
-import { StatsProduits, StatsProduitsLoading } from '@/components/produits/StatsProduits';
+import { StatsCardsNouveaux, StatsCardsNouveauxLoading } from '@/components/produits/StatsCardsNouveaux';
 import { CarteProduit, CarteProduitSkeleton } from '@/components/produits/CarteProduit';
 import { ModalAjoutProduitNew } from '@/components/produits/ModalAjoutProduitNew';
 import { StatusBarPanier } from '@/components/panier/StatusBarPanier';
@@ -336,11 +336,10 @@ export default function ProduitsCommercePage() {
             {/* Statistiques */}
             <div className="mb-6">
               {isLoadingProduits ? (
-                <StatsProduitsLoading />
+                <StatsCardsNouveauxLoading />
               ) : (
-                <StatsProduits 
-                  articles={produitsFiltered} 
-                  typeStructure="COMMERCIALE"
+                <StatsCardsNouveaux 
+                  articles={produitsFiltered}
                 />
               )}
             </div>
