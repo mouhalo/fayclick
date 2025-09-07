@@ -5,7 +5,7 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   X, CheckCircle, QrCode as QrIcon, MessageCircle, 
@@ -28,28 +28,40 @@ export function ModalFactureSuccess() {
   const [copiedUrl, setCopiedUrl] = useState(false);
   const [qrExpanded, setQrExpanded] = useState(false);
 
-  // Générer les URLs
-  const generateFactureUrls = () => {
-    if (!factureDetails) return { simple: '', encoded: '', full: '' };
+  // Générer les URLs seulement quand les données sont disponibles
+  const urls = useMemo(() => {
+    // Conditions de sécurité
+    if (!factureDetails || !factureId || factureId <= 0) {
+      return { simple: '', encoded: '', full: '' };
+    }
     
-    const user = authService.getUser();
-    const idStructure = user?.id_structure || factureDetails.id_structure;
-    
-    // URL simple format: /fay/{id_structure}#{id_facture}
-    const simpleUrl = `/fay/${idStructure}%23${factureId}`;
-    
-    // URL encodée avec token
-    const token = encodeFactureParams(idStructure, factureId || 0);
-    const encodedUrl = `/facture?token=${token}`;
-    
-    // URL complète avec domaine (utilise l'URL encodée pour être sûr)
-    const baseUrl = window.location.origin;
-    const fullUrl = `${baseUrl}${encodedUrl}`;
-    
-    return { simple: simpleUrl, encoded: encodedUrl, full: fullUrl };
-  };
-
-  const urls = generateFactureUrls();
+    try {
+      const user = authService.getUser();
+      const idStructure = user?.id_structure || factureDetails.id_structure;
+      
+      // Validation supplémentaire
+      if (!idStructure || idStructure <= 0) {
+        console.warn('ID structure invalide pour génération URL');
+        return { simple: '', encoded: '', full: '' };
+      }
+      
+      // URL simple format: /fay/{id_structure}#{id_facture}
+      const simpleUrl = `/fay/${idStructure}%23${factureId}`;
+      
+      // URL encodée avec token
+      const token = encodeFactureParams(idStructure, factureId);
+      const encodedUrl = `/facture?token=${token}`;
+      
+      // URL complète avec domaine (utilise l'URL encodée pour être sûr)
+      const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
+      const fullUrl = `${baseUrl}${encodedUrl}`;
+      
+      return { simple: simpleUrl, encoded: encodedUrl, full: fullUrl };
+    } catch (error) {
+      console.error('Erreur génération URLs facture:', error);
+      return { simple: '', encoded: '', full: '' };
+    }
+  }, [factureDetails, factureId]);
 
   useEffect(() => {
     if (isOpen && factureId) {
@@ -82,6 +94,10 @@ export function ModalFactureSuccess() {
   };
 
   const handleCopyUrl = async () => {
+    if (!urls.full) {
+      console.warn('URL non disponible pour copie');
+      return;
+    }
     try {
       await navigator.clipboard.writeText(urls.full);
       setCopiedUrl(true);
@@ -104,7 +120,7 @@ export function ModalFactureSuccess() {
       `${factureDetails.mt_remise > 0 ? `🎁 Remise: ${factureDetails.mt_remise?.toLocaleString('fr-FR')} FCFA\n` : ''}` +
       `${factureDetails.mt_acompte > 0 ? `✅ Acompte: ${factureDetails.mt_acompte?.toLocaleString('fr-FR')} FCFA\n` : ''}` +
       `📊 *Reste à payer: ${factureDetails.mt_restant?.toLocaleString('fr-FR')} FCFA*\n\n` +
-      `🔗 Voir la facture:\n${urls.full}\n\n` +
+      `🔗 Voir la facture:\n${urls.full || 'URL en cours de génération...'}\n\n` +
       `_Merci pour votre confiance !_`
     );
     
@@ -303,14 +319,20 @@ export function ModalFactureSuccess() {
                           className="overflow-hidden"
                         >
                           <div className={`bg-white ${isMobile ? 'p-3' : 'p-4'} rounded-xl flex items-center justify-center mt-3`}>
-                            <QRCode
-                              id="facture-qr-code"
-                              value={urls.full}
-                              size={styles.qrSize}
-                              level="H"
-                              fgColor="#0284c7"
-                              bgColor="#ffffff"
-                            />
+                            {urls.full ? (
+                              <QRCode
+                                id="facture-qr-code"
+                                value={urls.full}
+                                size={styles.qrSize}
+                                level="H"
+                                fgColor="#0284c7"
+                                bgColor="#ffffff"
+                              />
+                            ) : (
+                              <div className={`flex items-center justify-center ${isMobile ? 'h-[120px]' : 'h-[200px]'} text-gray-400`}>
+                                <p className="text-sm">Génération QR code...</p>
+                              </div>
+                            )}
                           </div>
                           
                           <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-gray-600 text-center mt-2`}>
@@ -377,7 +399,8 @@ export function ModalFactureSuccess() {
                     <motion.button
                       whileHover={{ scale: isDesktop ? 1.02 : 1 }}
                       whileTap={{ scale: 0.98 }}
-                      onClick={() => window.open(urls.full, '_blank')}
+                      onClick={() => urls.full && window.open(urls.full, '_blank')}
+                      disabled={!urls.full}
                       className={`
                         w-full bg-sky-100/60 backdrop-blur-sm
                         text-sky-700 font-medium ${isMobile ? 'py-2.5' : 'py-3'} rounded-xl

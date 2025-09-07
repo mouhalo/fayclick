@@ -43,6 +43,7 @@ export interface CreateFactureResponse {
   message: string;
 }
 
+
 class FactureService {
   private static instance: FactureService;
 
