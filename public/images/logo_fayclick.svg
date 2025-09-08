@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="960" height="260" viewBox="0 0 960 260" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">Logo animé FayClick</title>
+  <desc id="desc">Logomark circulaire avec anneau tricolore du Sénégal, caddie stylisé contenant les lettres FC, ondes de clic et roues animées, accompagné du mot-symbole FayClick.</desc>
+
+  <defs>
+    <!-- Dégradé tricolore (Sénégal) pour l’anneau -->
+    <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#00853F"/>
+      <stop offset="50%" stop-color="#FCD116"/>
+      <stop offset="100%" stop-color="#E31B23"/>
+    </linearGradient>
+
+    <!-- Ombre douce -->
+    <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#000" flood-opacity="0.15"/>
+    </filter>
+
+    <!-- Styles -->
+    <style>
+      :root{
+        --ink:#0f172a;          /* Bleu nuit (texte/traits) */
+        --ink-2:#0b1220;
+        --brand:#0ea5e9;        /* Bleu FayClick (panier) */
+        --white:#ffffff;
+      }
+      text{ font-family: Inter, "Segoe UI", Roboto, Arial, sans-serif; }
+      /* Accessibilité: réduire les animations si demandé par l’utilisateur */
+      @media (prefers-reduced-motion: reduce) {
+        .spin, .pulse, .sparkle { animation: none !important; }
+      }
+      /* Clic / ripple */
+      @keyframes ripple {
+        0%   { r: 0;   opacity: .8; }
+        70%  { r: 18;  opacity: .15; }
+        100% { r: 26;  opacity: 0; }
+      }
+      .pulse { animation: ripple 2.2s ease-out infinite; }
+      /* Étincelle */
+      @keyframes twinkle {
+        0%,100% { transform: scale(0.9) rotate(0deg); opacity:.9; }
+        50%     { transform: scale(1.25) rotate(15deg); opacity:1; }
+      }
+      .sparkle { transform-origin: center; animation: twinkle 1.8s ease-in-out infinite; }
+      /* Rotation subtile */
+      @keyframes spin360 { to { transform: rotate(360deg); } }
+      .spin { transform-origin: 100px 100px; animation: spin360 14s linear infinite; }
+      .wheel { transform-origin: center; animation: spin360 4.5s linear infinite; }
+    </style>
+  </defs>
+
+  <!-- Zone cliquable globale -->
+  <a href="#" aria-label="FayClick - Commerce Digital Sénégal">
+
+    <!-- Groupe du logomark -->
+    <g id="mark" transform="translate(20,20)" filter="url(#softShadow)">
+      <!-- Anneau tricolore -->
+      <g class="spin">
+        <circle cx="100" cy="100" r="86" fill="none" stroke="url(#ringGrad)" stroke-width="12" stroke-linecap="round" />
+      </g>
+
+      <!-- Disque intérieur -->
+      <circle cx="100" cy="100" r="72" fill="var(--white)" stroke="#e6eef7" stroke-width="2"/>
+
+      <!-- Caddie stylisé (commerce) -->
+      <!-- Poignée -->
+      <path d="M55 72 L70 88" fill="none" stroke="var(--ink-2)" stroke-width="6" stroke-linecap="round"/>
+      <!-- Panier -->
+      <rect x="68" y="86" width="64" height="42" rx="10" fill="var(--brand)" stroke="var(--ink-2)" stroke-width="2"/>
+      <!-- Lettres FC dans le panier -->
+      <text x="100" y="113" text-anchor="middle" fill="var(--white)" font-size="26" font-weight="700" letter-spacing="1">FC</text>
+      <!-- Roues -->
+      <g class="wheel">
+        <circle cx="82" cy="136" r="9" fill="var(--white)" stroke="var(--ink-2)" stroke-width="3"/>
+        <circle cx="118" cy="136" r="9" fill="var(--white)" stroke="var(--ink-2)" stroke-width="3"/>
+      </g>
+
+      <!-- Onde de clic (en haut-droite du logomark) -->
+      <circle class="pulse" cx="152" cy="66" r="0" fill="none" stroke="var(--brand)" stroke-width="3"/>
+      <circle class="pulse" style="animation-delay:.6s" cx="152" cy="66" r="0" fill="none" stroke="#22c55e" stroke-width="2.5"/>
+      <circle class="pulse" style="animation-delay:1.2s" cx="152" cy="66" r="0" fill="none" stroke="#f59e0b" stroke-width="2"/>
+
+      <!-- Petite étoile étincelante -->
+      <polygon class="sparkle" points="152,60 156,66 164,68 158,72 159,79 152,76 145,79 146,72 140,68 148,66"
+               fill="#16a34a" opacity="0.95"/>
+    </g>
+  </a>
+</svg>
