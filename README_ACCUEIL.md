@@ -33,7 +33,8 @@ Les images doivent idéalement être :
 ### Modifier les couleurs
 
 Les couleurs principales sont définies dans les composants :
-- Gradient principal : `from-sky-400 via-sky-300 to-sky-200`
+- Gradient principal : vert 
+- Couleur principale : Vert (`bg-green-500 
 - Couleur accent : Orange (`from-orange-500 to-orange-600`)
 
 ### Modifier les animations
