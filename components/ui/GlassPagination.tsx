@@ -18,6 +18,7 @@ interface GlassPaginationProps {
   itemsPerPage?: number;
   totalItems: number;
   className?: string;
+  itemLabel?: string; // "factures", "produits", etc.
 }
 
 export function GlassPagination({
@@ -26,7 +27,8 @@ export function GlassPagination({
   onPageChange,
   itemsPerPage = 10,
   totalItems,
-  className
+  className,
+  itemLabel = "factures"
 }: GlassPaginationProps) {
   
   // Calcul des numéros de page à afficher
@@ -93,13 +95,13 @@ export function GlassPagination({
         transition={{ duration: 0.3 }}
         className={cn("", className)}
       >
-        <GlassCard className="p-3">
+        <div className="p-3 backdrop-blur-lg bg-emerald-500/80 border border-emerald-400/30 rounded-xl shadow-lg shadow-emerald-500/20">
           <div className="text-center">
             <p className="text-emerald-100 text-sm font-medium">
-              Affichage de {totalItems} facture{totalItems > 1 ? 's' : ''}
+              Affichage de {totalItems} {itemLabel}
             </p>
           </div>
-        </GlassCard>
+        </div>
       </motion.div>
     );
   }
@@ -112,11 +114,11 @@ export function GlassPagination({
       className={cn("space-y-2", className)}
     >
       {/* Contrôles de pagination et informations combinés */}
-      <GlassCard className="p-3 space-y-3">
+      <div className="p-3 space-y-3 backdrop-blur-lg bg-emerald-500/80 border border-emerald-400/30 rounded-xl shadow-lg shadow-emerald-500/20">
         {/* Informations de pagination */}
         <div className="text-center">
           <p className="text-emerald-100 text-xs font-medium">
-            Affichage de {startItem} à {endItem} sur {totalItems} factures
+            Affichage de {startItem} à {endItem} sur {totalItems} {itemLabel}
           </p>
         </div>
         
@@ -187,7 +189,7 @@ export function GlassPagination({
             <ChevronRight className="w-4 h-4 text-white" />
           </motion.button>
         </div>
-      </GlassCard>
+      </div>
     </motion.div>
   );
 }

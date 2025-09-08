@@ -36,6 +36,7 @@ import { GlassHeader } from '@/components/ui/GlassHeader';
 import { ProduitsList } from '@/components/produits/ProduitsList';
 import { ProduitsFilterHeader } from '@/components/produits/ProduitsFilterHeader';
 import { ProduitsStatsHeader } from '@/components/produits/ProduitsStatsHeader';
+import { GlassPagination, usePagination } from '@/components/ui/GlassPagination';
 import { Produit, ProduitFormData, ProduitFormDataNew, AddEditProduitResponse, FiltreProduits } from '@/types/produit';
 import { User } from '@/types/auth';
 
@@ -48,6 +49,10 @@ export default function ProduitsCommercePage() {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [showFilters, setShowFilters] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  
+  // Configuration pagination
+  const itemsPerPage = 10;
 
   // Hooks optimisés
   const {
@@ -70,6 +75,14 @@ export default function ProduitsCommercePage() {
 
   const { ToastComponent } = useToast();
 
+  // Pagination
+  const filteredCount = produitsFiltered.length;
+  const { 
+    totalPages, 
+    getPaginatedItems 
+  } = usePagination(filteredCount, itemsPerPage);
+  
+  const paginatedItems = getPaginatedItems(produitsFiltered, currentPage);
 
   const {
     isModalAjoutOpen,
@@ -216,17 +229,25 @@ export default function ProduitsCommercePage() {
 
   // Note: La gestion du panier est maintenant dans CarteProduit via le store Zustand
 
-  // Gestion des filtres
+  // Gestion de la pagination
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  // Gestion des filtres avec reset de pagination
   const handleSearchChange = (value: string) => {
     setSearchTerm(value);
+    setCurrentPage(1); // Reset à la première page
   };
 
   const handleFiltersChange = (newFilters: Partial<FiltreProduits>) => {
     setFiltres(newFilters);
+    setCurrentPage(1); // Reset à la première page
   };
 
   const handleClearFilters = () => {
     resetFiltres();
+    setCurrentPage(1); // Reset à la première page
   };
 
   // Loading state
@@ -264,21 +285,15 @@ export default function ProduitsCommercePage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-600 via-green-700 to-green-800">
-      <div className="max-w-md mx-auto bg-white min-h-screen relative">
+      <div className="max-w-md mx-auto bg-yellow-180 min-h-screen relative">
         
         {/* Header avec design glassmorphism */}
         <GlassHeader
-          title="Gestion Produits"
+          title="🛍️ Gestion Produits"
           subtitle={user.nom_structure}
           onBack={handleRetour}
           showBackButton={true}
           backgroundGradient="bg-gradient-to-r from-green-500 to-green-600"
-          rightContent={
-            <ProduitsStatsHeader 
-              produits={produitsFiltered} 
-              loading={isLoadingProduits}
-            />
-          }
           filterContent={
             <ProduitsFilterHeader
               searchTerm={searchTerm}
@@ -307,6 +322,19 @@ export default function ProduitsCommercePage() {
             )}
           </div>
 
+          {/* Pagination glassmorphism */}
+          {!isLoadingProduits && filteredCount > 0 && (
+            <GlassPagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              totalItems={filteredCount}
+              itemsPerPage={itemsPerPage}
+              onPageChange={handlePageChange}
+              itemLabel="produits"
+              className="mb-6"
+            />
+          )}
+
           {/* Message d'erreur */}
           {errorProduits && (
             <motion.div
@@ -331,7 +359,7 @@ export default function ProduitsCommercePage() {
 
           {/* Liste des produits avec nouveau composant */}
           <ProduitsList
-            items={produitsFiltered}
+            items={paginatedItems}
             loading={isLoadingProduits}
             viewMode={viewMode}
             renderItem={renderProduitItem}
@@ -339,10 +367,10 @@ export default function ProduitsCommercePage() {
             onAddProduit={handleAddProduit}
             onClearFilters={handleClearFilters}
             isEmpty={!isLoadingProduits && produits.length === 0}
-            hasNoResults={!isLoadingProduits && produits.length > 0 && produitsFiltered.length === 0}
+            hasNoResults={!isLoadingProduits && produits.length > 0 && filteredCount === 0}
             searchTerm={searchTerm}
             hasFilters={Object.keys(filtres).length > 0}
-            skeletonCount={6}
+            skeletonCount={itemsPerPage}
           />
         </div>
 

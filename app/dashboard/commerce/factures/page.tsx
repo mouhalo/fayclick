@@ -22,8 +22,7 @@ import { factureListService } from '@/services/facture-list.service';
 import { 
   GetMyFactureResponse,
   FactureComplete,
-  FiltresFactures,
-  StatsFactures 
+  FiltresFactures
 } from '@/types/facture';
 
 export default function FacturesGlassPage() {
@@ -43,7 +42,6 @@ export default function FacturesGlassPage() {
 
   // États de pagination
   const [currentPage, setCurrentPage] = useState(1);
-  const { getPaginatedItems, totalPages } = usePagination(0, 10);
 
   // États des modals
   const [modalPaiement, setModalPaiement] = useState<{
@@ -74,9 +72,10 @@ export default function FacturesGlassPage() {
       const response = await factureListService.getMyFactures();
       setFacturesResponse(response);
       
-    } catch (error: any) {
-      console.error('Erreur chargement factures:', error);
-      setError(error.message || 'Impossible de charger les factures');
+    } catch (err: unknown) {
+      console.error('Erreur chargement factures:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Impossible de charger les factures';
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -128,7 +127,7 @@ export default function FacturesGlassPage() {
   }, []);
 
   // Succès de paiement
-  const handlePaiementSuccess = useCallback((response: any) => {
+  const handlePaiementSuccess = useCallback((response: { message?: string }) => {
     setToast({
       isOpen: true,
       type: 'success',
@@ -162,7 +161,7 @@ export default function FacturesGlassPage() {
         type: 'success',
         message: 'Factures actualisées avec succès'
       });
-    } catch (error) {
+    } catch {
       setToast({
         isOpen: true,
         type: 'error',
@@ -173,13 +172,11 @@ export default function FacturesGlassPage() {
     }
   }, [loadFactures]);
 
-  // Compteur pour le header
-  const compteurFactures = facturesResponse?.resume_global?.nombre_factures || 0;
 
   // Interface d'erreur
   if (error && !loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-emerald-500 to-emerald-700 flex items-center justify-center p-4">
+      <div className="min-h-screen flex items-center justify-center p-4" style={{background: 'linear-gradient(to bottom right, #163707, #047857)'}}>
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -205,9 +202,9 @@ export default function FacturesGlassPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-500 to-emerald-700">
+    <div className="min-h-screen bg-gradient-to-br" style={{background: 'linear-gradient(to bottom right, #163707, #047857)'}}>
       {/* Container mobile-first fixe */}
-      <div className="mx-auto max-w-md bg-gradient-to-br from-emerald-500 to-emerald-700 shadow-2xl min-h-screen">
+      <div className="mx-auto max-w-md shadow-2xl min-h-screen" style={{background: 'linear-gradient(to bottom right, #163707, #047857)'}}>
         
         {/* Header glassmorphism */}
         <GlassHeader
@@ -325,12 +322,11 @@ export default function FacturesGlassPage() {
 
       {/* Toast notifications */}
       <Toast
-        isOpen={toast.isOpen}
+        isVisible={toast.isOpen}
         type={toast.type}
-        message={toast.message}
+        title={toast.message}
         onClose={closeToast}
-        autoClose={true}
-        autoCloseDelay={4000}
+        duration={4000}
       />
     </div>
   );
