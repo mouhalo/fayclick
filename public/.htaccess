@@ -1,0 +1,27 @@
+# Redirections pour site statique Next.js
+RewriteEngine On
+
+# Rediriger /login vers /login.html si le fichier n'existe pas
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_URI} ^/login/?$
+RewriteRule ^(.*)$ /login.html [L]
+
+# Rediriger /register vers /register.html si le fichier n'existe pas
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_URI} ^/register/?$
+RewriteRule ^(.*)$ /register.html [L]
+
+# Rediriger autres routes statiques vers .html
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_URI} !^/api/
+RewriteCond %{REQUEST_URI} !^/_next/
+RewriteCond %{REQUEST_URI} !\.(css|js|png|jpg|ico|svg|json)$
+RewriteRule ^([^/]+)/?$ /$1.html [L]
+
+# Support pour dossiers avec index.html  
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^([^/]+)/([^/]+)/?$ /$1/$2.html [L]

@@ -7,7 +7,7 @@
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Eye, FileText, Phone, CreditCard } from 'lucide-react';
+import { Eye, FileText,  CreditCard } from 'lucide-react';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { FactureDetails } from './FactureDetails';

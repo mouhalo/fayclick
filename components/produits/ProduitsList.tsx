@@ -151,7 +151,7 @@ export function ProduitsList({
             exit={{ opacity: 0, scale: 0.8, y: -10 }}
             transition={{ 
               delay: index * 0.05,
-              type: "spring",
+              type: "spring" as const,
               stiffness: 100,
               damping: 12
             }}

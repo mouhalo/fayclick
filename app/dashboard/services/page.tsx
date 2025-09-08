@@ -180,7 +180,7 @@ export default function ServicesDashboard() {
             <motion.h1
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              transition={{ delay: 0.4, type: "spring" }}
+              transition={{ delay: 0.4, type: "spring" as const }}
               className="text-2xl font-bold mb-4"
             >
               {user.nom_structure}
@@ -358,7 +358,7 @@ export default function ServicesDashboard() {
                 initial={{ scale: 0.8, y: 50 }}
                 animate={{ scale: 1, y: 0 }}
                 exit={{ scale: 0.8, y: 50 }}
-                transition={{ type: "spring", damping: 25 }}
+                transition={{ type: "spring" as const, damping: 25 }}
                 className="bg-white rounded-3xl w-full max-w-sm overflow-hidden"
               >
                 {/* Modal Header */}
@@ -392,7 +392,7 @@ export default function ServicesDashboard() {
                       <motion.div
                         initial={{ scale: 0 }}
                         animate={{ scale: 1 }}
-                        transition={{ delay: 0.3, type: "spring" }}
+                        transition={{ delay: 0.3, type: "spring" as const }}
                         className="text-3xl font-bold mb-1"
                       >
                         {loadingStats ? (
