@@ -7,20 +7,12 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { 
   Plus, 
-  Search, 
-  Filter, 
-  Grid, 
-  List,
   RefreshCw,
-  Download,
-  Upload,
   Package,
-  AlertCircle,
-  CheckCircle,
-  ArrowLeft
+  AlertCircle
 } from 'lucide-react';
 import { authService } from '@/services/auth.service';
 import { produitsService, ProduitsApiException } from '@/services/produits.service';
@@ -31,13 +23,12 @@ import { ModalAjoutProduitNew } from '@/components/produits/ModalAjoutProduitNew
 import { StatusBarPanier } from '@/components/panier/StatusBarPanier';
 import { ModalPanier } from '@/components/panier/ModalPanier';
 import { ModalFactureSuccess } from '@/components/panier/ModalFactureSuccess';
-import { Toast, useToast } from '@/components/ui/Toast';
+import { useToast } from '@/components/ui/Toast';
 import { GlassHeader } from '@/components/ui/GlassHeader';
 import { ProduitsList } from '@/components/produits/ProduitsList';
 import { ProduitsFilterHeader } from '@/components/produits/ProduitsFilterHeader';
-import { ProduitsStatsHeader } from '@/components/produits/ProduitsStatsHeader';
 import { GlassPagination, usePagination } from '@/components/ui/GlassPagination';
-import { Produit, ProduitFormData, ProduitFormDataNew, AddEditProduitResponse, FiltreProduits } from '@/types/produit';
+import { Produit, AddEditProduitResponse } from '@/types/produit';
 import { User } from '@/types/auth';
 
 export default function ProduitsCommercePage() {
@@ -64,7 +55,6 @@ export default function ProduitsCommercePage() {
     errorProduits,
     setProduits,
     setSearchTerm,
-    setFiltres,
     setLoadingProduits,
     setErrorProduits,
     ajouterProduit,
@@ -87,7 +77,6 @@ export default function ProduitsCommercePage() {
   const {
     isModalAjoutOpen,
     produitSelectionne,
-    modeEdition,
     setModalAjoutOpen,
     setProduitSelectionne,
     setModeEdition
@@ -240,10 +229,6 @@ export default function ProduitsCommercePage() {
     setCurrentPage(1); // Reset à la première page
   };
 
-  const handleFiltersChange = (newFilters: Partial<FiltreProduits>) => {
-    setFiltres(newFilters);
-    setCurrentPage(1); // Reset à la première page
-  };
 
   const handleClearFilters = () => {
     resetFiltres();
@@ -269,7 +254,7 @@ export default function ProduitsCommercePage() {
     );
   }
 
-  const renderProduitItem = (produit: Produit, index: number) => (
+  const renderProduitItem = (produit: Produit) => (
     <CarteProduit
       produit={produit}
       onEdit={handleEditProduit}
