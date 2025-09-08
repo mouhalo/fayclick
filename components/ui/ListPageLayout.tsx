@@ -192,12 +192,11 @@ export function ListPageLayout<T>({
       {/* Toast notifications */}
       {toastProps && (
         <Toast
-          isOpen={toastProps.isOpen}
+          isVisible={toastProps.isOpen}
           type={toastProps.type}
-          message={toastProps.message}
+          title={toastProps.message}
           onClose={toastProps.onClose}
-          autoClose={toastProps.autoClose}
-          autoCloseDelay={toastProps.autoCloseDelay}
+          duration={toastProps.autoCloseDelay || 4000}
         />
       )}
     </div>

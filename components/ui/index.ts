@@ -3,15 +3,15 @@
  */
 
 // Composants existants
-export { Button } from './Button';
-export { Card } from './Card';
-export { Modal } from './Modal';
-export { Toast } from './Toast';
-export { SuccessModal } from './SuccessModal';
-export { WelcomeCard } from './WelcomeCard';
-export { AdvantageCard } from './AdvantageCard';
-export { ServiceCarousel } from './ServiceCarousel';
-export { LogoUpload } from './LogoUpload';
+export { default as Button } from './Button';
+export { default as Card, CardHeader, CardTitle, CardContent, CardFooter } from './Card';
+export { default as Modal } from './Modal';
+export { Toast, useToast } from './Toast';
+export { default as SuccessModal } from './SuccessModal';
+export { default as WelcomeCard } from './WelcomeCard';
+export { default as AdvantageCard } from './AdvantageCard';
+export { default as ServiceCarousel } from './ServiceCarousel';
+export { default as LogoUpload } from './LogoUpload';
 
 // Composants Glassmorphism existants
 export { GlassCard } from './GlassCard';

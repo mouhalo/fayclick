@@ -22,7 +22,7 @@ import {
   EyeOff
 } from 'lucide-react';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
-import { urlEncoder } from '@/lib/url-encoder';
+import { decodeFactureParams } from '@/lib/url-encoder';
 import { factureListService } from '@/services/facture-list.service';
 import { FactureComplete } from '@/types/facture';
 
@@ -51,9 +51,9 @@ export default function FacturePubliquePage() {
         setError('');
 
         // Décoder le token pour récupérer les paramètres
-        const params = urlEncoder.decodeFactureParams(token);
+        const params = decodeFactureParams(token);
         
-        if (!params.id_structure || !params.id_facture) {
+        if (!params || !params.id_structure || !params.id_facture) {
           setError('Token de facture invalide');
           setLoading(false);
           return;
