@@ -69,7 +69,7 @@ export default function DesktopHome() {
             <motion.div
               initial={{ scale: 0, rotate: -180 }}
               animate={{ scale: 1, rotate: 0 }}
-              transition={{ duration: 1.5, type: "spring" }}
+              transition={{ duration: 1.5, type: "spring" as const }}
               className="flex items-center gap-4"
             >
               <div className="w-16 h-16 bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl flex items-center justify-center shadow-xl relative overflow-hidden">

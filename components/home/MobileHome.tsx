@@ -8,19 +8,17 @@ import { useBreakpoint } from '@/hooks/useBreakpoint';
 import LogoFayclick from '@/components/ui/LogoFayclick';
 import { 
   Smartphone, 
-  TrendingUp, 
   QrCode, 
-  CreditCard, 
-  ShoppingCart, 
+  CreditCard,  
   BarChart3,
   Sparkles,
   ArrowRight
 } from 'lucide-react';
 
 export default function MobileHome() {
-  const { isMobile, isMobileLarge, isDesktop } = useBreakpoint();
+  const { isMobile, isMobileLarge } = useBreakpoint();
   const [particles, setParticles] = useState<ReactElement[]>([]);
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+
   const containerRef = useRef<HTMLDivElement>(null);
   const { scrollY } = useScroll();
   
@@ -28,14 +26,6 @@ export default function MobileHome() {
   const featuresY = useTransform(scrollY, [0, 300], [0, -100]);
 
   // Gestion du mouvement de la souris pour les effets magnétiques
-  useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      setMousePosition({ x: e.clientX, y: e.clientY });
-    };
-    
-    window.addEventListener('mousemove', handleMouseMove);
-    return () => window.removeEventListener('mousemove', handleMouseMove);
-  }, []);
 
   useEffect(() => {
     // Génération des particules vertes premium
@@ -469,13 +459,13 @@ export default function MobileHome() {
           transition={{ delay: 2.5, duration: 1 }}
           className="absolute bottom-6 text-center"
         >
-          <p className="text-xs text-emerald-200/80">
+          <div className="text-xs text-emerald-200/80">
             © 2025 Développé par{" "}
             <motion.a
               href="https://icelabsoft.com"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-emerald-300 font-semibold relative"
+              className="text-emerald-300 font-semibold relative inline-block"
               whileHover={{ scale: 1.05 }}
             >
               <span className="relative z-10">IcelabSoft</span>
@@ -487,7 +477,7 @@ export default function MobileHome() {
                 style={{ originX: 0 }}
               />
             </motion.a>
-          </p>
+          </div>
         </motion.div>
       </div>
     </div>

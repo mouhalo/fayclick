@@ -8,8 +8,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Phone, CheckCircle, ArrowRight, Loader2 } from 'lucide-react';
-import Image from 'next/image';
-import { formatAmount } from '@/utils/formatAmount';
 
 export type WalletType = 'OM' | 'WAVE' | 'FREE';
 
@@ -317,14 +315,14 @@ export function ModalPaiementWalletNew({
                       ) : (
                         <>
                           <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5" />
-                          J'ai payé
+                          J&apos;ai payé
                         </>
                       )}
                     </button>
                   </div>
 
                   <p className="text-xs text-center text-gray-500 mt-2 px-2">
-                    En cliquant sur "J'ai payé", vous confirmez avoir effectué le paiement via {selectedWalletData.displayName}
+                    En cliquant sur &quot;J&apos;ai payé&quot;, vous confirmez avoir effectué le paiement via {selectedWalletData.displayName}
                   </p>
                 </motion.div>
               )}
