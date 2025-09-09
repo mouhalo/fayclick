@@ -130,7 +130,7 @@ function LigneFacture({
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-white/5 hover:bg-white/10 rounded-xl p-4 border border-white/20 transition-all"
+      className="bg-white/5 hover:bg-white/10 rounded-lg sm:rounded-xl p-3 sm:p-4 border border-white/20 transition-all"
       onMouseEnter={() => setShowActions(true)}
       onMouseLeave={() => setShowActions(false)}
     >
@@ -266,21 +266,21 @@ export function OngletFactures({
           exit={{ opacity: 0, height: 0 }}
           className="bg-white/5 backdrop-blur-sm rounded-2xl p-4 border border-white/20"
         >
-          <div className="flex flex-wrap gap-2">
+          <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
             {statutOptions.map((option) => (
               <button
                 key={option.value}
                 onClick={() => handleFiltreStatut(option.value as FiltreFactures['statut'])}
                 className={`
-                  flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors
+                  flex items-center justify-center sm:justify-start gap-2 px-3 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors
                   ${filtre.statut === option.value 
                     ? 'bg-blue-500/30 text-blue-200 border border-blue-400/50' 
                     : 'bg-white/10 text-white/70 hover:bg-white/20'
                   }
                 `}
               >
-                {option.label}
-                <span className="bg-white/20 px-1.5 py-0.5 rounded text-xs">
+                <span className="truncate">{option.label}</span>
+                <span className="bg-white/20 px-1.5 py-0.5 rounded text-xs flex-shrink-0">
                   {option.count}
                 </span>
               </button>

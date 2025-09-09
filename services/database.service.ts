@@ -75,6 +75,13 @@ class DatabaseService {
         timeout: API_CONFIG.TIMEOUT
       });
       
+      console.log('🌐 [DATABASE] Configuration endpoint:', {
+        endpoint: API_CONFIG.ENDPOINT,
+        application: appConfig.name,
+        requestMethod: 'POST',
+        contentType: 'application/xml'
+      });
+      
       // Utiliser fetch avec configuration timeout
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), API_CONFIG.TIMEOUT);
@@ -84,6 +91,7 @@ class DatabaseService {
         headers: {
           'Content-Type': 'application/xml',
           'Accept': 'application/json',
+          'User-Agent': 'FayClick-V2/1.0'
         },
         body: xml,
         signal: controller.signal
@@ -187,13 +195,22 @@ class DatabaseService {
           throw new Error(`Timeout de la requête (${API_CONFIG.TIMEOUT}ms)`);
         }
         
-        if (error.message.includes('fetch')) {
+        if (error.message.includes('fetch') || error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
           SecurityService.secureLog('error', 'Erreur réseau lors de la connexion à l\'API', {
             endpoint: API_CONFIG.ENDPOINT,
             application: application_name,
-            error: error.message
+            error: error.message,
+            errorType: error.name || 'Unknown'
           });
-          throw new Error(`Impossible de contacter l'API: ${API_CONFIG.ENDPOINT}`);
+          
+          console.error('🔴 [DATABASE] Détails erreur réseau:', {
+            endpoint: API_CONFIG.ENDPOINT,
+            errorMessage: error.message,
+            errorName: error.name,
+            stack: error.stack
+          });
+          
+          throw new Error(`Impossible de contacter l'API: ${API_CONFIG.ENDPOINT}. Erreur: ${error.message}`);
         }
       }
       
@@ -306,6 +323,120 @@ class DatabaseService {
     const query = 'SELECT id_type, nom_type FROM type_structure WHERE id_type != 0 ORDER BY nom_type';
     console.log('📋 [DATABASE] Récupération types structure');
     return this.query(query);
+  }
+
+  /**
+   * Demande de récupération de mot de passe - VERSION CORRIGÉE
+   * Appelle add_demande_password avec les paramètres forcés en varchar
+   * IMPORTANT: Ne jamais logger le pwd_temp pour des raisons de sécurité
+   */
+  async requestPasswordReset(login: string, telephone: string): Promise<any> {
+    try {
+      // Log sécurisé sans données sensibles
+      SecurityService.secureLog('info', `🔐 [DATABASE] Demande de récupération pour: ${login.substring(0, 3)}***`);
+      
+      // Échapper les quotes dans les paramètres
+      const escapedLogin = login.replace(/'/g, "''");
+      const escapedTelephone = telephone.replace(/'/g, "''");
+      
+      // Construction manuelle de la requête pour forcer les types varchar
+      const query = `SELECT * FROM add_demande_password('${escapedLogin}'::varchar, '${escapedTelephone}'::varchar);`;
+      
+      console.log('🔐 [DATABASE] Requête demande password:', {
+        functionName: 'add_demande_password',
+        loginLength: login.length,
+        telephoneLength: telephone.length
+        // Ne jamais logger la requête complète pour des raisons de sécurité
+      });
+      
+      const results = await this.query(query);
+      
+      if (results && results.length > 0) {
+        const response = results[0];
+        
+        // L'API retourne: {"datas":[{"add_demande_password":{"status":"success",...}}]}
+        // Extraire les données de la structure imbriquée
+        let data;
+        if (response.add_demande_password) {
+          // Structure directe: {add_demande_password: {...}}
+          const functionResult = response.add_demande_password;
+          data = typeof functionResult === 'string' ? JSON.parse(functionResult) : functionResult;
+        } else {
+          // Structure classique pour les autres fonctions
+          data = typeof response === 'string' ? JSON.parse(response) : response;
+        }
+        
+        // Ne jamais logger le pwd_temp
+        SecurityService.secureLog('info', `✅ [DATABASE] Demande créée avec ID: ${data.message?.split(':')[1]?.trim()}`);
+        
+        return data;
+      }
+      
+      throw new Error('Aucune réponse de la base de données');
+    } catch (error: any) {
+      SecurityService.secureLog('error', `❌ [DATABASE] Erreur demande récupération: ${error.message}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Vérification du code temporaire et réinitialisation du mot de passe - VERSION CORRIGÉE
+   * Appelle add_check_demande avec les paramètres forcés en varchar
+   * IMPORTANT: Ne jamais logger le nouveau mot de passe
+   */
+  async verifyPasswordResetCode(login: string, telephone: string, code: string): Promise<any> {
+    try {
+      // Log sécurisé sans le code
+      SecurityService.secureLog('info', `🔐 [DATABASE] Vérification code pour: ${login.substring(0, 3)}***`);
+      
+      // Échapper les quotes dans les paramètres
+      const escapedLogin = login.replace(/'/g, "''");
+      const escapedTelephone = telephone.replace(/'/g, "''");
+      const escapedCode = code.replace(/'/g, "''");
+      
+      // Construction manuelle de la requête pour forcer les types varchar
+      const query = `SELECT * FROM add_check_demande('${escapedLogin}'::varchar, '${escapedTelephone}'::varchar, '${escapedCode}'::varchar);`;
+      
+      console.log('🔐 [DATABASE] Requête vérification code:', {
+        functionName: 'add_check_demande',
+        loginLength: login.length,
+        telephoneLength: telephone.length,
+        codeLength: code.length
+        // Ne jamais logger la requête complète ni le code
+      });
+      
+      const results = await this.query(query);
+      
+      if (results && results.length > 0) {
+        const response = results[0];
+        
+        // L'API retourne: {"datas":[{"add_check_demande":{"status":"success",...}}]}
+        // Extraire les données de la structure imbriquée
+        let data;
+        if (response.add_check_demande) {
+          // Structure directe: {add_check_demande: {...}}
+          const functionResult = response.add_check_demande;
+          data = typeof functionResult === 'string' ? JSON.parse(functionResult) : functionResult;
+        } else {
+          // Structure classique pour les autres fonctions
+          data = typeof response === 'string' ? JSON.parse(response) : response;
+        }
+        
+        if (data.status === 'success') {
+          // Ne jamais logger le nouveau_password
+          SecurityService.secureLog('info', `✅ [DATABASE] Mot de passe réinitialisé avec succès pour: ${data.utilisateur}`);
+        } else {
+          SecurityService.secureLog('warn', `⚠️ [DATABASE] Code invalide ou expiré`);
+        }
+        
+        return data;
+      }
+      
+      throw new Error('Aucune réponse de la base de données');
+    } catch (error: any) {
+      SecurityService.secureLog('error', `❌ [DATABASE] Erreur vérification code: ${error.message}`);
+      throw error;
+    }
   }
 
   /**

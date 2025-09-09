@@ -1,0 +1,62 @@
+# Health check
+GET /health
+
+# Créer un paiement OFMS (Orange Money)
+
+#### Orange Money (OFMS)
+```bash
+curl -X POST "https://api.icelabsoft.com/pay_services/api/add_payement" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "pAppName": "FAYCLICK",
+    "pMethode": "OM",
+    "pReference": "facture_002",
+    "pClientTel": "777301221",
+    "pMontant": 1000,
+    "pServiceName": "OFMS",
+    "pNomClient": "Prénom",
+    "pPrenomClient": "Nom"
+  }'
+```
+Format de réponse: 
+{
+    "uuid": "d27f0fb5-c342-4898-8211-0a9fc72770cb",
+    "telephone": "777301221",
+    "status": "PROCESSING",
+    "service": "OFMS",
+    "maxit": "https://sugu.orange-sonatel.com/mp/dmez7ijjUCbmUVPlsFx2",
+    "om": "https://orange-money-prod-flowlinks.web.app/om/dmez7ijjUCbmUVPlsFx2",
+    "payment_url": null,
+    "qrCode": "iVBORw0KGgoAAAANSUhEUgAAAMgAAADICAAAAACIM/FCAAAAAklEQVR4nGKkkSsAAAIQSURBVO3QQZLCMAxE0dz/0jNrULrTiqEw6GuVim2pn46/H6nj0wFeVUB2KyC7FZDdCshuBWS3+lHIEddJp/L/Va+iDECAABkMqePUnTyqv7OSAQgQIEB8APXth/puvr+/AwQIECDdJuqP6uCXAAQIECDvg/g7/qbvCQQIECBdiKpuAA+pE7sZgAABAiSpLureEnI+ECBAZkK6pQKs3LkbZe01ECAyytprIG+G1EFqqBrtO/jOtUOyBCBAgEyGvHacqrybynDSBwgQICMhPp6n1Q7Jaf7tOwMBAmQmxFc+yJdaiOqZrAgIECBAPKc9SAT2PRMgECBAgNSHXaYK6YN1Zz0OvggD5OkPkHjwRRggT38+DklG53AfWJ36iUCAAJkMUcESmv9Wb5M/0aKAAAEyEuLrKJWM7p4mGc4OYgaQ5mmS4ewgZgBpniYZzg5ixhdCalQ/KI+tllBP23AgQICMhKihyf88ar4QjwUCBAiQBKWG+tPaZ70DECBAgPjnHqX++PD5ffUWCBAgkyHdqs1XyL7/xUKAAAEyElIvq/LNk28fOFkUECBAgMhr9s49Qg6siwICBAgQ1bw2UZH8IB+pnvqbQIAAAXIP4of68j09EAgQIEDuQVZGJ/A8AxAgQID45klsRU5WkUwHAgQIEBWsG9XHUH2W+gMBAmQk5IsLyG4FZLcCslsB2a2A7FZAdqt/0XmrqDozWvIAAAAASUVORK5CYII="
+}
+
+
+# Créer un paiement INTOUCH (WAVE)
+```bash
+curl -X POST "https://api.icelabsoft.com/pay_services/api/add_payement" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "pAppName": "FAYCLICK",
+    "pMethode": "WAVE",  # ou "OM" ou "FREE"
+    "pReference": "facture_002",
+    "pClientTel": "781043505",
+    "pMontant": 1500,
+    "pServiceName": "INTOUCH",
+    "pNomClient": "Prénom",
+    "pPrenomClient": "Nom"
+  }'
+```
+Format de réponse:
+{
+    "uuid": "ec80faa8-e5dd-43cd-813c-8af3403a4ac2",
+    "telephone": "781043505",
+    "status": "PROCESSING",
+    "service": "INTOUCH",
+    "maxit": null,
+    "om": null,
+    "payment_url": "https://pay.wave.com/c/cos-1zsr8r4x01afr?a=1500&c=XOF&m=ICELABO%20SOFT%20%2A%20Into",
+    "qrCode": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAdYAAAHWAQAAAADiYZX3AAADVElEQVR4nO2dTW7bMBSE55UCupSAHsBHka6Wm1lH6QEKUMsAEqYL8pGMgkRq4Lq1MbMQLFsfFAOD90fRMeKr2r59GQXEihUrVqxYsWLFihX7x+xsWZitA7CY2bR08E87YB42v2i42X3FPjnbkyTX8n4gXy4rbFrM6tUkSV5veF+xT85uHof61/xqjJvxikAAWzbXbI3N/vnfLPZx2DEGknEzm5bvtOle9xX73Ow8bGbTm1OMTYL8W/cV+1Ssl0xeX5ERqOUWSRJjBHjt193Fj/h9xd6XXczMrAPmywpesRnmASle8eWS41VqB6cb3lfsc7I5BDWKgZ74Qu394DGsSvFK7MeqqS2/0a9+qJdEAMlm6VP5SuyBfCQV/NCTZMxuykZCaKdbo+KV2COVrAaMEQD6XLy7r9x1zanildgjeR5c0+gqB6MYchdIkinxXVHCl3wl9kg1XnmNXmPTCoxcU5RKrzRnEHtO3gUCAEKKTSlylQbQE2TOiKqvxB6r8dXoRVY+9YOnxVCSoXwl9kB1atU0hSlK1cKLJVRFQPWV2GO1JVMEvPcLPtNqsl8ZbMlXYo/U9oNkY59dgEpX1+JdvhL7mdo82FdLodRXgSlKpcVnqL4Se0bVV028yqOruqLjJbvmDGLPKVvlrXPK+H0fw9rFZ/lK7MdyX+VxglsqEHWcBZ/GN+2hfCX2M+37wbpSWONVW2TVgal8JfZjNYkvt32lCwTKOk6NYarbxZ6QbxFEILAYiOVH+/lsgKEHAGyWjOWue8TvK/au7DwANiHQpv7V/EmsNzEMPVm2pN7qvmKfnF068OXyagBCu7tr/GmGMeb9g7wu2u8s9ozqvL32g/5gTJ1VlVWeflV9JfaE2nWcCOTnZNrxJ7DbQaE5g9hDcadrXccpliLLCnSv9UGx59n6ezJJ/QrMQ5442ATkPYVAoOorsYfyOUMfAWDrkHo/AGnsMA8BwDIA6MPut0gf8fuKvQ/b1le7p2NG8t1zMjkZKg+K/Vzd+7c2I5awYh5+dfnVZCCwdcRimouKPaF9vGJZuEmq7WFtChWvxB6pXXdmGWJFeEake63ZCiZfiT1S9lU5LTu5mmetrk3hFVRfiT2W6f9NiBUrVqxYsWLFihX737O/Af+j7vNB7FyYAAAAAElFTkSuQmCC"
+}
+
+Pour chacun des mode de paiement, on affichera le QrCode généré dans un nouveau modal qui affichera un timer de 1min20 décroissant 
+permettant au client de pouvoir scanner et procéder à la validation du paiement via son mobile.

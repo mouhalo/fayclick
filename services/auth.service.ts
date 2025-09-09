@@ -1,6 +1,7 @@
 import { LoginCredentials, LoginResponse, User, StructureDetails, UserPermissions, CompleteAuthData } from '@/types/auth';
 import DatabaseService from './database.service';
 import SecurityService from './security.service';
+import SMSService from './sms.service';
 import { extractSingleDataFromResult } from '@/utils/dataExtractor';
 import { createUserPermissions } from '@/utils/permissions';
 import { type UserCredentialsResult } from '@/types';
@@ -493,6 +494,153 @@ export class AuthService {
       localStorage.removeItem('fayclick_user');
       localStorage.removeItem('fayclick_user'); // Compatibilité
       SecurityService.secureLog('log', 'Données utilisateur supprimées');
+    }
+  }
+
+  /**
+   * Demande de récupération de mot de passe - Étape 1
+   * Crée une demande et envoie le code par SMS
+   * @returns Les détails de la demande (sans le code pour sécurité)
+   */
+  async requestPasswordReset(login: string, telephone: string): Promise<{
+    success: boolean;
+    message: string;
+    demandId?: string;
+    expiration?: string;
+    error?: string;
+  }> {
+    try {
+      console.log('🔐 [AUTH] Début récupération mot de passe pour:', login.substring(0, 3) + '***');
+      
+      // Étape 1: Créer la demande dans la base
+      const resetRequest = await DatabaseService.requestPasswordReset(login, telephone);
+      
+      if (resetRequest.status !== 'success') {
+        throw new ApiException(resetRequest.message || 'Erreur lors de la demande', 400);
+      }
+      
+      // Étape 2: Envoyer le SMS avec le code temporaire
+      // IMPORTANT: Ne jamais logger le pwd_temp
+      const tempCode = resetRequest.pwd_temp;
+      if (!tempCode) {
+        throw new ApiException('Code temporaire non généré', 500);
+      }
+      
+      try {
+        await SMSService.sendPasswordResetSMS(telephone, tempCode);
+        console.log('✅ [AUTH] SMS envoyé avec succès');
+      } catch (smsError: any) {
+        console.error('⚠️ [AUTH] Erreur envoi SMS, mais demande créée:', smsError.message);
+        // On continue même si le SMS échoue, l'utilisateur pourra redemander
+      }
+      
+      // Retourner les infos sans le code sensible
+      return {
+        success: true,
+        message: 'Un code de vérification a été envoyé sur votre téléphone',
+        demandId: resetRequest.message?.split(':')[1]?.trim(),
+        expiration: resetRequest.expiration
+      };
+      
+    } catch (error: any) {
+      console.error('❌ [AUTH] Erreur récupération mot de passe:', error);
+      
+      if (error instanceof ApiException) {
+        return {
+          success: false,
+          message: error.message,
+          error: error.message
+        };
+      }
+      
+      return {
+        success: false,
+        message: 'Erreur lors de la récupération du mot de passe',
+        error: error.message
+      };
+    }
+  }
+
+  /**
+   * Vérification du code et réinitialisation - Étape 2
+   * Vérifie le code temporaire et retourne le nouveau mot de passe
+   * @returns Les détails avec le nouveau mot de passe temporaire
+   */
+  async verifyPasswordResetCode(login: string, telephone: string, code: string): Promise<{
+    success: boolean;
+    message: string;
+    newPassword?: string;
+    instruction?: string;
+    error?: string;
+  }> {
+    try {
+      console.log('🔐 [AUTH] Vérification du code de récupération');
+      
+      // Vérifier le code et obtenir le nouveau mot de passe
+      const verification = await DatabaseService.verifyPasswordResetCode(login, telephone, code);
+      
+      if (verification.status === 'success') {
+        console.log('✅ [AUTH] Mot de passe réinitialisé avec succès');
+        
+        // Optionnel: Envoyer un SMS avec le nouveau mot de passe
+        if (verification.nouveau_password) {
+          try {
+            const message = SMSService.generateNewPasswordMessage(verification.nouveau_password);
+            await SMSService.sendNotificationSMS(telephone, message);
+          } catch (smsError) {
+            console.warn('⚠️ [AUTH] SMS nouveau mot de passe non envoyé:', smsError);
+          }
+        }
+        
+        return {
+          success: true,
+          message: verification.message,
+          newPassword: verification.nouveau_password,
+          instruction: verification.instruction
+        };
+      } else {
+        return {
+          success: false,
+          message: verification.message || 'Code invalide ou expiré',
+          error: verification.message
+        };
+      }
+      
+    } catch (error: any) {
+      console.error('❌ [AUTH] Erreur vérification code:', error);
+      
+      return {
+        success: false,
+        message: 'Erreur lors de la vérification du code',
+        error: error.message
+      };
+    }
+  }
+
+  /**
+   * Récupération de mot de passe complète (ancienne méthode pour compatibilité)
+   * @deprecated Utiliser requestPasswordReset et verifyPasswordResetCode à la place
+   */
+  async recoverPassword(structureName: string, phoneNumber: string): Promise<{
+    success: boolean;
+    message: string;
+    data?: any;
+  }> {
+    try {
+      // Pour compatibilité, on utilise le nom de structure comme login
+      const result = await this.requestPasswordReset(structureName, phoneNumber);
+      
+      return {
+        success: result.success,
+        message: result.message,
+        data: result
+      };
+      
+    } catch (error: any) {
+      return {
+        success: false,
+        message: error.message || 'Erreur lors de la récupération'
+      };
     }
   }
 }

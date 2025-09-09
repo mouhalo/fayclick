@@ -15,8 +15,8 @@ interface ApiConfig {
 
 // Configuration principale avec détection automatique d'environnement
 export const API_CONFIG: ApiConfig = {
-  // Utilise le système de détection automatique existant avec le chemin complet pour psql_request
-  ENDPOINT: `${getApiBaseUrl()}/psql_request/api/psql_request`,
+  // Utilise le système de détection automatique existant (l'endpoint complet est déjà configuré)
+  ENDPOINT: getApiBaseUrl(),
   TIMEOUT: 30000,
   APPLICATION_NAME: 'payecole',
   // Endpoint Orange Money depuis .env
@@ -33,6 +33,11 @@ export const APPLICATIONS_CONFIG = {
   fayclick: {
     name: 'fayclick',
     description: 'Super App de gestion avec payement Wallet',
+    defaultTimeout: 10000
+  },
+  sms: {
+    name: 'sms',
+    description: 'Application d\'envoi de SMS via add_pending_sms',
     defaultTimeout: 10000
   }
 } as const;

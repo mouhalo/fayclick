@@ -273,14 +273,14 @@ export default function ClientsCommercePage() {
   // Loading state
   if (isAuthLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-green-600 via-green-700 to-green-800 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-[#9c9125d9] via-[#203e2b] to-[#166534] flex items-center justify-center">
         <div className="text-white text-lg">Chargement...</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-600 via-green-700 to-green-800">
+    <div className="min-h-screen bg-gradient-to-br from-[#9c9125d9] via-[#203e2b] to-[#166534]">
       <div className="max-w-md mx-auto bg-yellow-180 min-h-screen relative">
         
         {/* Header glassmorphism */}
@@ -289,7 +289,7 @@ export default function ClientsCommercePage() {
           subtitle={user?.nom_structure}
           onBack={() => router.push('/dashboard')}
           showBackButton={true}
-          backgroundGradient="bg-gradient-to-r from-green-500 to-green-600"
+          backgroundGradient="bg-gradient-to-r from-green-800 via-yellow-700 to-red-600"
           filterContent={
             <div className="space-y-4">
               {/* Barre de recherche */}

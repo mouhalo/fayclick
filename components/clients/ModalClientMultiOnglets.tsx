@@ -232,33 +232,55 @@ export function ModalClientMultiOnglets({
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-50 overflow-y-auto"
+        className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
         style={{ backgroundColor: 'rgba(0, 0, 0, 0.75)' }}
       >
-        <div className="flex min-h-full items-center justify-center p-4">
-          <motion.div
-            initial={{ scale: 0.95, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.95, opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="relative w-full max-w-4xl bg-gradient-to-br from-green-600 via-green-700 to-green-800 rounded-3xl shadow-2xl overflow-hidden"
-          >
+        <motion.div
+          initial={{ 
+            y: '100%', 
+            opacity: 0,
+            scale: 1
+          }}
+          animate={{ 
+            y: 0, 
+            opacity: 1,
+            scale: 1
+          }}
+          exit={{ 
+            y: '100%', 
+            opacity: 0,
+            scale: 1
+          }}
+          transition={{ 
+            type: 'spring', 
+            damping: 25, 
+            stiffness: 300,
+            duration: 0.3 
+          }}
+          className="
+            relative w-full sm:max-w-4xl 
+            bg-gradient-to-br from-green-600 via-green-700 to-green-800 
+            rounded-t-3xl sm:rounded-2xl 
+            shadow-2xl overflow-hidden
+            max-h-[90vh] sm:max-h-[85vh] flex flex-col
+          "
+        >
             {/* Header avec navigation onglets */}
             <div className="relative">
               {/* Gradient header */}
-              <div className={`bg-gradient-to-r ${themeColors.accent} px-6 py-4`}>
+              <div className={`bg-gradient-to-r from-yellow-400 via-orange-500 to-red-600 px-3 sm:px-4 lg:px-6 py-3 sm:py-4 lg:py-5`}>
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
-                        <User className="w-5 h-5 text-white" />
+                  <div className="flex items-center gap-2 sm:gap-3 lg:gap-4">
+                    <div className="flex items-center gap-2 sm:gap-3">
+                      <div className="w-8 h-8 sm:w-9 sm:h-9 lg:w-10 lg:h-10 bg-white/20 rounded-full flex items-center justify-center">
+                        <User className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                       </div>
                       <div>
-                        <h2 className="text-xl font-bold text-white">
+                        <h2 className="text-base sm:text-lg lg:text-xl font-bold text-white">
                           {clientToEdit ? 'Détails Client' : 'Nouveau Client'}
                         </h2>
                         {clientDetail && (
-                          <p className="text-white/80 text-sm">
+                          <p className="text-white/80 text-xs sm:text-sm">
                             {clientDetail.client.nom_client}
                           </p>
                         )}
@@ -267,23 +289,23 @@ export function ModalClientMultiOnglets({
                     
                     {/* Indicateur de chargement */}
                     {isLoading && (
-                      <div className="flex items-center gap-2 text-white/80">
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        <span className="text-sm">Chargement...</span>
+                      <div className="flex items-center gap-1 sm:gap-2 text-white/80">
+                        <Loader2 className="w-3 h-3 sm:w-4 sm:h-4 animate-spin" />
+                        <span className="text-xs sm:text-sm">Chargement...</span>
                       </div>
                     )}
                   </div>
 
                   <button
                     onClick={handleClose}
-                    className="w-8 h-8 bg-white/20 hover:bg-white/30 rounded-full flex items-center justify-center transition-colors"
+                    className="w-7 h-7 sm:w-8 sm:h-8 bg-white/20 hover:bg-white/30 rounded-full flex items-center justify-center transition-colors"
                   >
-                    <X className="w-5 h-5 text-white" />
+                    <X className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                   </button>
                 </div>
 
                 {/* Navigation onglets */}
-                <div className="flex gap-1 mt-4 p-1 bg-white/10 rounded-xl backdrop-blur-sm">
+                <div className="flex gap-0.5 sm:gap-1 mt-3 sm:mt-4 p-0.5 sm:p-1 bg-white/10 rounded-lg sm:rounded-xl backdrop-blur-sm">
                   {TABS_CONFIG.map((tab) => {
                     const Icon = tab.icon;
                     const isActive = activeTab === tab.id;
@@ -295,7 +317,9 @@ export function ModalClientMultiOnglets({
                         onClick={() => handleTabChange(tab.id)}
                         disabled={isDisabled}
                         className={`
-                          flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg transition-all
+                          flex-1 flex flex-col sm:flex-row items-center justify-center 
+                          gap-1 sm:gap-2 px-2 sm:px-3 lg:px-4 py-2 sm:py-2.5 
+                          rounded-md sm:rounded-lg transition-all
                           ${isActive 
                             ? 'bg-white/20 text-white shadow-lg' 
                             : isDisabled
@@ -304,8 +328,11 @@ export function ModalClientMultiOnglets({
                           }
                         `}
                       >
-                        <Icon className="w-4 h-4" />
-                        <span className="text-sm font-medium">{tab.label}</span>
+                        <Icon className="w-3 h-3 sm:w-4 sm:h-4" />
+                        <span className="text-xs sm:text-sm font-medium">
+                          <span className="sm:hidden">{tab.label.split(' ')[0]}</span>
+                          <span className="hidden sm:inline">{tab.label}</span>
+                        </span>
                       </button>
                     );
                   })}
@@ -313,18 +340,18 @@ export function ModalClientMultiOnglets({
               </div>
             </div>
 
-            {/* Contenu principal */}
-            <div className="bg-gradient-to-br from-green-400/10 via-emerald-400/15 to-teal-400/10 backdrop-blur-2xl min-h-[600px]">
+            {/* Contenu principal - Flex-1 pour occuper l'espace disponible */}
+            <div className="flex-1 overflow-y-auto bg-gradient-to-br from-green-400/10 via-emerald-400/15 to-teal-400/10 backdrop-blur-2xl">
               
               {/* Message d'erreur */}
               {error && (
-                <div className="mx-6 mt-4 p-4 bg-red-500/20 border border-red-400/30 rounded-xl backdrop-blur-sm">
-                  <p className="text-red-200 text-sm">{error}</p>
+                <div className="mx-3 sm:mx-4 lg:mx-6 mt-3 sm:mt-4 p-3 sm:p-4 bg-red-500/20 border border-red-400/30 rounded-lg sm:rounded-xl backdrop-blur-sm">
+                  <p className="text-red-200 text-xs sm:text-sm">{error}</p>
                 </div>
               )}
 
               {/* Contenu des onglets */}
-              <div className="p-6">
+              <div className="p-3 sm:p-4 lg:p-6">
                 <AnimatePresence mode="wait">
                   <motion.div
                     key={activeTab}
@@ -372,11 +399,11 @@ export function ModalClientMultiOnglets({
               </div>
             </div>
 
-            {/* Footer avec actions */}
-            <div className="bg-white/5 backdrop-blur-sm border-t border-white/20 px-6 py-4">
-              <div className="flex items-center justify-between">
+            {/* Footer avec actions - Fixe */}
+            <div className="bg-white/5 backdrop-blur-sm border-t border-white/20 px-3 sm:px-4 lg:px-6 py-3 sm:py-4">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0">
                 {/* Informations contextuelles */}
-                <div className="text-white/60 text-sm">
+                <div className="text-white/60 text-xs sm:text-sm">
                   {activeTab === 'general' && isEditing && (
                     "Modifiez les informations puis sauvegardez"
                   )}
@@ -389,10 +416,10 @@ export function ModalClientMultiOnglets({
                 </div>
 
                 {/* Actions */}
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
                   <button
                     onClick={handleClose}
-                    className="px-4 py-2 text-white/80 hover:text-white border border-white/20 hover:border-white/40 rounded-xl transition-colors"
+                    className="flex-1 sm:flex-none px-3 sm:px-4 py-2 text-xs sm:text-sm text-white/80 hover:text-white border border-white/20 hover:border-white/40 rounded-lg sm:rounded-xl transition-colors"
                   >
                     Fermer
                   </button>
@@ -403,21 +430,21 @@ export function ModalClientMultiOnglets({
                       {!isEditing ? (
                         <button
                           onClick={() => setIsEditing(true)}
-                          className={`flex items-center gap-2 px-4 py-2 bg-gradient-to-r ${themeColors.accent} hover:${themeColors.accentHover} text-white rounded-xl transition-all shadow-lg`}
+                          className={`flex-1 sm:flex-none flex items-center justify-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 bg-gradient-to-r ${themeColors.accent} hover:${themeColors.accentHover} text-white rounded-lg sm:rounded-xl transition-all shadow-lg text-xs sm:text-sm`}
                         >
-                          <Edit3 className="w-4 h-4" />
+                          <Edit3 className="w-3 h-3 sm:w-4 sm:h-4" />
                           Modifier
                         </button>
                       ) : (
                         <button
                           onClick={handleSave}
                           disabled={isLoading}
-                          className={`flex items-center gap-2 px-4 py-2 bg-gradient-to-r ${themeColors.accent} hover:${themeColors.accentHover} text-white rounded-xl transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed`}
+                          className={`flex-1 sm:flex-none flex items-center justify-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 bg-gradient-to-r ${themeColors.accent} hover:${themeColors.accentHover} text-white rounded-lg sm:rounded-xl transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed text-xs sm:text-sm`}
                         >
                           {isLoading ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
+                            <Loader2 className="w-3 h-3 sm:w-4 sm:h-4 animate-spin" />
                           ) : (
-                            <Save className="w-4 h-4" />
+                            <Save className="w-3 h-3 sm:w-4 sm:h-4" />
                           )}
                           Sauvegarder
                         </button>
@@ -428,7 +455,6 @@ export function ModalClientMultiOnglets({
               </div>
             </div>
           </motion.div>
-        </div>
       </motion.div>
     </AnimatePresence>
   );
