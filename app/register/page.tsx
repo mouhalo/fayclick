@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useAdaptiveNavigation } from '@/hooks/useAdaptiveNavigation';
 import { useRouter } from 'next/navigation';
 import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
@@ -17,12 +18,16 @@ import {
   ServiceType,
   SERVICE_ICONS
 } from '@/types/registration';
+import LogoFayclick from '@/components/ui/LogoFayclick';
 import { UploadResult, UploadProgress } from '@/types/upload.types';
 import registrationService from '@/services/registration.service';
 
 export default function RegisterPage() {
   const router = useRouter();
   const [step, setStep] = useState(1);
+  
+  // Hook pour la navigation adaptative intelligente
+  const { navStyle, isVisible, spacerHeight, currentZone, scrollProgress } = useAdaptiveNavigation();
   const [structureTypes, setStructureTypes] = useState<StructureType[]>([]);
   const [formData, setFormData] = useState<RegistrationFormData>({
     // Étape 1: Bienvenue et nom du business
@@ -39,6 +44,30 @@ export default function RegisterPage() {
     // Étape 3: Récapitulatif et validation
     acceptTerms: false,
   });
+
+  // Validation temps réel du nom de structure
+  const validateBusinessName = (name: string) => {
+    const length = name.trim().length;
+    if (length === 0) return { isValid: false, message: '', status: 'empty' };
+    if (length < VALIDATION_RULES.BUSINESS_NAME_MIN_LENGTH) {
+      return { 
+        isValid: false, 
+        message: `Minimum ${VALIDATION_RULES.BUSINESS_NAME_MIN_LENGTH} caractères`, 
+        status: 'too-short' 
+      };
+    }
+    if (length > VALIDATION_RULES.BUSINESS_NAME_MAX_LENGTH) {
+      return { 
+        isValid: false, 
+        message: `Maximum ${VALIDATION_RULES.BUSINESS_NAME_MAX_LENGTH} caractères`, 
+        status: 'too-long' 
+      };
+    }
+    return { isValid: true, message: 'Parfait ! ✓', status: 'valid' };
+  };
+
+  // État pour la validation temps réel
+  const businessNameValidation = validateBusinessName(formData.businessName);
   
   // État pour l'upload de logo
   const [logoUploadState, setLogoUploadState] = useState({
@@ -284,7 +313,66 @@ export default function RegisterPage() {
                 icon="🎉"
                 className="h-full"
               />
-              
+               {/* Champ nom du business */}
+            <Card className="bg-gradient-to-br from-white/95 via-white/90 to-white/85 backdrop-blur-2xl border border-green-200/30 shadow-2xl hover:shadow-green-500/20 transition-all duration-300 will-change-transform drop-shadow-[0_0_15px_rgba(34,197,94,0.15)] glass-card-3d green-glow-effect gpu-accelerated">
+              <div className="p-3 md:p-6 lg:p-8">
+                <label className="block text-gray-700 font-semibold mb-1.5 md:mb-3 text-sm md:text-base lg:text-lg">
+                  Nom de votre business/entreprise/commerce <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    name="businessName"
+                    value={formData.businessName}
+                    onChange={handleChange}
+                    className={`w-full px-2.5 md:px-4 py-2 md:py-3 lg:py-4 border rounded-xl focus:outline-none focus:ring-2 text-sm md:text-lg lg:text-xl font-semibold uppercase bg-gray-50 transition-all ${
+                      businessNameValidation.status === 'valid' 
+                        ? 'border-green-400 focus:ring-green-400 bg-green-50/50' 
+                        : businessNameValidation.status === 'empty'
+                        ? 'border-gray-300 focus:ring-primary-500'
+                        : 'border-red-400 focus:ring-red-400 bg-red-50/50'
+                    }`}
+                    placeholder="NOM DE VOTRE COMMERCE"
+                    maxLength={VALIDATION_RULES.BUSINESS_NAME_MAX_LENGTH}
+                    required
+                  />
+                  
+                  {/* Indicateur visuel de validation */}
+                  {formData.businessName && (
+                    <div className={`absolute right-3 top-1/2 -translate-y-1/2 ${
+                      businessNameValidation.isValid ? 'text-green-500' : 'text-red-500'
+                    }`}>
+                      {businessNameValidation.isValid ? '✓' : '⚠'}
+                    </div>
+                  )}
+                </div>
+                
+                {/* Message de validation et compteur */}
+                <div className="space-y-1 mt-1 md:mt-2">
+                  <div className={`text-xs font-medium ${
+                    businessNameValidation.status === 'valid' 
+                      ? 'text-green-600' 
+                      : businessNameValidation.status === 'empty'
+                      ? 'text-gray-500'
+                      : 'text-red-600'
+                  }`}>
+                    {businessNameValidation.message}
+                  </div>
+                  <div className="text-xs text-gray-600">
+                    Le nom doit contenir entre 5 et 20 caractères
+                  </div>
+                  <div className="flex justify-end">
+                    <div className={`text-xs ${
+                      formData.businessName.length > VALIDATION_RULES.BUSINESS_NAME_MAX_LENGTH * 0.8 
+                        ? 'text-orange-600 font-medium' 
+                        : 'text-gray-500'
+                    }`}>
+                      {formData.businessName.length}/{VALIDATION_RULES.BUSINESS_NAME_MAX_LENGTH}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </Card>
               <AdvantageCard
                 title="Avantages FayClick"
                 advantages={advantages}
@@ -293,27 +381,7 @@ export default function RegisterPage() {
               />
             </div>
 
-            {/* Champ nom du business */}
-            <Card className="bg-white/90 backdrop-blur-sm border-0 shadow-lg">
-              <div className="p-4 md:p-6 lg:p-8">
-                <label className="block text-gray-700 font-semibold mb-2 md:mb-3 text-sm md:text-base lg:text-lg">
-                  Nom de votre business/entreprise/commerce <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  name="businessName"
-                  value={formData.businessName}
-                  onChange={handleChange}
-                  className="w-full px-3 md:px-4 py-2.5 md:py-3 lg:py-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 text-base md:text-lg lg:text-xl font-semibold uppercase bg-gray-50 transition-all"
-                  placeholder="NOM DE VOTRE COMMERCE"
-                  maxLength={VALIDATION_RULES.BUSINESS_NAME_MAX_LENGTH}
-                  required
-                />
-                <div className="text-xs md:text-sm text-gray-500 mt-2">
-                  {formData.businessName.length}/{VALIDATION_RULES.BUSINESS_NAME_MAX_LENGTH} caractères
-                </div>
-              </div>
-            </Card>
+           
           </div>
         );
 
@@ -331,22 +399,22 @@ export default function RegisterPage() {
             )}
             
             {/* Type de structure - Placé en premier et en dehors du grid pour garantir sa visibilité */}
-            <Card className="bg-white/90 backdrop-blur-sm border-0 shadow-lg">
-              <div className="p-4 md:p-6">
+            <Card className="bg-gradient-to-br from-white/95 via-white/90 to-white/85 backdrop-blur-2xl border border-green-200/30 shadow-2xl hover:shadow-green-500/20 transition-all duration-300 will-change-transform drop-shadow-[0_0_15px_rgba(34,197,94,0.15)] glass-card-3d green-glow-effect gpu-accelerated">
+              <div className="p-3 md:p-6">
                 {/* Header avec icône */}
-                <div className="flex items-center mb-3 md:mb-4">
-                  <div className="w-7 h-7 md:w-8 md:h-8 bg-blue-100 rounded-lg flex items-center justify-center mr-2 md:mr-3">
-                    <span className="text-blue-500 text-base md:text-lg">🏢</span>
+                <div className="flex items-center mb-2 md:mb-4">
+                  <div className="w-6 h-6 md:w-8 md:h-8 bg-blue-100 rounded-lg flex items-center justify-center mr-2 md:mr-3">
+                    <span className="text-blue-500 text-sm md:text-lg">🏢</span>
                   </div>
-                  <h3 className="text-base md:text-lg font-semibold text-gray-800">
+                  <h3 className="text-sm md:text-lg font-semibold text-gray-800">
                     Type de structure <span className="text-red-500">*</span>
                   </h3>
-                  <span className="ml-2 text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full">
+                  <span className="ml-2 text-xs bg-red-100 text-red-700 px-1.5 py-0.5 rounded-full">
                     Obligatoire
                   </span>
                 </div>
                 
-                <p className="text-gray-600 text-xs md:text-sm mb-4">
+                <p className="text-gray-600 text-xs md:text-sm mb-3 md:mb-4">
                   Choisissez le type qui correspond à votre activité
                 </p>
                 
@@ -355,7 +423,7 @@ export default function RegisterPage() {
                     name="structureTypeId"
                     value={formData.structureTypeId}
                     onChange={handleChange}
-                    className="w-full px-3 md:px-4 py-2.5 md:py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm md:text-base transition-all bg-white"
+                    className="w-full px-2.5 md:px-4 py-2 md:py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm md:text-base transition-all bg-white"
                     required
                   >
                     <option value={0}>Sélectionnez un type de structure</option>
@@ -397,9 +465,9 @@ export default function RegisterPage() {
             </div>
             
             {/* Configuration détaillée - Full width */}
-            <Card className="bg-white/90 backdrop-blur-sm border-0 shadow-lg">
-              <div className="p-4 md:p-6 lg:p-8 space-y-4 md:space-y-6">
-                <h3 className="text-base md:text-lg lg:text-xl font-semibold text-gray-800 mb-3 md:mb-4">
+            <Card className="bg-gradient-to-br from-white/95 via-white/90 to-white/85 backdrop-blur-2xl border border-green-200/30 shadow-2xl hover:shadow-green-500/20 transition-all duration-300 will-change-transform drop-shadow-[0_0_15px_rgba(34,197,94,0.15)] glass-card-3d green-glow-effect gpu-accelerated">
+              <div className="p-3 md:p-6 lg:p-8 space-y-3 md:space-y-6">
+                <h3 className="text-sm md:text-lg lg:text-xl font-semibold text-gray-800 mb-2 md:mb-4">
                   Informations obligatoires
                 </h3>
 
@@ -407,11 +475,11 @@ export default function RegisterPage() {
                 <div className="grid md:grid-cols-2 gap-4 md:gap-6">
                   {/* Téléphone Orange Money */}
                   <div>
-                    <label className="block text-gray-700 font-semibold mb-2 text-sm md:text-base">
+                    <label className="block text-gray-700 font-semibold mb-1.5 md:mb-2 text-sm md:text-base">
                       Téléphone Orange Money <span className="text-red-500">*</span>
                     </label>
                     <div className="flex">
-                      <span className="inline-flex items-center px-2.5 md:px-3 text-gray-500 bg-gray-50 border border-r-0 border-gray-300 rounded-l-xl text-xs md:text-sm">
+                      <span className="inline-flex items-center px-2 md:px-3 text-gray-500 bg-gray-50 border border-r-0 border-gray-300 rounded-l-xl text-xs md:text-sm">
                         +221
                       </span>
                       <input
@@ -419,22 +487,22 @@ export default function RegisterPage() {
                         name="phoneOM"
                         value={formData.phoneOM}
                         onChange={handleChange}
-                        className="flex-1 px-3 md:px-4 py-2.5 md:py-3 border border-gray-300 rounded-r-xl focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm md:text-base transition-all"
+                        className="flex-1 px-2.5 md:px-4 py-2 md:py-3 border border-gray-300 rounded-r-xl focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm md:text-base transition-all"
                         placeholder="77 123 45 67"
                         maxLength={9}
                         required
                       />
                     </div>
-                    <p className="text-xs md:text-sm text-gray-500 mt-1">Format: 77/78/70/76/75 XXX XX XX</p>
+                    <p className="text-xs text-gray-500 mt-1">Format: 77/78/70/76/75 XXX XX XX</p>
                   </div>
 
                   {/* Téléphone Wave Money (Optionnel) */}
                   <div>
-                    <label className="block text-gray-700 font-semibold mb-2 text-sm md:text-base">
+                    <label className="block text-gray-700 font-semibold mb-1.5 md:mb-2 text-sm md:text-base">
                       Téléphone Wave <span className="text-gray-400 text-xs">(optionnel)</span>
                     </label>
                     <div className="flex">
-                      <span className="inline-flex items-center px-2.5 md:px-3 text-gray-500 bg-gray-50 border border-r-0 border-gray-300 rounded-l-xl text-xs md:text-sm">
+                      <span className="inline-flex items-center px-2 md:px-3 text-gray-500 bg-gray-50 border border-r-0 border-gray-300 rounded-l-xl text-xs md:text-sm">
                         +221
                       </span>
                       <input
@@ -442,7 +510,7 @@ export default function RegisterPage() {
                         name="phoneWave"
                         value={formData.phoneWave || ''}
                         onChange={handleChange}
-                        className="flex-1 px-3 md:px-4 py-2.5 md:py-3 border border-gray-300 rounded-r-xl focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm md:text-base transition-all"
+                        className="flex-1 px-2.5 md:px-4 py-2 md:py-3 border border-gray-300 rounded-r-xl focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm md:text-base transition-all"
                         placeholder="70 XXX XX XX"
                         maxLength={9}
                       />
@@ -459,7 +527,7 @@ export default function RegisterPage() {
                     name="address"
                     value={formData.address}
                     onChange={handleChange}
-                    className="w-full px-3 md:px-4 py-2.5 md:py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none text-sm md:text-base transition-all"
+                    className="w-full px-2.5 md:px-4 py-2 md:py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none text-sm md:text-base transition-all"
                     placeholder="Adresse complète de votre structure"
                     rows={3}
                     maxLength={VALIDATION_RULES.ADDRESS_MAX_LENGTH}
@@ -478,43 +546,43 @@ export default function RegisterPage() {
         return (
           <div className="space-y-4 md:space-y-6">
             {/* Récapitulatif */}
-            <Card className="bg-white/90 backdrop-blur-sm border-0 shadow-lg">
-              <div className="p-4 md:p-6 lg:p-8">
-                <h3 className="text-base md:text-lg lg:text-xl font-semibold text-gray-800 mb-4 md:mb-6">
+            <Card className="bg-gradient-to-br from-white/95 via-white/90 to-white/85 backdrop-blur-2xl border border-green-200/30 shadow-2xl hover:shadow-green-500/20 transition-all duration-300 will-change-transform drop-shadow-[0_0_15px_rgba(34,197,94,0.15)] glass-card-3d green-glow-effect gpu-accelerated">
+              <div className="p-3 md:p-6 lg:p-8">
+                <h3 className="text-sm md:text-lg lg:text-xl font-semibold text-gray-800 mb-3 md:mb-6">
                   📋 Récapitulatif de votre inscription
                 </h3>
                 
-                <div className="bg-gray-50 rounded-xl p-3 md:p-4 lg:p-6 space-y-2 md:space-y-3 mb-4 md:mb-6">
+                <div className="bg-gray-50 rounded-xl p-2.5 md:p-4 lg:p-6 space-y-1.5 md:space-y-3 mb-3 md:mb-6">
                   <div className="grid md:grid-cols-2 gap-3 md:gap-4">
-                    <div className="flex justify-between items-center py-2 border-b border-gray-200">
-                      <span className="text-xs md:text-sm font-medium text-gray-600">Nom du business :</span>
+                    <div className="flex justify-between items-center py-1.5 md:py-2 border-b border-gray-200">
+                      <span className="text-xs font-medium text-gray-600">Nom du business :</span>
                       <span className="text-xs md:text-sm lg:text-base font-semibold text-gray-800">{formData.businessName}</span>
                     </div>
                     
-                    <div className="flex justify-between items-center py-2 border-b border-gray-200">
-                      <span className="text-xs md:text-sm font-medium text-gray-600">Type de structure :</span>
+                    <div className="flex justify-between items-center py-1.5 md:py-2 border-b border-gray-200">
+                      <span className="text-xs font-medium text-gray-600">Type de structure :</span>
                       <span className="text-xs md:text-sm lg:text-base font-semibold text-gray-800">
                         {structureTypes.find(t => t.id_type === formData.structureTypeId)?.nom_type || 'Non sélectionné'}
                       </span>
                     </div>
                     
-                    <div className="flex justify-between items-center py-2 border-b border-gray-200">
-                      <span className="text-xs md:text-sm font-medium text-gray-600">Service :</span>
+                    <div className="flex justify-between items-center py-1.5 md:py-2 border-b border-gray-200">
+                      <span className="text-xs font-medium text-gray-600">Service :</span>
                       <span className="text-xs md:text-sm lg:text-base font-semibold text-gray-800 flex items-center">
                         <span className="mr-2">{SERVICE_ICONS[formData.serviceType as ServiceType]}</span>
                         {formData.serviceType}
                       </span>
                     </div>
                     
-                    <div className="flex justify-between items-center py-2 border-b border-gray-200">
-                      <span className="text-xs md:text-sm font-medium text-gray-600">Téléphone OM :</span>
+                    <div className="flex justify-between items-center py-1.5 md:py-2 border-b border-gray-200">
+                      <span className="text-xs font-medium text-gray-600">Téléphone OM :</span>
                       <span className="text-xs md:text-sm lg:text-base font-semibold text-gray-800">+221 {formData.phoneOM}</span>
                     </div>
                   </div>
                   
                   {formData.phoneWave && (
-                    <div className="flex justify-between items-center py-2 border-b border-gray-200">
-                      <span className="text-xs md:text-sm font-medium text-gray-600">Téléphone Wave :</span>
+                    <div className="flex justify-between items-center py-1.5 md:py-2 border-b border-gray-200">
+                      <span className="text-xs font-medium text-gray-600">Téléphone Wave :</span>
                       <span className="text-xs md:text-sm lg:text-base font-semibold text-gray-800">+221 {formData.phoneWave}</span>
                     </div>
                   )}
@@ -527,7 +595,7 @@ export default function RegisterPage() {
                   {/* Affichage du logo uploadé */}
                   {logoUploadState.isUploaded && formData.logoUrl && (
                     <div className="flex justify-between items-center py-2 border-t border-gray-200 pt-3">
-                      <span className="text-xs md:text-sm font-medium text-gray-600">Logo :</span>
+                      <span className="text-xs font-medium text-gray-600">Logo :</span>
                       <div className="flex items-center">
                         <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full mr-2">
                           ✓ Uploadé
@@ -540,7 +608,7 @@ export default function RegisterPage() {
 
                 {/* Acceptation des conditions */}
                 <div className="border-t pt-4 md:pt-6">
-                  <div className="flex items-start space-x-3">
+                  <div className="flex items-start space-x-2 md:space-x-3">
                     <input
                       type="checkbox"
                       id="acceptTerms"
@@ -576,10 +644,10 @@ export default function RegisterPage() {
   return (
     <>
       {/* Layout Desktop */}
-      <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-blue-50 relative overflow-hidden">
+      <div className="min-h-screen bg-gradient-to-br from-green-50/95 via-white/90 to-emerald-50/95 backdrop-blur-3xl relative overflow-hidden drop-shadow-[0_0_30px_rgba(34,197,94,0.1)]">
         {/* Background Pattern pour desktop */}
         <div className="hidden lg:block absolute inset-0 opacity-10">
-          <div className="absolute inset-0 bg-gradient-to-br from-orange-400/20 to-blue-400/20 animate-gradient" />
+          <div className="absolute inset-0 bg-gradient-to-br from-green-400/20 to-emerald-400/20 animate-gradient" />
         </div>
 
         {/* Container Responsive */}
@@ -587,7 +655,7 @@ export default function RegisterPage() {
           <div className="lg:flex min-h-screen">
             
             {/* Panel Gauche - Header/Sidebar pour Desktop */}
-            <div className="bg-gradient-to-br from-orange-400 via-orange-500 to-orange-600 relative overflow-hidden lg:w-[380px] xl:w-[420px] lg:flex-shrink-0">
+            <div className="bg-gradient-to-br from-green-400/95 via-green-500/90 to-green-600/95 backdrop-blur-2xl relative overflow-hidden lg:w-[380px] xl:w-[420px] lg:flex-shrink-0 shadow-2xl border-r border-green-300/30 drop-shadow-[0_0_20px_rgba(34,197,94,0.25)]">
               {/* Pattern d'arrière-plan */}
               <div className="absolute inset-0 opacity-20">
                 <div className="absolute inset-0 bg-gradient-to-br from-white/30 to-transparent animate-sparkle" />
@@ -596,7 +664,7 @@ export default function RegisterPage() {
               {/* Bouton Retour */}
               <button
                 onClick={() => router.push('/')}
-                className="absolute top-4 left-4 md:top-5 md:left-5 lg:top-8 lg:left-8 w-10 h-10 md:w-12 md:h-12 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:bg-white/30 transition-all duration-200 z-20"
+                className="absolute top-4 left-4 md:top-5 md:left-5 lg:top-8 lg:left-8 w-10 h-10 md:w-12 md:h-12 bg-white/10 backdrop-blur-xl rounded-full flex items-center justify-center text-white hover:bg-white/25 transition-all duration-300 z-20 shadow-xl hover:shadow-green-500/20 border border-white/20 will-change-transform hover:scale-105"
                 title="Retour à l'accueil"
               >
                 <svg className="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -607,8 +675,8 @@ export default function RegisterPage() {
               {/* Contenu du header/sidebar */}
               <div className="flex flex-col justify-center items-center h-full text-center px-6 py-8 md:px-8 lg:px-8 xl:px-10 relative z-10">
                 {/* Logo FayClick */}
-                <div className="w-20 h-20 md:w-24 md:h-24 lg:w-28 lg:h-28 xl:w-32 xl:h-32 mx-auto mb-4 md:mb-6 lg:mb-6 bg-white rounded-full flex items-center justify-center shadow-2xl">
-                  <span className="text-3xl md:text-4xl lg:text-4xl xl:text-5xl font-black text-orange-500">FC</span>
+                <div className="mx-auto mb-4 md:mb-6 lg:mb-6">
+                  <LogoFayclick className="w-20 h-20 md:w-24 md:h-24 lg:w-28 lg:h-28 xl:w-32 xl:h-32" />
                 </div>
                 
                 <h1 className="text-2xl md:text-3xl lg:text-3xl xl:text-4xl font-bold text-white mb-2 md:mb-4">
@@ -623,7 +691,7 @@ export default function RegisterPage() {
                   {[1, 2, 3].map((i) => (
                     <div key={i} className="flex items-center">
                       <div className={`w-8 h-8 md:w-10 md:h-10 rounded-full ${step >= i ? 'bg-white' : 'bg-white/30'} flex items-center justify-center transition-all duration-300`}>
-                        <span className={`font-bold text-sm md:text-base ${step >= i ? 'text-orange-600' : 'text-white/70'}`}>{i}</span>
+                        <span className={`font-bold text-sm md:text-base ${step >= i ? 'text-green-600' : 'text-white/70'}`}>{i}</span>
                       </div>
                       {i < 3 && <div className={`w-8 md:w-12 h-0.5 ${step > i ? 'bg-white' : 'bg-white/30'} transition-all duration-300`}></div>}
                     </div>
@@ -640,11 +708,11 @@ export default function RegisterPage() {
                     <div key={item.num} className="flex items-center space-x-3">
                       <div className={`w-10 h-10 lg:w-11 lg:h-11 rounded-full ${step >= item.num ? 'bg-white' : 'bg-white/30'} flex items-center justify-center transition-all duration-300 shadow-lg flex-shrink-0`}>
                         {step > item.num ? (
-                          <svg className="w-5 h-5 lg:w-6 lg:h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <svg className="w-5 h-5 lg:w-6 lg:h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                           </svg>
                         ) : (
-                          <span className={`font-bold text-base lg:text-lg ${step >= item.num ? 'text-orange-600' : 'text-white/70'}`}>{item.num}</span>
+                          <span className={`font-bold text-base lg:text-lg ${step >= item.num ? 'text-green-600' : 'text-white/70'}`}>{item.num}</span>
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
@@ -679,7 +747,7 @@ export default function RegisterPage() {
 
             {/* Panel Droit - Contenu pour Desktop */}
             <div className="flex-1 lg:flex-shrink lg:min-w-0">
-              <div className="max-w-[380px] md:max-w-2xl lg:max-w-5xl xl:max-w-6xl mx-auto px-4 md:px-6 lg:px-8 xl:px-12 py-6 md:py-8 lg:py-12">
+              <main className="max-w-[380px] md:max-w-2xl lg:max-w-5xl xl:max-w-6xl mx-auto px-4 md:px-6 lg:px-8 xl:px-12 py-6 md:py-8 lg:py-12">
                 
                 {/* Header Mobile/Tablet (caché sur desktop car dans sidebar) */}
                 <div className="lg:hidden mb-6 md:mb-8">
@@ -688,6 +756,85 @@ export default function RegisterPage() {
 
                 {/* Formulaire */}
                 <form onSubmit={step === 3 ? handleSubmit : (e) => { e.preventDefault(); nextStep(); }}>
+                  
+                  {/* Navigation adaptative mobile - Suit le scroll intelligemment */}
+                  <div 
+                    className={`lg:hidden fixed transition-opacity duration-300 ${
+                      isVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'
+                    }`}
+                    style={navStyle}
+                  >
+                    <div className="bg-white shadow-[0_-4px_20px_rgba(0,0,0,0.15)] border-t border-gray-200">
+                      
+                      <div className="px-4 py-3 safe-area-inset">
+                        <div className="flex gap-3 max-w-lg mx-auto">
+                          {step > 1 && (
+                            <Button
+                              type="button"
+                              variant="secondary"
+                              size="lg"
+                              onClick={prevStep}
+                              className="flex-1 py-3 text-sm font-semibold bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300 transition-all duration-300 shadow-lg rounded-xl"
+                            >
+                              <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                              </svg>
+                              Précédent
+                            </Button>
+                          )}
+                          <Button
+                            type="submit"
+                            variant={step === 3 ? "gradient" : "primary"}
+                            size="lg"
+                            loading={step === 3 && isLoading}
+                            disabled={step === 1 && !businessNameValidation.isValid}
+                            className={`${step === 1 ? 'w-full' : 'flex-1'} py-3 text-sm font-semibold transition-all duration-300 rounded-xl ${
+                              step === 1 && !businessNameValidation.isValid
+                                ? 'bg-gray-400 cursor-not-allowed opacity-60 text-white'
+                                : 'bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white shadow-xl'
+                            }`}
+                          >
+                            {step === 3 
+                              ? (isLoading ? (
+                                <>
+                                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                  </svg>
+                                  Création...
+                                </>
+                              ) : '🚀 Créer ma structure') 
+                              : (
+                                <>
+                                  Suivant
+                                  <svg className="w-4 h-4 ml-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                  </svg>
+                                </>
+                              )
+                            }
+                          </Button>
+                        </div>
+                      </div>
+                      
+                      {/* Barre de progression intégrée */}
+                      <div className="h-2 bg-gray-200 mx-4 mb-1 rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-gradient-to-r from-green-500 to-emerald-500 transition-all duration-500"
+                          style={{ width: `${(step / 3) * 100}%` }}
+                        />
+                      </div>
+                      
+                      {/* Indicateur textuel de l'étape */}
+                      <p className="text-xs text-gray-600 text-center pb-2">
+                        Étape {step} sur 3
+                      </p>
+                    </div>
+                  </div>
+                  
+                  {/* Spacer dynamique pour éviter que le contenu soit caché */}
+                  <div className="lg:hidden" style={{ height: `${spacerHeight}px` }}></div>
+
                   {renderStep()}
 
                   {/* Message d'erreur */}
@@ -702,8 +849,8 @@ export default function RegisterPage() {
                     </div>
                   )}
 
-                  {/* Boutons de navigation */}
-                  <div className="mt-6 md:mt-8 flex gap-3 md:gap-4">
+                  {/* Boutons de navigation desktop - EN BAS */}
+                  <div className="hidden lg:flex mt-6 md:mt-8 gap-3 md:gap-4">
                     {step > 1 && (
                       <Button
                         type="button"
@@ -730,7 +877,7 @@ export default function RegisterPage() {
                     </Button>
                   </div>
                 </form>
-              </div>
+              </main>
             </div>
           </div>
         </div>
