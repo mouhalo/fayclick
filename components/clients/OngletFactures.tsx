@@ -244,7 +244,7 @@ export function OngletFactures({
           Statistiques de Paiement
         </h4>
         
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 gap-4">
           {statsCards.map((stat, index) => (
             <motion.div
               key={stat.id}

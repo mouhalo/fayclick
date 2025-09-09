@@ -237,7 +237,7 @@ export function OngletHistoriqueProduits({
           Statistiques d'Achat
         </h4>
         
-        <div className="grid sm:grid-cols-1 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 gap-4">
           {statsCards.map((stat, index) => (
             <motion.div
               key={stat.id}
