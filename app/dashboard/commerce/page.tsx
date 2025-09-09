@@ -131,7 +131,7 @@ export default function CommerceDashboard() {
           initial={{ y: -50, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 0.6 }}
-          className="bg-gradient-to-r from-green-500 to-green-600 p-5 text-white relative overflow-hidden"
+          className="bg-gradient-to-r from-[#18542e] to-[#16a34d] p-5 text-white relative overflow-hidden"
         >
           {/* Pattern Background */}
           <div className="absolute inset-0 opacity-10">
@@ -203,7 +203,7 @@ export default function CommerceDashboard() {
         </motion.div>
 
         {/* Content */}
-        <div className="p-5 pb-24 bg-gradient-to-b from-sky-50 to-sky-100 min-h-[calc(100vh-180px)] overflow-y-auto">
+        <div className="p-5 pb-24 bg-gradient-to-b from-[#ecfae5] to-[#1b5307] min-h-[calc(100vh-180px)] overflow-y-auto">
           {/* Stats Section */}
           <motion.div
             initial={{ y: 20, opacity: 0 }}

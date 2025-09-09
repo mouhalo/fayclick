@@ -12,6 +12,7 @@ import {
   Star, 
   Package, 
   TrendingUp,
+  TrendingDown,
   Search,
   SortAsc,
   SortDesc,
@@ -44,6 +45,7 @@ function StatCardHistorique({ stat }: { stat: StatCard }) {
       Star,
       Package,
       TrendingUp,
+      TrendingDown,
       ShoppingBag
     };
     return icons[iconName as keyof typeof icons] || Package;
@@ -71,6 +73,13 @@ function StatCardHistorique({ stat }: { stat: StatCard }) {
           border: 'border-purple-400/30',
           icon: 'text-purple-300',
           text: 'text-purple-100'
+        };
+      case 'orange':
+        return {
+          bg: 'bg-orange-500/20',
+          border: 'border-orange-400/30',
+          icon: 'text-orange-300',
+          text: 'text-orange-100'
         };
       default:
         return {
@@ -122,24 +131,25 @@ function LigneProduit({
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-white/5 hover:bg-white/10 rounded-xl p-4 border border-white/20 transition-all"
+      className="bg-white/5 hover:bg-white/10 rounded-lg sm:rounded-xl p-3 sm:p-4 border border-white/20 transition-all"
     >
-      <div className="flex items-center justify-between">
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-3 mb-2">
-            <span className="font-medium text-white truncate">{produit.nom_produit}</span>
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0">
+        <div className="flex-1 min-w-0 w-full sm:w-auto">
+          <div className="flex items-center gap-2 sm:gap-3 mb-2 flex-wrap">
+            <span className="font-medium text-white truncate text-sm sm:text-base">{produit.nom_produit}</span>
             {produit.quantite_totale >= 10 && (
-              <span className="px-2 py-1 bg-yellow-500/20 text-yellow-200 rounded-lg text-xs font-medium border border-yellow-400/30">
+              <span className="px-2 py-1 bg-yellow-500/20 text-yellow-200 rounded-lg text-xs font-medium border border-yellow-400/30 flex-shrink-0">
                 Client fidèle
               </span>
             )}
           </div>
           
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3 text-sm">
+          <div className="grid grid-cols-2 lg:grid-cols-5 gap-2 sm:gap-3 text-xs sm:text-sm">
             <div>
               <span className="text-white/60 flex items-center gap-1">
                 <Hash className="w-3 h-3" />
-                Quantité:
+                <span className="hidden sm:inline">Quantité:</span>
+                <span className="sm:hidden">Qte:</span>
               </span>
               <p className="text-white font-medium">{produit.quantite_totale}</p>
             </div>
@@ -148,34 +158,35 @@ function LigneProduit({
                 <DollarSign className="w-3 h-3" />
                 Total:
               </span>
-              <p className="text-white font-medium">{clientsService.formatMontant(produit.montant_total)}</p>
+              <p className="text-white font-medium truncate">{clientsService.formatMontant(produit.montant_total)}</p>
             </div>
-            <div>
+            <div className="hidden lg:block">
               <span className="text-white/60">Prix moyen:</span>
-              <p className="text-white">{clientsService.formatMontant(produit.prix_unitaire_moyen)}</p>
+              <p className="text-white truncate">{clientsService.formatMontant(produit.prix_unitaire_moyen)}</p>
             </div>
-            <div>
+            <div className="hidden lg:block">
               <span className="text-white/60">Commandes:</span>
               <p className="text-white">{produit.nombre_commandes}</p>
             </div>
-            <div>
+            <div className="col-span-2 lg:col-span-1">
               <span className="text-white/60 flex items-center gap-1">
                 <Calendar className="w-3 h-3" />
-                Dernière:
+                <span className="hidden sm:inline">Dernière:</span>
+                <span className="sm:hidden">Date:</span>
               </span>
-              <p className="text-white">{clientsService.formatDate(produit.date_derniere_commande)}</p>
+              <p className="text-white truncate">{clientsService.formatDate(produit.date_derniere_commande)}</p>
             </div>
           </div>
         </div>
 
         {/* Indicateur de popularité */}
-        <div className="ml-4 flex flex-col items-center">
-          <div className="w-12 h-12 bg-gradient-to-br from-purple-500/20 to-purple-600/20 rounded-full flex items-center justify-center border border-purple-400/30">
-            <span className="text-purple-200 font-bold text-sm">
+        <div className="sm:ml-4 flex flex-col items-center mt-2 sm:mt-0">
+          <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-purple-500/20 to-purple-600/20 rounded-full flex items-center justify-center border border-purple-400/30">
+            <span className="text-purple-200 font-bold text-xs sm:text-sm">
               {Math.round((produit.montant_total / Math.max(...tousLesProduits.map(p => p.montant_total))) * 100)}%
             </span>
           </div>
-          <span className="text-white/50 text-xs mt-1">Popularité</span>
+          <span className="text-white/50 text-xs mt-1 hidden sm:block">Popularité</span>
         </div>
       </div>
     </motion.div>
@@ -211,33 +222,33 @@ export function OngletHistoriqueProduits({
   return (
     <div className="space-y-6">
       {/* En-tête */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0">
         <div>
-          <h3 className="text-lg font-semibold text-white mb-1">
+          <h3 className="text-base sm:text-lg font-semibold text-white mb-1">
             Historique des Achats
           </h3>
-          <p className="text-white/60 text-sm">
+          <p className="text-white/60 text-xs sm:text-sm">
             Analyse des produits achetés et habitudes de consommation
           </p>
         </div>
 
         <button
           onClick={() => setShowFilters(!showFilters)}
-          className="flex items-center gap-2 px-3 py-2 bg-purple-500/20 hover:bg-purple-500/30 text-purple-200 rounded-xl transition-colors border border-purple-400/30"
+          className="flex items-center gap-2 px-3 py-2 bg-purple-500/20 hover:bg-purple-500/30 text-purple-200 rounded-lg sm:rounded-xl transition-colors border border-purple-400/30 text-sm w-full sm:w-auto justify-center sm:justify-start"
         >
-          <Filter className="w-4 h-4" />
-          Filtres
+          <Filter className="w-3 h-3 sm:w-4 sm:h-4" />
+          <span>Filtres</span>
         </button>
       </div>
 
       {/* Statistiques d'historique */}
       <div>
-        <h4 className="text-white font-medium mb-4 flex items-center gap-2">
-          <TrendingUp className="w-5 h-5" />
+        <h4 className="text-white font-medium mb-3 sm:mb-4 flex items-center gap-2 text-sm sm:text-base">
+          <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5" />
           Statistiques d'Achat
         </h4>
         
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 gap-3 sm:gap-4">
           {statsCards.map((stat, index) => (
             <motion.div
               key={stat.id}
@@ -268,12 +279,12 @@ export function OngletHistoriqueProduits({
                 value={filtre.recherche}
                 onChange={(e) => handleSearch(e.target.value)}
                 placeholder="Rechercher un produit..."
-                className="w-full pl-10 pr-4 py-2 bg-white/10 border border-white/20 rounded-xl focus:ring-2 focus:ring-purple-400 focus:border-transparent text-white placeholder-white/50 backdrop-blur-sm"
+                className="w-full pl-9 sm:pl-10 pr-3 sm:pr-4 py-2 sm:py-2.5 bg-white/10 border border-white/20 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-purple-400 focus:border-transparent text-white placeholder-white/50 backdrop-blur-sm text-sm sm:text-base"
               />
             </div>
 
             {/* Options de tri */}
-            <div className="flex flex-wrap gap-2">
+            <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
               {sortOptions.map((option) => {
                 const Icon = option.icon;
                 const isActive = filtre.tri === option.value;
@@ -282,15 +293,15 @@ export function OngletHistoriqueProduits({
                     key={option.value}
                     onClick={() => handleSort(option.value as FiltreHistorique['tri'])}
                     className={`
-                      flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors
+                      flex items-center justify-center sm:justify-start gap-1 sm:gap-2 px-3 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors
                       ${isActive 
                         ? 'bg-purple-500/30 text-purple-200 border border-purple-400/50' 
                         : 'bg-white/10 text-white/70 hover:bg-white/20'
                       }
                     `}
                   >
-                    <Icon className="w-4 h-4" />
-                    {option.label}
+                    <Icon className="w-3 h-3 sm:w-4 sm:h-4" />
+                    <span className="truncate">{option.label}</span>
                     {isActive && (
                       filtre.ordre === 'desc' ? <SortDesc className="w-3 h-3" /> : <SortAsc className="w-3 h-3" />
                     )}
@@ -304,16 +315,16 @@ export function OngletHistoriqueProduits({
 
       {/* Liste des produits */}
       <div>
-        <div className="flex items-center justify-between mb-4">
-          <h4 className="text-white font-medium flex items-center gap-2">
-            <ShoppingBag className="w-5 h-5" />
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0 mb-3 sm:mb-4">
+          <h4 className="text-white font-medium flex items-center gap-2 text-sm sm:text-base">
+            <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5" />
             Produits Achetés ({produits.length})
           </h4>
           
           {filtre.recherche && (
             <button
               onClick={() => handleSearch('')}
-              className="text-white/60 hover:text-white text-sm underline"
+              className="text-white/60 hover:text-white text-xs sm:text-sm underline"
             >
               Effacer recherche
             </button>
@@ -373,17 +384,17 @@ export function OngletHistoriqueProduits({
       {/* Insights en bas */}
       {produits.length > 0 && !isLoading && (
         <div className="bg-gradient-to-r from-purple-500/10 to-blue-500/10 backdrop-blur-sm rounded-2xl p-6 border border-purple-400/20">
-          <h5 className="text-white font-medium mb-4 flex items-center gap-2">
-            <TrendingUp className="w-5 h-5" />
+          <h5 className="text-white font-medium mb-3 sm:mb-4 flex items-center gap-2 text-sm sm:text-base">
+            <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5" />
             Insights Client
           </h5>
           
-          <div className="grid md:grid-cols-2 gap-6">
+          <div className="grid lg:grid-cols-2 gap-4 sm:gap-6">
             <div>
-              <h6 className="text-white/80 text-sm font-medium mb-2">Top 3 Produits</h6>
+              <h6 className="text-white/80 text-xs sm:text-sm font-medium mb-2">Top 3 Produits</h6>
               <div className="space-y-2">
                 {produits.slice(0, 3).map((produit, index) => (
-                  <div key={produit.id_produit} className="flex items-center gap-3 text-sm">
+                  <div key={produit.id_produit} className="flex items-center gap-2 sm:gap-3 text-xs sm:text-sm">
                     <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold
                       ${index === 0 ? 'bg-yellow-500/20 text-yellow-200' : 
                         index === 1 ? 'bg-gray-500/20 text-gray-200' : 
@@ -398,8 +409,8 @@ export function OngletHistoriqueProduits({
             </div>
             
             <div>
-              <h6 className="text-white/80 text-sm font-medium mb-2">Résumé</h6>
-              <div className="space-y-2 text-sm">
+              <h6 className="text-white/80 text-xs sm:text-sm font-medium mb-2">Résumé</h6>
+              <div className="space-y-2 text-xs sm:text-sm">
                 <div className="flex justify-between">
                   <span className="text-white/60">Total dépensé:</span>
                   <span className="text-white font-medium">

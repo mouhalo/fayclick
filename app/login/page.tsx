@@ -1,38 +1,108 @@
-// app/login/page.tsx
+// app/login/page.tsx - Version hybride : Authentification réelle + Design glassmorphisme
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import LogoFayclick from '@/components/ui/LogoFayclick'
 import { ModalPasswordRecovery } from '@/components/auth/ModalPasswordRecovery'
+import { useAuth } from '@/contexts/AuthContext'
+import { authService } from '@/services/auth.service'
 
 export default function LoginPage() {
   const router = useRouter()
-  const [isLoading, setIsLoading] = useState(false)
+  const { login: authLogin, isAuthenticated, isLoading: authLoading, error: authError, clearError, user } = useAuth()
+  const [isLoaded, setIsLoaded] = useState(false)
   const [formData, setFormData] = useState({
     email: '',
     password: ''
   })
+  const [isLoading, setIsLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [showPasswordRecovery, setShowPasswordRecovery] = useState(false)
+
+  useEffect(() => {
+    setIsLoaded(true)
+    
+    // Vérifier si on doit forcer la déconnexion (par exemple après une erreur 401)
+    const urlParams = new URLSearchParams(window.location.search)
+    const forceLogout = urlParams.get('logout') === 'true'
+    
+    if (forceLogout) {
+      console.log('🔓 [LOGIN PAGE] Déconnexion forcée détectée')
+      // Nettoyer la session
+      authService.clearSession()
+      // Retirer le paramètre de l'URL
+      window.history.replaceState({}, document.title, '/login')
+      return
+    }
+    
+    // Vérifier si déjà connecté SEULEMENT si pas de logout forcé
+    if (isAuthenticated && user) {
+      console.log('🔄 [LOGIN PAGE] Utilisateur déjà connecté, redirection...', user.login)
+      // La redirection automatique est gérée par AuthContext
+    }
+  }, [isAuthenticated, user, router])
+
+  // Effacer les erreurs au changement de formulaire
+  useEffect(() => {
+    if (authError) {
+      const timer = setTimeout(() => clearError(), 100)
+      return () => clearTimeout(timer)
+    }
+  }, [formData.email, formData.password, authError, clearError])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
+    clearError()
     
-    // Simuler une connexion
-    setTimeout(() => {
+    console.log('🔐 [LOGIN PAGE] Soumission du formulaire de connexion')
+    console.log('📊 [LOGIN PAGE] Données du formulaire:', {
+      email: formData.email,
+      passwordLength: formData.password.length,
+      timestamp: new Date().toISOString()
+    })
+
+    try {
+      // Validation basique
+      if (!formData.email || !formData.password) {
+        throw new Error('Veuillez remplir tous les champs')
+      }
+
+      // Utiliser le login du contexte AuthContext avec la logique restaurée
+      await authLogin({
+        login: formData.email.toLowerCase().trim(),
+        pwd: formData.password
+      })
+
+      console.log('✅ [LOGIN PAGE] Connexion réussie - redirection automatique via AuthContext')
+      // La redirection est gérée automatiquement par AuthContext après connexion réussie
+
+    } catch (error) {
+      console.error('❌ [LOGIN PAGE] Erreur lors de la connexion:', error)
+      // L'erreur est gérée automatiquement par le AuthContext et disponible via authError
+    } finally {
       setIsLoading(false)
-      router.push('/dashboard')
-    }, 2000)
+    }
   }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({
-      ...formData,
+    setFormData(prev => ({
+      ...prev,
       [e.target.name]: e.target.value
-    })
+    }))
+    // Effacer l'erreur quand l'utilisateur tape
+    if (authError) clearError()
+  }
+
+  // Affichage du loading pendant l'hydratation
+  if (!isLoaded) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-900 via-emerald-800 to-teal-900">
+        <div className="text-white text-lg">Chargement...</div>
+      </div>
+    )
   }
 
   return (
@@ -53,23 +123,30 @@ export default function LoginPage() {
           <div className="p-8">
             <h2 className="text-2xl font-semibold text-white mb-6 drop-shadow">Connexion</h2>
             
+            {/* Affichage des erreurs */}
+            {authError && (
+              <div className="mb-4 p-3 bg-red-500/20 border border-red-400/30 rounded-xl backdrop-blur-sm">
+                <p className="text-red-200 text-sm">{authError}</p>
+              </div>
+            )}
+            
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Champ Email */}
               <div>
                 <label htmlFor="email" className="block text-sm font-medium text-green-100 mb-2 drop-shadow">
-                  Email
+                  Email / Login
                 </label>
                 <div className="relative">
                   <input
                     id="email"
                     name="email"
-                    type="email"
+                    type="text"
                     autoComplete="email"
                     required
                     value={formData.email}
                     onChange={handleChange}
                     className="w-full px-4 py-3 pl-12 border border-green-200/30 rounded-xl focus:ring-2 focus:ring-emerald-400 focus:border-transparent transition-all duration-200 bg-white/20 backdrop-blur-sm hover:bg-white/30 text-white placeholder-green-100/60"
-                    placeholder="votre@email.com"
+                    placeholder="votre@email.com ou login"
                   />
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <svg className="h-5 w-5 text-green-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -104,43 +181,15 @@ export default function LoginPage() {
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center hover:bg-white/10 rounded-r-xl transition-colors"
                   >
-                    {showPassword ? (
-                      <svg className="h-5 w-5 text-green-200 hover:text-green-100" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
-                      </svg>
-                    ) : (
-                      <svg className="h-5 w-5 text-green-200 hover:text-green-100" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                      </svg>
-                    )}
-                  </button>
-                </div>
-              </div>
-
-              {/* Options supplémentaires */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <input
-                    id="remember"
-                    name="remember"
-                    type="checkbox"
-                    className="h-4 w-4 text-emerald-400 focus:ring-emerald-400 border-green-200/30 rounded bg-white/20"
-                  />
-                  <label htmlFor="remember" className="ml-2 block text-sm text-green-100">
-                    Se souvenir de moi
-                  </label>
-                </div>
-
-                <div className="text-sm">
-                  <button
-                    type="button"
-                    onClick={() => setShowPasswordRecovery(true)}
-                    className="font-medium text-green-200 hover:text-green-100 drop-shadow transition-colors"
-                  >
-                    Mot de passe oublié?
+                    <svg className="h-4 w-4 text-green-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      {showPassword ? (
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21" />
+                      ) : (
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                      )}
+                    </svg>
                   </button>
                 </div>
               </div>
@@ -148,65 +197,54 @@ export default function LoginPage() {
               {/* Bouton de connexion */}
               <button
                 type="submit"
-                disabled={isLoading}
-                className="w-full flex justify-center items-center px-4 py-3 border border-transparent text-base font-medium rounded-xl text-white bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-400 transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={isLoading || authLoading}
+                className="w-full flex justify-center py-3 px-4 border border-transparent rounded-xl shadow-lg text-sm font-medium text-white bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 focus:ring-offset-green-900 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 backdrop-blur-sm"
               >
-                {isLoading ? (
-                  <>
-                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
+                {(isLoading || authLoading) ? (
+                  <div className="flex items-center">
+                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      <path className="opacity-75" fill="currentColor" d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
-                    Connexion en cours...
-                  </>
+                    Connexion...
+                  </div>
                 ) : (
                   'Se connecter'
                 )}
               </button>
+
+              {/* Lien mot de passe oublié */}
+              <div className="text-center">
+                <button
+                  type="button"
+                  onClick={() => setShowPasswordRecovery(true)}
+                  className="text-green-200 hover:text-white text-sm underline transition-colors"
+                >
+                  Mot de passe oublié ?
+                </button>
+              </div>
             </form>
 
-            {/* Divider */}
-            
-          </div>
-
-          {/* Footer */}
-          <div className="px-8 py-4 bg-white/5 backdrop-blur-sm border-t border-green-200/20">
-            <p className="text-sm text-center text-green-100">
-              Pas encore de compte?{' '}
-              <Link href="/register" className="font-medium text-green-200 hover:text-green-100">
-                Créer un compte
+            {/* Liens supplémentaires */}
+            <div className="mt-6 text-center">
+              <p className="text-green-100 text-sm">
+                Pas encore de compte ?{' '}
+                <Link href="/register" className="text-green-200 hover:text-white underline transition-colors">
+                  Inscrivez-vous
+                </Link>
+              </p>
+              <Link href="/" className="inline-block mt-3 text-green-200 hover:text-white text-sm underline transition-colors">
+                ← Retour à l'accueil
               </Link>
-            </p>
+            </div>
           </div>
         </div>
-
-        {/* Informations supplémentaires */}
-        <div className="mt-8 text-center">
-          <p className="text-xs text-green-200/80">
-            En vous connectant, vous acceptez nos{' '}
-            <Link href="/terms" className="underline hover:text-green-100">
-              Conditions dutilisation
-            </Link>{' '}
-            et notre{' '}
-            <Link href="/privacy" className="underline hover:text-green-100">
-              Politique de confidentialité
-            </Link>
-          </p>
-        </div>
       </div>
 
-      {/* Décoration de fond */}
-      <div className="fixed top-0 right-0 -z-10 transform rotate-12 -translate-y-12 translate-x-8">
-        <div className="w-72 h-72 bg-gradient-to-br from-emerald-400 to-green-500 opacity-30 rounded-full blur-3xl"></div>
-      </div>
-      <div className="fixed bottom-0 left-0 -z-10 transform -rotate-12 translate-y-12 -translate-x-8">
-        <div className="w-96 h-96 bg-gradient-to-tr from-green-400 to-emerald-500 opacity-30 rounded-full blur-3xl"></div>
-      </div>
-
-      {/* Modal de récupération de mot de passe */}
+      {/* Modal récupération mot de passe */}
       <ModalPasswordRecovery 
-        isOpen={showPasswordRecovery} 
-        onClose={() => setShowPasswordRecovery(false)} 
+        isOpen={showPasswordRecovery}
+        onClose={() => setShowPasswordRecovery(false)}
       />
     </div>
   )

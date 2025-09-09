@@ -1,0 +1,461 @@
+/**
+ * Modal d'ajout/modification de client - Version responsive optimisée
+ * Adapté pour tous les écrans avec des tailles de police et champs ajustées
+ */
+
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  X, 
+  User,
+  Phone,
+  MapPin,
+  Save,
+  Loader2,
+  AlertCircle,
+  Building2
+} from 'lucide-react';
+
+interface Client {
+  id_client: number;
+  nom_client: string;
+  tel_client: string;
+  adresse: string;
+}
+
+interface ModalAjoutClientProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSuccess: (client: any) => void;
+  clientToEdit?: Client | null;
+}
+
+export function ModalAjoutClient({ 
+  isOpen, 
+  onClose, 
+  onSuccess, 
+  clientToEdit 
+}: ModalAjoutClientProps) {
+  
+  const [formData, setFormData] = useState({
+    nom_client: '',
+    tel_client: '',
+    adresse: ''
+  });
+  
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isLoading, setIsLoading] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Détecter si on est sur mobile
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 640);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // Initialiser le formulaire
+  useEffect(() => {
+    if (clientToEdit && isOpen) {
+      setFormData({
+        nom_client: clientToEdit.nom_client || '',
+        tel_client: clientToEdit.tel_client || '',
+        adresse: clientToEdit.adresse || ''
+      });
+    } else if (isOpen) {
+      setFormData({
+        nom_client: '',
+        tel_client: '',
+        adresse: ''
+      });
+    }
+    setErrors({});
+  }, [clientToEdit, isOpen]);
+
+  // Validation du formulaire
+  const validateForm = (): boolean => {
+    const newErrors: Record<string, string> = {};
+
+    if (!formData.nom_client.trim()) {
+      newErrors.nom_client = 'Le nom du client est requis';
+    }
+
+    if (!formData.tel_client.trim()) {
+      newErrors.tel_client = 'Le téléphone est requis';
+    } else if (!/^[0-9]{9}$/.test(formData.tel_client.replace(/\s/g, ''))) {
+      newErrors.tel_client = 'Format invalide (9 chiffres)';
+    }
+
+    if (!formData.adresse.trim()) {
+      newErrors.adresse = 'L\'adresse est requise';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  // Gestion des changements
+  const handleInputChange = (field: string, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+    
+    if (errors[field]) {
+      setErrors(prev => ({ ...prev, [field]: '' }));
+    }
+  };
+
+  // Formater le numéro de téléphone
+  const handlePhoneChange = (value: string) => {
+    // Garder seulement les chiffres
+    const numbers = value.replace(/\D/g, '');
+    if (numbers.length <= 9) {
+      handleInputChange('tel_client', numbers);
+    }
+  };
+
+  // Soumission du formulaire
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!validateForm()) return;
+
+    setIsLoading(true);
+    
+    try {
+      // Simuler un appel API
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      onSuccess({
+        ...formData,
+        id_client: clientToEdit?.id_client || Math.floor(Math.random() * 10000)
+      });
+      
+      onClose();
+    } catch (error) {
+      console.error('Erreur:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <AnimatePresence>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4"
+        onClick={onClose}
+      >
+        <motion.div
+          initial={{ y: '100%', opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          exit={{ y: '100%', opacity: 0 }}
+          transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+          onClick={(e) => e.stopPropagation()}
+          className={`
+            bg-white w-full sm:max-w-lg
+            ${isMobile ? 'rounded-t-3xl' : 'rounded-2xl'}
+            shadow-2xl overflow-hidden
+            max-h-[90vh] sm:max-h-[85vh] flex flex-col
+          `}
+        >
+          {/* Header adaptatif */}
+          <div className="bg-gradient-to-r from-emerald-50 to-green-50 px-4 sm:px-6 py-4 sm:py-5 border-b border-emerald-100">
+            <div className="flex justify-between items-center">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="p-2 sm:p-2.5 bg-emerald-100 rounded-lg sm:rounded-xl">
+                  <Building2 className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-600" />
+                </div>
+                <h3 className="text-lg sm:text-xl font-bold text-gray-900">
+                  {clientToEdit ? 'Modifier le client' : 'Nouveau client'}
+                </h3>
+              </div>
+              <button
+                onClick={onClose}
+                className="p-1.5 sm:p-2 hover:bg-emerald-100 rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5 sm:w-6 sm:h-6 text-gray-500" />
+              </button>
+            </div>
+          </div>
+
+          {/* Contenu scrollable */}
+          <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-4 sm:py-6">
+            <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5">
+              
+              {/* Nom du client */}
+              <div>
+                <label className="block text-sm sm:text-base font-medium text-gray-700 mb-1.5 sm:mb-2">
+                  <User className="w-4 h-4 inline mr-1 mb-0.5" />
+                  Nom complet *
+                </label>
+                <input
+                  type="text"
+                  value={formData.nom_client}
+                  onChange={(e) => handleInputChange('nom_client', e.target.value)}
+                  className={`
+                    w-full px-3 sm:px-4 py-2.5 sm:py-3
+                    text-sm sm:text-base
+                    border rounded-lg sm:rounded-xl
+                    focus:outline-none focus:ring-2 focus:ring-emerald-500
+                    ${errors.nom_client ? 'border-red-500' : 'border-gray-300'}
+                  `}
+                  placeholder="Ex: Jean Dupont"
+                />
+                {errors.nom_client && (
+                  <p className="text-red-500 text-xs sm:text-sm mt-1 flex items-center">
+                    <AlertCircle className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
+                    {errors.nom_client}
+                  </p>
+                )}
+              </div>
+
+              {/* Téléphone */}
+              <div>
+                <label className="block text-sm sm:text-base font-medium text-gray-700 mb-1.5 sm:mb-2">
+                  <Phone className="w-4 h-4 inline mr-1 mb-0.5" />
+                  Téléphone *
+                </label>
+                <div className="flex gap-2">
+                  <div className="flex items-center px-3 sm:px-4 py-2.5 sm:py-3 bg-gray-50 border border-r-0 border-gray-300 rounded-l-lg sm:rounded-l-xl">
+                    <span className="text-sm sm:text-base text-gray-600">+221</span>
+                  </div>
+                  <input
+                    type="tel"
+                    value={formData.tel_client}
+                    onChange={(e) => handlePhoneChange(e.target.value)}
+                    className={`
+                      flex-1 px-3 sm:px-4 py-2.5 sm:py-3
+                      text-sm sm:text-base
+                      border rounded-r-lg sm:rounded-r-xl
+                      focus:outline-none focus:ring-2 focus:ring-emerald-500
+                      ${errors.tel_client ? 'border-red-500' : 'border-gray-300'}
+                    `}
+                    placeholder="77 123 45 67"
+                    maxLength={9}
+                  />
+                </div>
+                {errors.tel_client && (
+                  <p className="text-red-500 text-xs sm:text-sm mt-1 flex items-center">
+                    <AlertCircle className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
+                    {errors.tel_client}
+                  </p>
+                )}
+              </div>
+
+              {/* Adresse */}
+              <div>
+                <label className="block text-sm sm:text-base font-medium text-gray-700 mb-1.5 sm:mb-2">
+                  <MapPin className="w-4 h-4 inline mr-1 mb-0.5" />
+                  Adresse complète *
+                </label>
+                <textarea
+                  value={formData.adresse}
+                  onChange={(e) => handleInputChange('adresse', e.target.value)}
+                  rows={3}
+                  className={`
+                    w-full px-3 sm:px-4 py-2.5 sm:py-3
+                    text-sm sm:text-base
+                    border rounded-lg sm:rounded-xl
+                    focus:outline-none focus:ring-2 focus:ring-emerald-500
+                    resize-none
+                    ${errors.adresse ? 'border-red-500' : 'border-gray-300'}
+                  `}
+                  placeholder="Ex: Quartier, Rue, Ville"
+                />
+                {errors.adresse && (
+                  <p className="text-red-500 text-xs sm:text-sm mt-1 flex items-center">
+                    <AlertCircle className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
+                    {errors.adresse}
+                  </p>
+                )}
+              </div>
+
+              {/* Note informative */}
+              <div className="bg-emerald-50 border border-emerald-200 rounded-lg sm:rounded-xl p-3 sm:p-4">
+                <p className="text-xs sm:text-sm text-emerald-800">
+                  <strong>Note :</strong> Les informations du client seront associées à toutes ses factures et transactions futures.
+                </p>
+              </div>
+            </form>
+          </div>
+
+          {/* Footer avec boutons - Toujours visible */}
+          <div className="bg-gray-50 px-4 sm:px-6 py-3 sm:py-4 border-t border-gray-200">
+            <div className="flex gap-2 sm:gap-3">
+              <button
+                type="button"
+                onClick={onClose}
+                className="flex-1 px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base border border-gray-300 text-gray-700 rounded-lg sm:rounded-xl hover:bg-gray-50 transition-colors font-medium"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={handleSubmit}
+                disabled={isLoading}
+                className="flex-1 px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base bg-emerald-600 text-white rounded-lg sm:rounded-xl hover:bg-emerald-700 transition-colors font-medium flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                {isLoading ? (
+                  <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" />
+                ) : (
+                  <Save className="w-4 h-4 sm:w-5 sm:h-5" />
+                )}
+                {isLoading 
+                  ? 'Enregistrement...' 
+                  : clientToEdit 
+                    ? 'Modifier' 
+                    : 'Créer'
+                }
+              </button>
+            </div>
+          </div>
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
+  );
+}
+
+/**
+ * Carte Client Responsive - Version optimisée pour tous les écrans
+ */
+export function CarteClientResponsive({ client, stats, onEdit, onViewDetails, viewMode = 'grid' }: any) {
+  return (
+    <motion.div
+      whileHover={{ y: -2, scale: 1.01 }}
+      className={`
+        bg-white/10 backdrop-blur-lg rounded-xl sm:rounded-2xl 
+        p-3 sm:p-4 md:p-5 
+        border border-white/20 hover:bg-white/15 
+        transition-all duration-300
+        ${viewMode === 'list' ? 'flex items-center gap-3 sm:gap-4' : ''}
+      `}
+    >
+      {/* Header */}
+      <div className={`${viewMode === 'list' ? 'flex-1' : 'mb-3 sm:mb-4'}`}>
+        <div className="flex justify-between items-start">
+          <div className="flex-1">
+            <h3 className="text-base sm:text-lg font-semibold text-white truncate pr-2">
+              {client.nom_client}
+            </h3>
+            
+            {/* Infos contact */}
+            <div className="mt-1.5 sm:mt-2 space-y-1">
+              <div className="flex items-center gap-1.5 sm:gap-2 text-white/80">
+                <Phone className="w-3 h-3 sm:w-4 sm:h-4" />
+                <span className="text-xs sm:text-sm">{client.tel_client}</span>
+              </div>
+              <div className="flex items-center gap-1.5 sm:gap-2 text-white/80">
+                <MapPin className="w-3 h-3 sm:w-4 sm:h-4" />
+                <span className="text-xs sm:text-sm truncate">{client.adresse}</span>
+              </div>
+            </div>
+          </div>
+          
+          {/* Badge statut */}
+          {stats.montant_impaye > 0 && (
+            <span className="px-2 py-0.5 sm:px-2.5 sm:py-1 bg-red-500/20 border border-red-500/30 rounded-full text-xs text-red-200">
+              Impayé
+            </span>
+          )}
+        </div>
+      </div>
+      
+      {/* Stats en mode grid uniquement */}
+      {viewMode === 'grid' && (
+        <>
+          {/* Grille de stats */}
+          <div className="grid grid-cols-2 gap-2 sm:gap-3 mb-3 sm:mb-4">
+            <div className="bg-white/5 rounded-lg p-2 sm:p-2.5">
+              <p className="text-white/60 text-xs mb-0.5">Factures</p>
+              <p className="text-white font-semibold text-sm sm:text-base">
+                {stats.nombre_factures}
+              </p>
+            </div>
+            <div className="bg-white/5 rounded-lg p-2 sm:p-2.5">
+              <p className="text-white/60 text-xs mb-0.5">Total</p>
+              <p className="text-white font-semibold text-sm sm:text-base truncate">
+                {Math.round(stats.montant_total_factures).toLocaleString()}
+              </p>
+            </div>
+          </div>
+          
+          {/* Montant impayé si existe */}
+          {stats.montant_impaye > 0 && (
+            <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-2 sm:p-2.5 mb-3 sm:mb-4">
+              <p className="text-red-200 text-xs sm:text-sm">
+                Impayé: {Math.round(stats.montant_impaye).toLocaleString()} FCFA
+              </p>
+            </div>
+          )}
+          
+          {/* Boutons d'action */}
+          <div className="flex gap-2">
+            <button
+              onClick={() => onViewDetails(client)}
+              className="flex-1 py-2 sm:py-2.5 bg-white/20 rounded-lg text-white text-xs sm:text-sm font-medium hover:bg-white/30 transition-colors"
+            >
+              Détails
+            </button>
+            <button
+              onClick={() => onEdit(client.client)}
+              className="flex-1 py-2 sm:py-2.5 bg-emerald-500/20 rounded-lg text-emerald-200 text-xs sm:text-sm font-medium hover:bg-emerald-500/30 transition-colors"
+            >
+              Modifier
+            </button>
+          </div>
+        </>
+      )}
+      
+      {/* Actions en mode liste */}
+      {viewMode === 'list' && (
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => onViewDetails(client)}
+            className="p-2 bg-white/20 rounded-lg text-white hover:bg-white/30 transition-colors"
+          >
+            <User className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => onEdit(client.client)}
+            className="p-2 bg-emerald-500/20 rounded-lg text-emerald-200 hover:bg-emerald-500/30 transition-colors"
+          >
+            <Edit className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+    </motion.div>
+  );
+}
+
+/**
+ * Guide des breakpoints et tailles responsive
+ * 
+ * MOBILE (< 640px):
+ * - Padding: p-3, px-4, py-3
+ * - Text: text-xs pour labels, text-sm pour contenu principal
+ * - Spacing: gap-2, space-y-4
+ * - Border radius: rounded-lg
+ * - Icons: w-3 h-3 ou w-4 h-4
+ * 
+ * TABLET (640px - 1024px):
+ * - Padding: p-4, px-6, py-4
+ * - Text: text-sm pour labels, text-base pour contenu
+ * - Spacing: gap-3, space-y-5
+ * - Border radius: rounded-xl
+ * - Icons: w-4 h-4 ou w-5 h-5
+ * 
+ * DESKTOP (> 1024px):
+ * - Padding: p-5, px-6, py-5
+ * - Text: text-base partout
+ * - Spacing: gap-4, space-y-6
+ * - Border radius: rounded-2xl
+ * - Icons: w-5 h-5 ou w-6 h-6
+ */

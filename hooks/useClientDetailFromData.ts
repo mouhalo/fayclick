@@ -124,7 +124,10 @@ function createStatsHistorique(historique: HistoriqueProduitClient[]): StatsHist
       nombre_articles_differents: 0,
       montant_max_achat: 0,
       date_montant_max: '',
-      produit_montant_max: ''
+      produit_montant_max: '',
+      montant_min_achat: 0,
+      date_montant_min: '',
+      produit_montant_min: ''
     };
   }
   
@@ -138,13 +141,21 @@ function createStatsHistorique(historique: HistoriqueProduitClient[]): StatsHist
     prev.montant_total > current.montant_total ? prev : current
   );
   
+  // Plus petit montant
+  const plusPetitMontant = historique.reduce((prev, current) => 
+    prev.montant_total < current.montant_total ? prev : current
+  );
+  
   return {
     article_favori: articleFavori.nom_produit,
     article_favori_quantite: articleFavori.quantite_totale,
     nombre_articles_differents: historique.length,
     montant_max_achat: plusGrosMontant.montant_total,
     date_montant_max: plusGrosMontant.date_derniere_commande,
-    produit_montant_max: plusGrosMontant.nom_produit
+    produit_montant_max: plusGrosMontant.nom_produit,
+    montant_min_achat: plusPetitMontant.montant_total,
+    date_montant_min: plusPetitMontant.date_derniere_commande,
+    produit_montant_min: plusPetitMontant.nom_produit
   };
 }
 
@@ -484,6 +495,14 @@ export function useClientDetailFromData(): UseClientDetailFromDataReturn {
         icon: 'TrendingUp',
         color: 'purple',
         badge: stats.produit_montant_max
+      },
+      {
+        id: 'montant_min',
+        label: 'Plus petit Achat',
+        value: clientsService.formatMontant(stats.montant_min_achat),
+        icon: 'TrendingDown',
+        color: 'orange',
+        badge: stats.produit_montant_min
       }
     ];
   }, [clientDetail]);

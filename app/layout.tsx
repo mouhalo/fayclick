@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter, Montserrat } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from '@/contexts/AuthContext';
+import { Toaster } from 'sonner';
 
 const inter = Inter({
   variable: "--font-inter",
@@ -67,6 +68,15 @@ export default function RootLayout({
           <div className="safe-area-container">
             {children}
           </div>
+          <Toaster 
+            position="top-center"
+            richColors
+            closeButton
+            toastOptions={{
+              className: 'glassmorphism-toast',
+              duration: 4000,
+            }}
+          />
         </AuthProvider>
       </body>
     </html>

@@ -54,6 +54,9 @@ export interface StatsHistoriqueProduits {
   montant_max_achat: number;
   date_montant_max: string;
   produit_montant_max: string;
+  montant_min_achat: number;
+  date_montant_min: string;
+  produit_montant_min: string;
 }
 
 export interface ClientDetailComplet extends ClientWithStats {
