@@ -13,11 +13,117 @@ import {
   FiltreFactures,
   FiltreHistorique,
   FactureClient,
+  FactureBrute,
   HistoriqueProduitClient,
   StatsHistoriqueProduits,
   StatCard,
   calculateAnciennete
 } from '@/types/client';
+
+// Fonction utilitaire pour mapper les statuts PostgreSQL vers les statuts de l'interface
+function mapLibelleEtatToStatut(libelle: string): 'PAYEE' | 'IMPAYEE' | 'PARTIELLE' {
+  switch (libelle.toUpperCase()) {
+    case 'PAYEE':
+    case 'PAYÉ':
+    case 'PAID':
+      return 'PAYEE';
+    case 'PARTIELLE':
+    case 'PARTIAL':
+    case 'PARTIELLEMENT_PAYEE':
+      return 'PARTIELLE';
+    case 'IMPAYEE':
+    case 'IMPAYÉ':
+    case 'UNPAID':
+    case 'NON_PAYEE':
+    default:
+      return 'IMPAYEE';
+  }
+}
+
+// Fonction pour créer l'historique des produits depuis les factures
+function createHistoriqueProduits(factures: FactureBrute[]): HistoriqueProduitClient[] {
+  const produitsMap = new Map<string, {
+    quantite_totale: number;
+    montant_total: number;
+    dates_commandes: string[];
+    prix_unitaires: number[];
+  }>();
+
+  // Parcourir toutes les factures et leurs articles
+  factures.forEach(facture => {
+    facture.details_articles?.forEach(article => {
+      const key = article.nom_produit;
+      const existing = produitsMap.get(key);
+      
+      if (existing) {
+        existing.quantite_totale += article.quantite;
+        existing.montant_total += article.sous_total;
+        existing.dates_commandes.push(facture.date_facture);
+        existing.prix_unitaires.push(article.prix);
+      } else {
+        produitsMap.set(key, {
+          quantite_totale: article.quantite,
+          montant_total: article.sous_total,
+          dates_commandes: [facture.date_facture],
+          prix_unitaires: [article.prix]
+        });
+      }
+    });
+  });
+
+  // Transformer en HistoriqueProduitClient[]
+  return Array.from(produitsMap.entries()).map(([nom_produit, data], index) => ({
+    id_produit: index + 1,
+    nom_produit,
+    quantite_totale: data.quantite_totale,
+    montant_total: data.montant_total,
+    date_derniere_commande: Math.max(...data.dates_commandes.map(d => new Date(d).getTime())) 
+      ? new Date(Math.max(...data.dates_commandes.map(d => new Date(d).getTime()))).toISOString().split('T')[0]
+      : data.dates_commandes[0],
+    nombre_commandes: data.dates_commandes.length,
+    prix_unitaire_moyen: data.prix_unitaires.reduce((sum, prix) => sum + prix, 0) / data.prix_unitaires.length
+  }));
+}
+
+// Fonction pour créer les statistiques de l'historique
+function createStatsHistorique(historique: HistoriqueProduitClient[]): StatsHistoriqueProduits {
+  if (historique.length === 0) {
+    return {
+      article_favori: 'Aucun',
+      article_favori_quantite: 0,
+      nombre_articles_differents: 0,
+      montant_max_achat: 0,
+      date_montant_max: '',
+      produit_montant_max: '',
+      montant_min_achat: 0,
+      date_montant_min: '',
+      produit_montant_min: ''
+    };
+  }
+
+  // Article favori (plus grande quantité)
+  const articleFavori = historique.reduce((prev, current) => 
+    (prev.quantite_totale > current.quantite_totale) ? prev : current
+  );
+
+  // Montant max et min
+  const montantMax = Math.max(...historique.map(h => h.montant_total));
+  const montantMin = Math.min(...historique.map(h => h.montant_total));
+  const produitMontantMax = historique.find(h => h.montant_total === montantMax);
+  const produitMontantMin = historique.find(h => h.montant_total === montantMin);
+
+  return {
+    article_favori: articleFavori.nom_produit,
+    article_favori_quantite: articleFavori.quantite_totale,
+    nombre_articles_differents: historique.length,
+    montant_max_achat: montantMax,
+    date_montant_max: produitMontantMax?.date_derniere_commande || '',
+    produit_montant_max: produitMontantMax?.nom_produit || '',
+    montant_min_achat: montantMin,
+    date_montant_min: produitMontantMin?.date_derniere_commande || '',
+    produit_montant_min: produitMontantMin?.nom_produit || ''
+  };
+}
 
 interface UseClientDetailFromDataReturn {
   // État principal
@@ -76,89 +182,6 @@ const initialFiltreHistorique: FiltreHistorique = {
   ordre: 'desc'
 };
 
-// Fonction utilitaire pour créer l'historique des produits depuis les factures PostgreSQL
-function createHistoriqueProduits(factures: any[]): HistoriqueProduitClient[] {
-  const produitsMap = new Map<string, HistoriqueProduitClient>();
-  let idCounter = 1;
-  
-  factures.forEach(facture => {
-    facture.details_articles?.forEach((article: any) => {
-      const key = article.nom_produit;
-      
-      if (produitsMap.has(key)) {
-        const existing = produitsMap.get(key)!;
-        existing.quantite_totale += article.quantite;
-        existing.montant_total += article.sous_total;
-        existing.nombre_commandes += 1;
-        
-        // Mettre à jour la date si plus récente
-        if (new Date(facture.date_facture) > new Date(existing.date_derniere_commande)) {
-          existing.date_derniere_commande = facture.date_facture;
-        }
-        
-        // Recalculer le prix moyen
-        existing.prix_unitaire_moyen = existing.montant_total / existing.quantite_totale;
-      } else {
-        produitsMap.set(key, {
-          id_produit: idCounter++, // ID généré
-          nom_produit: article.nom_produit,
-          quantite_totale: article.quantite,
-          montant_total: article.sous_total,
-          nombre_commandes: 1,
-          date_derniere_commande: facture.date_facture,
-          prix_unitaire_moyen: article.prix
-        });
-      }
-    });
-  });
-  
-  return Array.from(produitsMap.values());
-}
-
-// Fonction utilitaire pour créer les stats d'historique
-function createStatsHistorique(historique: HistoriqueProduitClient[]): StatsHistoriqueProduits {
-  if (historique.length === 0) {
-    return {
-      article_favori: 'Aucun',
-      article_favori_quantite: 0,
-      nombre_articles_differents: 0,
-      montant_max_achat: 0,
-      date_montant_max: '',
-      produit_montant_max: '',
-      montant_min_achat: 0,
-      date_montant_min: '',
-      produit_montant_min: ''
-    };
-  }
-  
-  // Article favori (plus commandé)
-  const articleFavori = historique.reduce((prev, current) => 
-    prev.quantite_totale > current.quantite_totale ? prev : current
-  );
-  
-  // Plus gros montant
-  const plusGrosMontant = historique.reduce((prev, current) => 
-    prev.montant_total > current.montant_total ? prev : current
-  );
-  
-  // Plus petit montant
-  const plusPetitMontant = historique.reduce((prev, current) => 
-    prev.montant_total < current.montant_total ? prev : current
-  );
-  
-  return {
-    article_favori: articleFavori.nom_produit,
-    article_favori_quantite: articleFavori.quantite_totale,
-    nombre_articles_differents: historique.length,
-    montant_max_achat: plusGrosMontant.montant_total,
-    date_montant_max: plusGrosMontant.date_derniere_commande,
-    produit_montant_max: plusGrosMontant.nom_produit,
-    montant_min_achat: plusPetitMontant.montant_total,
-    date_montant_min: plusPetitMontant.date_derniere_commande,
-    produit_montant_min: plusPetitMontant.nom_produit
-  };
-}
-
 export function useClientDetailFromData(): UseClientDetailFromDataReturn {
   // États principaux
   const [clientDetail, setClientDetail] = useState<ClientDetailComplet | null>(null);
@@ -187,8 +210,8 @@ export function useClientDetailFromData(): UseClientDetailFromDataReturn {
       numero_facture: facture.num_facture,
       date_facture: facture.date_facture,
       montant_facture: facture.montant,
-      statut_paiement: facture.libelle_etat as 'PAYEE' | 'IMPAYEE' | 'PARTIELLE',
-      date_paiement: undefined, // Pas dans les données PostgreSQL
+      statut_paiement: mapLibelleEtatToStatut(facture.libelle_etat),
+      date_paiement: undefined, // Pas disponible dans les données PostgreSQL actuelles
       montant_paye: facture.mt_acompte || 0,
       montant_restant: facture.mt_restant
     }));
@@ -204,8 +227,10 @@ export function useClientDetailFromData(): UseClientDetailFromDataReturn {
     
     // Créer ClientDetailComplet depuis ClientWithStats avec factures transformées
     const clientDetailComplet: ClientDetailComplet = {
-      ...clientWithStats,
+      client: clientWithStats.client,
+      statistiques_factures: clientWithStats.statistiques_factures,
       factures: facturesTransformees,
+      factures_brutes: clientWithStats.factures,
       historique_produits,
       stats_historique,
       anciennete_jours: ancienneteData.jours,
@@ -224,9 +249,10 @@ export function useClientDetailFromData(): UseClientDetailFromDataReturn {
     
     console.log('✅ [CLIENT DETAIL FROM DATA] Initialisation terminée:', {
       nom: clientWithStats.client.nom_client,
-      factures: clientWithStats.factures?.length || 0,
+      factures: facturesTransformees.length,
       historique_produits: historique_produits.length,
-      anciennete: ancienneteData.texte
+      anciennete: ancienneteData.texte,
+      premier_article_favori: stats_historique.article_favori
     });
   }, []);
 

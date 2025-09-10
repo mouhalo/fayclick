@@ -5,7 +5,7 @@
 
 'use client';
 
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect,  useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   X, 
@@ -62,8 +62,6 @@ export function ModalClientMultiOnglets({
   clientToEdit,
   defaultTab = 'general'
 }: ModalClientMultiOngletsProps) {
-  const [hasInitialized, setHasInitialized] = useState(false);
-  const [isLoadingState, setIsLoadingState] = useState(false);
   const initializationRef = useRef<boolean>(false);
   
   const {
@@ -97,7 +95,6 @@ export function ModalClientMultiOnglets({
       console.log('🚀 [MODAL CLIENT] Initialisation du modal');
       
       initializationRef.current = true;
-      setIsLoadingState(true);
       
       setActiveTab(defaultTab);
       
@@ -106,25 +103,20 @@ export function ModalClientMultiOnglets({
         console.log('📝 [MODAL CLIENT] Mode édition pour client:', clientToEdit.client.nom_client);
         console.log('📝 [MODAL CLIENT] Données disponibles:', {
           client: clientToEdit.client,
-          factures_count: clientToEdit.factures?.length || 0,
           statistiques: clientToEdit.statistiques_factures
         });
         
         // Utiliser directement les données existantes au lieu de faire une requête
         initializeFromClientData(clientToEdit);
-        setIsLoadingState(false);
         setIsEditing(false); // Commencer en mode lecture
       } else {
         // Mode création - rester sur l'onglet général
         console.log('➕ [MODAL CLIENT] Mode création nouveau client');
         setIsEditing(true);
         setActiveTab('general');
-        setIsLoadingState(false);
       }
-      
-      setHasInitialized(true);
     }
-  }, [isOpen]); // ✅ Dépendances minimales
+  }, [isOpen, clientToEdit, defaultTab, initializeFromClientData, setActiveTab, setIsEditing]);
 
   // Cleanup complet lors de la fermeture du modal
   useEffect(() => {
@@ -132,14 +124,12 @@ export function ModalClientMultiOnglets({
       console.log('🧹 [MODAL CLIENT] Cleanup du modal');
       
       // Reset des états
-      setHasInitialized(false);
-      setIsLoadingState(false);
       initializationRef.current = false;
       
       // Reset du hook de détail client
       resetState();
     }
-  }, [isOpen]); // ✅ Dépendance minimale
+  }, [isOpen, resetState]);
 
   // Gestion de la sauvegarde
   const handleSave = async () => {
