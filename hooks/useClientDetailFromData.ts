@@ -1,6 +1,6 @@
 /**
- * Hook simplifié pour le modal client qui utilise les données existantes
- * Au lieu de faire une requête supplémentaire, transforme ClientWithStats en ClientDetailComplet
+ * Hook pour le modal client avec chargement dynamique des données
+ * Charge les données fraîches depuis la base de données pour une synchronisation parfaite
  */
 
 import { useState, useCallback, useEffect, useMemo } from 'react';
@@ -155,9 +155,10 @@ interface UseClientDetailFromDataReturn {
   historiqueProduitsFiltred: HistoriqueProduitClient[];
   
   // Actions
-  initializeFromClientData: (clientWithStats: ClientWithStats) => void;
+  loadClientDetails: (clientId: number) => Promise<void>;
+  refreshClientData: () => Promise<void>;
+  initializeFromClientData: (clientWithStats: ClientWithStats) => void; // Conservé pour compatibilité
   saveClient: () => Promise<void>;
-  marquerFacturePayee: (idFacture: number, montant: number) => Promise<void>;
   resetState: () => void;
   
   // Stats formatées pour les cartes
@@ -185,6 +186,7 @@ const initialFiltreHistorique: FiltreHistorique = {
 export function useClientDetailFromData(): UseClientDetailFromDataReturn {
   // États principaux
   const [clientDetail, setClientDetail] = useState<ClientDetailComplet | null>(null);
+  const [currentClientId, setCurrentClientId] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
@@ -199,11 +201,8 @@ export function useClientDetailFromData(): UseClientDetailFromDataReturn {
   const [filtreFactures, setFiltreFactures] = useState<FiltreFactures>(initialFiltreFactures);
   const [filtreHistorique, setFiltreHistorique] = useState<FiltreHistorique>(initialFiltreHistorique);
 
-  // Initialiser depuis ClientWithStats (pas de requête)
-  const initializeFromClientData = useCallback((clientWithStats: ClientWithStats) => {
-    console.log('🔄 [CLIENT DETAIL FROM DATA] Initialisation depuis données existantes');
-    console.log('🔄 [CLIENT DETAIL FROM DATA] Factures disponibles:', clientWithStats.factures?.length || 0);
-    
+  // Fonction utilitaire pour transformer ClientWithStats en ClientDetailComplet
+  const transformClientWithStatsToDetailComplet = useCallback((clientWithStats: ClientWithStats): ClientDetailComplet => {
     // Transformer les factures PostgreSQL au format interface FactureClient
     const facturesTransformees: FactureClient[] = (clientWithStats.factures || []).map(facture => ({
       id_facture: facture.id_facture,
@@ -226,7 +225,7 @@ export function useClientDetailFromData(): UseClientDetailFromDataReturn {
       : { jours: 0, texte: 'Nouveau client' };
     
     // Créer ClientDetailComplet depuis ClientWithStats avec factures transformées
-    const clientDetailComplet: ClientDetailComplet = {
+    return {
       client: clientWithStats.client,
       statistiques_factures: clientWithStats.statistiques_factures,
       factures: facturesTransformees,
@@ -236,8 +235,63 @@ export function useClientDetailFromData(): UseClientDetailFromDataReturn {
       anciennete_jours: ancienneteData.jours,
       anciennete_texte: ancienneteData.texte
     };
+  }, []);
+
+  // Charger les détails d'un client depuis la base de données
+  const loadClientDetails = useCallback(async (clientId: number) => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      setCurrentClientId(clientId);
+      
+      console.log('🔄 [CLIENT DETAIL] Chargement dynamique client:', clientId);
+      
+      const clientWithStats = await clientsService.getClientFactureDetails(clientId);
+      const clientDetailComplet = transformClientWithStatsToDetailComplet(clientWithStats);
+      
+      setClientDetail(clientDetailComplet);
+      
+      // Initialiser le formulaire
+      setFormData({
+        nom_client: clientWithStats.client.nom_client,
+        tel_client: clientWithStats.client.tel_client,
+        adresse: clientWithStats.client.adresse,
+        id_client: clientWithStats.client.id_client
+      });
+      
+      console.log('✅ [CLIENT DETAIL] Client chargé avec succès:', {
+        nom: clientWithStats.client.nom_client,
+        factures: clientDetailComplet.factures.length,
+        historique_produits: clientDetailComplet.historique_produits.length
+      });
+      
+    } catch (err) {
+      console.error('❌ [CLIENT DETAIL] Erreur chargement client:', err);
+      setError(err instanceof Error ? err.message : 'Erreur lors du chargement du client');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [transformClientWithStatsToDetailComplet]);
+
+  // Recharger les données du client actuel
+  const refreshClientData = useCallback(async () => {
+    if (!currentClientId) {
+      console.warn('⚠️ [CLIENT DETAIL] Aucun client ID pour le rechargement');
+      return;
+    }
     
+    console.log('🔄 [CLIENT DETAIL] Rechargement client:', currentClientId);
+    await loadClientDetails(currentClientId);
+  }, [currentClientId, loadClientDetails]);
+
+  // Initialiser depuis ClientWithStats (conservé pour compatibilité)
+  const initializeFromClientData = useCallback((clientWithStats: ClientWithStats) => {
+    console.log('🔄 [CLIENT DETAIL FROM DATA] Initialisation depuis données existantes');
+    console.log('🔄 [CLIENT DETAIL FROM DATA] Factures disponibles:', clientWithStats.factures?.length || 0);
+    
+    const clientDetailComplet = transformClientWithStatsToDetailComplet(clientWithStats);
     setClientDetail(clientDetailComplet);
+    setCurrentClientId(clientWithStats.client.id_client);
     
     // Initialiser le formulaire
     setFormData({
@@ -249,12 +303,11 @@ export function useClientDetailFromData(): UseClientDetailFromDataReturn {
     
     console.log('✅ [CLIENT DETAIL FROM DATA] Initialisation terminée:', {
       nom: clientWithStats.client.nom_client,
-      factures: facturesTransformees.length,
-      historique_produits: historique_produits.length,
-      anciennete: ancienneteData.texte,
-      premier_article_favori: stats_historique.article_favori
+      factures: clientDetailComplet.factures.length,
+      historique_produits: clientDetailComplet.historique_produits.length,
+      anciennete: clientDetailComplet.anciennete_texte
     });
-  }, []);
+  }, [transformClientWithStatsToDetailComplet]);
 
   // Sauvegarder les modifications du client
   const saveClient = useCallback(async () => {
@@ -288,36 +341,6 @@ export function useClientDetailFromData(): UseClientDetailFromDataReturn {
     }
   }, [formData]);
 
-  // Marquer une facture comme payée
-  const marquerFacturePayee = useCallback(async (idFacture: number, montant: number) => {
-    if (!clientDetail) return;
-
-    try {
-      setIsLoading(true);
-      setError(null);
-      
-      console.log('💰 [CLIENT DETAIL FROM DATA] Marquage facture payée:', { idFacture, montant });
-      
-      await clientsService.marquerFacturePayee(idFacture, montant);
-      
-      console.log('✅ [CLIENT DETAIL FROM DATA] Facture marquée payée - Rechargement requis');
-      
-      // Note: Dans l'implémentation actuelle, nous devons recharger toutes les données
-      // pour avoir les montants à jour. Une amélioration future serait de mettre à jour
-      // uniquement la facture concernée localement.
-      
-    } catch (err) {
-      console.error('❌ [CLIENT DETAIL FROM DATA] Erreur marquage facture:', err);
-      
-      if (err instanceof Error) {
-        setError(err.message);
-      } else {
-        setError('Erreur lors du marquage de la facture');
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  }, [clientDetail]);
 
   // Mettre à jour un champ du formulaire
   const updateFormField = useCallback((field: keyof ClientFormData, value: string) => {
@@ -332,6 +355,7 @@ export function useClientDetailFromData(): UseClientDetailFromDataReturn {
   // Reset de l'état
   const resetState = useCallback(() => {
     setClientDetail(null);
+    setCurrentClientId(null);
     setFormData(initialFormData);
     setActiveTab('general');
     setIsEditing(false);
@@ -424,28 +448,28 @@ export function useClientDetailFromData(): UseClientDetailFromDataReturn {
     
     return [
       {
-        id: 'factures_total',
+        id: 'general_factures_total',
         label: 'Factures Total',
         value: stats.nombre_factures,
         icon: 'FileText',
         color: 'blue'
       },
       {
-        id: 'montant_total',
+        id: 'general_montant_total',
         label: 'Montant Total',
         value: clientsService.formatMontant(stats.montant_total_factures),
         icon: 'DollarSign',
         color: 'green'
       },
       {
-        id: 'premiere_facture',
+        id: 'general_premiere_facture',
         label: 'Première Facture',
         value: clientsService.formatDate(stats.date_premiere_facture),
         icon: 'Calendar',
         color: 'purple'
       },
       {
-        id: 'derniere_facture',
+        id: 'general_derniere_facture',
         label: 'Dernière Facture',
         value: clientsService.formatDate(stats.date_derniere_facture),
         icon: 'Clock',
@@ -476,14 +500,14 @@ export function useClientDetailFromData(): UseClientDetailFromDataReturn {
         color: 'red'
       },
       {
-        id: 'montant_paye',
+        id: 'factures_montant_paye',
         label: 'Montant Payé',
         value: clientsService.formatMontant(stats.montant_paye),
         icon: 'DollarSign',
         color: 'green'
       },
       {
-        id: 'montant_impaye',
+        id: 'factures_montant_impaye',
         label: 'Montant Impayé',
         value: clientsService.formatMontant(stats.montant_impaye),
         icon: 'AlertTriangle',
@@ -500,7 +524,7 @@ export function useClientDetailFromData(): UseClientDetailFromDataReturn {
     
     return [
       {
-        id: 'article_favori',
+        id: 'historique_article_favori',
         label: 'Article Favori',
         value: stats.article_favori,
         icon: 'Star',
@@ -508,14 +532,14 @@ export function useClientDetailFromData(): UseClientDetailFromDataReturn {
         badge: `${stats.article_favori_quantite} fois`
       },
       {
-        id: 'articles_differents',
+        id: 'historique_articles_differents',
         label: 'Articles Différents',
         value: stats.nombre_articles_differents,
         icon: 'Package',
         color: 'blue'
       },
       {
-        id: 'montant_max',
+        id: 'historique_montant_max',
         label: 'Plus Gros Achat',
         value: clientsService.formatMontant(stats.montant_max_achat),
         icon: 'TrendingUp',
@@ -523,7 +547,7 @@ export function useClientDetailFromData(): UseClientDetailFromDataReturn {
         badge: stats.produit_montant_max
       },
       {
-        id: 'montant_min',
+        id: 'historique_montant_min',
         label: 'Plus petit Achat',
         value: clientsService.formatMontant(stats.montant_min_achat),
         icon: 'TrendingDown',
@@ -563,9 +587,10 @@ export function useClientDetailFromData(): UseClientDetailFromDataReturn {
     historiqueProduitsFiltred,
     
     // Actions
+    loadClientDetails,
+    refreshClientData,
     initializeFromClientData,
     saveClient,
-    marquerFacturePayee,
     resetState,
     
     // Stats
