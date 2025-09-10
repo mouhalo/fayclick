@@ -33,6 +33,7 @@ export default function ClientsCommercePage() {
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [searchInput, setSearchInput] = useState(''); // Pour l'affichage immédiat
   const [currentPage, setCurrentPage] = useState(1);
+  const [selectedClientId, setSelectedClientId] = useState<number | null>(null);
   
   // Configuration pagination
   const itemsPerPage = 10;
@@ -135,6 +136,38 @@ export default function ClientsCommercePage() {
     setRefreshing(false);
   };
 
+  // Mise à jour hybride : client spécifique + statistiques globales
+  const handleClientUpdated = useCallback(async (clientId: number) => {
+    try {
+      console.log('🔄 [CLIENTS] Mise à jour hybride client + stats:', clientId);
+      
+      // OPTION 1 : Mise à jour hybride optimisée (recommandé)
+      // Met à jour uniquement le client concerné + les statistiques globales
+      const result = await clientsService.updateClientAndStats(clientId, clients);
+      
+      // Mettre à jour les clients
+      setClients(result.clients);
+      
+      // Mettre à jour les statistiques globales si disponibles
+      if (result.stats) {
+        setStatistiquesGlobales(result.stats);
+        console.log('📊 [CLIENTS] Statistiques globales mises à jour');
+      }
+      
+      console.log('✅ [CLIENTS] Client et statistiques mis à jour');
+      
+      // OPTION 2 : Rechargement complet (alternative simple mais plus lourde)
+      // Décommentez les lignes suivantes si vous préférez recharger toute la liste
+      // console.log('🔄 [CLIENTS] Rechargement complet de la liste');
+      // await loadClients();
+      
+    } catch (error) {
+      console.error('❌ [CLIENTS] Erreur mise à jour hybride:', error);
+      // En cas d'erreur, on recharge toute la liste
+      await loadClients();
+    }
+  }, [clients, setClients, setStatistiquesGlobales, loadClients]);
+
   // Gestion de la recherche avec debouncing
   const handleSearchChange = (value: string) => {
     setSearchInput(value);
@@ -148,35 +181,25 @@ export default function ClientsCommercePage() {
 
   // Ajouter un nouveau client
   const handleAddClient = () => {
+    setSelectedClientId(null);
     setClientSelectionne(null);
     setModalOpen(true);
   };
 
-  // Modifier un client
+  // Modifier un client (mode compatibilité)
   const handleEditClient = (clientWithStats: ClientWithStats) => {
-    console.log('🔍 [CLIENT EDIT] Client sélectionné pour modification:', clientWithStats);
-    console.log('🔍 [CLIENT EDIT] Factures disponibles:', clientWithStats.factures?.length || 0);
-    console.log('🔍 [CLIENT EDIT] Statistiques:', clientWithStats.statistiques_factures);
+    console.log('🔍 [CLIENT EDIT] Client sélectionné pour modification (mode compatibilité):', clientWithStats);
+    setSelectedClientId(null);
     setClientSelectionne(clientWithStats);
     setModalOpen(true);
   };
 
-  // Voir les détails d'un client
+  // Voir les détails d'un client (nouveau mode dynamique)
   const handleViewDetails = (clientWithStats: ClientWithStats) => {
-    console.log('🔍 [CLIENT DETAILS] Client sélectionné pour détails:', clientWithStats);
-    console.log('🔍 [CLIENT DETAILS] Structure complète:', {
-      client: clientWithStats.client,
-      statistiques_factures: clientWithStats.statistiques_factures,
-      factures_count: clientWithStats.factures?.length || 0,
-      first_facture: clientWithStats.factures?.[0] || null
-    });
+    console.log('🔍 [CLIENT DETAILS] Client sélectionné pour détails (mode dynamique):', clientWithStats.client.id_client);
     
-    if (clientWithStats.factures && clientWithStats.factures.length > 0) {
-      console.log('🔍 [CLIENT DETAILS] Première facture complète:', clientWithStats.factures[0]);
-      console.log('🔍 [CLIENT DETAILS] Articles première facture:', clientWithStats.factures[0].details_articles);
-    }
-    
-    setClientSelectionne(clientWithStats);
+    setSelectedClientId(clientWithStats.client.id_client);
+    setClientSelectionne(null); // On n'utilise plus clientToEdit pour le mode dynamique
     setModalOpen(true);
   };
 
@@ -453,10 +476,16 @@ export default function ClientsCommercePage() {
       {/* Modal Client Multi-Onglets */}
       <ModalClientMultiOnglets
         isOpen={isModalOpen}
-        onClose={() => setModalOpen(false)}
+        onClose={() => {
+          setModalOpen(false);
+          setSelectedClientId(null);
+          setClientSelectionne(null);
+        }}
         onSuccess={handleClientSuccess}
+        clientId={selectedClientId}
         clientToEdit={clientSelectionne}
         defaultTab="general"
+        onClientUpdated={handleClientUpdated}
       />
 
       {/* Toast Component */}

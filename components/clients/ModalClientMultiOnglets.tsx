@@ -5,7 +5,7 @@
 
 'use client';
 
-import React, { useEffect,  useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   X, 
@@ -17,17 +17,22 @@ import {
   Loader2
 } from 'lucide-react';
 import { useClientDetailFromData } from '@/hooks/useClientDetailFromData';
+import { useAuth } from '@/contexts/AuthContext';
 import { OngletInfosGenerales } from './OngletInfosGenerales';
 import { OngletFactures } from './OngletFactures';  
 import { OngletHistoriqueProduits } from './OngletHistoriqueProduits';
-import { TabClient, ClientWithStats, AddEditClientResponse } from '@/types/client';
+import { ModalPaiement } from '@/components/factures/ModalPaiement';
+import { TabClient, ClientWithStats, AddEditClientResponse, FactureClient, ClientDetailComplet } from '@/types/client';
+import { FactureComplete } from '@/types/facture';
 
 interface ModalClientMultiOngletsProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: (response: AddEditClientResponse) => void;
-  clientToEdit?: ClientWithStats | null;
+  clientId?: number | null; // Nouveau : ID du client à charger dynamiquement
+  clientToEdit?: ClientWithStats | null; // Conservé pour compatibilité
   defaultTab?: TabClient;
+  onClientUpdated?: (clientId: number) => void; // Callback pour mise à jour de la liste
 }
 
 // Configuration des onglets
@@ -59,10 +64,19 @@ export function ModalClientMultiOnglets({
   isOpen,
   onClose,
   onSuccess,
+  clientId,
   clientToEdit,
-  defaultTab = 'general'
+  defaultTab = 'general',
+  onClientUpdated
 }: ModalClientMultiOngletsProps) {
   const initializationRef = useRef<boolean>(false);
+  const { user } = useAuth();
+  
+  // État pour le modal de paiement
+  const [modalPaiement, setModalPaiement] = useState<{
+    isOpen: boolean;
+    facture: FactureComplete | null;
+  }>({ isOpen: false, facture: null });
   
   const {
     clientDetail,
@@ -74,9 +88,10 @@ export function ModalClientMultiOnglets({
     setIsEditing,
     formData,
     updateFormField,
+    loadClientDetails,
+    refreshClientData,
     initializeFromClientData,
     saveClient,
-    marquerFacturePayee,
     resetState,
     statsGenerales,
     statsFactures,
@@ -89,24 +104,98 @@ export function ModalClientMultiOnglets({
     setFiltreHistorique
   } = useClientDetailFromData();
 
-  // Initialisation du modal - Optimisée pour éviter les boucles
+  // Fonction utilitaire pour convertir FactureClient vers FactureComplete
+  const convertFactureClientToComplete = (factureClient: FactureClient, clientData: ClientDetailComplet): FactureComplete => {
+    return {
+      facture: {
+        id_facture: factureClient.id_facture,
+        num_facture: factureClient.numero_facture,
+        id_structure: user?.id_structure || 0,
+        nom_structure: 'Structure',
+        date_facture: factureClient.date_facture,
+        annee: new Date(factureClient.date_facture).getFullYear(),
+        mois: new Date(factureClient.date_facture).getMonth() + 1,
+        tel_client: clientData?.client?.tel_client || '',
+        nom_client: clientData?.client?.nom_client || '',
+        description: `Facture ${factureClient.numero_facture}`,
+        montant: factureClient.montant_facture,
+        mt_remise: 0,
+        mt_acompte: factureClient.montant_paye || 0,
+        mt_restant: factureClient.montant_restant || factureClient.montant_facture,
+        id_etat: factureClient.statut_paiement === 'PAYEE' ? 2 : 1,
+        libelle_etat: factureClient.statut_paiement === 'PARTIELLE' ? 'IMPAYEE' : factureClient.statut_paiement,
+        tms_update: new Date().toISOString(),
+        avec_frais: false,
+        logo: '',
+        numrecu: '',
+        mt_reverser: false,
+        periode: `${new Date(factureClient.date_facture).getFullYear()}-${(new Date(factureClient.date_facture).getMonth() + 1).toString().padStart(2, '0')}`,
+        nom_classe: '',
+        photo_url: ''
+      },
+      details: [],
+      resume: {
+        nombre_articles: 0,
+        quantite_totale: 0,
+        cout_total_revient: 0,
+        marge_totale: factureClient.montant_facture
+      }
+    };
+  };
+
+  // Fonctions de gestion du modal de paiement
+  const handleAjouterAcompte = (factureClient: FactureClient) => {
+    if (!user?.id_structure) {
+      console.error('❌ [MODAL CLIENT] ID structure manquant dans le contexte utilisateur');
+      return;
+    }
+    
+    if (!clientDetail) {
+      console.error('❌ [MODAL CLIENT] Données client manquantes');
+      return;
+    }
+    
+    console.log('💰 [MODAL CLIENT] Ouverture modal paiement:', {
+      facture: factureClient.numero_facture,
+      id_structure: user.id_structure,
+      montant: factureClient.montant_facture
+    });
+    
+    const factureComplete = convertFactureClientToComplete(factureClient, clientDetail);
+    setModalPaiement({ isOpen: true, facture: factureComplete });
+  };
+
+  const closeModalPaiement = () => {
+    setModalPaiement({ isOpen: false, facture: null });
+  };
+
+  const handlePaiementSuccess = async () => {
+    // Recharger les données du client pour refléter les changements
+    await refreshClientData();
+    
+    // Notifier la liste parente pour mise à jour sélective
+    if (onClientUpdated && clientDetail) {
+      onClientUpdated(clientDetail.client.id_client);
+    }
+    
+    closeModalPaiement();
+  };
+
+  // Initialisation du modal - Support des deux modes
   useEffect(() => {
     if (isOpen && !initializationRef.current) {
       console.log('🚀 [MODAL CLIENT] Initialisation du modal');
       
       initializationRef.current = true;
-      
       setActiveTab(defaultTab);
       
-      if (clientToEdit) {
-        // Mode édition - utiliser les données déjà chargées
-        console.log('📝 [MODAL CLIENT] Mode édition pour client:', clientToEdit.client.nom_client);
-        console.log('📝 [MODAL CLIENT] Données disponibles:', {
-          client: clientToEdit.client,
-          statistiques: clientToEdit.statistiques_factures
-        });
-        
-        // Utiliser directement les données existantes au lieu de faire une requête
+      if (clientId) {
+        // Nouveau mode : chargement dynamique avec clientId
+        console.log('🔄 [MODAL CLIENT] Mode chargement dynamique pour client ID:', clientId);
+        loadClientDetails(clientId);
+      } else if (clientToEdit) {
+        // Mode compatibilité : utiliser les données déjà chargées
+        console.log('📝 [MODAL CLIENT] Mode compatibilité pour client:', clientToEdit.client.nom_client);
         initializeFromClientData(clientToEdit);
         setIsEditing(false); // Commencer en mode lecture
       } else {
@@ -116,7 +205,7 @@ export function ModalClientMultiOnglets({
         setActiveTab('general');
       }
     }
-  }, [isOpen, clientToEdit, defaultTab, initializeFromClientData, setActiveTab, setIsEditing]);
+  }, [isOpen, clientId, clientToEdit, defaultTab, loadClientDetails, initializeFromClientData, setActiveTab, setIsEditing]);
 
   // Cleanup complet lors de la fermeture du modal
   useEffect(() => {
@@ -369,7 +458,7 @@ export function ModalClientMultiOnglets({
                         statsCards={statsFactures}
                         filtre={filtreFactures}
                         setFiltre={setFiltreFactures}
-                        onMarquerPayee={marquerFacturePayee}
+                        onMarquerPayee={handleAjouterAcompte}
                         isLoading={isLoading}
                       />
                     )}
@@ -446,6 +535,14 @@ export function ModalClientMultiOnglets({
             </div>
           </motion.div>
       </motion.div>
+      
+      {/* Modal de paiement */}
+      <ModalPaiement
+        isOpen={modalPaiement.isOpen}
+        onClose={closeModalPaiement}
+        facture={modalPaiement.facture}
+        onSuccess={handlePaiementSuccess}
+      />
     </AnimatePresence>
   );
 }
