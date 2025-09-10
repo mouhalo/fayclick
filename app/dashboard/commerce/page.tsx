@@ -11,7 +11,7 @@ import { User } from '@/types/auth';
 import { StatusBarPanier } from '@/components/panier/StatusBarPanier';
 import { ModalPanier } from '@/components/panier/ModalPanier';
 import { ModalFactureSuccess } from '@/components/panier/ModalFactureSuccess';
-import { Toast, useToast } from '@/components/ui/Toast';
+import { useToast } from '@/components/ui/Toast';
 
 
 export default function CommerceDashboard() {
@@ -28,9 +28,7 @@ export default function CommerceDashboard() {
     stats, 
     statsCardData, 
     financialData, 
-    isLoading: loadingStats, 
-    error: statsError, 
-    refresh: refreshStats 
+    isLoading: loadingStats
   } = useDashboardData(user?.id_structure || 0);
 
   useEffect(() => {
@@ -406,7 +404,7 @@ export default function CommerceDashboard() {
                           formatCurrency(financialData?.totalRevenues || 0)
                         )}
                       </motion.div>
-                      <div className="text-sm opacity-90">Chiffre d'Affaires Total</div>
+                      <div className="text-sm opacity-90">Chiffre d&apos;Affaires Total</div>
                     </div>
                   </div>
 
