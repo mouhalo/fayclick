@@ -92,11 +92,11 @@ class FacturePriveeService {
 
       console.log('📦 Réponse API:', data);
 
-      if (!data.success || !data.data || data.data.length === 0) {
+      if (data.status !== 'success' || !data.datas || data.datas.length === 0) {
         throw new Error('Facture introuvable');
       }
 
-      const factureData = data.data[0];
+      const factureData = data.datas[0];
 
       // Transformation pour correspondre au format attendu
       return {
@@ -160,7 +160,7 @@ class FacturePriveeService {
 
       const data = await response.json();
 
-      if (data.success) {
+      if (data.status === 'success') {
         return {
           success: true,
           message: 'Facture supprimée avec succès',
@@ -201,11 +201,11 @@ class FacturePriveeService {
 
       const data = await response.json();
 
-      if (!data.success) {
+      if (data.status !== 'success') {
         return [];
       }
 
-      return data.data?.map((paiement: any) => ({
+      return data.datas?.map((paiement: any) => ({
         id_paiement: paiement.id_paiement,
         date_paiement: paiement.date_paiement,
         montant: paiement.montant,
