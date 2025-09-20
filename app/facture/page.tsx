@@ -9,7 +9,7 @@ function FactureContent() {
   const searchParams = useSearchParams();
   const token = searchParams.get('token');
 
-  if (!token || token.length < 10) {
+  if (!token || token.length < 6) {
     notFound();
   }
 

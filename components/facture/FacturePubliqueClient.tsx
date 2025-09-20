@@ -42,7 +42,7 @@ export default function FacturePubliqueClient({ token }: FacturePubliqueClientPr
 
       // Décoder les paramètres depuis l'URL
       const result = decodeFactureParams(token);
-      
+
       if (!result || !result.id_structure || !result.id_facture) {
         throw new Error('Token de facture invalide');
       }
