@@ -2,6 +2,16 @@
  * Types spécifiques pour les factures privées des commerçants
  */
 
+export interface DetailFacture {
+  id_detail: number;
+  id_produit: number;
+  nom_produit: string;
+  description_produit: string;
+  quantite: number;
+  prix: number;
+  sous_total: number;
+}
+
 export interface FacturePriveeData {
   id_facture: number;
   num_facture: string;
@@ -27,6 +37,7 @@ export interface FacturePriveeData {
   mt_acompte: number;
   mt_restant: number;
   photo_url: string;
+  details: DetailFacture[];
 }
 
 export interface PaiementHistorique {

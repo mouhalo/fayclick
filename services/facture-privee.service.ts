@@ -4,6 +4,7 @@
  */
 
 import { API_CONFIG } from '@/lib/api-config';
+import { DetailFacture } from '@/types/facture-privee';
 
 export interface FacturePriveeData {
   id_facture: number;
@@ -67,7 +68,7 @@ class FacturePriveeService {
    */
   async getFacturePrivee(idFacture: number): Promise<FacturePriveeData> {
     try {
-      const requete = `SELECT * FROM public.rechercher_multifacturecom('', ${idFacture})`;
+      const requete = `SELECT * FROM public.rechercher_multifacturecom1('', ${idFacture})`;
       const xmlBody = this.construireXml(requete);
 
       console.log('🔍 Appel API facture privée:', {
@@ -96,7 +97,19 @@ class FacturePriveeService {
         throw new Error('Facture introuvable');
       }
 
-      const factureData = data.datas[0];
+      // La réponse contient un objet JSON dans data.datas[0]
+      const jsonData = data.datas[0];
+
+      // Parser le JSON si c'est une chaîne
+      const parsedData = typeof jsonData === 'string' ? JSON.parse(jsonData) : jsonData;
+
+      console.log('📦 Données parsées:', parsedData);
+
+      if (!parsedData.factures || parsedData.factures.length === 0) {
+        throw new Error('Aucune facture trouvée dans la réponse');
+      }
+
+      const factureData = parsedData.factures[0];
 
       // Transformation pour correspondre au format attendu
       return {
@@ -123,7 +136,8 @@ class FacturePriveeService {
         mt_remise: factureData.mt_remise || 0,
         mt_acompte: factureData.mt_acompte || 0,
         mt_restant: factureData.mt_restant || factureData.montant,
-        photo_url: factureData.photo_url || ''
+        photo_url: factureData.photo_url || '',
+        details: factureData.details || []
       };
     } catch (error) {
       console.error('Erreur lors de la récupération de la facture privée:', error);
