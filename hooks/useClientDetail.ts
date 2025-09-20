@@ -249,7 +249,17 @@ export function useClientDetail(): UseClientDetailReturn {
     
     // Filtrage par statut
     if (filtreFactures.statut !== 'TOUTES') {
-      factures = factures.filter(f => f.statut_paiement === filtreFactures.statut);
+      // Mapping des statuts pour correspondance
+      const mapStatut = (statutFiltre: string) => {
+        switch(statutFiltre) {
+          case 'PAYEES': return 'PAYEE';
+          case 'IMPAYEES': return 'IMPAYEE';
+          case 'PARTIELLES': return 'PARTIELLE';
+          default: return statutFiltre;
+        }
+      };
+      const statutRecherche = mapStatut(filtreFactures.statut);
+      factures = factures.filter(f => f.statut_paiement === statutRecherche);
     }
     
     // Tri par date (plus récentes en premier)

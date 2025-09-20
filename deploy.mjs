@@ -3,10 +3,28 @@
 /**
  * FayClick V2 - Script de Déploiement Moderne
  * Optimisé pour Next.js 15 avec App Router et Export Statique
- * 
+ *
+ * 🚨 IMPORTANT: Consultez TOUJOURS notre guide avant déploiement !
+ *
+ * 📖 Documentation requise:
+ *   - GUIDE_REFERENCE_RAPIDE.md     (⚡ Lecture 2 min - OBLIGATOIRE)
+ *   - CHECKLIST_DEPLOIEMENT.md      (📋 Checklist complète)
+ *   - GUIDE_DEPLOIEMENT_EXPERT.md   (🎓 Guide technique détaillé)
+ *
+ * ✅ Validation pré-déploiement:
+ *   1. Pages factures publiques testées localement
+ *   2. ConditionalAuthProvider validé (pages publiques SANS auth)
+ *   3. Tests URLs critiques: /facture?token=XXX
+ *   4. Configuration next.config.ts: output:'export'
+ *
+ * 🌐 Tests post-déploiement obligatoires:
+ *   - https://v2.fayclick.net (site principal)
+ *   - https://v2.fayclick.net/facture?token=ODktMzIz (factures publiques)
+ *   - https://v2.fayclick.net/dashboard (authentification privée)
+ *
  * @version 3.0.0
  * @author Expert Senior FayClick
- * @date 2025-08-25
+ * @date 2025-09-20
  */
 
 import { spawn, execSync } from 'child_process';
@@ -421,21 +439,44 @@ ${colors.green}✨ Développé avec expertise pour FayClick V2${colors.reset}
     Logger.success('🎉 FayClick V2 déployé avec succès !');
   }
 
+  // Rappel documentation obligatoire
+  showDocumentationReminder() {
+    Logger.header('📚 Documentation Obligatoire');
+    Logger.warning('🚨 IMPORTANT: Avez-vous consulté notre guide de déploiement ?');
+    Logger.info('');
+    Logger.info('📖 Guides requis AVANT déploiement:');
+    Logger.info('  1. 📋 CHECKLIST_DEPLOIEMENT.md      (⚡ Lecture 2 min)');
+    Logger.info('  2. 🚀 GUIDE_REFERENCE_RAPIDE.md     (⚡ Référence express)');
+    Logger.info('  3. 🎓 GUIDE_DEPLOIEMENT_EXPERT.md   (📚 Guide technique complet)');
+    Logger.info('');
+    Logger.info('✅ Points critiques à vérifier:');
+    Logger.info('  - Pages factures publiques testées: /facture?token=XXX');
+    Logger.info('  - ConditionalAuthProvider validé (pas d\'auth sur pages publiques)');
+    Logger.info('  - Configuration next.config.ts: output:\'export\'');
+    Logger.info('  - Tests post-déploiement prêts');
+    Logger.info('');
+    Logger.success('💡 Ces guides vous éviteront les erreurs de déploiement courantes !');
+    Logger.info('');
+  }
+
   // Méthode principale d'exécution
   async run() {
     try {
       Logger.header('FayClick V2 - Déploiement Professionnel');
-      
+
       if (this.options.help) {
         this.showHelp();
         return;
       }
-      
+
+      // Rappel documentation obligatoire
+      this.showDocumentationReminder();
+
       Logger.info('Options activées:');
       Logger.info(`  Build automatique: ${this.options.build ? '✅' : '❌'}`);
       Logger.info(`  Mode forcé: ${this.options.force ? '✅' : '❌'}`);
       Logger.info(`  Mode verbose: ${this.options.verbose ? '✅' : '❌'}`);
-      
+
       // Étapes du déploiement
       this.validateEnvironment();
       

@@ -1,0 +1,399 @@
+/**
+ * Modal pour afficher les détails d'une facture privée pour les commerçants
+ * Design harmonisé avec les autres modals de l'application
+ */
+
+'use client';
+
+import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+  X,
+  Receipt,
+  User,
+  Phone,
+  Calendar,
+  DollarSign,
+  Loader2,
+  AlertCircle,
+  QrCode,
+  Trash2,
+  Copy,
+  Check,
+  History
+} from 'lucide-react';
+import { facturePriveeService, FacturePriveeData, PaiementHistorique } from '@/services/facture-privee.service';
+import { ModalPaiementWalletNew, WalletType } from './ModalPaiementWalletNew';
+import { ModalFacturePriveeProps } from '@/types/facture-privee';
+
+export function ModalFacturePrivee({
+  isOpen,
+  onClose,
+  factureId,
+  factureData,
+  onFactureDeleted,
+  onPaymentComplete
+}: ModalFacturePriveeProps) {
+  const [facture, setFacture] = useState<FacturePriveeData | null>(factureData || null);
+  const [paiements, setPaiements] = useState<PaiementHistorique[]>([]);
+  const [loading, setLoading] = useState(!factureData && !!factureId);
+  const [error, setError] = useState<string | null>(null);
+  const [urlPartage, setUrlPartage] = useState<string>('');
+  const [urlCopied, setUrlCopied] = useState(false);
+  const [showWalletModal, setShowWalletModal] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [showHistorique, setShowHistorique] = useState(false);
+
+  // Charger les données de la facture si un ID est fourni
+  useEffect(() => {
+    if (isOpen && factureId && !factureData) {
+      loadFactureData();
+    } else if (factureData) {
+      setFacture(factureData);
+      generateUrlPartage(factureData);
+      loadHistoriquePaiements(factureData.id_facture);
+    }
+  }, [isOpen, factureId, factureData]);
+
+  const loadFactureData = async () => {
+    if (!factureId) return;
+
+    try {
+      setLoading(true);
+      setError(null);
+
+      const [factureResult] = await Promise.all([
+        facturePriveeService.getFacturePrivee(factureId),
+      ]);
+
+      setFacture(factureResult);
+      generateUrlPartage(factureResult);
+      await loadHistoriquePaiements(factureId);
+    } catch (err: any) {
+      console.error('Erreur lors du chargement:', err);
+      setError(err.message || 'Erreur lors du chargement de la facture');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadHistoriquePaiements = async (idFacture: number) => {
+    try {
+      const historique = await facturePriveeService.getHistoriquePaiements(idFacture);
+      setPaiements(historique);
+    } catch (err) {
+      console.error('Erreur historique paiements:', err);
+    }
+  };
+
+  const generateUrlPartage = (factureData: FacturePriveeData) => {
+    const url = facturePriveeService.generateUrlPartage(
+      factureData.id_structure,
+      factureData.id_facture
+    );
+    setUrlPartage(url);
+  };
+
+  const handleCopyUrl = async () => {
+    try {
+      await navigator.clipboard.writeText(urlPartage);
+      setUrlCopied(true);
+      setTimeout(() => setUrlCopied(false), 2000);
+    } catch (err) {
+      console.error('Erreur copie URL:', err);
+    }
+  };
+
+  const handleSupprimer = async () => {
+    if (!facture || facture.id_etat !== 1) return;
+
+    const confirm = window.confirm(
+      `Êtes-vous sûr de vouloir supprimer la facture ${facture.num_facture} ?`
+    );
+
+    if (!confirm) return;
+
+    try {
+      setDeleting(true);
+      const result = await facturePriveeService.supprimerFacture(
+        facture.id_facture,
+        facture.id_structure
+      );
+
+      if (result.success) {
+        onFactureDeleted?.(facture.id_facture);
+        onClose();
+      } else {
+        throw new Error(result.message);
+      }
+    } catch (err: any) {
+      console.error('Erreur suppression:', err);
+      alert(err.message || 'Erreur lors de la suppression');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const handlePaymentComplete = (wallet: WalletType) => {
+    setShowWalletModal(false);
+    onPaymentComplete?.(facture?.id_facture || 0);
+    // Recharger l'historique des paiements
+    if (facture) {
+      loadHistoriquePaiements(facture.id_facture);
+    }
+  };
+
+  const formatMontant = (montant: number): string => {
+    return new Intl.NumberFormat('fr-SN', {
+      style: 'currency',
+      currency: 'XOF',
+      minimumFractionDigits: 0
+    }).format(montant);
+  };
+
+  const formatDate = (dateString: string): string => {
+    return new Date(dateString).toLocaleDateString('fr-SN', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  };
+
+  const formatDateCourt = (dateString: string): string => {
+    return new Date(dateString).toLocaleDateString('fr-SN');
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <AnimatePresence>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        onClick={onClose}
+        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+      >
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.9, y: 20 }}
+          onClick={(e) => e.stopPropagation()}
+          className="w-full max-w-2xl bg-white rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col"
+        >
+          {/* Header */}
+          <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-6 text-white flex-shrink-0">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-white/20 rounded-xl">
+                  <Receipt className="w-6 h-6" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold">
+                    {loading ? 'Chargement...' : `Facture ${facture?.num_facture}`}
+                  </h2>
+                  <p className="text-white/90 text-sm">
+                    {facture && formatDate(facture.date_facture)}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={onClose}
+                className="p-2 rounded-full bg-white/20 hover:bg-white/30 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+
+          {/* Content */}
+          <div className="p-6 overflow-y-auto flex-1">
+            {loading && (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="w-8 h-8 text-blue-600 animate-spin mr-3" />
+                <span className="text-gray-600">Chargement des détails...</span>
+              </div>
+            )}
+
+            {error && (
+              <div className="flex items-center justify-center py-12 text-center">
+                <div>
+                  <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold text-red-800 mb-2">Erreur</h3>
+                  <p className="text-red-600">{error}</p>
+                </div>
+              </div>
+            )}
+
+            {facture && !loading && !error && (
+              <div className="space-y-6">
+                {/* Informations principales */}
+                <div className="grid md:grid-cols-2 gap-6">
+                  {/* Client */}
+                  <div className="bg-gray-50 rounded-xl p-4">
+                    <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                      <User className="w-5 h-5 text-blue-600" />
+                      Informations Client
+                    </h3>
+                    <div className="space-y-2 text-gray-700">
+                      <p><strong>Nom:</strong> {facture.nom_client}</p>
+                      <p><strong>Téléphone:</strong> {facture.tel_client}</p>
+                      <p><strong>Description:</strong> {facture.description}</p>
+                    </div>
+                  </div>
+
+                  {/* Facturation */}
+                  <div className="bg-gray-50 rounded-xl p-4">
+                    <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                      <DollarSign className="w-5 h-5 text-green-600" />
+                      Détails Financiers
+                    </h3>
+                    <div className="space-y-2 text-gray-700">
+                      <p><strong>Statut:</strong>
+                        <span className={`ml-2 px-3 py-1 rounded-full text-xs font-medium ${
+                          facture.libelle_etat === 'PAYEE' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                        }`}>
+                          {facture.libelle_etat === 'PAYEE' ? 'Payée' : 'En attente'}
+                        </span>
+                      </p>
+                      <p><strong>Acompte:</strong> {formatMontant(facture.mt_acompte)}</p>
+                      <p><strong>Restant:</strong> {formatMontant(facture.mt_restant)}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Montant total avec QR Code */}
+                <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-6 text-center">
+                  <p className="text-gray-600 text-sm mb-2">Montant Total</p>
+                  <div className="flex items-center justify-center gap-4">
+                    <p className="text-3xl font-bold text-gray-900">
+                      {formatMontant(facture.montant)}
+                    </p>
+                    <button
+                      onClick={() => setShowWalletModal(true)}
+                      className="p-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl transition-colors"
+                      title="Configurer le paiement mobile"
+                    >
+                      <QrCode className="w-6 h-6" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* URL de partage */}
+                <div className="bg-gray-50 rounded-xl p-4">
+                  <h3 className="font-semibold text-gray-900 mb-3">URL de Partage</h3>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={urlPartage}
+                      readOnly
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg bg-white text-sm"
+                    />
+                    <button
+                      onClick={handleCopyUrl}
+                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center gap-2"
+                    >
+                      {urlCopied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                      {urlCopied ? 'Copié' : 'Copier'}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Historique des paiements */}
+                {paiements.length > 0 && (
+                  <div className="bg-gray-50 rounded-xl p-4">
+                    <button
+                      onClick={() => setShowHistorique(!showHistorique)}
+                      className="w-full flex items-center justify-between text-left"
+                    >
+                      <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                        <History className="w-5 h-5 text-purple-600" />
+                        Historique des Paiements ({paiements.length})
+                      </h3>
+                      <motion.div
+                        animate={{ rotate: showHistorique ? 180 : 0 }}
+                        transition={{ duration: 0.2 }}
+                      >
+                        <Calendar className="w-5 h-5 text-gray-400" />
+                      </motion.div>
+                    </button>
+
+                    <AnimatePresence>
+                      {showHistorique && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: 'auto' }}
+                          exit={{ opacity: 0, height: 0 }}
+                          className="mt-4 space-y-2"
+                        >
+                          {paiements.map((paiement, index) => (
+                            <div key={index} className="bg-white rounded-lg p-3 border border-gray-200">
+                              <div className="flex justify-between items-start">
+                                <div>
+                                  <p className="font-medium text-gray-900">
+                                    {formatMontant(paiement.montant)}
+                                  </p>
+                                  <p className="text-sm text-gray-600">
+                                    {paiement.mode_paiement} • {formatDateCourt(paiement.date_paiement)}
+                                  </p>
+                                </div>
+                                <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">
+                                  {paiement.statut}
+                                </span>
+                              </div>
+                            </div>
+                          ))}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Actions Footer */}
+          {facture && !loading && !error && (
+            <div className="bg-gray-50 p-6 flex-shrink-0">
+              <div className="flex justify-between">
+                <button
+                  onClick={onClose}
+                  className="px-6 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium transition-colors"
+                >
+                  Fermer
+                </button>
+
+                {facture.id_etat === 1 && (
+                  <button
+                    onClick={handleSupprimer}
+                    disabled={deleting}
+                    className="px-6 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2 disabled:opacity-50"
+                  >
+                    {deleting ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Trash2 className="w-4 h-4" />
+                    )}
+                    {deleting ? 'Suppression...' : 'Supprimer'}
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+        </motion.div>
+
+        {/* Modal Wallet */}
+        {facture && (
+          <ModalPaiementWalletNew
+            isOpen={showWalletModal}
+            onClose={() => setShowWalletModal(false)}
+            montant={facture.montant}
+            numeroFacture={facture.num_facture}
+            onPaymentComplete={handlePaymentComplete}
+          />
+        )}
+      </motion.div>
+    </AnimatePresence>
+  );
+}
