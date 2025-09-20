@@ -20,7 +20,10 @@ import {
   Trash2,
   Copy,
   Check,
-  History
+  History,
+  Package,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 import { facturePriveeService, FacturePriveeData, PaiementHistorique } from '@/services/facture-privee.service';
 import { ModalPaiementWalletNew, WalletType } from './ModalPaiementWalletNew';
@@ -43,6 +46,7 @@ export function ModalFacturePrivee({
   const [showWalletModal, setShowWalletModal] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [showHistorique, setShowHistorique] = useState(false);
+  const [showDetails, setShowDetails] = useState(false);
 
   // Charger les données de la facture si un ID est fourni
   useEffect(() => {
@@ -271,14 +275,112 @@ export function ModalFacturePrivee({
                       {formatMontant(facture.montant)}
                     </p>
                     <button
-                      onClick={() => setShowWalletModal(true)}
-                      className="p-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl transition-colors"
-                      title="Configurer le paiement mobile"
+                      onClick={() => facture.id_etat !== 2 && setShowWalletModal(true)}
+                      disabled={facture.id_etat === 2}
+                      className={`p-3 rounded-xl transition-colors ${
+                        facture.id_etat === 2
+                          ? 'bg-gray-300 text-gray-500 cursor-not-allowed opacity-50'
+                          : 'bg-blue-600 hover:bg-blue-700 text-white'
+                      }`}
+                      title={
+                        facture.id_etat === 2
+                          ? 'Facture déjà payée'
+                          : 'Configurer le paiement mobile'
+                      }
                     >
                       <QrCode className="w-6 h-6" />
                     </button>
                   </div>
+                  {facture.id_etat === 2 && (
+                    <p className="text-green-600 text-sm mt-2 font-medium">
+                      ✅ Facture déjà payée
+                    </p>
+                  )}
                 </div>
+
+                {/* Détails de la commande */}
+                {facture.details && facture.details.length > 0 && (
+                  <div className="bg-gray-50 rounded-xl p-4">
+                    <button
+                      onClick={() => setShowDetails(!showDetails)}
+                      className="w-full flex items-center justify-between text-left"
+                    >
+                      <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                        <Package className="w-5 h-5 text-purple-600" />
+                        Détails de la commande ({facture.details.length} produit{facture.details.length > 1 ? 's' : ''})
+                      </h3>
+                      <motion.div
+                        animate={{ rotate: showDetails ? 180 : 0 }}
+                        transition={{ duration: 0.2 }}
+                      >
+                        <ChevronDown className="w-5 h-5 text-gray-400" />
+                      </motion.div>
+                    </button>
+
+                    <AnimatePresence>
+                      {showDetails && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: 'auto' }}
+                          exit={{ opacity: 0, height: 0 }}
+                          className="mt-4 overflow-hidden"
+                        >
+                          <div className="overflow-x-auto">
+                            <table className="w-full text-sm">
+                              <thead>
+                                <tr className="border-b border-gray-200">
+                                  <th className="text-left py-2 px-2 font-medium text-gray-900">Produit</th>
+                                  <th className="text-center py-2 px-2 font-medium text-gray-900">Qté</th>
+                                  <th className="text-right py-2 px-2 font-medium text-gray-900">Prix Unit.</th>
+                                  <th className="text-right py-2 px-2 font-medium text-gray-900">Total</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {facture.details.map((detail, index) => (
+                                  <motion.tr
+                                    key={detail.id_detail}
+                                    initial={{ opacity: 0, x: -20 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    transition={{ delay: 0.1 * index }}
+                                    className="border-b border-gray-100"
+                                  >
+                                    <td className="py-2 px-2">
+                                      <div>
+                                        <p className="font-medium text-gray-900">{detail.nom_produit}</p>
+                                        {detail.description_produit && (
+                                          <p className="text-xs text-gray-600">{detail.description_produit}</p>
+                                        )}
+                                      </div>
+                                    </td>
+                                    <td className="text-center py-2 px-2 font-medium">
+                                      {detail.quantite}
+                                    </td>
+                                    <td className="text-right py-2 px-2">
+                                      {formatMontant(detail.prix)}
+                                    </td>
+                                    <td className="text-right py-2 px-2 font-medium">
+                                      {formatMontant(detail.sous_total)}
+                                    </td>
+                                  </motion.tr>
+                                ))}
+                              </tbody>
+                              <tfoot>
+                                <tr className="border-t-2 border-gray-300 bg-gray-100">
+                                  <td colSpan={3} className="text-right py-3 px-2 font-bold">
+                                    Total:
+                                  </td>
+                                  <td className="text-right py-3 px-2 font-bold text-blue-600">
+                                    {formatMontant(facture.montant)}
+                                  </td>
+                                </tr>
+                              </tfoot>
+                            </table>
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                )}
 
                 {/* URL de partage */}
                 <div className="bg-gray-50 rounded-xl p-4">
