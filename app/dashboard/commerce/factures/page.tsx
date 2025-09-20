@@ -17,6 +17,7 @@ import { FacturesList } from '@/components/factures/FacturesList';
 import { GlassPagination, usePagination } from '@/components/ui/GlassPagination';
 import { ModalPaiement } from '@/components/factures/ModalPaiement';
 import { ModalPartage } from '@/components/factures/ModalPartage';
+import { ModalFacturePrivee } from '@/components/facture/ModalFacturePrivee';
 import { Toast } from '@/components/ui/Toast';
 import { factureListService } from '@/services/facture-list.service';
 import { 
@@ -48,8 +49,13 @@ export default function FacturesGlassPage() {
     isOpen: boolean;
     facture: FactureComplete | null;
   }>({ isOpen: false, facture: null });
-  
+
   const [modalPartage, setModalPartage] = useState<{
+    isOpen: boolean;
+    facture: FactureComplete | null;
+  }>({ isOpen: false, facture: null });
+
+  const [modalFacturePrivee, setModalFacturePrivee] = useState<{
     isOpen: boolean;
     facture: FactureComplete | null;
   }>({ isOpen: false, facture: null });
@@ -121,9 +127,9 @@ export default function FacturesGlassPage() {
     setModalPartage({ isOpen: true, facture });
   }, []);
 
-  const handleVoirDetails = useCallback((facture: FactureComplete) => {
-    console.log('Voir détails facture:', facture.facture.id_facture);
-    // TODO: Navigation vers page détail ou modal détails
+  const handleVoirDetailsModal = useCallback((facture: FactureComplete) => {
+    console.log('Ouverture modal facture:', facture.facture.id_facture);
+    setModalFacturePrivee({ isOpen: true, facture });
   }, []);
 
   // Succès de paiement
@@ -145,6 +151,10 @@ export default function FacturesGlassPage() {
 
   const closeModalPartage = useCallback(() => {
     setModalPartage({ isOpen: false, facture: null });
+  }, []);
+
+  const closeModalFacturePrivee = useCallback(() => {
+    setModalFacturePrivee({ isOpen: false, facture: null });
   }, []);
 
   const closeToast = useCallback(() => {
@@ -252,7 +262,7 @@ export default function FacturesGlassPage() {
           <FacturesList
             factures={facturesPaginees}
             loading={loading}
-            onVoirDetails={handleVoirDetails}
+            onVoirDetailsModal={handleVoirDetailsModal}
             onAjouterAcompte={handleAjouterAcompte}
             onPartager={handlePartager}
           />
@@ -318,6 +328,30 @@ export default function FacturesGlassPage() {
         isOpen={modalPartage.isOpen}
         onClose={closeModalPartage}
         facture={modalPartage.facture}
+      />
+
+      <ModalFacturePrivee
+        isOpen={modalFacturePrivee.isOpen}
+        onClose={closeModalFacturePrivee}
+        factureId={modalFacturePrivee.facture?.facture.id_facture}
+        onFactureDeleted={(idFacture) => {
+          // Recharger les factures après suppression
+          loadFactures();
+          setToast({
+            isOpen: true,
+            type: 'success',
+            message: 'Facture supprimée avec succès'
+          });
+        }}
+        onPaymentComplete={(idFacture) => {
+          // Recharger les factures après paiement
+          loadFactures();
+          setToast({
+            isOpen: true,
+            type: 'success',
+            message: 'Paiement confirmé avec succès'
+          });
+        }}
       />
 
       {/* Toast notifications */}
