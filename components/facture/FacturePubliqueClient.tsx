@@ -144,7 +144,7 @@ export default function FacturePubliqueClient({ token }: FacturePubliqueClientPr
   if (!facture) return null;
 
   return (
-    <div className={`min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 ${styles.container}`}>
+    <div className={`min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-100 ${styles.container}`}>
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -154,11 +154,11 @@ export default function FacturePubliqueClient({ token }: FacturePubliqueClientPr
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className={`bg-white rounded-2xl shadow-xl ${styles.card} mb-6`}
+          className={`bg-white/95 backdrop-blur-lg rounded-2xl shadow-2xl border border-white/20 ${styles.card} mb-6`}
         >
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-4">
-              <div className="p-3 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-xl">
+              <div className="p-3 bg-gradient-to-r from-blue-500 via-indigo-600 to-purple-600 rounded-xl shadow-lg">
                 <Receipt className="w-8 h-8 text-white" />
               </div>
               <div>
@@ -171,20 +171,22 @@ export default function FacturePubliqueClient({ token }: FacturePubliqueClientPr
               </div>
             </div>
             
-            <button
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
               onClick={() => setShowPrices(!showPrices)}
-              className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 rounded-xl shadow-lg transition-all duration-200"
             >
               {showPrices ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
               <span className="text-sm font-medium">
                 {showPrices ? 'Masquer' : 'Afficher'} les prix
               </span>
-            </button>
+            </motion.button>
           </div>
 
           {/* Informations client */}
           <div className="grid md:grid-cols-2 gap-6">
-            <div>
+            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-4 border border-blue-100">
               <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
                 <User className="w-5 h-5 text-blue-600" />
                 Informations Client
@@ -196,14 +198,14 @@ export default function FacturePubliqueClient({ token }: FacturePubliqueClientPr
               </div>
             </div>
 
-            <div>
+            <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-4 border border-green-100">
               <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
                 <CreditCard className="w-5 h-5 text-green-600" />
                 Informations Facturation
               </h3>
               <div className="space-y-2 text-gray-700">
-                <p><strong>Statut:</strong> 
-                  <span className={`ml-2 px-3 py-1 rounded-full text-xs font-medium ${
+                <p><strong>Statut:</strong>
+                  <span className={`ml-2 px-3 py-1 rounded-full text-xs font-medium shadow-sm ${
                     facture.facture.libelle_etat === 'PAYEE' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
                   }`}>
                     {facture.facture.libelle_etat === 'PAYEE' ? 'Payée' : 'En attente'}
@@ -221,7 +223,7 @@ export default function FacturePubliqueClient({ token }: FacturePubliqueClientPr
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className={`bg-white rounded-2xl shadow-xl ${styles.card}`}
+          className={`bg-white/95 backdrop-blur-lg rounded-2xl shadow-2xl border border-white/20 ${styles.card}`}
         >
           <h3 className="font-semibold text-gray-900 mb-6 flex items-center gap-2">
             <Package className="w-5 h-5 text-purple-600" />

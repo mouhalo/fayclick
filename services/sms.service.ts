@@ -59,13 +59,13 @@ class SMSService {
       const message = `Pour reinitialiser votre ancien mot de passe, confirmer avant 2 minutes avec ce mot de passe: ${tempCode}`;
 
       // Log sécurisé (sans le code)
-      SecurityService.secureLog('info', `📱 [SMS] Envoi SMS de récupération au numéro: ${this.maskPhoneNumber(cleanPhone)}`);
+      SecurityService.secureLog('log', `📱 [SMS] Envoi SMS de récupération au numéro: ${this.maskPhoneNumber(cleanPhone)}`);
 
       // Appel de la fonction PostgreSQL add_pending_sms
       const result = await this.sendSMSViaPSQL(cleanPhone, message);
 
       if (result && result.id) {
-        SecurityService.secureLog('info', `✅ [SMS] SMS ajouté en base avec ID: ${result.id}, date: ${result.date_create}`);
+        SecurityService.secureLog('log', `✅ [SMS] SMS ajouté en base avec ID: ${result.id}, date: ${result.date_create}`);
         return {
           success: true,
           message: 'SMS envoyé avec succès',
@@ -96,13 +96,13 @@ class SMSService {
         throw new Error('Numéro de téléphone invalide');
       }
 
-      SecurityService.secureLog('info', `📱 [SMS] Envoi SMS de notification au numéro: ${this.maskPhoneNumber(cleanPhone)}`);
+      SecurityService.secureLog('log', `📱 [SMS] Envoi SMS de notification au numéro: ${this.maskPhoneNumber(cleanPhone)}`);
 
       // Appel de la fonction PostgreSQL add_pending_sms
       const result = await this.sendSMSViaPSQL(cleanPhone, message);
 
       if (result && result.id) {
-        SecurityService.secureLog('info', `✅ [SMS] SMS ajouté en base avec ID: ${result.id}`);
+        SecurityService.secureLog('log', `✅ [SMS] SMS ajouté en base avec ID: ${result.id}`);
         return {
           success: true,
           message: 'SMS envoyé avec succès',
@@ -191,7 +191,7 @@ class SMSService {
       // Construction de la requête pour add_pending_sms
       const query = `SELECT * FROM add_pending_sms('${escapedSender}'::varchar, '${escapedClient}'::varchar, '${escapedPhone}'::varchar, '${escapedMessage}'::varchar);`;
       
-      SecurityService.secureLog('info', `📱 [SMS-PSQL] Ajout SMS en base pour: ${this.maskPhoneNumber(phoneNumber)}`);
+      SecurityService.secureLog('log', `📱 [SMS-PSQL] Ajout SMS en base pour: ${this.maskPhoneNumber(phoneNumber)}`);
       
       // Utilisation directe de envoyerRequeteApi avec l'application 'sms'
       const results = await dbService.envoyerRequeteApi(SMS_CONFIG.application, query);

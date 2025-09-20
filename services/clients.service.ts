@@ -207,14 +207,65 @@ export class ClientsService {
    * Récupérer les détails complets d'un client (pour modal multi-onglets)
    * ⚠️ FONCTION OBSOLÈTE - Remplacée par l'utilisation directe des données de getListeClients()
    * Les données complètes (factures, historique) sont déjà disponibles via get_list_clients
-   * Cette fonction est conservée mais non utilisée pour compatibilité.
+   * Cette fonction est conservée pour compatibilité avec useClientDetail.
    */
-  /*
   async getClientDetailComplet(idClient: number): Promise<ClientDetailComplet> {
     console.warn('⚠️ [CLIENTS] getClientDetailComplet() est obsolète - utiliser les données de getListeClients() directement');
-    throw new ClientsApiException('Fonction obsolète - utiliser les données existantes du client', 501);
+
+    // Utiliser getClientFactureDetails pour obtenir les données
+    const clientData = await this.getClientFactureDetails(idClient);
+
+    // Calculer les statistiques manquantes
+    const factures = clientData.factures || [];
+    const nombreFactures = factures.length;
+    const nombrePayees = factures.filter((f: any) => f.statut_paiement === 'PAYEE').length;
+    const nombreImpayees = factures.filter((f: any) => f.statut_paiement === 'IMPAYEE').length;
+    const montantTotal = factures.reduce((sum: number, f: any) => sum + (f.montant || 0), 0);
+    const montantPaye = factures.reduce((sum: number, f: any) => sum + (f.mt_paye || 0), 0);
+    const montantImpaye = factures.reduce((sum: number, f: any) => sum + (f.mt_restant || 0), 0);
+
+    // Calculer l'ancienneté
+    const dateCreation = clientData.client.date_creation || new Date().toISOString();
+    const ancienneteMs = Date.now() - new Date(dateCreation).getTime();
+    const ancienneteJours = Math.floor(ancienneteMs / (1000 * 60 * 60 * 24));
+    const ancienneteTexte = ancienneteJours > 365
+      ? `${Math.floor(ancienneteJours / 365)} an(s)`
+      : `${ancienneteJours} jour(s)`;
+
+    // Mapper les factures au format attendu
+    const facturesMapped = (clientData.factures || []).map((f: any) => ({
+      ...f,
+      numero_facture: f.num_facture || f.numero_facture,
+      montant_facture: f.montant || f.montant_facture,
+      statut_paiement: f.statut_paiement || (f.id_etat === 2 ? 'PAYEE' : f.id_etat === 3 ? 'PARTIELLE' : 'IMPAYEE')
+    }));
+
+    // Transformer en format ClientDetailComplet attendu par le hook
+    return {
+      client: clientData.client,
+      factures: facturesMapped,
+      historique_produits: (clientData as any).historique_produits || [],
+      stats_historique: (clientData as any).stats_historique || {
+        total_produits_achetes: 0,
+        montant_total_achats: 0,
+        produit_prefere: null,
+        dernier_achat: null
+      },
+      anciennete_jours: ancienneteJours,
+      anciennete_texte: ancienneteTexte,
+      statistiques_factures: {
+        nombre_factures: nombreFactures,
+        nombre_factures_payees: nombrePayees,
+        nombre_factures_impayees: nombreImpayees,
+        montant_total_factures: montantTotal,
+        montant_paye: montantPaye,
+        montant_impaye: montantImpaye,
+        pourcentage_paiement: montantTotal > 0 ? Math.round((montantPaye / montantTotal) * 100) : 0,
+        date_premiere_facture: factures.length > 0 ? factures[factures.length - 1].date_facture : '',
+        date_derniere_facture: factures.length > 0 ? factures[0].date_facture : ''
+      }
+    };
   }
-  */
 
   /**
    * Récupérer les détails mis à jour d'un client spécifique avec ses factures

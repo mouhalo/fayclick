@@ -1,40 +1,37 @@
 /**
  * Composant FactureCard avec design glassmorphism
  * Card moderne inspirée de la capture d'écran fournie
+ * Intégration avec ModalFacturePrivee - suppression du système dépliable
  */
 
 'use client';
 
-import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Eye, FileText,  CreditCard } from 'lucide-react';
+import { Eye, FileText, CreditCard } from 'lucide-react';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { StatusBadge } from '@/components/ui/StatusBadge';
-import { FactureDetails } from './FactureDetails';
 import { FactureComplete } from '@/types/facture';
 import { formatAmount, formatDate, cn } from '@/lib/utils';
 
 interface FactureCardProps {
   facture: FactureComplete;
-  onVoirDetails?: (facture: FactureComplete) => void;
+  onVoirDetailsModal?: (facture: FactureComplete) => void;
   onAjouterAcompte?: (facture: FactureComplete) => void;
   onPartager?: (facture: FactureComplete) => void;
   delay?: number;
 }
 
-export const FactureCard = ({ 
-  facture, 
-  onVoirDetails,
-  onAjouterAcompte, 
+export const FactureCard = ({
+  facture,
+  onVoirDetailsModal,
+  onAjouterAcompte,
   onPartager,
-  delay = 0 
+  delay = 0
 }: FactureCardProps) => {
   const { facture: factureData } = facture;
-  const [isDetailsExpanded, setIsDetailsExpanded] = useState(false);
 
   const handleVoirDetails = () => {
-    setIsDetailsExpanded(!isDetailsExpanded);
-    onVoirDetails?.(facture);
+    onVoirDetailsModal?.(facture);
   };
 
   // Animation variants pour la card
@@ -124,12 +121,11 @@ export const FactureCard = ({
               'text-white text-sm font-medium',
               'hover:bg-white/30 hover:scale-105',
               'transition-all duration-200',
-              'shadow-lg',
-              isDetailsExpanded && 'bg-white/30'
+              'shadow-lg'
             )}
           >
             <Eye className="w-4 h-4 mr-1.5" />
-            {isDetailsExpanded ? 'Masquer' : 'Voir détails'}
+            Voir détails
           </motion.button>
 
           {/* Action contextuelle selon le statut */}
@@ -175,15 +171,6 @@ export const FactureCard = ({
         {/* Effet de brillance sur hover */}
         <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-transparent via-white/5 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 pointer-events-none" />
       </GlassCard>
-
-      {/* Détails dépliable */}
-      {facture.details && facture.details.length > 0 && (
-        <FactureDetails
-          facture={facture}
-          isExpanded={isDetailsExpanded}
-          onToggle={() => setIsDetailsExpanded(!isDetailsExpanded)}
-        />
-      )}
     </motion.div>
   );
 };

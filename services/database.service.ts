@@ -333,7 +333,7 @@ class DatabaseService {
   async requestPasswordReset(login: string, telephone: string): Promise<any> {
     try {
       // Log sécurisé sans données sensibles
-      SecurityService.secureLog('info', `🔐 [DATABASE] Demande de récupération pour: ${login.substring(0, 3)}***`);
+      SecurityService.secureLog('log', `🔐 [DATABASE] Demande de récupération pour: ${login.substring(0, 3)}***`);
       
       // Échapper les quotes dans les paramètres
       const escapedLogin = login.replace(/'/g, "''");
@@ -367,7 +367,7 @@ class DatabaseService {
         }
         
         // Ne jamais logger le pwd_temp
-        SecurityService.secureLog('info', `✅ [DATABASE] Demande créée avec ID: ${data.message?.split(':')[1]?.trim()}`);
+        SecurityService.secureLog('log', `✅ [DATABASE] Demande créée avec ID: ${data.message?.split(':')[1]?.trim()}`);
         
         return data;
       }
@@ -387,7 +387,7 @@ class DatabaseService {
   async verifyPasswordResetCode(login: string, telephone: string, code: string): Promise<any> {
     try {
       // Log sécurisé sans le code
-      SecurityService.secureLog('info', `🔐 [DATABASE] Vérification code pour: ${login.substring(0, 3)}***`);
+      SecurityService.secureLog('log', `🔐 [DATABASE] Vérification code pour: ${login.substring(0, 3)}***`);
       
       // Échapper les quotes dans les paramètres
       const escapedLogin = login.replace(/'/g, "''");
@@ -424,7 +424,7 @@ class DatabaseService {
         
         if (data.status === 'success') {
           // Ne jamais logger le nouveau_password
-          SecurityService.secureLog('info', `✅ [DATABASE] Mot de passe réinitialisé avec succès pour: ${data.utilisateur}`);
+          SecurityService.secureLog('log', `✅ [DATABASE] Mot de passe réinitialisé avec succès pour: ${data.utilisateur}`);
         } else {
           SecurityService.secureLog('warn', `⚠️ [DATABASE] Code invalide ou expiré`);
         }
