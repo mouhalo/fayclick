@@ -105,11 +105,14 @@ class FacturePriveeService {
 
       console.log('📦 Données parsées:', parsedData);
 
-      if (!parsedData.factures || parsedData.factures.length === 0) {
+      // La fonction retourne un objet avec le nom de la fonction comme clé
+      const functionResult = parsedData.rechercher_multifacturecom1 || parsedData.rechercher_multifacturecom;
+
+      if (!functionResult || !functionResult.factures || functionResult.factures.length === 0) {
         throw new Error('Aucune facture trouvée dans la réponse');
       }
 
-      const factureData = parsedData.factures[0];
+      const factureData = functionResult.factures[0];
 
       // Transformation pour correspondre au format attendu
       return {
