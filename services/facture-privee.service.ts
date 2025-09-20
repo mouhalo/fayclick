@@ -1,10 +1,9 @@
 /**
  * Service pour la gestion des factures privées des commerçants
- * API: rechercher_multifacturecom pour récupérer les détails
+ * API: rechercher_multifacturecom au format XML
  */
 
 import { API_CONFIG } from '@/lib/api-config';
-import { FactureComplete } from '@/types/facture';
 
 export interface FacturePriveeData {
   id_facture: number;
@@ -52,18 +51,37 @@ class FacturePriveeService {
   private baseUrl = API_CONFIG.baseUrl;
 
   /**
+   * Construit le XML pour l'API
+   */
+  private construireXml(requeteSql: string): string {
+    const sql_text = requeteSql.replace(/\n/g, ' ').trim();
+    return `<?xml version="1.0" encoding="UTF-8"?>
+<request>
+    <application>fayclick</application>
+    <requete_sql>${sql_text}</requete_sql>
+</request>`;
+  }
+
+  /**
    * Récupère les détails d'une facture privée pour un commerçant
    */
   async getFacturePrivee(idFacture: number): Promise<FacturePriveeData> {
     try {
+      const requete = `SELECT * FROM public.rechercher_multifacturecom('', ${idFacture})`;
+      const xmlBody = this.construireXml(requete);
+
+      console.log('🔍 Appel API facture privée:', {
+        idFacture,
+        requete,
+        url: this.baseUrl
+      });
+
       const response = await fetch(this.baseUrl, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/xml',
         },
-        body: JSON.stringify({
-          requete: `SELECT * FROM public.rechercher_multifacturecom('', ${idFacture})`
-        })
+        body: xmlBody
       });
 
       if (!response.ok) {
@@ -71,6 +89,8 @@ class FacturePriveeService {
       }
 
       const data = await response.json();
+
+      console.log('📦 Réponse API:', data);
 
       if (!data.success || !data.data || data.data.length === 0) {
         throw new Error('Facture introuvable');
@@ -123,14 +143,15 @@ class FacturePriveeService {
         throw new Error('Seules les factures impayées peuvent être supprimées');
       }
 
+      const requete = `DELETE FROM factures WHERE id_facture = ${idFacture} AND id_structure = ${idStructure} AND id_etat = 1`;
+      const xmlBody = this.construireXml(requete);
+
       const response = await fetch(this.baseUrl, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/xml',
         },
-        body: JSON.stringify({
-          requete: `DELETE FROM factures WHERE id_facture = ${idFacture} AND id_structure = ${idStructure} AND id_etat = 1`
-        })
+        body: xmlBody
       });
 
       if (!response.ok) {
@@ -163,14 +184,15 @@ class FacturePriveeService {
    */
   async getHistoriquePaiements(idFacture: number): Promise<PaiementHistorique[]> {
     try {
+      const requete = `SELECT * FROM paiements WHERE id_facture = ${idFacture} ORDER BY date_paiement DESC`;
+      const xmlBody = this.construireXml(requete);
+
       const response = await fetch(this.baseUrl, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/xml',
         },
-        body: JSON.stringify({
-          requete: `SELECT * FROM paiements WHERE id_facture = ${idFacture} ORDER BY date_paiement DESC`
-        })
+        body: xmlBody
       });
 
       if (!response.ok) {
