@@ -1,5 +1,17 @@
-# Redirections pour site statique Next.js
+# Configuration Apache pour FayClick V2
+# Gestion des routes Next.js avec export statique
+
+# Activer le moteur de réécriture
 RewriteEngine On
+
+# IMPORTANT: Gestion des factures avec token
+# Redirection des URLs /fay/XXX vers /facture?token=XXX
+RewriteRule ^fay/(.+)$ /facture?token=$1 [L,QSA,R=301]
+
+# Si on accède à /facture avec un token, servir facture.html
+RewriteCond %{REQUEST_URI} ^/facture$
+RewriteCond %{QUERY_STRING} token=([^&]+)
+RewriteRule ^facture$ /facture.html [L,QSA]
 
 # Rediriger /login vers /login.html si le fichier n'existe pas
 RewriteCond %{REQUEST_FILENAME} !-f
@@ -21,7 +33,10 @@ RewriteCond %{REQUEST_URI} !^/_next/
 RewriteCond %{REQUEST_URI} !\.(css|js|png|jpg|ico|svg|json)$
 RewriteRule ^([^/]+)/?$ /$1.html [L]
 
-# Support pour dossiers avec index.html  
+# Support pour dossiers avec index.html
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule ^([^/]+)/([^/]+)/?$ /$1/$2.html [L]
+
+# Page 404 personnalisée
+ErrorDocument 404 /404.html
