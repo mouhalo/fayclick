@@ -3,7 +3,7 @@
  * API: rechercher_multifacturecom pour récupérer les détails
  */
 
-import { apiConfig } from '@/lib/api-config';
+import { API_CONFIG } from '@/lib/api-config';
 import { FactureComplete } from '@/types/facture';
 
 export interface FacturePriveeData {
@@ -49,7 +49,7 @@ export interface SupprimerFactureResponse {
 }
 
 class FacturePriveeService {
-  private baseUrl = apiConfig.baseUrl;
+  private baseUrl = API_CONFIG.baseUrl;
 
   /**
    * Récupère les détails d'une facture privée pour un commerçant
