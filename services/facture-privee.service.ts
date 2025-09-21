@@ -68,7 +68,7 @@ class FacturePriveeService {
    */
   async getFacturePrivee(idFacture: number): Promise<FacturePriveeData> {
     try {
-      const requete = `SELECT * FROM public.rechercher_multifacturecom1('', ${idFacture})`;
+      const requete = `SELECT * FROM public.rechercher_multifacturecom('', ${idFacture})`;
       const xmlBody = this.construireXml(requete);
 
       console.log('🔍 Appel API facture privée:', {
