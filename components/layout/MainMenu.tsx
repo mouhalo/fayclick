@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { authService } from '@/services/auth.service';
+import { ModalDeconnexion } from '@/components/auth/ModalDeconnexion';
 
 interface MenuProps {
   isOpen: boolean;
@@ -16,6 +17,7 @@ export default function MainMenu({ isOpen, onClose, userName, businessName }: Me
   const router = useRouter();
   const menuRef = useRef<HTMLDivElement>(null);
   const [showProfileModal, setShowProfileModal] = useState(false);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   // Fermer le menu si on clique à l'extérieur
   useEffect(() => {
@@ -40,9 +42,17 @@ export default function MainMenu({ isOpen, onClose, userName, businessName }: Me
   };
 
   const handleLogout = () => {
-    if (confirm('Êtes-vous sûr de vouloir vous déconnecter ?')) {
-      authService.logout();
-    }
+    setShowLogoutModal(true);
+  };
+
+  const handleConfirmLogout = () => {
+    setShowLogoutModal(false);
+    onClose();
+    authService.logout();
+  };
+
+  const handleCancelLogout = () => {
+    setShowLogoutModal(false);
   };
 
   return (
@@ -141,6 +151,14 @@ export default function MainMenu({ isOpen, onClose, userName, businessName }: Me
           user={authService.getUser()}
         />
       )}
+
+      {/* Modal de déconnexion */}
+      <ModalDeconnexion
+        isOpen={showLogoutModal}
+        onClose={handleCancelLogout}
+        onConfirm={handleConfirmLogout}
+        userName={userName}
+      />
     </>
   );
 }

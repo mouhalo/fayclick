@@ -27,7 +27,7 @@ interface ModalPaiementProps {
   isOpen: boolean;
   onClose: () => void;
   facture: FactureComplete | null;
-  onSuccess?: (nouvelleFacture: any) => void;
+  onSuccess?: (nouvelleFacture: unknown) => void;
 }
 
 export function ModalPaiement({ isOpen, onClose, facture, onSuccess }: ModalPaiementProps) {
@@ -177,15 +177,15 @@ export function ModalPaiement({ isOpen, onClose, facture, onSuccess }: ModalPaie
           onClose();
         }, 2000);
       }
-    } catch (error: any) {
-      setError(error.message || 'Erreur lors du paiement');
+    } catch (error: unknown) {
+      setError(error instanceof Error ? error.message : 'Erreur lors du paiement');
     } finally {
       setLoading(false);
     }
   };
 
   // Gérer le succès du paiement wallet
-  const handleWalletPaymentComplete = async (uuid: string) => {
+  const handleWalletPaymentComplete = async () => {
     if (!facture || !montants || !selectedPaymentMethod) return;
 
     try {
@@ -210,10 +210,10 @@ export function ModalPaiement({ isOpen, onClose, facture, onSuccess }: ModalPaie
           onClose();
         }, 2000);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Erreur enregistrement acompte:', error);
       setShowQRCode(false);
-      setError(error.message || 'Erreur lors de l\'enregistrement');
+      setError(error instanceof Error ? error.message : 'Erreur lors de l\'enregistrement');
     }
   };
 
@@ -364,7 +364,7 @@ export function ModalPaiement({ isOpen, onClose, facture, onSuccess }: ModalPaie
               <div className="space-y-4 mb-6">
                 <div>
                   <label className={`block text-gray-700 font-medium mb-2 ${styles.subtitle}`}>
-                    Montant de l'acompte
+                    Montant de l&apos;acompte
                   </label>
                   <div className="relative">
                     <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -489,7 +489,7 @@ export function ModalPaiement({ isOpen, onClose, facture, onSuccess }: ModalPaie
                     <>
                       <CreditCard className={styles.icon} />
                       <span>
-                        {montants?.estSoldee ? 'Solder la facture' : 'Ajouter l\'acompte'}
+                        {montants?.estSoldee ? 'Solder la facture' : 'Ajouter l&apos;acompte'}
                       </span>
                     </>
                   )}

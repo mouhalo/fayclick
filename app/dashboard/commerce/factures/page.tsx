@@ -133,11 +133,12 @@ export default function FacturesGlassPage() {
   }, []);
 
   // Succès de paiement
-  const handlePaiementSuccess = useCallback((response: { message?: string }) => {
+  const handlePaiementSuccess = useCallback((response: unknown) => {
+    const typedResponse = response as { message?: string };
     setToast({
       isOpen: true,
       type: 'success',
-      message: response.message || 'Paiement enregistré avec succès'
+      message: typedResponse.message || 'Paiement enregistré avec succès'
     });
 
     // Recharger les factures
@@ -334,7 +335,7 @@ export default function FacturesGlassPage() {
         isOpen={modalFacturePrivee.isOpen}
         onClose={closeModalFacturePrivee}
         factureId={modalFacturePrivee.facture?.facture.id_facture}
-        onFactureDeleted={(idFacture) => {
+        onFactureDeleted={() => {
           // Recharger les factures après suppression
           loadFactures();
           setToast({
@@ -343,7 +344,7 @@ export default function FacturesGlassPage() {
             message: 'Facture supprimée avec succès'
           });
         }}
-        onPaymentComplete={(idFacture) => {
+        onPaymentComplete={() => {
           // Recharger les factures après paiement
           loadFactures();
           setToast({

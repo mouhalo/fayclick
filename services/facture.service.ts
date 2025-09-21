@@ -11,7 +11,7 @@ import { AjouterAcompteData, AjouterAcompteResponse } from '@/types/facture';
 
 // Exceptions personnalisées pour les factures
 export class FactureApiException extends Error {
-  constructor(message: string, public statusCode: number = 500, public originalError?: any) {
+  constructor(message: string, public statusCode: number = 500, public originalError?: unknown) {
     super(message);
     this.name = 'FactureApiException';
   }
@@ -228,7 +228,7 @@ class FactureService {
   /**
    * Récupérer les détails d'une facture depuis list_factures_com
    */
-  async getFactureDetails(id_facture: number): Promise<any> {
+  async getFactureDetails(id_facture: number): Promise<unknown> {
     try {
       const user = authService.getUser();
       if (!user) {

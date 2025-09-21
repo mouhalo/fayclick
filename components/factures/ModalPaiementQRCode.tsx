@@ -5,7 +5,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   X,
@@ -49,73 +49,29 @@ export function ModalPaiementQRCode({
   const [modalState, setModalState] = useState<ModalState>('LOADING');
   const [qrCode, setQrCode] = useState<string>('');
   const [paymentUrl, setPaymentUrl] = useState<string | null>(null);
-  const [paymentUuid, setPaymentUuid] = useState<string>('');
+  // const [paymentUuid, setPaymentUuid] = useState<string>(''); // Supprimé car non utilisé
   const [timeRemaining, setTimeRemaining] = useState(60); // 60 secondes
   const [error, setError] = useState<string>('');
 
   const walletConfig = WALLET_CONFIG[paymentMethod];
 
-  // Effet pour initialiser le paiement
-  useEffect(() => {
-    if (isOpen && modalState === 'LOADING') {
-      initializePayment();
-    }
-  }, [isOpen, modalState]);
+  // Fonction handleTimeout avec useCallback
+  const handleTimeout = useCallback(() => {
+    console.log('⏱️ Timeout du paiement');
+    setModalState('TIMEOUT');
+    paymentWalletService.stopPolling();
+    setTimeout(() => {
+      onClose();
+    }, 3000);
+  }, [onClose]);
 
-  // Effet pour le timer
-  useEffect(() => {
-    if (modalState === 'SHOWING_QR' || modalState === 'PROCESSING') {
-      const timer = setInterval(() => {
-        setTimeRemaining((prev) => {
-          if (prev <= 1) {
-            handleTimeout();
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-
-      return () => clearInterval(timer);
-    }
-  }, [modalState]);
-
-  // Effet de nettoyage
-  useEffect(() => {
-    return () => {
-      paymentWalletService.stopPolling();
-    };
-  }, []);
-
-  const initializePayment = async () => {
-    try {
-      console.log('🚀 Initialisation du paiement:', paymentMethod);
-
-      const response = await paymentWalletService.createPayment(
-        paymentMethod,
-        paymentContext
-      );
-
-      setPaymentUuid(response.uuid);
-      setQrCode(paymentWalletService.formatQRCode(response.qrCode));
-      setPaymentUrl(paymentWalletService.extractPaymentUrl(response, paymentMethod));
-      setModalState('SHOWING_QR');
-
-      // Démarrer le polling
-      startPolling(response.uuid);
-
-    } catch (error: any) {
-      console.error('❌ Erreur initialisation:', error);
-      setError(error.message || 'Erreur lors de la création du paiement');
-      setModalState('FAILED');
-    }
-  };
-
-  const startPolling = (uuid: string) => {
+  // Fonction startPolling avec gestion améliorée
+  const startPolling = useCallback((uuid: string) => {
     console.log('🔄 Démarrage du polling pour:', uuid);
 
     paymentWalletService.startPolling(
       uuid,
-      (status: PaymentStatus, data) => {
+      (status: PaymentStatus) => {
         console.log('📊 Statut reçu:', status);
 
         switch (status) {
@@ -140,18 +96,65 @@ export function ModalPaiementQRCode({
             break;
         }
       },
-      60000 // 1 minute
+      90000 // 1 minute
     );
-  };
+  }, [onPaymentComplete, onPaymentFailed, handleTimeout]);
 
-  const handleTimeout = () => {
-    console.log('⏱️ Timeout du paiement');
-    setModalState('TIMEOUT');
-    paymentWalletService.stopPolling();
-    setTimeout(() => {
-      onClose();
-    }, 3000);
-  };
+  // Fonction d'initialisation avec useCallback pour éviter les re-renders
+  const initializePayment = useCallback(async () => {
+    try {
+      console.log('🚀 Initialisation du paiement:', paymentMethod);
+
+      const response = await paymentWalletService.createPayment(
+        paymentMethod,
+        paymentContext
+      );
+
+      // setPaymentUuid(response.uuid); // Supprimé car non utilisé
+      setQrCode(paymentWalletService.formatQRCode(response.qrCode));
+      setPaymentUrl(paymentWalletService.extractPaymentUrl(response, paymentMethod));
+      setModalState('SHOWING_QR');
+
+      // Démarrer le polling
+      startPolling(response.uuid);
+
+    } catch (error: unknown) {
+      console.error('❌ Erreur initialisation:', error);
+      setError(error instanceof Error ? error.message : 'Erreur lors de la création du paiement');
+      setModalState('FAILED');
+    }
+  }, [paymentMethod, paymentContext, startPolling]);
+
+  // Effet pour initialiser le paiement
+  useEffect(() => {
+    if (isOpen && modalState === 'LOADING') {
+      initializePayment();
+    }
+  }, [isOpen, modalState, initializePayment]);
+
+  // Effet pour le timer
+  useEffect(() => {
+    if (modalState === 'SHOWING_QR' || modalState === 'PROCESSING') {
+      const timer = setInterval(() => {
+        setTimeRemaining((prev) => {
+          if (prev <= 1) {
+            handleTimeout();
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+
+      return () => clearInterval(timer);
+    }
+  }, [modalState, handleTimeout]);
+
+  // Effet de nettoyage
+  useEffect(() => {
+    return () => {
+      paymentWalletService.stopPolling();
+    };
+  }, []);
 
   const handleClose = () => {
     paymentWalletService.stopPolling();
@@ -251,6 +254,7 @@ export function ModalPaiementQRCode({
                 {/* QR Code */}
                 <div className="bg-white p-4 rounded-2xl shadow-inner border mb-6 inline-block">
                   {qrCode ? (
+                    // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={qrCode}
                       alt="QR Code de paiement"
@@ -277,7 +281,7 @@ export function ModalPaiementQRCode({
                     </div>
                     <div className="flex items-start gap-3">
                       <CheckCircle className="w-5 h-5 text-blue-600 mt-0.5" />
-                      <p>Confirmez le paiement dans l'application</p>
+                      <p>Confirmez le paiement dans l&apos;application</p>
                     </div>
                   </div>
 
@@ -322,7 +326,7 @@ export function ModalPaiementQRCode({
                   Paiement confirmé !
                 </h3>
                 <p className="text-green-600">
-                  L'acompte a été enregistré avec succès
+                  L&apos;acompte a été enregistré avec succès
                 </p>
               </div>
             )}

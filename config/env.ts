@@ -18,7 +18,7 @@ export const API_CONFIG: ApiConfig = {
   // Utilise le système de détection automatique existant (l'endpoint complet est déjà configuré)
   ENDPOINT: getApiBaseUrl(),
   TIMEOUT: 30000,
-  APPLICATION_NAME: 'payecole',
+  APPLICATION_NAME: 'fayclick',
   // Endpoint Orange Money depuis .env
   ORANGE_ENDPOINT: process.env.ORANGE_ENDPOINT || 'https://api.icelabsoft.com/orange/pay_om'
 };
