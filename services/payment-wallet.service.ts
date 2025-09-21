@@ -99,12 +99,12 @@ class PaymentWalletService {
    * Démarrer le polling du statut de paiement
    * @param uuid - UUID du paiement
    * @param onStatusUpdate - Callback appelé à chaque mise à jour
-   * @param timeout - Timeout en millisecondes (défaut: 60000ms = 1 minute)
+   * @param timeout - Timeout en millisecondes (défaut: 60000ms = 1 minute +30 secondes)
    */
   startPolling(
     uuid: string,
     onStatusUpdate: (status: PaymentStatus, data?: PaymentStatusResponse) => void,
-    timeout: number = 60000
+    timeout: number = 90000
   ): void {
     // Nettoyer le polling précédent si existant
     this.stopPolling();

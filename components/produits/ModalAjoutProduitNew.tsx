@@ -34,21 +34,25 @@ interface ModalAjoutProduitNewProps {
   onClose: () => void;
   onSuccess: (produit: AddEditProduitResponse) => void;
   onStockUpdate?: (id_produit: number, nouveau_stock: number) => void;
+  onRequestStockAddition?: (produit: AddEditProduitResponse) => void;
   produitToEdit?: Produit | null;
   typeStructure: string;
+  defaultTab?: 'informations' | 'gestion-stock' | 'historique';
 }
 
 type OngletType = 'informations' | 'gestion-stock' | 'historique';
 
-export function ModalAjoutProduitNew({ 
-  isOpen, 
-  onClose, 
-  onSuccess, 
-  onStockUpdate, 
-  produitToEdit, 
-  typeStructure 
+export function ModalAjoutProduitNew({
+  isOpen,
+  onClose,
+  onSuccess,
+  onStockUpdate,
+  onRequestStockAddition,
+  produitToEdit,
+  typeStructure,
+  defaultTab = 'informations'
 }: ModalAjoutProduitNewProps) {
-  const [ongletActif, setOngletActif] = useState<OngletType>('informations');
+  const [ongletActif, setOngletActif] = useState<OngletType>(defaultTab);
   const [formData, setFormData] = useState<ProduitFormDataNew>({
     nom_produit: '',
     cout_revient: 0,
@@ -68,9 +72,15 @@ export function ModalAjoutProduitNew({
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingStock, setIsLoadingStock] = useState(false);
   const [isLoadingHistorique, setIsLoadingHistorique] = useState(false);
+  const [showStockSuccessModal, setShowStockSuccessModal] = useState(false);
+  const [lastStockMovement, setLastStockMovement] = useState<{
+    quantite: number;
+    type_mouvement: string;
+    produit: string;
+  } | null>(null);
 
   // Liste des catégories prédéfinies selon le type de structure
-  const categories = typeStructure === 'PRESTATAIRE DE SERVICES' 
+  const categories = typeStructure === 'PRESTATAIRE DE SERVICES'
     ? ['Consultation', 'Formation', 'Installation', 'Maintenance', 'Support', 'Autre']
     : ['Électronique', 'Vêtements', 'Alimentation', 'Mobilier', 'Automobile', 'Santé', 'Autre'];
 
@@ -97,8 +107,9 @@ export function ModalAjoutProduitNew({
   ];
 
   // Onglets filtrés selon le contexte
-  const ongletsAffiches = onglets.filter(onglet => 
-    onglet.alwaysVisible || (produitToEdit && !produitToEdit.est_service)
+  const ongletsAffiches = onglets.filter(onglet =>
+    onglet.alwaysVisible ||
+    (produitToEdit && !produitToEdit.est_service)
   );
 
   // Initialiser le formulaire quand on modifie un produit
@@ -136,9 +147,12 @@ export function ModalAjoutProduitNew({
       });
     }
     setErrors({});
-    setOngletActif('informations');
+    setOngletActif(defaultTab);
     setHistorique(null);
-  }, [produitToEdit, isOpen, typeStructure]);
+    // Reset modal de confirmation de stock
+    setShowStockSuccessModal(false);
+    setLastStockMovement(null);
+  }, [produitToEdit, isOpen, typeStructure, defaultTab]);
 
   // Charger l'historique quand on ouvre l'onglet
   useEffect(() => {
@@ -150,7 +164,7 @@ export function ModalAjoutProduitNew({
   // Charger l'historique des mouvements
   const loadHistorique = async () => {
     if (!produitToEdit) return;
-    
+
     setIsLoadingHistorique(true);
     try {
       const data = await produitsService.getHistoriqueMouvements(produitToEdit.id_produit);
@@ -195,22 +209,31 @@ export function ModalAjoutProduitNew({
   // Gestion de la soumission du formulaire principal
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) return;
 
     setIsLoading(true);
-    
+
     try {
       let result: AddEditProduitResponse;
-      
-      if (produitToEdit) {
-        result = await produitsService.updateProduitNew(produitToEdit.id_produit, formData);
-      } else {
-        result = await produitsService.createProduitNew(formData);
-      }
 
-      onSuccess(result);
-      onClose();
+      if (produitToEdit) {
+        // Modification d'un produit existant - comportement normal
+        result = await produitsService.updateProduitNew(produitToEdit.id_produit, formData);
+        onSuccess(result);
+        onClose();
+      } else {
+        // Création d'un nouveau produit
+        result = await produitsService.createProduitNew(formData);
+        onSuccess(result);
+
+        // Si c'est un produit (pas un service) ET qu'on a le callback, proposer l'ajout de stock
+        if (!formData.est_service && onRequestStockAddition) {
+          onRequestStockAddition(result);
+        } else {
+          onClose();
+        }
+      }
     } catch (error) {
       console.error('Erreur lors de la sauvegarde:', error);
     } finally {
@@ -221,18 +244,25 @@ export function ModalAjoutProduitNew({
   // Gestion de la soumission du mouvement de stock
   const handleStockSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!produitToEdit || stockForm.quantite <= 0) return;
 
     setIsLoadingStock(true);
-    
+
     try {
       const result = await produitsService.addMouvementStockLegacy(produitToEdit.id_produit, stockForm);
-      
+
       if (result.success && onStockUpdate) {
         onStockUpdate(produitToEdit.id_produit, result.nouveau_stock);
       }
-      
+
+      // Sauvegarder les infos du mouvement pour la modal de confirmation
+      setLastStockMovement({
+        quantite: stockForm.quantite,
+        type_mouvement: stockForm.type_mouvement,
+        produit: produitToEdit.nom_produit
+      });
+
       // Reset form
       setStockForm({
         quantite: 0,
@@ -240,13 +270,15 @@ export function ModalAjoutProduitNew({
         type_mouvement: 'ENTREE',
         description: ''
       });
-      
+
       // Refresh historique si ouvert
       if (historique) {
         loadHistorique();
       }
-      
-      // Message de succès (à implémenter avec votre système de notifications)
+
+      // Afficher la modal de confirmation
+      setShowStockSuccessModal(true);
+
       console.log('Mouvement ajouté avec succès');
       
     } catch (error) {
@@ -302,20 +334,28 @@ export function ModalAjoutProduitNew({
 
             {/* Navigation onglets */}
             <div className="flex space-x-1 bg-sky-100/30 backdrop-blur-sm rounded-lg p-1">
-              {ongletsAffiches.map((onglet) => (
-                <button
-                  key={onglet.id}
-                  onClick={() => setOngletActif(onglet.id)}
-                  className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-md text-sm font-medium transition-all ${
-                    ongletActif === onglet.id
-                      ? 'bg-white shadow-sm text-sky-900'
-                      : 'text-sky-700 hover:text-sky-900 hover:bg-sky-50/50'
-                  }`}
-                >
-                  <onglet.icon className="w-4 h-4" />
-                  <span className="hidden sm:inline">{onglet.label}</span>
-                </button>
-              ))}
+              {ongletsAffiches.map((onglet) => {
+                const shortLabels = {
+                  'informations': 'Infos',
+                  'gestion-stock': 'Stocks',
+                  'historique': 'Historique'
+                };
+
+                return (
+                  <button
+                    key={onglet.id}
+                    onClick={() => setOngletActif(onglet.id)}
+                    className={`flex-1 flex flex-col items-center justify-center gap-1 px-3 py-2.5 rounded-md text-xs font-medium transition-all ${
+                      ongletActif === onglet.id
+                        ? 'bg-white shadow-sm text-sky-900'
+                        : 'text-sky-700 hover:text-sky-900 hover:bg-sky-50/50'
+                    }`}
+                  >
+                    <onglet.icon className="w-4 h-4" />
+                    <span>{shortLabels[onglet.id]}</span>
+                  </button>
+                );
+              })}
             </div>
           </div>
 
@@ -507,8 +547,8 @@ export function ModalAjoutProduitNew({
                 className="space-y-6"
               >
                 <div className="bg-gradient-to-r from-sky-50 to-blue-50 backdrop-blur-sm p-4 rounded-lg border border-sky-200/50">
-                  <h4 className="font-semibold text-slate-900 mb-2">Produit: {produitToEdit.nom_produit}</h4>
-                  <p className="text-sm text-slate-600">Stock actuel: <span className="font-medium">{produitToEdit.niveau_stock || 0} unités</span></p>
+                  <h4 className="font-semibold text-slate-900 mb-2">Produit: {produitToEdit?.nom_produit}</h4>
+                  <p className="text-sm text-slate-600">Stock actuel: <span className="font-medium">{produitToEdit?.niveau_stock || produitToEdit?.stock_actuel || 0} unités</span></p>
                 </div>
 
                 <form onSubmit={handleStockSubmit} className="space-y-5">
@@ -711,6 +751,58 @@ export function ModalAjoutProduitNew({
           </div>
         </motion.div>
       </motion.div>
+
+      {/* Modal de confirmation d'ajout de stock réussi */}
+      {showStockSuccessModal && lastStockMovement && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4"
+          onClick={() => setShowStockSuccessModal(false)}
+        >
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.9, opacity: 0 }}
+            className="bg-white rounded-xl p-6 max-w-md w-full shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="text-center">
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                {lastStockMovement.type_mouvement === 'ENTREE' ? (
+                  <TrendingUp className="w-8 h-8 text-green-600" />
+                ) : (
+                  <TrendingDown className="w-8 h-8 text-red-600" />
+                )}
+              </div>
+              <h3 className="text-xl font-bold text-slate-900 mb-2">
+                Stock mis à jour !
+              </h3>
+              <div className="text-slate-600 mb-6 space-y-2">
+                <p className="font-medium">{lastStockMovement.produit}</p>
+                <p>
+                  <span className={`font-semibold ${
+                    lastStockMovement.type_mouvement === 'ENTREE' ? 'text-green-600' : 'text-red-600'
+                  }`}>
+                    {lastStockMovement.type_mouvement === 'ENTREE' ? '+' : '-'}
+                    {lastStockMovement.quantite} unités
+                  </span>
+                </p>
+                <p className="text-sm">
+                  {lastStockMovement.type_mouvement === 'ENTREE' ? 'ajoutées au' : 'retirées du'} stock
+                </p>
+              </div>
+              <button
+                onClick={() => setShowStockSuccessModal(false)}
+                className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+              >
+                Continuer
+              </button>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
     </AnimatePresence>
   );
 }

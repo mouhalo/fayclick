@@ -4,43 +4,7 @@
  */
 
 import { API_CONFIG } from '@/lib/api-config';
-import { DetailFacture } from '@/types/facture-privee';
-
-export interface FacturePriveeData {
-  id_facture: number;
-  num_facture: string;
-  id_structure: number;
-  nom_structure: string;
-  date_facture: string;
-  nannee: number;
-  nmois: number;
-  description: string;
-  nom_classe: string;
-  tel_client: string;
-  nom_client: string;
-  montant: number;
-  id_etat: number;
-  libelle_etat: 'PAYEE' | 'IMPAYEE';
-  numrecu: string;
-  logo: string;
-  tms_update: string | null;
-  avec_frais: boolean;
-  periode: string;
-  mt_reverser: boolean;
-  mt_remise: number;
-  mt_acompte: number;
-  mt_restant: number;
-  photo_url: string;
-}
-
-export interface PaiementHistorique {
-  id_paiement: number;
-  date_paiement: string;
-  montant: number;
-  mode_paiement: string;
-  reference: string;
-  statut: string;
-}
+import { FacturePriveeData, PaiementHistorique } from '@/types/facture-privee';
 
 export interface SupprimerFactureResponse {
   success: boolean;
@@ -222,14 +186,24 @@ class FacturePriveeService {
         return [];
       }
 
-      return data.datas?.map((paiement: any) => ({
-        id_paiement: paiement.id_paiement,
-        date_paiement: paiement.date_paiement,
-        montant: paiement.montant,
-        mode_paiement: paiement.mode_paiement || 'Non spécifié',
-        reference: paiement.reference || '',
-        statut: paiement.statut || 'Confirmé'
-      })) || [];
+      return data.datas?.map((paiement: unknown) => {
+        const typedPaiement = paiement as {
+          id_paiement: number;
+          date_paiement: string;
+          montant: number;
+          mode_paiement?: string;
+          reference?: string;
+          statut?: string;
+        };
+        return {
+          id_paiement: typedPaiement.id_paiement,
+          date_paiement: typedPaiement.date_paiement,
+          montant: typedPaiement.montant,
+          mode_paiement: typedPaiement.mode_paiement || 'Non spécifié',
+          reference: typedPaiement.reference || '',
+          statut: typedPaiement.statut || 'Confirmé'
+        };
+      }) || [];
     } catch (error) {
       console.error('Erreur lors de la récupération de l\'historique:', error);
       return [];

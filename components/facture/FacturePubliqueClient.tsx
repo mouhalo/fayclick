@@ -1,11 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Receipt,
   User,
-  Phone,
   Calendar,
   Package,
   DollarSign,
@@ -15,8 +14,6 @@ import {
   Eye,
   EyeOff,
   ChevronDown,
-  ChevronUp,
-  Building,
   FileText
 } from 'lucide-react';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
@@ -26,7 +23,6 @@ import { FactureComplete } from '@/types/facture';
 import { ModalChoixPaiement } from '@/components/factures/ModalChoixPaiement';
 import { ModalPaiementQRCode } from '@/components/factures/ModalPaiementQRCode';
 import { PaymentMethod, PaymentContext } from '@/types/payment-wallet';
-import { factureService } from '@/services/facture.service';
 
 interface FacturePubliqueClientProps {
   token: string;
@@ -48,11 +44,7 @@ export default function FacturePubliqueClient({ token }: FacturePubliqueClientPr
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethod | null>(null);
   const [paymentSuccess, setPaymentSuccess] = useState(false);
 
-  useEffect(() => {
-    loadFacture();
-  }, [token]);
-
-  const loadFacture = async () => {
+  const loadFacture = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -68,29 +60,35 @@ export default function FacturePubliqueClient({ token }: FacturePubliqueClientPr
 
       // Charger les détails de la facture
       const factureData = await facturePubliqueService.getFacturePublique(idStructure, idFacture);
-      
+
       if (!factureData) {
         throw new Error('Facture introuvable');
       }
 
-      setFacture(factureData);
+      // Assertion de type pour unknown vers FactureComplete
+      const typedFactureData = factureData as FactureComplete;
+      setFacture(typedFactureData);
 
       // Debug: Vérifier le contenu du logo
       console.log('🔍 Debug facture data:', {
-        id_facture: factureData.facture.id_facture,
-        nom_structure: factureData.facture.nom_structure,
-        logo: factureData.facture.logo,
-        logo_type: typeof factureData.facture.logo,
-        logo_length: factureData.facture.logo?.length
+        id_facture: typedFactureData.facture.id_facture,
+        nom_structure: typedFactureData.facture.nom_structure,
+        logo: typedFactureData.facture.logo,
+        logo_type: typeof typedFactureData.facture.logo,
+        logo_length: typedFactureData.facture.logo?.length
       });
 
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Erreur lors du chargement de la facture:', err);
-      setError(err.message || 'Impossible de charger la facture');
+      setError(err instanceof Error ? err.message : 'Impossible de charger la facture');
     } finally {
       setLoading(false);
     }
-  };
+  }, [token]);
+
+  useEffect(() => {
+    loadFacture();
+  }, [loadFacture]);
 
   const formatMontant = (montant: number): string => {
     return new Intl.NumberFormat('fr-SN', {
@@ -145,7 +143,7 @@ export default function FacturePubliqueClient({ token }: FacturePubliqueClientPr
     };
   };
 
-  const handleWalletPaymentComplete = async (uuid: string) => {
+  const handleWalletPaymentComplete = async () => {
     // Pour le contexte public, on affiche juste un message de succès
     setShowQRCode(false);
     setPaymentSuccess(true);
@@ -259,6 +257,7 @@ export default function FacturePubliqueClient({ token }: FacturePubliqueClientPr
             {facture.facture.logo && facture.facture.logo.trim() !== '' && (
               <div className="mb-4">
                 <div className="inline-block p-3 bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/40">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={facture.facture.logo}
                     alt={`Logo ${facture.facture.nom_structure}`}
@@ -513,7 +512,7 @@ export default function FacturePubliqueClient({ token }: FacturePubliqueClientPr
                   <div className="mt-6 text-center p-4 bg-amber-50 rounded-xl border border-amber-200">
                     <p className="text-amber-800 text-sm">
                       <Eye className="w-4 h-4 inline mr-2" />
-                      Les prix sont masqués. Cliquez sur "Afficher les prix" pour les consulter.
+                      Les prix sont masqués. Cliquez sur &ldquo;Afficher les prix&rdquo; pour les consulter.
                     </p>
                   </div>
                 )}

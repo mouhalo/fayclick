@@ -27,7 +27,7 @@ import { useToast } from '@/components/ui/Toast';
 interface CarteProduitProps {
   produit: Produit;
   onEdit: (produit: Produit) => void;
-  onDelete: (id: number) => void;
+  onDelete: (produit: Produit) => void;
   typeStructure: string;
   compactMode?: boolean;
 }
@@ -221,7 +221,7 @@ export function CarteProduit({
           <motion.button
             whileTap={{ scale: 0.9 }}
             whileHover={{ rotate: 5 }}
-            onClick={() => onDelete(produit.id_produit)}
+            onClick={() => onDelete(produit)}
             className="w-12 h-12 bg-red-500 text-white rounded-full flex items-center justify-center shadow-lg hover:bg-red-600 transition-colors"
             title="Supprimer"
           >

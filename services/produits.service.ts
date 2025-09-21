@@ -333,7 +333,7 @@ export class ProduitsService {
   }
 
   /**
-   * Supprimer un produit
+   * Supprimer un produit avec la fonction PostgreSQL supprimer_produit
    */
   async deleteProduit(id_produit: number): Promise<{ success: boolean; message: string }> {
     try {
@@ -342,34 +342,80 @@ export class ProduitsService {
         throw new ProduitsApiException('Utilisateur non authentifié', 401);
       }
 
-      // Vérifier que le produit existe et appartient à la structure
-      const produitExistant = await this.getProduitById(id_produit);
-      if (!produitExistant.success) {
-        throw new ProduitsApiException(`Produit ${id_produit} non trouvé`, 404);
+      console.log('🗑️ [PRODUITS SERVICE] Suppression produit:', {
+        id_produit,
+        id_structure: user.id_structure,
+        id_utilisateur: user.id
+      });
+
+      // Utiliser la fonction PostgreSQL supprimer_produit
+      const query = `SELECT * FROM supprimer_produit(${user.id_structure}, ${id_produit}, ${user.id})`;
+
+      const results = await database.query(query);
+      console.log('🗄️ [PRODUITS SERVICE] Réponse brute DB supprimer_produit:', JSON.stringify(results, null, 2));
+
+      const result = Array.isArray(results) && results.length > 0 ? results[0] : null;
+
+      if (!result) {
+        throw new ProduitsApiException('Aucune réponse de la fonction de suppression', 500);
       }
 
-      // Supprimer d'abord les mouvements de stock associés
-      const deleteStockQuery = `DELETE FROM mouvement_stock WHERE id_produit = ${id_produit} AND id_structure = ${user.id_structure}`;
-      await database.executeFunction('delete_mouvement_stock', [id_produit.toString(), user.id_structure.toString()]);
+      console.log('📦 [PRODUITS SERVICE] Résultat suppression:', result);
 
-      // Supprimer le produit
-      const deleteProduitQuery = `DELETE FROM produit_service WHERE id_produit = ${id_produit} AND id_structure = ${user.id_structure}`;
-      await database.executeFunction('delete_produit', [id_produit.toString(), user.id_structure.toString()]);
+      // Gérer le format de réponse de la fonction
+      let suppressionData = result;
+      if (result.supprimer_produit) {
+        console.log('🔄 [PRODUITS SERVICE] Résultat encapsulé détecté, extraction...');
+        suppressionData = typeof result.supprimer_produit === 'string'
+          ? JSON.parse(result.supprimer_produit)
+          : result.supprimer_produit;
+        console.log('✅ [PRODUITS SERVICE] Résultat après extraction:', suppressionData);
+      }
 
-      SecurityService.secureLog('log', 'Produit supprimé', { id_produit });
+      // Si les données sont encore dans une chaîne JSON
+      if (typeof suppressionData === 'string') {
+        try {
+          suppressionData = JSON.parse(suppressionData);
+          console.log('🔄 [PRODUITS SERVICE] JSON parsé:', suppressionData);
+        } catch (e) {
+          console.error('❌ [PRODUITS SERVICE] Erreur parsing JSON:', e);
+        }
+      }
+
+      // Vérifier le succès de l'opération
+      if (!suppressionData.success) {
+        const errorMessage = suppressionData.message || 'Erreur lors de la suppression';
+        SecurityService.secureLog('warn', 'Échec suppression produit', {
+          id_produit,
+          code: suppressionData.code,
+          message: errorMessage
+        });
+
+        throw new ProduitsApiException(errorMessage, 400);
+      }
+
+      // Log des détails de suppression
+      const details = suppressionData.details || {};
+      SecurityService.secureLog('log', 'Produit supprimé avec succès', {
+        id_produit,
+        code: suppressionData.code,
+        cascade_deletion: details.cascade_deletion,
+        deleted_sales: details.deleted_sales,
+        deleted_stock_movements: details.deleted_stock_movements
+      });
 
       return {
         success: true,
-        message: 'Produit supprimé avec succès'
+        message: suppressionData.message || 'Produit supprimé avec succès'
       };
 
     } catch (error) {
       SecurityService.secureLog('error', 'Erreur suppression produit', { id_produit, error });
-      
+
       if (error instanceof ProduitsApiException) {
         throw error;
       }
-      
+
       throw new ProduitsApiException(
         'Impossible de supprimer le produit',
         500,
@@ -552,27 +598,58 @@ export class ProduitsService {
           '${produitData.nom_produit.replace(/'/g, "''")}',
           ${produitData.cout_revient},
           ${produitData.prix_vente},
-          ${produitData.est_service},
-          ${produitData.nom_categorie ? `'${produitData.nom_categorie.replace(/'/g, "''")}'` : 'DEFAULT'},
-          ${produitData.description ? `'${produitData.description.replace(/'/g, "''")}'` : 'DEFAULT'},
+          ${produitData.est_service ? 'true' : 'false'},
+          ${produitData.nom_categorie ? `'${produitData.nom_categorie.replace(/'/g, "''")}'` : `'produit_service'`},
+          ${produitData.description ? `'${produitData.description.replace(/'/g, "''")}'` : `'RAS'`},
           0
         )
       `;
 
       const results = await database.query(query);
+      console.log('🗄️ [PRODUITS SERVICE] Réponse brute DB add_edit_produit:', JSON.stringify(results, null, 2));
+
       const produit = Array.isArray(results) && results.length > 0 ? results[0] : null;
 
       if (!produit) {
         throw new ProduitsApiException('Erreur lors de la création du produit', 500);
       }
 
+      console.log('📦 [PRODUITS SERVICE] Produit extrait:', produit);
+
+      // Si le produit est encapsulé dans une fonction (add_edit_produit)
+      let produitResult = produit;
+      if (produit.add_edit_produit) {
+        console.log('🔄 [PRODUITS SERVICE] Produit encapsulé détecté, extraction...');
+        produitResult = typeof produit.add_edit_produit === 'string'
+          ? JSON.parse(produit.add_edit_produit)
+          : produit.add_edit_produit;
+        console.log('✅ [PRODUITS SERVICE] Produit après extraction:', produitResult);
+      }
+
+      // Gérer le format avec préfixe result_ de PostgreSQL
+      if (produitResult.result_id_produit !== undefined) {
+        console.log('🔄 [PRODUITS SERVICE] Format result_ détecté, transformation...');
+        produitResult = {
+          id_produit: produitResult.result_id_produit,
+          id_structure: produitResult.result_id_structure,
+          nom_produit: produitResult.result_nom_produit,
+          cout_revient: produitResult.result_cout_revient,
+          prix_vente: produitResult.result_prix_vente,
+          est_service: produitResult.result_est_service,
+          nom_categorie: produitResult.result_nom_categorie,
+          description: produitResult.result_description,
+          action_effectuee: produitResult.result_action_effectuee
+        };
+        console.log('✅ [PRODUITS SERVICE] Produit transformé:', produitResult);
+      }
+
       SecurityService.secureLog('log', 'Produit créé avec succès', {
-        id_produit: produit.id_produit,
-        nom: produitData.nom_produit,
-        est_service: produitData.est_service
+        id_produit: produitResult.id_produit,
+        nom: produitResult.nom_produit,
+        est_service: produitResult.est_service
       });
 
-      return produit as AddEditProduitResponse;
+      return produitResult as AddEditProduitResponse;
 
     } catch (error) {
       SecurityService.secureLog('error', 'Erreur création produit', error);
@@ -605,27 +682,58 @@ export class ProduitsService {
           '${produitData.nom_produit.replace(/'/g, "''")}',
           ${produitData.cout_revient},
           ${produitData.prix_vente},
-          ${produitData.est_service},
-          ${produitData.nom_categorie ? `'${produitData.nom_categorie.replace(/'/g, "''")}'` : 'DEFAULT'},
-          ${produitData.description ? `'${produitData.description.replace(/'/g, "''")}'` : 'DEFAULT'},
+          ${produitData.est_service ? 'true' : 'false'},
+          ${produitData.nom_categorie ? `'${produitData.nom_categorie.replace(/'/g, "''")}'` : `'produit_service'`},
+          ${produitData.description ? `'${produitData.description.replace(/'/g, "''")}'` : `'RAS'`},
           ${id_produit}
         )
       `;
 
       const results = await database.query(query);
+      console.log('🗄️ [PRODUITS SERVICE] Réponse brute DB update_produit:', JSON.stringify(results, null, 2));
+
       const produit = Array.isArray(results) && results.length > 0 ? results[0] : null;
 
       if (!produit) {
         throw new ProduitsApiException('Erreur lors de la modification du produit', 500);
       }
 
+      console.log('📦 [PRODUITS SERVICE] Produit extrait (update):', produit);
+
+      // Si le produit est encapsulé dans une fonction (add_edit_produit)
+      let produitDataResult = produit;
+      if (produit.add_edit_produit) {
+        console.log('🔄 [PRODUITS SERVICE] Produit encapsulé détecté (update), extraction...');
+        produitDataResult = typeof produit.add_edit_produit === 'string'
+          ? JSON.parse(produit.add_edit_produit)
+          : produit.add_edit_produit;
+        console.log('✅ [PRODUITS SERVICE] Produit après extraction (update):', produitDataResult);
+      }
+
+      // Gérer le format avec préfixe result_ de PostgreSQL
+      if (produitDataResult.result_id_produit !== undefined) {
+        console.log('🔄 [PRODUITS SERVICE] Format result_ détecté (update), transformation...');
+        produitDataResult = {
+          id_produit: produitDataResult.result_id_produit,
+          id_structure: produitDataResult.result_id_structure,
+          nom_produit: produitDataResult.result_nom_produit,
+          cout_revient: produitDataResult.result_cout_revient,
+          prix_vente: produitDataResult.result_prix_vente,
+          est_service: produitDataResult.result_est_service,
+          nom_categorie: produitDataResult.result_nom_categorie,
+          description: produitDataResult.result_description,
+          action_effectuee: produitDataResult.result_action_effectuee
+        };
+        console.log('✅ [PRODUITS SERVICE] Produit transformé (update):', produitDataResult);
+      }
+
       SecurityService.secureLog('log', 'Produit modifié avec succès', {
-        id_produit: produit.id_produit,
-        nom: produitData.nom_produit,
-        action: produit.action_effectuee
+        id_produit: produitDataResult.id_produit,
+        nom: produitDataResult.nom_produit,
+        action: produitDataResult.action_effectuee
       });
 
-      return produit as AddEditProduitResponse;
+      return produitDataResult as AddEditProduitResponse;
 
     } catch (error) {
       SecurityService.secureLog('error', 'Erreur modification produit', { id_produit, error });
