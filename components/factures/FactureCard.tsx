@@ -7,7 +7,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Eye, FileText, CreditCard } from 'lucide-react';
+import { Eye, FileText, CreditCard, Trash2 } from 'lucide-react';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { FactureComplete } from '@/types/facture';
@@ -18,6 +18,7 @@ interface FactureCardProps {
   onVoirDetailsModal?: (facture: FactureComplete) => void;
   onAjouterAcompte?: (facture: FactureComplete) => void;
   onPartager?: (facture: FactureComplete) => void;
+  onSupprimer?: (facture: FactureComplete) => void;
   delay?: number;
 }
 
@@ -26,6 +27,7 @@ export const FactureCard = ({
   onVoirDetailsModal,
   onAjouterAcompte,
   onPartager,
+  onSupprimer,
   delay = 0
 }: FactureCardProps) => {
   const { facture: factureData } = facture;
@@ -109,62 +111,109 @@ export const FactureCard = ({
 
         {/* Actions */}
         <div className="flex space-x-2">
-          {/* Bouton Voir détails */}
-          <motion.button
-            whileTap={{ scale: 0.95 }}
-            onClick={handleVoirDetails}
-            className={cn(
-              'flex-1 flex items-center justify-center',
-              'px-3 py-2.5 rounded-lg',
-              'bg-white/20 backdrop-blur-lg',
-              'border border-white/30',
-              'text-white text-sm font-medium',
-              'hover:bg-white/30 hover:scale-105',
-              'transition-all duration-200',
-              'shadow-lg'
-            )}
-          >
-            <Eye className="w-4 h-4 mr-1.5" />
-            Voir détails
-          </motion.button>
-
-          {/* Action contextuelle selon le statut */}
+          {/* Configuration des boutons selon le statut */}
           {factureData.libelle_etat === 'IMPAYEE' ? (
-            <motion.button
-              whileTap={{ scale: 0.95 }}
-              onClick={() => onAjouterAcompte?.(facture)}
-              className={cn(
-                'flex-1 flex items-center justify-center',
-                'px-3 py-2.5 rounded-lg',
-                'bg-orange-500/90 backdrop-blur-lg',
-                'border border-orange-400/50',
-                'text-white text-sm font-medium',
-                'hover:bg-orange-500 hover:scale-105',
-                'transition-all duration-200',
-                'shadow-lg shadow-orange-500/20'
+            <>
+              {/* Bouton Voir */}
+              <motion.button
+                whileTap={{ scale: 0.95 }}
+                onClick={handleVoirDetails}
+                className={cn(
+                  'flex-1 flex items-center justify-center',
+                  'px-2 py-2.5 rounded-lg',
+                  'bg-white/20 backdrop-blur-lg',
+                  'border border-white/30',
+                  'text-white text-sm font-medium',
+                  'hover:bg-white/30 hover:scale-105',
+                  'transition-all duration-200',
+                  'shadow-lg'
+                )}
+              >
+                <Eye className="w-4 h-4 mr-1" />
+                Voir
+              </motion.button>
+
+              {/* Bouton Supprimer */}
+              {onSupprimer && (
+                <motion.button
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => onSupprimer(facture)}
+                  className={cn(
+                    'flex-1 flex items-center justify-center',
+                    'px-2 py-2.5 rounded-lg',
+                    'bg-red-500/90 backdrop-blur-lg',
+                    'border border-red-400/50',
+                    'text-white text-sm font-medium',
+                    'hover:bg-red-500 hover:scale-105',
+                    'transition-all duration-200',
+                    'shadow-lg shadow-red-500/20'
+                  )}
+                  title="Supprimer la facture"
+                >
+                  <Trash2 className="w-4 h-4 mr-1" />
+                  Sup.
+                </motion.button>
               )}
-            >
-              <CreditCard className="w-4 h-4 mr-1.5" />
-              Payer
-            </motion.button>
+
+              {/* Bouton Payer */}
+              <motion.button
+                whileTap={{ scale: 0.95 }}
+                onClick={() => onAjouterAcompte?.(facture)}
+                className={cn(
+                  'flex-1 flex items-center justify-center',
+                  'px-2 py-2.5 rounded-lg',
+                  'bg-orange-500/90 backdrop-blur-lg',
+                  'border border-orange-400/50',
+                  'text-white text-sm font-medium',
+                  'hover:bg-orange-500 hover:scale-105',
+                  'transition-all duration-200',
+                  'shadow-lg shadow-orange-500/20'
+                )}
+              >
+                <CreditCard className="w-4 h-4 mr-1" />
+                Payer
+              </motion.button>
+            </>
           ) : (
-            <motion.button
-              whileTap={{ scale: 0.95 }}
-              onClick={() => onPartager?.(facture)}
-              className={cn(
-                'flex-1 flex items-center justify-center',
-                'px-3 py-2.5 rounded-lg',
-                'bg-emerald-600/90 backdrop-blur-lg',
-                'border border-emerald-500/50',
-                'text-white text-sm font-medium',
-                'hover:bg-emerald-600 hover:scale-105',
-                'transition-all duration-200',
-                'shadow-lg shadow-emerald-500/20'
-              )}
-            >
-              <FileText className="w-4 h-4 mr-1.5" />
-              PDF
-            </motion.button>
+            <>
+              {/* Bouton Voir pour factures payées */}
+              <motion.button
+                whileTap={{ scale: 0.95 }}
+                onClick={handleVoirDetails}
+                className={cn(
+                  'flex-1 flex items-center justify-center',
+                  'px-3 py-2.5 rounded-lg',
+                  'bg-white/20 backdrop-blur-lg',
+                  'border border-white/30',
+                  'text-white text-sm font-medium',
+                  'hover:bg-white/30 hover:scale-105',
+                  'transition-all duration-200',
+                  'shadow-lg'
+                )}
+              >
+                <Eye className="w-4 h-4 mr-1.5" />
+                Voir
+              </motion.button>
+
+              {/* Bouton PDF pour factures payées */}
+              <motion.button
+                whileTap={{ scale: 0.95 }}
+                onClick={() => onPartager?.(facture)}
+                className={cn(
+                  'flex-1 flex items-center justify-center',
+                  'px-3 py-2.5 rounded-lg',
+                  'bg-emerald-600/90 backdrop-blur-lg',
+                  'border border-emerald-500/50',
+                  'text-white text-sm font-medium',
+                  'hover:bg-emerald-600 hover:scale-105',
+                  'transition-all duration-200',
+                  'shadow-lg shadow-emerald-500/20'
+                )}
+              >
+                <FileText className="w-4 h-4 mr-1.5" />
+                PDF
+              </motion.button>
+            </>
           )}
         </div>
 

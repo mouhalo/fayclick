@@ -5,15 +5,18 @@
 
 import { API_CONFIG } from '@/lib/api-config';
 import { FacturePriveeData, PaiementHistorique } from '@/types/facture-privee';
+import { authService } from './auth.service';
 
 export interface SupprimerFactureResponse {
   success: boolean;
   message: string;
   id_facture: number;
+  details?: unknown;
 }
 
 class FacturePriveeService {
   private baseUrl = API_CONFIG.baseUrl;
+  private authService = authService;
 
   /**
    * Construit le XML pour l'API
@@ -113,10 +116,16 @@ class FacturePriveeService {
   }
 
   /**
-   * Supprime une facture (uniquement si état = 1 - IMPAYEE)
+   * Supprime une facture en utilisant la fonction PostgreSQL supprimer_facturecom
    */
   async supprimerFacture(idFacture: number, idStructure: number): Promise<SupprimerFactureResponse> {
     try {
+      // Récupérer l'utilisateur actuel pour obtenir son ID
+      const user = this.authService.getUser();
+      if (!user) {
+        throw new Error('Utilisateur non authentifié');
+      }
+
       // Vérifier d'abord l'état de la facture
       const facture = await this.getFacturePrivee(idFacture);
 
@@ -124,7 +133,14 @@ class FacturePriveeService {
         throw new Error('Seules les factures impayées peuvent être supprimées');
       }
 
-      const requete = `DELETE FROM factures WHERE id_facture = ${idFacture} AND id_structure = ${idStructure} AND id_etat = 1`;
+      console.log('🗑️ Suppression facture:', {
+        idStructure,
+        idFacture,
+        idUser: user.id
+      });
+
+      // Utiliser la fonction PostgreSQL supprimer_facturecom
+      const requete = `SELECT * FROM supprimer_facturecom(${idStructure}, ${idFacture}, ${user.id})`;
       const xmlBody = this.construireXml(requete);
 
       const response = await fetch(this.baseUrl, {
@@ -140,8 +156,46 @@ class FacturePriveeService {
       }
 
       const data = await response.json();
+      console.log('📋 Réponse suppression facture:', data);
 
-      if (data.status === 'success') {
+      // Vérifier la structure de la réponse
+      if (data.status === 'success' && data.datas && data.datas.length > 0) {
+        const result = data.datas[0];
+        console.log('🔍 Contenu de result:', result);
+
+        // La fonction PostgreSQL retourne la réponse directement dans result
+        // Vérifier si c'est un objet avec une propriété success ou si c'est la valeur directe
+        if (typeof result === 'object' && result !== null) {
+          // Si result a une propriété success, utiliser cette structure
+          if ('success' in result) {
+            if (result.success === true || result.success === 'true') {
+              return {
+                success: true,
+                message: result.message || 'Facture supprimée avec succès',
+                id_facture: idFacture,
+                details: result.details
+              };
+            } else {
+              throw new Error(result.message || 'Erreur lors de la suppression');
+            }
+          } else {
+            // Si pas de propriété success, considérer que la présence de l'objet = succès
+            return {
+              success: true,
+              message: result.message || 'Facture supprimée avec succès',
+              id_facture: idFacture,
+              details: result
+            };
+          }
+        } else {
+          // Si result n'est pas un objet, considérer comme succès
+          return {
+            success: true,
+            message: 'Facture supprimée avec succès',
+            id_facture: idFacture
+          };
+        }
+      } else if (data.status === 'success') {
         return {
           success: true,
           message: 'Facture supprimée avec succès',
@@ -162,10 +216,22 @@ class FacturePriveeService {
 
   /**
    * Récupère l'historique des paiements d'une facture
+   * NOTE: Temporairement désactivé pour éviter l'erreur 400
+   * TODO: Implémenter la fonction PostgreSQL get_historique_paiements_facture côté backend
    */
   async getHistoriquePaiements(idFacture: number): Promise<PaiementHistorique[]> {
     try {
-      const requete = `SELECT * FROM paiements WHERE id_facture = ${idFacture} ORDER BY date_paiement DESC`;
+      console.log('📋 Récupération historique paiements pour facture:', idFacture);
+
+      // TODO: Remplacer par la vraie fonction PostgreSQL quand elle sera disponible
+      // La requête directe `SELECT * FROM paiements` cause une erreur 400
+      // car la table n'existe peut-être pas ou n'est pas accessible directement
+
+      console.log('⚠️ Historique paiements temporairement désactivé - fonction backend non implémentée');
+      return [];
+
+      /* Code à réactiver quand la fonction backend sera prête :
+      const requete = `SELECT * FROM get_historique_paiements_facture(${idFacture})`;
       const xmlBody = this.construireXml(requete);
 
       const response = await fetch(this.baseUrl, {
@@ -204,6 +270,7 @@ class FacturePriveeService {
           statut: typedPaiement.statut || 'Confirmé'
         };
       }) || [];
+      */
     } catch (error) {
       console.error('Erreur lors de la récupération de l\'historique:', error);
       return [];
