@@ -1,23 +1,27 @@
 /**
  * Modal de paiement d'acompte pour les factures
  * Design responsive selon les standards modals de l'application
+ * Intégration avec le système de paiement wallet (OM, Wave, Free)
  */
 
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  X, 
-  CreditCard, 
-  Calculator, 
-  AlertCircle, 
+import {
+  X,
+  CreditCard,
+  Calculator,
+  AlertCircle,
   CheckCircle,
   DollarSign
 } from 'lucide-react';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { FactureComplete, AjouterAcompteData } from '@/types/facture';
 import { factureService } from '@/services/facture.service';
+import { ModalChoixPaiement } from './ModalChoixPaiement';
+import { ModalPaiementQRCode } from './ModalPaiementQRCode';
+import { PaymentMethod, PaymentContext } from '@/types/payment-wallet';
 
 interface ModalPaiementProps {
   isOpen: boolean;
@@ -28,12 +32,17 @@ interface ModalPaiementProps {
 
 export function ModalPaiement({ isOpen, onClose, facture, onSuccess }: ModalPaiementProps) {
   const { isMobile, isMobileLarge } = useBreakpoint();
-  
-  // États
+
+  // États principaux
   const [montantAcompte, setMontantAcompte] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>('');
   const [success, setSuccess] = useState(false);
+
+  // États pour les nouveaux modals
+  const [showChoixPaiement, setShowChoixPaiement] = useState(false);
+  const [showQRCode, setShowQRCode] = useState(false);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethod | null>(null);
 
   // Reset des états à l'ouverture
   useEffect(() => {
@@ -41,6 +50,9 @@ export function ModalPaiement({ isOpen, onClose, facture, onSuccess }: ModalPaie
       setMontantAcompte('');
       setError('');
       setSuccess(false);
+      setShowChoixPaiement(false);
+      setShowQRCode(false);
+      setSelectedPaymentMethod(null);
     }
   }, [isOpen, facture]);
 
@@ -116,9 +128,31 @@ export function ModalPaiement({ isOpen, onClose, facture, onSuccess }: ModalPaie
 
   const styles = getModalStyles();
 
-  // Soumettre le paiement
+  // Ouvrir le modal de choix de paiement
   const handleSubmit = async () => {
     if (!facture || !validation.isValid || !montants) return;
+
+    // Ouvrir le modal de choix de paiement
+    setShowChoixPaiement(true);
+  };
+
+  // Gérer la sélection du mode de paiement
+  const handleSelectPaymentMethod = async (method: PaymentMethod) => {
+    setSelectedPaymentMethod(method);
+    setShowChoixPaiement(false);
+
+    if (method === 'CASH') {
+      // Paiement cash - utiliser l'ancien système
+      await processCashPayment();
+    } else {
+      // Paiement wallet - ouvrir le modal QR Code
+      setShowQRCode(true);
+    }
+  };
+
+  // Traiter le paiement cash (ancien système)
+  const processCashPayment = async () => {
+    if (!facture || !montants) return;
 
     setLoading(true);
     setError('');
@@ -131,13 +165,13 @@ export function ModalPaiement({ isOpen, onClose, facture, onSuccess }: ModalPaie
       };
 
       const response = await factureService.addAcompte(acompteData);
-      
+
       if (response.success) {
         setSuccess(true);
         if (onSuccess) {
           onSuccess(response);
         }
-        
+
         // Fermer automatiquement après 2 secondes
         setTimeout(() => {
           onClose();
@@ -148,6 +182,62 @@ export function ModalPaiement({ isOpen, onClose, facture, onSuccess }: ModalPaie
     } finally {
       setLoading(false);
     }
+  };
+
+  // Gérer le succès du paiement wallet
+  const handleWalletPaymentComplete = async (uuid: string) => {
+    if (!facture || !montants || !selectedPaymentMethod) return;
+
+    try {
+      // Ajouter l'acompte avec la référence du paiement wallet
+      const acompteData: AjouterAcompteData = {
+        id_structure: facture.facture.id_structure,
+        id_facture: facture.facture.id_facture,
+        montant_acompte: montants.montantSaisi
+      };
+
+      const response = await factureService.addAcompte(acompteData);
+
+      if (response.success) {
+        setShowQRCode(false);
+        setSuccess(true);
+        if (onSuccess) {
+          onSuccess(response);
+        }
+
+        // Fermer automatiquement après 2 secondes
+        setTimeout(() => {
+          onClose();
+        }, 2000);
+      }
+    } catch (error: any) {
+      console.error('Erreur enregistrement acompte:', error);
+      setShowQRCode(false);
+      setError(error.message || 'Erreur lors de l\'enregistrement');
+    }
+  };
+
+  // Gérer l'échec du paiement wallet
+  const handleWalletPaymentFailed = (error: string) => {
+    setShowQRCode(false);
+    setError(error);
+  };
+
+  // Créer le contexte de paiement pour les modals wallet
+  const createPaymentContext = (): PaymentContext | null => {
+    if (!facture || !montants) return null;
+
+    return {
+      facture: {
+        id_facture: facture.facture.id_facture,
+        num_facture: facture.facture.num_facture,
+        nom_client: facture.facture.nom_client,
+        tel_client: facture.facture.tel_client,
+        montant_total: facture.facture.montant,
+        montant_restant: facture.facture.mt_restant
+      },
+      montant_acompte: montants.montantSaisi
+    };
   };
 
   // Raccourcis de montant
@@ -383,7 +473,7 @@ export function ModalPaiement({ isOpen, onClose, facture, onSuccess }: ModalPaie
                   onClick={handleSubmit}
                   disabled={!validation.isValid || loading}
                   className={`
-                    flex-1 bg-blue-500 text-white rounded-xl 
+                    flex-1 bg-blue-500 text-white rounded-xl
                     hover:bg-blue-600 transition-colors font-medium
                     disabled:opacity-50 disabled:cursor-not-allowed
                     flex items-center justify-center space-x-2
@@ -408,6 +498,29 @@ export function ModalPaiement({ isOpen, onClose, facture, onSuccess }: ModalPaie
             </>
           )}
         </motion.div>
+
+        {/* Modal de choix du mode de paiement */}
+        {facture && montants && (
+          <ModalChoixPaiement
+            isOpen={showChoixPaiement}
+            onClose={() => setShowChoixPaiement(false)}
+            onSelectMethod={handleSelectPaymentMethod}
+            montantAcompte={montants.montantSaisi}
+            nomClient={facture.facture.nom_client}
+          />
+        )}
+
+        {/* Modal de paiement QR Code */}
+        {facture && montants && selectedPaymentMethod && selectedPaymentMethod !== 'CASH' && (
+          <ModalPaiementQRCode
+            isOpen={showQRCode}
+            onClose={() => setShowQRCode(false)}
+            paymentMethod={selectedPaymentMethod}
+            paymentContext={createPaymentContext()!}
+            onPaymentComplete={handleWalletPaymentComplete}
+            onPaymentFailed={handleWalletPaymentFailed}
+          />
+        )}
       </motion.div>
     </AnimatePresence>
   );

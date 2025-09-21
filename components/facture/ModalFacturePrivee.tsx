@@ -25,6 +25,7 @@ import {
   ChevronDown,
   ChevronUp
 } from 'lucide-react';
+import QRCode from 'react-qr-code';
 import { facturePriveeService, FacturePriveeData, PaiementHistorique } from '@/services/facture-privee.service';
 import { ModalPaiementWalletNew, WalletType } from './ModalPaiementWalletNew';
 import { ModalFacturePriveeProps } from '@/types/facture-privee';
@@ -47,6 +48,7 @@ export function ModalFacturePrivee({
   const [deleting, setDeleting] = useState(false);
   const [showHistorique, setShowHistorique] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
+  const [showQrCode, setShowQrCode] = useState(false);
 
   // Charger les données de la facture si un ID est fourni
   useEffect(() => {
@@ -267,35 +269,30 @@ export function ModalFacturePrivee({
                   </div>
                 </div>
 
-                {/* Montant total avec QR Code */}
-                <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-6 text-center">
-                  <p className="text-gray-600 text-sm mb-2">Montant Total</p>
-                  <div className="flex items-center justify-center gap-4">
-                    <p className="text-3xl font-bold text-gray-900">
-                      {formatMontant(facture.montant)}
-                    </p>
-                    <button
-                      onClick={() => facture.id_etat !== 2 && setShowWalletModal(true)}
-                      disabled={facture.id_etat === 2}
-                      className={`p-3 rounded-xl transition-colors ${
-                        facture.id_etat === 2
-                          ? 'bg-gray-300 text-gray-500 cursor-not-allowed opacity-50'
-                          : 'bg-blue-600 hover:bg-blue-700 text-white'
-                      }`}
-                      title={
-                        facture.id_etat === 2
-                          ? 'Facture déjà payée'
-                          : 'Configurer le paiement mobile'
-                      }
-                    >
-                      <QrCode className="w-6 h-6" />
-                    </button>
+                {/* Montant total avec bouton QR Code pour paiement */}
+                <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-6">
+                  <div className="text-center">
+                    <p className="text-gray-600 text-sm mb-2">Montant Total</p>
+                    <div className="flex items-center justify-center gap-3">
+                      {facture.id_etat !== 2 && (
+                        <button
+                          onClick={() => setShowWalletModal(true)}
+                          className="p-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+                          title="Configurer le paiement mobile"
+                        >
+                          <QrCode className="w-5 h-5" />
+                        </button>
+                      )}
+                      <p className="text-3xl font-bold text-gray-900">
+                        {formatMontant(facture.montant)}
+                      </p>
+                    </div>
+                    {facture.id_etat === 2 && (
+                      <p className="text-green-600 text-sm mt-2 font-medium">
+                        ✅ Facture déjà payée
+                      </p>
+                    )}
                   </div>
-                  {facture.id_etat === 2 && (
-                    <p className="text-green-600 text-sm mt-2 font-medium">
-                      ✅ Facture déjà payée
-                    </p>
-                  )}
                 </div>
 
                 {/* Détails de la commande */}
@@ -382,24 +379,75 @@ export function ModalFacturePrivee({
                   </div>
                 )}
 
-                {/* URL de partage */}
+                {/* QR Code & Partage */}
                 <div className="bg-gray-50 rounded-xl p-4">
-                  <h3 className="font-semibold text-gray-900 mb-3">URL de Partage</h3>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="text"
-                      value={urlPartage}
-                      readOnly
-                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg bg-white text-sm"
-                    />
-                    <button
-                      onClick={handleCopyUrl}
-                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center gap-2"
+                  <button
+                    onClick={() => setShowQrCode(!showQrCode)}
+                    className="w-full flex items-center justify-between text-left cursor-pointer"
+                  >
+                    <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                      <QrCode className="w-5 h-5 text-purple-600" />
+                      QR Code & Partage
+                    </h3>
+                    <motion.div
+                      animate={{ rotate: showQrCode ? 180 : 0 }}
+                      transition={{ duration: 0.2 }}
                     >
-                      {urlCopied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                      {urlCopied ? 'Copié' : 'Copier'}
-                    </button>
-                  </div>
+                      <ChevronDown className="w-5 h-5 text-gray-400" />
+                    </motion.div>
+                  </button>
+
+                  <AnimatePresence>
+                    {showQrCode && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className="mt-4 overflow-hidden"
+                      >
+                        {/* QR Code de l'URL */}
+                        <div className="bg-white p-4 rounded-lg border border-gray-200 mb-4">
+                          <p className="text-sm font-medium text-gray-700 mb-3 text-center">
+                            QR Code de la facture
+                          </p>
+                          <div className="flex justify-center">
+                            <div className="bg-white p-4 rounded-lg shadow-inner border">
+                              <QRCode
+                                value={urlPartage}
+                                size={180}
+                                level="H"
+                                bgColor="#ffffff"
+                                fgColor="#000000"
+                              />
+                            </div>
+                          </div>
+                          <p className="text-xs text-gray-500 mt-3 text-center">
+                            Scannez ce code pour accéder à la facture
+                          </p>
+                        </div>
+
+                        {/* Section URL de partage */}
+                        <div>
+                          <p className="text-sm font-medium text-gray-700 mb-2">URL de Partage</p>
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="text"
+                              value={urlPartage}
+                              readOnly
+                              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg bg-white text-sm"
+                            />
+                            <button
+                              onClick={handleCopyUrl}
+                              className="p-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+                              title={urlCopied ? 'URL copiée !' : 'Copier l\'URL'}
+                            >
+                              {urlCopied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                            </button>
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
 
                 {/* Historique des paiements */}
