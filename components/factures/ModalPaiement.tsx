@@ -98,7 +98,7 @@ export function ModalPaiement({ isOpen, onClose, facture, onSuccess }: ModalPaie
   const getModalStyles = () => {
     if (isMobile) {
       return {
-        container: 'max-w-xs p-4',
+        container: 'max-w-sm p-4',
         title: 'text-lg',
         subtitle: 'text-sm',
         input: 'text-base p-3',
@@ -107,7 +107,7 @@ export function ModalPaiement({ isOpen, onClose, facture, onSuccess }: ModalPaie
       };
     } else if (isMobileLarge) {
       return {
-        container: 'max-w-sm p-5',
+        container: 'max-w-lg p-5',
         title: 'text-xl',
         subtitle: 'text-base',
         input: 'text-base p-3',
@@ -116,7 +116,7 @@ export function ModalPaiement({ isOpen, onClose, facture, onSuccess }: ModalPaie
       };
     } else {
       return {
-        container: 'max-w-md p-6',
+        container: 'max-w-lg p-6',
         title: 'text-2xl',
         subtitle: 'text-base',
         input: 'text-lg p-4',
