@@ -29,6 +29,7 @@ import QRCode from 'react-qr-code';
 import { facturePriveeService, FacturePriveeData, PaiementHistorique } from '@/services/facture-privee.service';
 import { ModalPaiementWalletNew, WalletType } from './ModalPaiementWalletNew';
 import { ModalFacturePriveeProps } from '@/types/facture-privee';
+import { ModalConfirmation } from '@/components/ui/ModalConfirmation';
 
 export function ModalFacturePrivee({
   isOpen,
@@ -49,6 +50,7 @@ export function ModalFacturePrivee({
   const [showHistorique, setShowHistorique] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
   const [showQrCode, setShowQrCode] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   // Charger les données de la facture si un ID est fourni
   useEffect(() => {
@@ -57,6 +59,7 @@ export function ModalFacturePrivee({
     } else if (factureData) {
       setFacture(factureData);
       generateUrlPartage(factureData);
+      // L'historique sera chargé dans loadFactureData ou séparément si nécessaire
       loadHistoriquePaiements(factureData.id_facture);
     }
   }, [isOpen, factureId, factureData]);
@@ -68,16 +71,18 @@ export function ModalFacturePrivee({
       setLoading(true);
       setError(null);
 
-      const [factureResult] = await Promise.all([
-        facturePriveeService.getFacturePrivee(factureId),
-      ]);
+      // Charger seulement les données principales de la facture
+      const factureResult = await facturePriveeService.getFacturePrivee(factureId);
 
       setFacture(factureResult);
       generateUrlPartage(factureResult);
-      await loadHistoriquePaiements(factureId);
-    } catch (err: any) {
+
+      // Charger l'historique en parallèle sans bloquer l'affichage principal
+      loadHistoriquePaiements(factureId);
+
+    } catch (err: unknown) {
       console.error('Erreur lors du chargement:', err);
-      setError(err.message || 'Erreur lors du chargement de la facture');
+      setError(err instanceof Error ? err.message : 'Erreur lors du chargement de la facture');
     } finally {
       setLoading(false);
     }
@@ -112,15 +117,16 @@ export function ModalFacturePrivee({
 
   const handleSupprimer = async () => {
     if (!facture || facture.id_etat !== 1) return;
+    setShowDeleteConfirm(true);
+  };
 
-    const confirm = window.confirm(
-      `Êtes-vous sûr de vouloir supprimer la facture ${facture.num_facture} ?`
-    );
-
-    if (!confirm) return;
+  const handleConfirmSupprimer = async () => {
+    if (!facture) return;
 
     try {
       setDeleting(true);
+      setShowDeleteConfirm(false);
+
       const result = await facturePriveeService.supprimerFacture(
         facture.id_facture,
         facture.id_structure
@@ -132,9 +138,10 @@ export function ModalFacturePrivee({
       } else {
         throw new Error(result.message);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Erreur suppression:', err);
-      alert(err.message || 'Erreur lors de la suppression');
+      const errorMessage = err instanceof Error ? err.message : 'Erreur lors de la suppression';
+      alert(errorMessage); // On pourrait aussi utiliser un toast ici
     } finally {
       setDeleting(false);
     }
@@ -248,7 +255,7 @@ export function ModalFacturePrivee({
                       <p><strong>Description:</strong> {facture.description}</p>
                     </div>
                   </div>
-
+ 
                   {/* Facturation */}
                   <div className="bg-gray-50 rounded-xl p-4">
                     <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
@@ -541,6 +548,21 @@ export function ModalFacturePrivee({
             montant={facture.montant}
             numeroFacture={facture.num_facture}
             onPaymentComplete={handlePaymentComplete}
+          />
+        )}
+
+        {/* Modal de confirmation de suppression */}
+        {facture && (
+          <ModalConfirmation
+            isOpen={showDeleteConfirm}
+            onClose={() => setShowDeleteConfirm(false)}
+            onConfirm={handleConfirmSupprimer}
+            title="Supprimer la facture"
+            message={`Êtes-vous sûr de vouloir supprimer la facture ${facture.num_facture} ?\n\nCette action est irréversible et supprimera définitivement toutes les données associées.`}
+            confirmText="Supprimer"
+            cancelText="Annuler"
+            type="danger"
+            loading={deleting}
           />
         )}
       </motion.div>

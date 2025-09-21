@@ -16,6 +16,7 @@ interface FacturesListProps {
   onVoirDetailsModal?: (facture: FactureComplete) => void;
   onAjouterAcompte?: (facture: FactureComplete) => void;
   onPartager?: (facture: FactureComplete) => void;
+  onSupprimer?: (facture: FactureComplete) => void;
 }
 
 // Variants pour le container avec stagger
@@ -62,7 +63,8 @@ export const FacturesList = ({
   loading = false,
   onVoirDetailsModal,
   onAjouterAcompte,
-  onPartager
+  onPartager,
+  onSupprimer
 }: FacturesListProps) => {
 
   // État de loading
@@ -142,6 +144,7 @@ export const FacturesList = ({
               onVoirDetailsModal={onVoirDetailsModal}
               onAjouterAcompte={onAjouterAcompte}
               onPartager={onPartager}
+              onSupprimer={onSupprimer}
               delay={index * 0.05} // Délai plus court pour la fluidité
             />
           </motion.div>
