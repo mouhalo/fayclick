@@ -46,13 +46,13 @@ const UpdateNotification: React.FC<UpdateNotificationProps> = ({
       case 'major':
         return {
           icon: Sparkles,
-          bgGradient: 'from-blue-500/20 via-purple-600/10 to-blue-500/20',
-          borderColor: 'border-blue-300/50',
-          iconColor: 'text-blue-600',
-          titleColor: 'text-blue-900',
-          textColor: 'text-blue-800',
-          buttonBg: 'bg-gradient-to-r from-blue-600 to-purple-600',
-          buttonHover: 'hover:from-blue-700 hover:to-purple-700',
+          bgGradient: 'from-yellow-500/20 via-orange-600/10 to-yellow-500/20',
+          borderColor: 'border-yellow-300/50',
+          iconColor: 'text-yellow-600',
+          titleColor: 'text-yellow-900',
+          textColor: 'text-yellow-800',
+          buttonBg: 'bg-gradient-to-r from-yellow-600 to-orange-600',
+          buttonHover: 'hover:from-yellow-700 hover:to-orange-700',
           title: 'Nouvelle version majeure disponible',
           priority: 'Recommandée'
         };
@@ -119,7 +119,7 @@ const UpdateNotification: React.FC<UpdateNotificationProps> = ({
               <span className={`
                 px-2 py-1 text-xs font-medium rounded-full
                 ${updateInfo.updateType === 'critical' ? 'bg-red-100 text-red-700' :
-                  updateInfo.updateType === 'major' ? 'bg-blue-100 text-blue-700' :
+                  updateInfo.updateType === 'major' ? 'bg-yellow-100 text-yellow-700' :
                   'bg-green-100 text-green-700'
                 }
               `}>
@@ -281,7 +281,11 @@ const UpdateNotification: React.FC<UpdateNotificationProps> = ({
                 initial={{ width: '0%' }}
                 animate={{ width: '100%' }}
                 transition={{ duration: 3, ease: 'easeInOut', repeat: Infinity }}
-                className="h-full bg-gradient-to-r from-blue-500 to-purple-500"
+                className={`h-full ${
+                  updateInfo.updateType === 'critical' ? 'bg-gradient-to-r from-red-500 to-red-600' :
+                  updateInfo.updateType === 'major' ? 'bg-gradient-to-r from-yellow-500 to-orange-500' :
+                  'bg-gradient-to-r from-green-500 to-emerald-500'
+                }`}
               />
             </div>
           )}
