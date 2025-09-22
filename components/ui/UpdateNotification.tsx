@@ -77,16 +77,36 @@ const UpdateNotification: React.FC<UpdateNotificationProps> = ({
 
   const handleUpdate = async () => {
     setIsUpdating(true);
+
+    // Timeout de sécurité de 10 secondes
+    const timeout = setTimeout(() => {
+      console.warn('⚠️ Update timeout - resetting state');
+      setIsUpdating(false);
+    }, 10000);
+
     try {
       await onUpdate();
+      // Note: Si la mise à jour réussit, la page sera rechargée
+      // donc setIsUpdating(false) ne sera jamais appelé
+      clearTimeout(timeout);
     } catch (error) {
-      console.error('Update failed:', error);
+      console.error('❌ Update failed:', error);
+      clearTimeout(timeout);
       setIsUpdating(false);
+
+      // Message d'erreur plus discret que alert()
+      console.error('La mise à jour a échoué. Veuillez réessayer.');
     }
   };
 
   const handleDismiss = () => {
     if (!updateInfo.forceUpdate && !isUpdating) {
+      onDismiss();
+    }
+  };
+
+  const handleClose = () => {
+    if (!isUpdating) {
       onDismiss();
     }
   };
@@ -127,10 +147,11 @@ const UpdateNotification: React.FC<UpdateNotificationProps> = ({
               </span>
               {!updateInfo.forceUpdate && (
                 <button
-                  onClick={handleDismiss}
+                  onClick={handleClose}
                   className={`
                     p-1 rounded-md transition-colors duration-200
                     ${config.textColor} hover:bg-black/10
+                    ${isUpdating ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
                   `}
                   disabled={isUpdating}
                 >
