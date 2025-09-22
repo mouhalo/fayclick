@@ -1,0 +1,16 @@
+{
+  "version": "0.2.0",
+  "buildDate": "2025-09-22T01:30:00.000Z",
+  "environment": "production",
+  "updateType": "major",
+  "changelog": "🚀 Nouvelle version majeure disponible!\n\n✨ Nouveautés:\n- Système de gestion de versions PWA\n- Édition de structure utilisateur\n- Notifications temps réel\n- Cache intelligent\n\n🎨 Améliorations:\n- Interface glassmorphism optimisée\n- Performance de navigation\n- Expérience mobile",
+  "forceUpdate": false,
+  "downloadUrl": "https://v2.fayclick.net",
+  "features": [
+    "Gestion de versions automatique",
+    "Notifications PWA",
+    "Cache intelligent",
+    "Édition de structure",
+    "Interface optimisée"
+  ]
+}
