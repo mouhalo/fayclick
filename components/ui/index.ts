@@ -12,6 +12,8 @@ export { default as WelcomeCard } from './WelcomeCard';
 export { default as AdvantageCard } from './AdvantageCard';
 export { default as ServiceCarousel } from './ServiceCarousel';
 export { default as LogoUpload } from './LogoUpload';
+export { default as ImageUpload } from './ImageUpload';
+export { default as PopMessage } from './PopMessage';
 
 // Composants Glassmorphism existants
 export { GlassCard } from './GlassCard';
