@@ -126,7 +126,7 @@ const UpdateNotification: React.FC<UpdateNotificationProps> = ({
           exit={{ opacity: 0, scale: 0.9, y: -20 }}
           className={`
             relative max-w-lg w-full mx-auto rounded-2xl border shadow-2xl
-            bg-gradient-to-br ${config.bgGradient}
+            bg-white
             ${config.borderColor}
             backdrop-blur-xl
           `}
@@ -163,7 +163,7 @@ const UpdateNotification: React.FC<UpdateNotificationProps> = ({
             {/* Icône et titre */}
             <div className="flex items-start gap-4">
               <div className={`
-                flex-shrink-0 p-3 rounded-xl bg-white/20 backdrop-blur-sm
+                flex-shrink-0 p-3 rounded-xl bg-white border border-gray-200
                 ${config.iconColor}
               `}>
                 <IconComponent className="h-8 w-8" />
@@ -195,7 +195,7 @@ const UpdateNotification: React.FC<UpdateNotificationProps> = ({
                 </h4>
                 <div className={`
                   text-sm ${config.textColor} leading-relaxed
-                  bg-white/10 backdrop-blur-sm rounded-lg p-3
+                  bg-gray-50 border border-gray-200 rounded-lg p-3
                 `}>
                   {updateInfo.changelog}
                 </div>
@@ -252,8 +252,7 @@ const UpdateNotification: React.FC<UpdateNotificationProps> = ({
                   className={`
                     px-4 py-3 rounded-lg border transition-all duration-200
                     ${config.borderColor} ${config.textColor}
-                    bg-white/20 backdrop-blur-sm
-                    hover:bg-white/30 disabled:opacity-50
+                    bg-white hover:bg-gray-50 disabled:opacity-50
                   `}
                 >
                   Plus tard
@@ -263,7 +262,7 @@ const UpdateNotification: React.FC<UpdateNotificationProps> = ({
 
             {/* Liens supplémentaires */}
             {(onViewChangelog || updateInfo.downloadUrl) && (
-              <div className="mt-4 pt-4 border-t border-white/20">
+              <div className="mt-4 pt-4 border-t border-gray-200">
                 <div className="flex items-center justify-center gap-4 text-xs">
                   {onViewChangelog && (
                     <button
