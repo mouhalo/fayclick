@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter, Montserrat } from "next/font/google";
 import "./globals.css";
 import ConditionalAuthProvider from '@/components/providers/ConditionalAuthProvider';
+import { VersionProvider } from '@/contexts/VersionContext';
 import { Toaster } from 'sonner';
 
 const inter = Inter({
@@ -65,18 +66,20 @@ export default function RootLayout({
       </head>
       <body className="font-inter antialiased min-h-screen">
         <ConditionalAuthProvider>
-          <div className="safe-area-container">
-            {children}
-          </div>
-          <Toaster
-            position="top-center"
-            richColors
-            closeButton
-            toastOptions={{
-              className: 'glassmorphism-toast',
-              duration: 4000,
-            }}
-          />
+          <VersionProvider autoCheck={true}>
+            <div className="safe-area-container">
+              {children}
+            </div>
+            <Toaster
+              position="top-center"
+              richColors
+              closeButton
+              toastOptions={{
+                className: 'glassmorphism-toast',
+                duration: 4000,
+              }}
+            />
+          </VersionProvider>
         </ConditionalAuthProvider>
       </body>
     </html>
