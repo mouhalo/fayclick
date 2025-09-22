@@ -410,7 +410,27 @@ class VersionService {
   async applyUpdate(): Promise<void> {
     console.log('🔄 Applying app update...');
 
-    // En contexte PWA, on peut forcer la mise à jour du Service Worker
+    // En développement, simuler une mise à jour réussie
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🧪 [DEV] Simulating update process...');
+
+      // Simuler un délai de mise à jour
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      // Nettoyer les caches pour simuler une nouvelle version
+      this.clearVersionCache();
+
+      console.log('✅ [DEV] Update simulation completed!');
+
+      // Recharger la page pour montrer les changements
+      setTimeout(() => {
+        window.location.reload();
+      }, 500);
+
+      return;
+    }
+
+    // En production, gérer les Service Workers et le rechargement réel
     if ('serviceWorker' in navigator) {
       try {
         const registration = await navigator.serviceWorker.getRegistration();
