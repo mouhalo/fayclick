@@ -39,13 +39,37 @@ const VersionStatus: React.FC<VersionStatusProps> = ({
     }
 
     if (updateAvailable) {
-      const isUrgent = updateAvailable.updateType === 'critical';
+      const updateType = updateAvailable.updateType;
+
+      if (updateType === 'critical') {
+        return {
+          icon: AlertCircle,
+          color: 'text-red-600',
+          bgColor: 'bg-red-50',
+          borderColor: 'border-red-200',
+          status: 'Mise à jour critique',
+          description: `Version ${updateAvailable.latestVersion} disponible`
+        };
+      }
+
+      if (updateType === 'major') {
+        return {
+          icon: Sparkles,
+          color: 'text-yellow-600',
+          bgColor: 'bg-yellow-50',
+          borderColor: 'border-yellow-200',
+          status: 'Mise à jour majeure',
+          description: `Version ${updateAvailable.latestVersion} disponible`
+        };
+      }
+
+      // minor
       return {
-        icon: isUrgent ? AlertCircle : Sparkles,
-        color: isUrgent ? 'text-red-600' : 'text-orange-600',
-        bgColor: isUrgent ? 'bg-red-50' : 'bg-orange-50',
-        borderColor: isUrgent ? 'border-red-200' : 'border-orange-200',
-        status: isUrgent ? 'Mise à jour critique' : 'Mise à jour disponible',
+        icon: RefreshCw,
+        color: 'text-orange-600',
+        bgColor: 'bg-orange-50',
+        borderColor: 'border-orange-200',
+        status: 'Mise à jour disponible',
         description: `Version ${updateAvailable.latestVersion} disponible`
       };
     }
