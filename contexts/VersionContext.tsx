@@ -1,6 +1,9 @@
+'use client';
+
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { versionService, VersionInfo, UpdateAvailableInfo } from '@/services/version.service';
 import { useServiceWorker } from '@/hooks/useServiceWorker';
+import { useVersion } from '@/hooks/useVersion';
 import UpdateNotification from '@/components/ui/UpdateNotification';
 
 interface VersionContextType {
