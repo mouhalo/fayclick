@@ -37,6 +37,8 @@ class VersionService {
   private readonly CHECK_INTERVAL_HOURS = 2; // Vérifier toutes les 2 heures
   private readonly VERSION_STORAGE_KEY = 'fayclick_version_info';
   private readonly LAST_UPDATE_PROMPT_KEY = 'fayclick_last_update_prompt';
+  private readonly CACHE_VERSION_KEY = 'fayclick_cache_version';
+  private readonly CACHE_EXPIRY_HOURS = 6; // Cache valide 6 heures
 
   static getInstance(): VersionService {
     if (!this.instance) {
@@ -86,11 +88,20 @@ class VersionService {
   }
 
   /**
-   * Vérifie s'il y a une nouvelle version disponible
+   * Vérifie s'il y a une nouvelle version disponible (cache-first)
    */
   async checkForUpdates(forceCheck = false): Promise<RemoteVersionInfo | null> {
     try {
-      // Éviter les vérifications trop fréquentes sauf si forcé
+      // 1. Vérifier d'abord le cache localStorage
+      if (!forceCheck) {
+        const cachedVersion = this.getCachedVersionInfo();
+        if (cachedVersion) {
+          console.log('⚡ Using cached version info:', cachedVersion);
+          return cachedVersion;
+        }
+      }
+
+      // 2. Éviter les vérifications réseau trop fréquentes
       if (!forceCheck && this.lastCheckTime) {
         const timeSinceLastCheck = Date.now() - this.lastCheckTime.getTime();
         const checkIntervalMs = this.CHECK_INTERVAL_HOURS * 60 * 60 * 1000;
@@ -103,11 +114,116 @@ class VersionService {
 
       this.lastCheckTime = new Date();
 
-      console.log('🔍 Checking for app updates...', {
+      console.log('🔍 Checking for app updates from network...', {
         currentVersion: this.currentVersion,
-        environment: process.env.NODE_ENV
+        environment: process.env.NODE_ENV,
+        forceCheck
       });
 
+      // 3. Fallback vers la vérification réseau seulement si nécessaire
+      const remoteVersionInfo = await this.fetchRemoteVersion();
+
+      if (remoteVersionInfo) {
+        // Mettre en cache la nouvelle version
+        this.setCachedVersionInfo(remoteVersionInfo);
+        this.storeVersionInfo(remoteVersionInfo);
+        return remoteVersionInfo;
+      }
+
+      return null;
+
+    } catch (error) {
+      console.error('❌ Error checking for updates:', error);
+
+      // En cas d'erreur réseau, essayer de retourner la dernière version cachée
+      const fallbackVersion = this.getCachedVersionInfo(true); // Force même si expiré
+      if (fallbackVersion) {
+        console.log('🔄 Using fallback cached version due to network error');
+        return fallbackVersion;
+      }
+
+      return null;
+    }
+  }
+
+  /**
+   * Récupère les informations de version depuis le cache localStorage
+   */
+  private getCachedVersionInfo(ignoreExpiry = false): RemoteVersionInfo | null {
+    if (typeof window === 'undefined') return null;
+
+    try {
+      const cached = localStorage.getItem(this.CACHE_VERSION_KEY);
+      if (!cached) return null;
+
+      const { version, timestamp } = JSON.parse(cached);
+
+      // Vérifier si le cache n'est pas expiré
+      if (!ignoreExpiry) {
+        const now = Date.now();
+        const cacheAge = now - timestamp;
+        const maxAge = this.CACHE_EXPIRY_HOURS * 60 * 60 * 1000;
+
+        if (cacheAge > maxAge) {
+          console.log('🗑️ Cache expired, removing old version info');
+          localStorage.removeItem(this.CACHE_VERSION_KEY);
+          return null;
+        }
+      }
+
+      // Vérifier si c'est vraiment une nouvelle version
+      if (this.compareVersions(this.currentVersion, version)) {
+        return version;
+      }
+
+      return null;
+    } catch (error) {
+      console.warn('Could not read cached version info:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Met en cache les informations de version dans localStorage
+   */
+  private setCachedVersionInfo(versionInfo: RemoteVersionInfo): void {
+    if (typeof window === 'undefined') return;
+
+    try {
+      const cacheData = {
+        version: versionInfo,
+        timestamp: Date.now(),
+        currentVersion: this.currentVersion
+      };
+
+      localStorage.setItem(this.CACHE_VERSION_KEY, JSON.stringify(cacheData));
+      console.log('💾 Version info cached successfully');
+    } catch (error) {
+      console.warn('Could not cache version info:', error);
+    }
+  }
+
+  /**
+   * Efface le cache de versions
+   */
+  clearVersionCache(): void {
+    if (typeof window === 'undefined') return;
+
+    try {
+      localStorage.removeItem(this.CACHE_VERSION_KEY);
+      localStorage.removeItem(this.VERSION_STORAGE_KEY);
+      localStorage.removeItem(this.LAST_UPDATE_PROMPT_KEY);
+      console.log('🗑️ All version cache cleared');
+    } catch (error) {
+      console.warn('Could not clear version cache:', error);
+    }
+  }
+
+  /**
+   * Récupère les informations de version depuis le réseau
+   */
+  private async fetchRemoteVersion(): Promise<RemoteVersionInfo | null> {
+    try {
       // Construire l'URL de vérification des versions
       const versionCheckUrl = this.buildVersionCheckUrl();
 
@@ -122,26 +238,16 @@ class VersionService {
       });
 
       if (!response.ok) {
-        console.warn('⚠️ Version check failed:', response.status);
-        return null;
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
       const remoteVersionInfo: RemoteVersionInfo = await response.json();
-      console.log('📋 Remote version info:', remoteVersionInfo);
+      console.log('📋 Remote version info fetched:', remoteVersionInfo);
 
-      // Comparer les versions
-      const updateInfo = this.compareVersions(this.currentVersion, remoteVersionInfo);
-
-      if (updateInfo) {
-        this.storeVersionInfo(remoteVersionInfo);
-        return remoteVersionInfo;
-      }
-
-      return null;
-
+      return remoteVersionInfo;
     } catch (error) {
-      console.error('❌ Error checking for updates:', error);
-      return null;
+      console.warn('⚠️ Network version check failed:', error);
+      throw error;
     }
   }
 
@@ -149,14 +255,13 @@ class VersionService {
    * Construit l'URL de vérification des versions selon l'environnement
    */
   private buildVersionCheckUrl(): string {
-    const baseUrl = API_CONFIG.baseUrl;
-
-    // En développement, utiliser un endpoint local ou mock
+    // En développement, utiliser un fichier de test local
     if (process.env.NODE_ENV === 'development') {
-      return `${baseUrl}/api/version/check`;
+      return '/version-test.json';
     }
 
     // En production, utiliser l'endpoint de production
+    const baseUrl = API_CONFIG.baseUrl;
     return `${baseUrl.replace('/backend', '')}/api/version/latest`;
   }
 
