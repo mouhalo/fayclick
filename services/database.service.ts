@@ -234,7 +234,7 @@ class DatabaseService {
   /**
    * Exécute une fonction PostgreSQL avec paramètres
    */
-  async executeFunction(functionName: string, params: string[] = []): Promise<any[]> {
+  async executeFunction(functionName: string, params: string[] = []): Promise<unknown[]> {
     const paramStr = params.map(p => {
       // Gérer les types numériques (ne pas les entourer de quotes)
       if (/^\d+$/.test(p)) {
@@ -256,14 +256,14 @@ class DatabaseService {
   /**
    * Connexion d'agent (ancienne fonction PostgreSQL)
    */
-  async connexionAgent(login: string, password: string): Promise<any[]> {
+  async connexionAgent(login: string, password: string): Promise<unknown[]> {
     return this.executeFunction('connexion_agent', [login, password]);
   }
 
   /**
    * Vérification des identifiants utilisateur (nouvelle fonction PostgreSQL)
    */
-  async checkUserCredentials(login: string, password: string): Promise<any[]> {
+  async checkUserCredentials(login: string, password: string): Promise<unknown[]> {
     return this.executeFunction('check_user_credentials', [login, password]);
   }
 
@@ -271,7 +271,7 @@ class DatabaseService {
    * Vérification des identifiants - VERSION CORRIGÉE
    * Force les deux paramètres en varchar pour éviter la conversion automatique des mots de passe numériques
    */
-  async checkUserCredentialsFixed(login: string, password: string): Promise<any[]> {
+  async checkUserCredentialsFixed(login: string, password: string): Promise<unknown[]> {
     // Échapper les quotes dans les paramètres
     const escapedLogin = login.replace(/'/g, "''");
     const escapedPassword = password.replace(/'/g, "''");
@@ -292,14 +292,14 @@ class DatabaseService {
   /**
    * Récupération de la liste des événements
    */
-  async getListEvents(): Promise<any[]> {
+  async getListEvents(): Promise<unknown[]> {
     return this.executeFunction('get_list_events');
   }
 
   /**
    * Récupération du dashboard d'une structure
    */
-  async getDashboard(structureId: string): Promise<any[]> {
+  async getDashboard(structureId: string): Promise<unknown[]> {
     return this.executeFunction('get_dashboard', [structureId]);
   }
 
@@ -307,7 +307,7 @@ class DatabaseService {
    * Récupération des détails complets d'une structure
    * @param id_structure - ID de la structure
    */
-  async getStructureDetails(id_structure: number): Promise<any[]> {
+  async getStructureDetails(id_structure: number): Promise<unknown[]> {
     const query = `SELECT * FROM list_structures WHERE id_structure = ${id_structure};`;
     console.log('🏢 [DATABASE] Récupération détails structure:', {
       id_structure,
@@ -319,7 +319,7 @@ class DatabaseService {
   /**
    * Récupération des types de structure disponibles
    */
-  async getStructureTypes(): Promise<any[]> {
+  async getStructureTypes(): Promise<unknown[]> {
     const query = 'SELECT id_type, nom_type FROM type_structure WHERE id_type != 0 ORDER BY nom_type';
     console.log('📋 [DATABASE] Récupération types structure');
     return this.query(query);
@@ -330,10 +330,10 @@ class DatabaseService {
    * Appelle add_demande_password avec les paramètres forcés en varchar
    * IMPORTANT: Ne jamais logger le pwd_temp pour des raisons de sécurité
    */
-  async requestPasswordReset(login: string, telephone: string): Promise<any> {
+  async requestPasswordReset(login: string, telephone: string): Promise<unknown> {
     try {
       // Log sécurisé sans données sensibles
-      SecurityService.secureLog('info', `🔐 [DATABASE] Demande de récupération pour: ${login.substring(0, 3)}***`);
+      SecurityService.secureLog('log', `🔐 [DATABASE] Demande de récupération pour: ${login.substring(0, 3)}***`);
       
       // Échapper les quotes dans les paramètres
       const escapedLogin = login.replace(/'/g, "''");
@@ -367,14 +367,14 @@ class DatabaseService {
         }
         
         // Ne jamais logger le pwd_temp
-        SecurityService.secureLog('info', `✅ [DATABASE] Demande créée avec ID: ${data.message?.split(':')[1]?.trim()}`);
+        SecurityService.secureLog('log', `✅ [DATABASE] Demande créée avec ID: ${data.message?.split(':')[1]?.trim()}`);
         
         return data;
       }
       
       throw new Error('Aucune réponse de la base de données');
-    } catch (error: any) {
-      SecurityService.secureLog('error', `❌ [DATABASE] Erreur demande récupération: ${error.message}`);
+    } catch (error: unknown) {
+      SecurityService.secureLog('error', `❌ [DATABASE] Erreur demande récupération: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
       throw error;
     }
   }
@@ -384,10 +384,10 @@ class DatabaseService {
    * Appelle add_check_demande avec les paramètres forcés en varchar
    * IMPORTANT: Ne jamais logger le nouveau mot de passe
    */
-  async verifyPasswordResetCode(login: string, telephone: string, code: string): Promise<any> {
+  async verifyPasswordResetCode(login: string, telephone: string, code: string): Promise<unknown> {
     try {
       // Log sécurisé sans le code
-      SecurityService.secureLog('info', `🔐 [DATABASE] Vérification code pour: ${login.substring(0, 3)}***`);
+      SecurityService.secureLog('log', `🔐 [DATABASE] Vérification code pour: ${login.substring(0, 3)}***`);
       
       // Échapper les quotes dans les paramètres
       const escapedLogin = login.replace(/'/g, "''");
@@ -424,7 +424,7 @@ class DatabaseService {
         
         if (data.status === 'success') {
           // Ne jamais logger le nouveau_password
-          SecurityService.secureLog('info', `✅ [DATABASE] Mot de passe réinitialisé avec succès pour: ${data.utilisateur}`);
+          SecurityService.secureLog('log', `✅ [DATABASE] Mot de passe réinitialisé avec succès pour: ${data.utilisateur}`);
         } else {
           SecurityService.secureLog('warn', `⚠️ [DATABASE] Code invalide ou expiré`);
         }
@@ -433,8 +433,8 @@ class DatabaseService {
       }
       
       throw new Error('Aucune réponse de la base de données');
-    } catch (error: any) {
-      SecurityService.secureLog('error', `❌ [DATABASE] Erreur vérification code: ${error.message}`);
+    } catch (error: unknown) {
+      SecurityService.secureLog('error', `❌ [DATABASE] Erreur vérification code: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
       throw error;
     }
   }
@@ -454,7 +454,7 @@ class DatabaseService {
     p_logo: string = '',
     p_nom_service: string = 'SERVICES',
     p_id_structure: number = 0
-  ): Promise<any[]> {
+  ): Promise<unknown[]> {
     return this.executeFunction('add_edit_inscription', [
       p_id_type.toString(),
       p_nom_structure,
@@ -490,7 +490,8 @@ class DatabaseService {
   }
 
   // Méthode pour ajouter une nouvelle application dynamiquement
-  addApplication(name: string, config: Omit<ApplicationConfig, 'name'>) {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  addApplication(name: string, _config: Omit<ApplicationConfig, 'name'>) {
     // Note: Cette méthode nécessiterait une modification du fichier de config
     // Pour l'instant, log uniquement
     SecurityService.secureLog('warn', `Tentative d'ajout d'application '${name}' non supportée dynamiquement`);

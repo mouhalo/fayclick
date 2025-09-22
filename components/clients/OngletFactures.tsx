@@ -35,7 +35,7 @@ interface OngletFacturesProps {
   statsCards: StatCard[];
   filtre: FiltreFactures;
   setFiltre: (filtre: FiltreFactures) => void;
-  onMarquerPayee: (idFacture: number, montant: number) => Promise<void>;
+  onMarquerPayee: (facture: FactureClient) => void;
   isLoading: boolean;
 }
 
@@ -106,22 +106,13 @@ function LigneFacture({
   onMarquerPayee 
 }: { 
   facture: FactureClient; 
-  onMarquerPayee: (id: number, montant: number) => void;
+  onMarquerPayee: (facture: FactureClient) => void;
 }) {
   const [showActions, setShowActions] = useState(false);
-  const [isProcessing, setIsProcessing] = useState(false);
 
-  const handleMarquerPayee = async () => {
+  const handleOuvrirModalPaiement = () => {
     if (facture.statut_paiement === 'PAYEE') return;
-    
-    try {
-      setIsProcessing(true);
-      await onMarquerPayee(facture.id_facture, facture.montant_facture);
-    } catch (error) {
-      console.error('Erreur marquage facture:', error);
-    } finally {
-      setIsProcessing(false);
-    }
+    onMarquerPayee(facture);
   };
 
   const statutColors = clientsService.getStatutFactureColor(facture.statut_paiement);
@@ -175,15 +166,10 @@ function LigneFacture({
           
           {facture.statut_paiement !== 'PAYEE' && (
             <button
-              onClick={handleMarquerPayee}
-              disabled={isProcessing}
-              className="p-2 bg-green-500/20 hover:bg-green-500/30 text-green-200 rounded-lg transition-colors disabled:opacity-50"
+              onClick={handleOuvrirModalPaiement}
+              className="p-2 bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-200 rounded-lg transition-colors border border-yellow-400/30"
             >
-              {isProcessing ? (
-                <div className="w-4 h-4 border-2 border-green-300/30 border-t-green-300 rounded-full animate-spin" />
-              ) : (
-                <CreditCard className="w-4 h-4" />
-              )}
+              <CreditCard className="w-4 h-4" />
             </button>
           )}
         </div>

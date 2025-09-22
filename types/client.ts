@@ -20,9 +20,35 @@ export interface StatistiquesFactures {
   date_derniere_facture: string;
 }
 
+// Interface pour les factures brutes depuis l'API PostgreSQL
+export interface FactureBrute {
+  id_facture: number;
+  num_facture: string;
+  date_facture: string;
+  description?: string;
+  montant: number;
+  mt_remise: number;
+  mt_acompte: number;
+  mt_restant: number;
+  libelle_etat: string;
+  periode?: string;
+  nombre_articles?: number;
+  details_articles?: ArticleFactureBrute[];
+}
+
+export interface ArticleFactureBrute {
+  nom_produit: string;
+  quantite: number;
+  prix: number;
+  sous_total: number;
+  marge?: number;
+  nom_categorie?: string;
+}
+
 export interface ClientWithStats {
   client: Client;
   statistiques_factures: StatistiquesFactures;
+  factures?: FactureBrute[]; // Factures brutes depuis l'API PostgreSQL
 }
 
 // Interfaces pour le modal multi-onglets
@@ -59,8 +85,9 @@ export interface StatsHistoriqueProduits {
   produit_montant_min: string;
 }
 
-export interface ClientDetailComplet extends ClientWithStats {
+export interface ClientDetailComplet extends Omit<ClientWithStats, 'factures'> {
   factures: FactureClient[];
+  factures_brutes?: FactureBrute[]; // Factures originales de l'API
   historique_produits: HistoriqueProduitClient[];
   stats_historique: StatsHistoriqueProduits;
   anciennete_jours: number;

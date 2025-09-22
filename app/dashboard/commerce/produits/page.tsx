@@ -8,11 +8,12 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { 
-  Plus, 
+import {
+  Plus,
   RefreshCw,
   Package,
-  AlertCircle
+  AlertCircle,
+  Trash2
 } from 'lucide-react';
 import { authService } from '@/services/auth.service';
 import { produitsService, ProduitsApiException } from '@/services/produits.service';
@@ -41,6 +42,14 @@ export default function ProduitsCommercePage() {
   const [showFilters, setShowFilters] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+
+  // États pour le workflow d'ajout de stock
+  const [pendingStockProduct, setPendingStockProduct] = useState<AddEditProduitResponse | null>(null);
+  const [showStockConfirmation, setShowStockConfirmation] = useState(false);
+
+  // États pour la confirmation de suppression
+  const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
+  const [produitToDelete, setProduitToDelete] = useState<Produit | null>(null);
   
   // Configuration pagination
   const itemsPerPage = 10;
@@ -181,19 +190,33 @@ export default function ProduitsCommercePage() {
     }
   };
 
-  const handleDeleteProduit = async (id_produit: number) => {
-    if (!confirm('Êtes-vous sûr de vouloir supprimer ce produit ?')) return;
+  const handleDeleteProduit = (produit: Produit) => {
+    console.log('🗑️ [PRODUITS COMMERCE] Demande suppression produit:', produit.nom_produit);
+    setProduitToDelete(produit);
+    setShowDeleteConfirmation(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!produitToDelete) return;
 
     try {
-      console.log('🗑️ [PRODUITS COMMERCE] Suppression produit:', id_produit);
-      await produitsService.deleteProduit(id_produit);
-      supprimerProduit(id_produit);
-      
+      console.log('🗑️ [PRODUITS COMMERCE] Suppression confirmée:', produitToDelete.id_produit);
+      await produitsService.deleteProduit(produitToDelete.id_produit);
+      supprimerProduit(produitToDelete.id_produit);
+
       console.log('✅ [PRODUITS COMMERCE] Produit supprimé avec succès');
+      setShowDeleteConfirmation(false);
+      setProduitToDelete(null);
     } catch (error) {
       console.error('❌ [PRODUITS COMMERCE] Erreur suppression produit:', error);
       alert('Impossible de supprimer le produit. Veuillez réessayer.');
     }
+  };
+
+  const handleCancelDelete = () => {
+    console.log('❌ [PRODUITS COMMERCE] Suppression annulée');
+    setShowDeleteConfirmation(false);
+    setProduitToDelete(null);
   };
 
   // Gestion du modal - simplifié car la logique est maintenant dans le modal
@@ -214,6 +237,61 @@ export default function ProduitsCommercePage() {
     setModalAjoutOpen(false);
     setProduitSelectionne(null);
     setModeEdition(false);
+  };
+
+  // Gestion de la demande d'ajout de stock après création
+  const handleRequestStockAddition = (produit: AddEditProduitResponse) => {
+    console.log('📦 [PRODUITS COMMERCE] Demande d\'ajout de stock pour:', produit.nom_produit);
+    setPendingStockProduct(produit);
+    setShowStockConfirmation(true);
+    // Fermer le modal de création
+    handleCloseModal();
+  };
+
+  const handleStockConfirmationYes = () => {
+    if (!pendingStockProduct) return;
+
+    console.log('✅ [PRODUITS COMMERCE] Confirmation ajout de stock pour:', pendingStockProduct.nom_produit);
+    console.log('📋 [PRODUITS COMMERCE] Données produit reçues:', pendingStockProduct);
+
+    // Vérifier si l'id_produit est bien défini
+    if (!pendingStockProduct.id_produit) {
+      console.error('❌ [PRODUITS COMMERCE] ID produit manquant:', pendingStockProduct);
+      alert('Erreur: ID du produit manquant. Impossible d\'ajouter du stock.');
+      setShowStockConfirmation(false);
+      setPendingStockProduct(null);
+      return;
+    }
+
+    // Convertir AddEditProduitResponse vers Produit pour le modal d'édition
+    const produitPourStock: Produit = {
+      id_produit: pendingStockProduct.id_produit,
+      id_structure: pendingStockProduct.id_structure,
+      nom_produit: pendingStockProduct.nom_produit,
+      cout_revient: pendingStockProduct.cout_revient,
+      prix_vente: pendingStockProduct.prix_vente,
+      est_service: pendingStockProduct.est_service,
+      nom_categorie: pendingStockProduct.nom_categorie || 'produit_service',
+      description: pendingStockProduct.description || 'RAS',
+      niveau_stock: 0,
+      stock_actuel: 0,
+      marge: pendingStockProduct.prix_vente - pendingStockProduct.cout_revient
+    };
+
+    console.log('🔄 [PRODUITS COMMERCE] Produit converti pour stock:', produitPourStock);
+
+    // Fermer la confirmation et ouvrir le modal d'édition sur l'onglet stock
+    setShowStockConfirmation(false);
+    setPendingStockProduct(null);
+    setProduitSelectionne(produitPourStock);
+    setModeEdition(true);
+    setModalAjoutOpen(true);
+  };
+
+  const handleStockConfirmationNo = () => {
+    console.log('❌ [PRODUITS COMMERCE] Refus ajout de stock');
+    setShowStockConfirmation(false);
+    setPendingStockProduct(null);
   };
 
   // Note: La gestion du panier est maintenant dans CarteProduit via le store Zustand
@@ -380,13 +458,99 @@ export default function ProduitsCommercePage() {
         onClose={handleCloseModal}
         onSuccess={handleProduitSuccess}
         onStockUpdate={loadProduits}
+        onRequestStockAddition={handleRequestStockAddition}
         produitToEdit={produitSelectionne}
         typeStructure="COMMERCIALE"
+        defaultTab={produitSelectionne ? 'gestion-stock' : 'informations'}
       />
 
       <ModalPanier />
       <ModalFactureSuccess />
-      
+
+      {/* Modal de confirmation d'ajout de stock */}
+      {showStockConfirmation && pendingStockProduct && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[100] p-4">
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.9, opacity: 0 }}
+            className="bg-white rounded-xl p-6 max-w-md w-full shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="text-center">
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Package className="w-8 h-8 text-green-600" />
+              </div>
+              <h3 className="text-xl font-bold text-slate-900 mb-2">
+                Produit créé avec succès !
+              </h3>
+              <p className="text-slate-600 mb-2 font-medium">
+                {pendingStockProduct.nom_produit}
+              </p>
+              <p className="text-slate-600 mb-6">
+                Voulez-vous ajouter des quantités au stock pour ce produit maintenant ?
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={handleStockConfirmationNo}
+                  className="flex-1 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-medium transition-colors"
+                >
+                  Plus tard
+                </button>
+                <button
+                  onClick={handleStockConfirmationYes}
+                  className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+                >
+                  Oui, ajouter du stock
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Modal de confirmation de suppression */}
+      {showDeleteConfirmation && produitToDelete && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[100] p-4">
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.9, opacity: 0 }}
+            className="bg-white rounded-xl p-6 max-w-md w-full shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="text-center">
+              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Trash2 className="w-8 h-8 text-red-600" />
+              </div>
+              <h3 className="text-xl font-bold text-slate-900 mb-2">
+                Supprimer le produit ?
+              </h3>
+              <p className="text-slate-600 mb-2 font-medium">
+                {produitToDelete.nom_produit}
+              </p>
+              <p className="text-slate-600 mb-6 text-sm">
+                Cette action est irréversible. Le produit et toutes ses données associées seront définitivement supprimés.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={handleCancelDelete}
+                  className="flex-1 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-medium transition-colors"
+                >
+                  Annuler
+                </button>
+                <button
+                  onClick={handleConfirmDelete}
+                  className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors"
+                >
+                  Supprimer
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
       {/* Toast Component */}
       <ToastComponent />
     </div>

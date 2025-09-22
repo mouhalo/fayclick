@@ -1,40 +1,39 @@
 /**
  * Composant FactureCard avec design glassmorphism
  * Card moderne inspirée de la capture d'écran fournie
+ * Intégration avec ModalFacturePrivee - suppression du système dépliable
  */
 
 'use client';
 
-import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Eye, FileText,  CreditCard } from 'lucide-react';
+import { Eye, FileText, CreditCard, Trash2 } from 'lucide-react';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { StatusBadge } from '@/components/ui/StatusBadge';
-import { FactureDetails } from './FactureDetails';
 import { FactureComplete } from '@/types/facture';
 import { formatAmount, formatDate, cn } from '@/lib/utils';
 
 interface FactureCardProps {
   facture: FactureComplete;
-  onVoirDetails?: (facture: FactureComplete) => void;
+  onVoirDetailsModal?: (facture: FactureComplete) => void;
   onAjouterAcompte?: (facture: FactureComplete) => void;
   onPartager?: (facture: FactureComplete) => void;
+  onSupprimer?: (facture: FactureComplete) => void;
   delay?: number;
 }
 
-export const FactureCard = ({ 
-  facture, 
-  onVoirDetails,
-  onAjouterAcompte, 
+export const FactureCard = ({
+  facture,
+  onVoirDetailsModal,
+  onAjouterAcompte,
   onPartager,
-  delay = 0 
+  onSupprimer,
+  delay = 0
 }: FactureCardProps) => {
   const { facture: factureData } = facture;
-  const [isDetailsExpanded, setIsDetailsExpanded] = useState(false);
 
   const handleVoirDetails = () => {
-    setIsDetailsExpanded(!isDetailsExpanded);
-    onVoirDetails?.(facture);
+    onVoirDetailsModal?.(facture);
   };
 
   // Animation variants pour la card
@@ -112,78 +111,115 @@ export const FactureCard = ({
 
         {/* Actions */}
         <div className="flex space-x-2">
-          {/* Bouton Voir détails */}
-          <motion.button
-            whileTap={{ scale: 0.95 }}
-            onClick={handleVoirDetails}
-            className={cn(
-              'flex-1 flex items-center justify-center',
-              'px-3 py-2.5 rounded-lg',
-              'bg-white/20 backdrop-blur-lg',
-              'border border-white/30',
-              'text-white text-sm font-medium',
-              'hover:bg-white/30 hover:scale-105',
-              'transition-all duration-200',
-              'shadow-lg',
-              isDetailsExpanded && 'bg-white/30'
-            )}
-          >
-            <Eye className="w-4 h-4 mr-1.5" />
-            {isDetailsExpanded ? 'Masquer' : 'Voir détails'}
-          </motion.button>
-
-          {/* Action contextuelle selon le statut */}
+          {/* Configuration des boutons selon le statut */}
           {factureData.libelle_etat === 'IMPAYEE' ? (
-            <motion.button
-              whileTap={{ scale: 0.95 }}
-              onClick={() => onAjouterAcompte?.(facture)}
-              className={cn(
-                'flex-1 flex items-center justify-center',
-                'px-3 py-2.5 rounded-lg',
-                'bg-orange-500/90 backdrop-blur-lg',
-                'border border-orange-400/50',
-                'text-white text-sm font-medium',
-                'hover:bg-orange-500 hover:scale-105',
-                'transition-all duration-200',
-                'shadow-lg shadow-orange-500/20'
+            <>
+              {/* Bouton Voir */}
+              <motion.button
+                whileTap={{ scale: 0.95 }}
+                onClick={handleVoirDetails}
+                className={cn(
+                  'flex-1 flex items-center justify-center',
+                  'px-2 py-2.5 rounded-lg',
+                  'bg-white/20 backdrop-blur-lg',
+                  'border border-white/30',
+                  'text-white text-sm font-medium',
+                  'hover:bg-white/30 hover:scale-105',
+                  'transition-all duration-200',
+                  'shadow-lg'
+                )}
+              >
+                <Eye className="w-4 h-4 mr-1" />
+                Voir
+              </motion.button>
+
+              {/* Bouton Supprimer */}
+              {onSupprimer && (
+                <motion.button
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => onSupprimer(facture)}
+                  className={cn(
+                    'flex-1 flex items-center justify-center',
+                    'px-2 py-2.5 rounded-lg',
+                    'bg-red-500/90 backdrop-blur-lg',
+                    'border border-red-400/50',
+                    'text-white text-sm font-medium',
+                    'hover:bg-red-500 hover:scale-105',
+                    'transition-all duration-200',
+                    'shadow-lg shadow-red-500/20'
+                  )}
+                  title="Supprimer la facture"
+                >
+                  <Trash2 className="w-4 h-4 mr-1" />
+                  Sup.
+                </motion.button>
               )}
-            >
-              <CreditCard className="w-4 h-4 mr-1.5" />
-              Payer
-            </motion.button>
+
+              {/* Bouton Payer */}
+              <motion.button
+                whileTap={{ scale: 0.95 }}
+                onClick={() => onAjouterAcompte?.(facture)}
+                className={cn(
+                  'flex-1 flex items-center justify-center',
+                  'px-2 py-2.5 rounded-lg',
+                  'bg-orange-500/90 backdrop-blur-lg',
+                  'border border-orange-400/50',
+                  'text-white text-sm font-medium',
+                  'hover:bg-orange-500 hover:scale-105',
+                  'transition-all duration-200',
+                  'shadow-lg shadow-orange-500/20'
+                )}
+              >
+                <CreditCard className="w-4 h-4 mr-1" />
+                Payer
+              </motion.button>
+            </>
           ) : (
-            <motion.button
-              whileTap={{ scale: 0.95 }}
-              onClick={() => onPartager?.(facture)}
-              className={cn(
-                'flex-1 flex items-center justify-center',
-                'px-3 py-2.5 rounded-lg',
-                'bg-emerald-600/90 backdrop-blur-lg',
-                'border border-emerald-500/50',
-                'text-white text-sm font-medium',
-                'hover:bg-emerald-600 hover:scale-105',
-                'transition-all duration-200',
-                'shadow-lg shadow-emerald-500/20'
-              )}
-            >
-              <FileText className="w-4 h-4 mr-1.5" />
-              PDF
-            </motion.button>
+            <>
+              {/* Bouton Voir pour factures payées */}
+              <motion.button
+                whileTap={{ scale: 0.95 }}
+                onClick={handleVoirDetails}
+                className={cn(
+                  'flex-1 flex items-center justify-center',
+                  'px-3 py-2.5 rounded-lg',
+                  'bg-white/20 backdrop-blur-lg',
+                  'border border-white/30',
+                  'text-white text-sm font-medium',
+                  'hover:bg-white/30 hover:scale-105',
+                  'transition-all duration-200',
+                  'shadow-lg'
+                )}
+              >
+                <Eye className="w-4 h-4 mr-1.5" />
+                Voir
+              </motion.button>
+
+              {/* Bouton PDF pour factures payées */}
+              <motion.button
+                whileTap={{ scale: 0.95 }}
+                onClick={() => onPartager?.(facture)}
+                className={cn(
+                  'flex-1 flex items-center justify-center',
+                  'px-3 py-2.5 rounded-lg',
+                  'bg-emerald-600/90 backdrop-blur-lg',
+                  'border border-emerald-500/50',
+                  'text-white text-sm font-medium',
+                  'hover:bg-emerald-600 hover:scale-105',
+                  'transition-all duration-200',
+                  'shadow-lg shadow-emerald-500/20'
+                )}
+              >
+                <FileText className="w-4 h-4 mr-1.5" />
+                PDF
+              </motion.button>
+            </>
           )}
         </div>
 
         {/* Effet de brillance sur hover */}
         <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-transparent via-white/5 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 pointer-events-none" />
       </GlassCard>
-
-      {/* Détails dépliable */}
-      {facture.details && facture.details.length > 0 && (
-        <FactureDetails
-          facture={facture}
-          isExpanded={isDetailsExpanded}
-          onToggle={() => setIsDetailsExpanded(!isDetailsExpanded)}
-        />
-      )}
     </motion.div>
   );
 };

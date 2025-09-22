@@ -13,9 +13,10 @@ import { FactureComplete } from '@/types/facture';
 interface FacturesListProps {
   factures: FactureComplete[];
   loading?: boolean;
-  onVoirDetails?: (facture: FactureComplete) => void;
+  onVoirDetailsModal?: (facture: FactureComplete) => void;
   onAjouterAcompte?: (facture: FactureComplete) => void;
   onPartager?: (facture: FactureComplete) => void;
+  onSupprimer?: (facture: FactureComplete) => void;
 }
 
 // Variants pour le container avec stagger
@@ -57,12 +58,13 @@ const itemVariants = {
   },
 };
 
-export const FacturesList = ({ 
-  factures, 
+export const FacturesList = ({
+  factures,
   loading = false,
-  onVoirDetails,
+  onVoirDetailsModal,
   onAjouterAcompte,
-  onPartager 
+  onPartager,
+  onSupprimer
 }: FacturesListProps) => {
 
   // État de loading
@@ -139,9 +141,10 @@ export const FacturesList = ({
           >
             <FactureCard
               facture={facture}
-              onVoirDetails={onVoirDetails}
+              onVoirDetailsModal={onVoirDetailsModal}
               onAjouterAcompte={onAjouterAcompte}
               onPartager={onPartager}
+              onSupprimer={onSupprimer}
               delay={index * 0.05} // Délai plus court pour la fluidité
             />
           </motion.div>

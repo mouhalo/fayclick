@@ -207,14 +207,286 @@ export class ClientsService {
    * Récupérer les détails complets d'un client (pour modal multi-onglets)
    * ⚠️ FONCTION OBSOLÈTE - Remplacée par l'utilisation directe des données de getListeClients()
    * Les données complètes (factures, historique) sont déjà disponibles via get_list_clients
-   * Cette fonction est conservée mais non utilisée pour compatibilité.
+   * Cette fonction est conservée pour compatibilité avec useClientDetail.
    */
-  /*
   async getClientDetailComplet(idClient: number): Promise<ClientDetailComplet> {
     console.warn('⚠️ [CLIENTS] getClientDetailComplet() est obsolète - utiliser les données de getListeClients() directement');
-    throw new ClientsApiException('Fonction obsolète - utiliser les données existantes du client', 501);
+
+    // Utiliser getClientFactureDetails pour obtenir les données
+    const clientData = await this.getClientFactureDetails(idClient);
+
+    // Calculer les statistiques manquantes
+    const factures = clientData.factures || [];
+    const nombreFactures = factures.length;
+    const nombrePayees = factures.filter((f: any) => f.statut_paiement === 'PAYEE').length;
+    const nombreImpayees = factures.filter((f: any) => f.statut_paiement === 'IMPAYEE').length;
+    const montantTotal = factures.reduce((sum: number, f: any) => sum + (f.montant || 0), 0);
+    const montantPaye = factures.reduce((sum: number, f: any) => sum + (f.mt_paye || 0), 0);
+    const montantImpaye = factures.reduce((sum: number, f: any) => sum + (f.mt_restant || 0), 0);
+
+    // Calculer l'ancienneté
+    const dateCreation = clientData.client.date_creation || new Date().toISOString();
+    const ancienneteMs = Date.now() - new Date(dateCreation).getTime();
+    const ancienneteJours = Math.floor(ancienneteMs / (1000 * 60 * 60 * 24));
+    const ancienneteTexte = ancienneteJours > 365
+      ? `${Math.floor(ancienneteJours / 365)} an(s)`
+      : `${ancienneteJours} jour(s)`;
+
+    // Mapper les factures au format attendu
+    const facturesMapped = (clientData.factures || []).map((f: any) => ({
+      ...f,
+      numero_facture: f.num_facture || f.numero_facture,
+      montant_facture: f.montant || f.montant_facture,
+      statut_paiement: f.statut_paiement || (f.id_etat === 2 ? 'PAYEE' : f.id_etat === 3 ? 'PARTIELLE' : 'IMPAYEE')
+    }));
+
+    // Transformer en format ClientDetailComplet attendu par le hook
+    return {
+      client: clientData.client,
+      factures: facturesMapped,
+      historique_produits: (clientData as any).historique_produits || [],
+      stats_historique: (clientData as any).stats_historique || {
+        total_produits_achetes: 0,
+        montant_total_achats: 0,
+        produit_prefere: null,
+        dernier_achat: null
+      },
+      anciennete_jours: ancienneteJours,
+      anciennete_texte: ancienneteTexte,
+      statistiques_factures: {
+        nombre_factures: nombreFactures,
+        nombre_factures_payees: nombrePayees,
+        nombre_factures_impayees: nombreImpayees,
+        montant_total_factures: montantTotal,
+        montant_paye: montantPaye,
+        montant_impaye: montantImpaye,
+        pourcentage_paiement: montantTotal > 0 ? Math.round((montantPaye / montantTotal) * 100) : 0,
+        date_premiere_facture: factures.length > 0 ? factures[factures.length - 1].date_facture : '',
+        date_derniere_facture: factures.length > 0 ? factures[0].date_facture : ''
+      }
+    };
   }
-  */
+
+  /**
+   * Récupérer les détails mis à jour d'un client spécifique avec ses factures
+   * Utilisé pour la synchronisation après un paiement
+   */
+  async getClientFactureDetails(idClient: number): Promise<ClientWithStats> {
+    try {
+      const user = authService.getUser();
+      if (!user) {
+        throw new ClientsApiException('Utilisateur non authentifié', 401);
+      }
+
+      if (!idClient || idClient <= 0) {
+        throw new ClientsApiException('ID client invalide', 400);
+      }
+
+      SecurityService.secureLog('log', '🔄 [CLIENTS] Récupération détails client spécifique', {
+        id_client: idClient,
+        id_structure: user.id_structure,
+        timestamp: new Date().toISOString()
+      });
+
+      // Utilisation de la même fonction PostgreSQL get_list_clients
+      // mais on filtrera le client spécifique côté JavaScript
+      const query = `SELECT * FROM get_list_clients(${user.id_structure})`;
+      
+      console.log('🔍 [CLIENTS] Requête pour client spécifique:', query);
+      
+      const results = await database.query(query);
+      const rawData = Array.isArray(results) && results.length > 0 ? results[0] : null;
+      
+      if (!rawData) {
+        throw new ClientsApiException('Aucune donnée retournée par l\'API', 500);
+      }
+
+      // Parse des données comme dans getListeClients
+      let data;
+      try {
+        if (rawData.get_list_clients) {
+          const clientData = rawData.get_list_clients;
+          if (typeof clientData === 'string') {
+            data = JSON.parse(clientData);
+          } else if (typeof clientData === 'object' && clientData !== null) {
+            data = clientData;
+          } else {
+            throw new Error('Format get_list_clients inattendu');
+          }
+        } else if (typeof rawData === 'string') {
+          data = JSON.parse(rawData);
+        } else {
+          data = rawData;
+        }
+      } catch (parseError) {
+        console.error('❌ [CLIENTS] Erreur parsing données client spécifique:', parseError);
+        throw new ClientsApiException('Erreur lors du parsing des données client', 500);
+      }
+
+      // Valider la structure des données
+      if (!data || !data.clients || !Array.isArray(data.clients)) {
+        console.error('❌ [CLIENTS] Structure de données invalide pour client spécifique:', data);
+        throw new ClientsApiException('Structure de données client invalide', 500);
+      }
+
+      // Trouver le client spécifique dans la liste
+      const clientSpecifique = data.clients.find((client: any) => 
+        client.client && client.client.id_client === idClient
+      );
+
+      if (!clientSpecifique) {
+        throw new ClientsApiException(`Client avec ID ${idClient} introuvable`, 404);
+      }
+
+      SecurityService.secureLog('log', '✅ [CLIENTS] Client spécifique récupéré avec succès', {
+        id_client: idClient,
+        nom_client: clientSpecifique.client.nom_client,
+        nb_factures: clientSpecifique.factures?.length || 0
+      });
+
+      return clientSpecifique;
+
+    } catch (error) {
+      SecurityService.secureLog('error', '❌ [CLIENTS] Erreur récupération client spécifique', error);
+      
+      if (error instanceof ClientsApiException) {
+        throw error;
+      }
+      
+      throw new ClientsApiException(
+        'Impossible de récupérer les détails du client',
+        500,
+        error
+      );
+    }
+  }
+
+  /**
+   * Mettre à jour un client spécifique dans une liste existante
+   * Optimisation pour éviter de recharger toute la liste
+   */
+  async updateClientInList(
+    clientId: number, 
+    currentClients: ClientWithStats[]
+  ): Promise<ClientWithStats[]> {
+    try {
+      SecurityService.secureLog('log', '🔄 [CLIENTS] Mise à jour client dans liste', {
+        id_client: clientId,
+        nb_clients_actuels: currentClients.length
+      });
+
+      // Récupérer les données mises à jour du client
+      const updatedClient = await this.getClientFactureDetails(clientId);
+      
+      // Remplacer le client dans la liste existante
+      const updatedClients = currentClients.map(client => 
+        client.client.id_client === clientId ? updatedClient : client
+      );
+
+      SecurityService.secureLog('log', '✅ [CLIENTS] Client mis à jour dans la liste', {
+        id_client: clientId,
+        nom_client: updatedClient.client.nom_client
+      });
+
+      return updatedClients;
+
+    } catch (error) {
+      SecurityService.secureLog('error', '❌ [CLIENTS] Erreur mise à jour client dans liste', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Récupérer uniquement les statistiques globales (optimisation)
+   * Utilisé après un paiement pour mettre à jour les statistiques sans recharger toute la liste
+   */
+  async getStatistiquesGlobales(): Promise<StatistiquesGlobales | null> {
+    try {
+      const user = authService.getUser();
+      if (!user) {
+        throw new ClientsApiException('Utilisateur non authentifié', 401);
+      }
+
+      SecurityService.secureLog('log', '📊 [CLIENTS] Récupération statistiques globales uniquement', {
+        id_structure: user.id_structure
+      });
+
+      // Utiliser get_list_clients mais extraire seulement les stats
+      const query = `SELECT * FROM get_list_clients(${user.id_structure})`;
+      const results = await database.query(query);
+      const rawData = Array.isArray(results) && results.length > 0 ? results[0] : null;
+      
+      if (!rawData) {
+        return null;
+      }
+
+      // Parse des données
+      let data;
+      try {
+        if (rawData.get_list_clients) {
+          const clientData = rawData.get_list_clients;
+          if (typeof clientData === 'string') {
+            data = JSON.parse(clientData);
+          } else {
+            data = clientData;
+          }
+        } else if (typeof rawData === 'string') {
+          data = JSON.parse(rawData);
+        } else {
+          data = rawData;
+        }
+      } catch (parseError) {
+        console.error('❌ [CLIENTS] Erreur parsing statistiques:', parseError);
+        return null;
+      }
+
+      return data.statistiques_globales || null;
+
+    } catch (error) {
+      SecurityService.secureLog('error', '❌ [CLIENTS] Erreur récupération statistiques', error);
+      return null;
+    }
+  }
+
+  /**
+   * Mise à jour hybride : client spécifique + statistiques globales
+   * Solution optimale pour la synchronisation après paiement
+   */
+  async updateClientAndStats(
+    clientId: number, 
+    currentClients: ClientWithStats[]
+  ): Promise<{ clients: ClientWithStats[], stats: StatistiquesGlobales | null }> {
+    try {
+      SecurityService.secureLog('log', '🔄 [CLIENTS] Mise à jour hybride client + stats', {
+        id_client: clientId
+      });
+
+      // Lancer les deux requêtes en parallèle pour optimiser
+      const [updatedClient, newStats] = await Promise.all([
+        this.getClientFactureDetails(clientId),
+        this.getStatistiquesGlobales()
+      ]);
+      
+      // Remplacer le client dans la liste
+      const updatedClients = currentClients.map(client => 
+        client.client.id_client === clientId ? updatedClient : client
+      );
+
+      SecurityService.secureLog('log', '✅ [CLIENTS] Mise à jour hybride réussie', {
+        id_client: clientId,
+        stats_updated: !!newStats
+      });
+
+      return {
+        clients: updatedClients,
+        stats: newStats
+      };
+
+    } catch (error) {
+      SecurityService.secureLog('error', '❌ [CLIENTS] Erreur mise à jour hybride', error);
+      throw error;
+    }
+  }
 
   /**
    * Créer ou modifier un client

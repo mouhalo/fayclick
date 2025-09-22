@@ -17,8 +17,11 @@ import { FacturesList } from '@/components/factures/FacturesList';
 import { GlassPagination, usePagination } from '@/components/ui/GlassPagination';
 import { ModalPaiement } from '@/components/factures/ModalPaiement';
 import { ModalPartage } from '@/components/factures/ModalPartage';
+import { ModalFacturePrivee } from '@/components/facture/ModalFacturePrivee';
+import { ModalConfirmation } from '@/components/ui/ModalConfirmation';
 import { Toast } from '@/components/ui/Toast';
 import { factureListService } from '@/services/facture-list.service';
+import { facturePriveeService } from '@/services/facture-privee.service';
 import { 
   GetMyFactureResponse,
   FactureComplete,
@@ -48,11 +51,22 @@ export default function FacturesGlassPage() {
     isOpen: boolean;
     facture: FactureComplete | null;
   }>({ isOpen: false, facture: null });
-  
+
   const [modalPartage, setModalPartage] = useState<{
     isOpen: boolean;
     facture: FactureComplete | null;
   }>({ isOpen: false, facture: null });
+
+  const [modalFacturePrivee, setModalFacturePrivee] = useState<{
+    isOpen: boolean;
+    facture: FactureComplete | null;
+  }>({ isOpen: false, facture: null });
+
+  const [modalConfirmation, setModalConfirmation] = useState<{
+    isOpen: boolean;
+    message: string;
+    onConfirm: () => void;
+  }>({ isOpen: false, message: '', onConfirm: () => {} });
 
   // États des notifications
   const [toast, setToast] = useState<{
@@ -121,17 +135,68 @@ export default function FacturesGlassPage() {
     setModalPartage({ isOpen: true, facture });
   }, []);
 
-  const handleVoirDetails = useCallback((facture: FactureComplete) => {
-    console.log('Voir détails facture:', facture.facture.id_facture);
-    // TODO: Navigation vers page détail ou modal détails
+  const handleVoirDetailsModal = useCallback((facture: FactureComplete) => {
+    console.log('Ouverture modal facture:', facture.facture.id_facture);
+    setModalFacturePrivee({ isOpen: true, facture });
   }, []);
 
+  const handleSupprimer = useCallback((facture: FactureComplete) => {
+    console.log('Demande de suppression facture:', facture.facture.num_facture);
+
+    setModalConfirmation({
+      isOpen: true,
+      message: `Êtes-vous sûr de vouloir supprimer la facture ${facture.facture.num_facture} ?\n\nCette action est irréversible.`,
+      onConfirm: () => executerSuppression(facture)
+    });
+  }, []);
+
+  const executerSuppression = useCallback(async (facture: FactureComplete) => {
+    try {
+      console.log('🗑️ Exécution suppression facture:', facture.facture.num_facture);
+
+      const result = await facturePriveeService.supprimerFacture(
+        facture.facture.id_facture,
+        facture.facture.id_structure
+      );
+
+      if (result.success) {
+        // Fermer le modal de confirmation
+        setModalConfirmation({ isOpen: false, message: '', onConfirm: () => {} });
+
+        // Afficher toast de succès
+        setToast({
+          isOpen: true,
+          type: 'success',
+          message: `Facture ${facture.facture.num_facture} supprimée avec succès`
+        });
+
+        // Recharger la liste des factures
+        loadFactures();
+      } else {
+        throw new Error(result.message || 'Erreur lors de la suppression');
+      }
+    } catch (error) {
+      console.error('❌ Erreur suppression facture:', error);
+
+      // Fermer le modal de confirmation
+      setModalConfirmation({ isOpen: false, message: '', onConfirm: () => {} });
+
+      // Afficher toast d'erreur
+      setToast({
+        isOpen: true,
+        type: 'error',
+        message: error instanceof Error ? error.message : 'Erreur lors de la suppression'
+      });
+    }
+  }, [loadFactures]);
+
   // Succès de paiement
-  const handlePaiementSuccess = useCallback((response: { message?: string }) => {
+  const handlePaiementSuccess = useCallback((response: unknown) => {
+    const typedResponse = response as { message?: string };
     setToast({
       isOpen: true,
       type: 'success',
-      message: response.message || 'Paiement enregistré avec succès'
+      message: typedResponse.message || 'Paiement enregistré avec succès'
     });
 
     // Recharger les factures
@@ -145,6 +210,10 @@ export default function FacturesGlassPage() {
 
   const closeModalPartage = useCallback(() => {
     setModalPartage({ isOpen: false, facture: null });
+  }, []);
+
+  const closeModalFacturePrivee = useCallback(() => {
+    setModalFacturePrivee({ isOpen: false, facture: null });
   }, []);
 
   const closeToast = useCallback(() => {
@@ -252,9 +321,10 @@ export default function FacturesGlassPage() {
           <FacturesList
             factures={facturesPaginees}
             loading={loading}
-            onVoirDetails={handleVoirDetails}
+            onVoirDetailsModal={handleVoirDetailsModal}
             onAjouterAcompte={handleAjouterAcompte}
             onPartager={handlePartager}
+            onSupprimer={handleSupprimer}
           />
 
           {/* Message si aucune facture */}
@@ -318,6 +388,42 @@ export default function FacturesGlassPage() {
         isOpen={modalPartage.isOpen}
         onClose={closeModalPartage}
         facture={modalPartage.facture}
+      />
+
+      <ModalFacturePrivee
+        isOpen={modalFacturePrivee.isOpen}
+        onClose={closeModalFacturePrivee}
+        factureId={modalFacturePrivee.facture?.facture.id_facture}
+        onFactureDeleted={() => {
+          // Recharger les factures après suppression
+          loadFactures();
+          setToast({
+            isOpen: true,
+            type: 'success',
+            message: 'Facture supprimée avec succès'
+          });
+        }}
+        onPaymentComplete={() => {
+          // Recharger les factures après paiement
+          loadFactures();
+          setToast({
+            isOpen: true,
+            type: 'success',
+            message: 'Paiement confirmé avec succès'
+          });
+        }}
+      />
+
+      {/* Modal de confirmation de suppression */}
+      <ModalConfirmation
+        isOpen={modalConfirmation.isOpen}
+        onClose={() => setModalConfirmation({ isOpen: false, message: '', onConfirm: () => {} })}
+        onConfirm={modalConfirmation.onConfirm}
+        title="Supprimer la facture"
+        message={modalConfirmation.message}
+        confirmText="Supprimer"
+        cancelText="Annuler"
+        type="danger"
       />
 
       {/* Toast notifications */}
