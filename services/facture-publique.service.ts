@@ -2,7 +2,7 @@
  * Service pour récupérer les factures publiques (sans authentification)
  */
 
-import { FacturePublique } from '@/types/facture-publique';
+// Types will be imported when needed
 
 export class FacturePubliqueException extends Error {
   constructor(message: string, public statusCode: number = 500) {
@@ -24,7 +24,7 @@ class FacturePubliqueService {
   /**
    * Récupère une facture publique directement via la base de données
    */
-  async getFacturePublique(id_structure: number, id_facture: number): Promise<any> {
+  async getFacturePublique(id_structure: number, id_facture: number): Promise<unknown> {
     try {
       // Validation des paramètres
       if (!id_structure || !id_facture) {
@@ -113,12 +113,21 @@ class FacturePubliqueService {
   }> {
     try {
       const facture = await this.getFacturePublique(id_structure, id_facture);
-      
+
+      // Assertion de type pour accéder aux propriétés
+      const typedFacture = facture as {
+        facture: {
+          id_etat: number;
+          montant: number;
+          mt_restant: number;
+        }
+      };
+
       return {
         exists: true,
-        isPaid: facture.facture.id_etat !== 1,
-        montant: facture.facture.montant,
-        restant: facture.facture.mt_restant
+        isPaid: typedFacture.facture.id_etat !== 1,
+        montant: typedFacture.facture.montant,
+        restant: typedFacture.facture.mt_restant
       };
     } catch (error) {
       if (error instanceof FacturePubliqueException && error.statusCode === 404) {
@@ -134,9 +143,9 @@ class FacturePubliqueService {
   /**
    * Formate l'URL de partage d'une facture avec encodage sécurisé
    */
-  formatShareUrl(id_structure: number, id_facture: number): string {
-    // Utiliser la fonction centralisée de url-config
-    const { getFactureUrl } = require('@/lib/url-config');
+  async formatShareUrl(id_structure: number, id_facture: number): Promise<string> {
+    // Utiliser l'import ES6 plutôt que require
+    const { getFactureUrl } = await import('@/lib/url-config');
     return getFactureUrl(id_structure, id_facture);
   }
 }

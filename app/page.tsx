@@ -4,6 +4,11 @@ import { useIsDesktop } from '@/hooks';
 import { Suspense } from 'react';
 import dynamic from 'next/dynamic';
 
+// Composant de test pour la gestion de versions (développement uniquement)
+const VersionTest = dynamic(() => import('@/components/debug/VersionTest'), {
+  ssr: false
+});
+
 // Import dynamique pour optimiser le chargement
 const MobileHome = dynamic(() => import('@/components/home/MobileHome'), {
   loading: () => <LoadingScreen />,
@@ -38,6 +43,9 @@ export default function Home() {
   return (
     <Suspense fallback={<LoadingScreen />}>
       {isDesktop ? <DesktopHome /> : <MobileHome />}
+
+      {/* Composant de test pour la gestion de versions - développement uniquement */}
+      {process.env.NODE_ENV === 'development' && <VersionTest />}
     </Suspense>
   );
 }
