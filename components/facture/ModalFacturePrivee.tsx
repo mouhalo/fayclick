@@ -31,6 +31,7 @@ import { ModalPaiementWalletNew, WalletType } from './ModalPaiementWalletNew';
 import { ModalFacturePriveeProps } from '@/types/facture-privee';
 import { ModalConfirmation } from '@/components/ui/ModalConfirmation';
 import { ModalRecuGenere } from '@/components/recu';
+import { recuService } from '@/services/recu.service';
 
 export function ModalFacturePrivee({
   isOpen,
@@ -158,26 +159,62 @@ export function ModalFacturePrivee({
     }
   };
 
-  const handlePaymentComplete = (wallet: WalletType, referenceTransaction?: string) => {
+  const handlePaymentComplete = async (wallet: WalletType, referenceTransaction?: string) => {
     setShowWalletModal(false);
 
-    // Générer les informations du reçu
+    // Créer le reçu en base de données et afficher le modal
     if (facture) {
-      const numeroRecu = `REC-${facture.num_facture}-${Date.now()}`;
-      const dateTimePaiement = new Date().toISOString();
+      try {
+        // Créer le reçu via le service
+        const recuResponse = await recuService.creerRecu({
+          id_facture: facture.id_facture,
+          id_structure: facture.id_structure,
+          methode_paiement: wallet,
+          montant_paye: facture.montant,
+          reference_transaction: referenceTransaction,
+          numero_telephone: facture.tel_client,
+          date_paiement: new Date().toISOString()
+        });
 
-      setLastPaymentInfo({
-        wallet,
-        montant: facture.montant,
-        numeroRecu,
-        dateTimePaiement,
-        referenceTransaction
-      });
+        if (recuResponse.success) {
+          // Préparer les informations du reçu pour l'affichage
+          setLastPaymentInfo({
+            wallet,
+            montant: facture.montant,
+            numeroRecu: recuResponse.numero_recu,
+            dateTimePaiement: new Date().toISOString(),
+            referenceTransaction
+          });
 
-      // Afficher le modal de reçu après un court délai pour une meilleure UX
-      setTimeout(() => {
-        setShowRecuModal(true);
-      }, 300);
+          // Afficher le modal de reçu après un court délai pour une meilleure UX
+          setTimeout(() => {
+            setShowRecuModal(true);
+          }, 300);
+
+          console.log('✅ [FACTURE-PRIVEE] Reçu créé avec succès:', {
+            numeroRecu: recuResponse.numero_recu,
+            idFacture: facture.id_facture,
+            montant: facture.montant
+          });
+        }
+
+      } catch (error) {
+        console.error('❌ [FACTURE-PRIVEE] Erreur création reçu:', error);
+
+        // En cas d'erreur, afficher quand même le reçu avec les infos locales
+        const numeroRecu = `REC-${facture.num_facture}-${Date.now()}`;
+        setLastPaymentInfo({
+          wallet,
+          montant: facture.montant,
+          numeroRecu,
+          dateTimePaiement: new Date().toISOString(),
+          referenceTransaction
+        });
+
+        setTimeout(() => {
+          setShowRecuModal(true);
+        }, 300);
+      }
 
       // Recharger l'historique des paiements
       loadHistoriquePaiements(facture.id_facture);

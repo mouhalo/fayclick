@@ -25,6 +25,7 @@ import {
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { decodeFactureParams } from '@/lib/url-encoder';
 import { RecuDetails, WalletDisplayConfig } from '@/types/recu';
+import { recuService } from '@/services/recu.service';
 import Image from 'next/image';
 
 interface RecuPubliqueClientProps {
@@ -83,52 +84,9 @@ export default function RecuPubliqueClient({ token }: RecuPubliqueClientProps) {
           throw new Error('Token de reçu invalide');
         }
 
-        // TODO: Implémenter le service de récupération du reçu
-        // const recuData = await recuPubliqueService.getRecuPublique(params.idStructure, params.idFacture);
-
-        // Simulation temporaire - à remplacer par l'appel API réel
-        await new Promise(resolve => setTimeout(resolve, 1000));
-
-        // Mock data pour démonstration
-        const mockRecu: RecuDetails = {
-          facture: {
-            id_facture: params.idFacture,
-            num_facture: 'FAC-2024-001',
-            id_structure: params.idStructure,
-            nom_structure: 'Boutique Excellence',
-            date_facture: '2024-01-15',
-            nom_client: 'Amadou Diallo',
-            tel_client: '+221 77 123 45 67',
-            montant: 25000,
-            libelle_etat: 'PAYEE',
-            numrecu: 'REC-FAC-2024-001-1704394800000',
-            logo: '',
-            description: 'Achat de produits électroniques'
-          },
-          paiement: {
-            date_paiement: '2024-01-15T14:30:00Z',
-            methode_paiement: 'orange-money',
-            montant_paye: 25000,
-            reference_transaction: 'OM123456789',
-            numero_telephone: '+221 77 123 45 67'
-          },
-          details_articles: [
-            {
-              nom_produit: 'Smartphone Samsung Galaxy A54',
-              quantite: 1,
-              prix: 180000,
-              sous_total: 180000
-            },
-            {
-              nom_produit: 'Écouteurs Bluetooth',
-              quantite: 2,
-              prix: 15000,
-              sous_total: 30000
-            }
-          ]
-        };
-
-        setRecu(mockRecu);
+        // Récupérer le reçu via le service
+        const recuData = await recuService.getRecuPublique(params.idStructure, params.idFacture);
+        setRecu(recuData);
       } catch (err: unknown) {
         console.error('Erreur chargement reçu:', err);
         setError(err instanceof Error ? err.message : 'Erreur lors du chargement du reçu');
