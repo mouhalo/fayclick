@@ -3,6 +3,7 @@
  */
 
 export { ModalRecuGenere } from './ModalRecuGenere';
+export { default as RecuPubliqueClient } from './RecuPubliqueClient';
 
 // Types principaux pour faciliter l'import
 export type {
