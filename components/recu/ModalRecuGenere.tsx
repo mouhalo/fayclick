@@ -20,6 +20,7 @@ import { authService } from '@/services/auth.service';
 import { encodeFactureParams } from '@/lib/url-encoder';
 import { ModalRecuGenereProps, RecuDetails, RecuUrls } from '@/types/recu';
 import { WalletType } from '@/components/facture/ModalPaiementWalletNew';
+import { recuService } from '@/services/recu.service';
 
 // Configuration des wallets pour affichage
 const WALLET_CONFIG = {
