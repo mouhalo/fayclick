@@ -35,6 +35,8 @@ export function useInstallPrompt(): InstallPromptHook {
 
   // Vérifier si l'app est déjà installée
   const checkIfInstalled = useCallback(() => {
+    if (typeof window === 'undefined') return false;
+
     // Vérifier via localStorage
     const localInstalled = localStorage.getItem(APP_INSTALLED_KEY) === 'true';
 
@@ -56,6 +58,8 @@ export function useInstallPrompt(): InstallPromptHook {
 
   // Vérifier si on doit montrer le prompt
   const shouldShowPrompt = useCallback((): boolean => {
+    if (typeof window === 'undefined') return false;
+
     // Ne pas montrer sur les pages publiques
     const publicPaths = ['/facture', '/fay', '/login', '/register', '/inscription-success'];
     const currentPath = window.location.pathname;
@@ -142,6 +146,8 @@ export function useInstallPrompt(): InstallPromptHook {
   const dismissPrompt = useCallback(() => {
     setShowInstallPrompt(false);
 
+    if (typeof window === 'undefined') return;
+
     // Enregistrer la fermeture
     localStorage.setItem(INSTALL_DISMISSED_KEY, Date.now().toString());
     localStorage.setItem(LAST_PROMPT_DATE_KEY, Date.now().toString());
@@ -161,6 +167,8 @@ export function useInstallPrompt(): InstallPromptHook {
 
   // Réinitialiser le prompt (pour tests ou réinitialisation manuelle)
   const resetPrompt = useCallback(() => {
+    if (typeof window === 'undefined') return;
+
     localStorage.removeItem(INSTALL_DISMISSED_KEY);
     localStorage.removeItem(INSTALL_DISMISSED_COUNT_KEY);
     localStorage.removeItem(LAST_PROMPT_DATE_KEY);
