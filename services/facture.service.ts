@@ -8,6 +8,7 @@ import DatabaseService from './database.service';
 import SecurityService from './security.service';
 import { ArticlePanier } from '@/types/produit';
 import { AjouterAcompteData, AjouterAcompteResponse } from '@/types/facture';
+import { tr } from 'zod/locales';
 
 // Exceptions personnalisées pour les factures
 export class FactureApiException extends Error {
@@ -321,12 +322,14 @@ class FactureService {
       SecurityService.secureLog('log', 'Ajout acompte facture', {
         id_structure: data.id_structure,
         id_facture: data.id_facture,
-        montant_acompte: data.montant_acompte
+        montant_acompte: data.montant_acompte,
+        transaction_id: data.transaction_id,
+        uuid: data.uuid
       });
 
       // Appel de la fonction PostgreSQL add_acompte_facture
-      const query = `SELECT add_acompte_facture(${data.id_structure}, ${data.id_facture}, ${data.montant_acompte})`;
-      
+      const query = `SELECT add_acompte_facture(${data.id_structure}, ${data.id_facture}, ${data.montant_acompte}, '${data.transaction_id}', '${data.uuid}')`;
+      console.log('💰 [CASH] Requête add_acompte_facture:', query);
       const result = await DatabaseService.query(query);
       
       if (!result || result.length === 0) {

@@ -242,8 +242,8 @@ export default function CommerceDashboard() {
             <motion.div
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              className="bg-white rounded-2xl p-5 shadow-lg border-l-4 border-green-500 cursor-pointer"
-              onClick={() => router.push('/dashboard/commerce/stock')}
+              className="bg-white rounded-2xl p-5 shadow-lg border-l-4 border-green-500"
+              // Retrait du cursor-pointer et du onClick pour empêcher la redirection
             >
               <span className="text-3xl mb-3 block">💰</span>
               <div className="text-2xl font-bold text-gray-800 mb-1">

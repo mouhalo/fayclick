@@ -319,11 +319,6 @@ class DatabaseService {
   /**
    * Récupération des types de structure disponibles
    */
-  async getStructureTypes(): Promise<unknown[]> {
-    const query = 'SELECT id_type, nom_type FROM type_structure WHERE id_type != 0 ORDER BY nom_type';
-    console.log('📋 [DATABASE] Récupération types structure');
-    return this.query(query);
-  }
 
   /**
    * Demande de récupération de mot de passe - VERSION CORRIGÉE
@@ -468,6 +463,171 @@ class DatabaseService {
       p_nom_service,
       p_id_structure.toString()
     ]);
+  }
+
+  /**
+   * Met à jour les informations d'un utilisateur
+   * Appelle la fonction PostgreSQL add_edit_utilisateur
+   * @param userData - Données de l'utilisateur à mettre à jour
+   * @returns Promise avec le résultat de la mise à jour
+   */
+  async updateUser(userData: {
+    id_structure: number;
+    id_profil: number;
+    username: string;
+    telephone: string;
+    id_utilisateur: number;
+  }): Promise<unknown[]> {
+    console.log('👤 [DATABASE] Mise à jour utilisateur:', {
+      id_utilisateur: userData.id_utilisateur,
+      username: userData.username
+    });
+
+    // Validation des champs requis
+    if (!userData.id_utilisateur || userData.id_utilisateur <= 0) {
+      throw new Error('ID utilisateur invalide');
+    }
+    if (!userData.username || userData.username.trim() === '') {
+      throw new Error('Le nom d\'utilisateur est requis');
+    }
+    if (!userData.telephone || userData.telephone.trim() === '') {
+      throw new Error('Le téléphone est requis');
+    }
+
+    // Échapper les apostrophes dans les chaînes
+    const escapedUsername = userData.username.replace(/'/g, "''");
+    const escapedTelephone = userData.telephone.replace(/'/g, "''");
+
+    // Construction directe de la requête SQL
+    const query = `SELECT add_edit_utilisateur(${userData.id_structure}, ${userData.id_profil}, '${escapedUsername}', '${escapedTelephone}', ${userData.id_utilisateur});`;
+
+    console.log('📝 [DATABASE] Requête SQL updateUser:', {
+      functionName: 'add_edit_utilisateur',
+      id_utilisateur: userData.id_utilisateur
+    });
+
+    return this.query(query);
+  }
+
+  /**
+   * Change le mot de passe d'un utilisateur
+   * Appelle la fonction PostgreSQL change_user_password
+   * @param userId - ID de l'utilisateur
+   * @param oldPassword - Ancien mot de passe
+   * @param newPassword - Nouveau mot de passe
+   * @returns Promise avec le résultat du changement (true/false)
+   */
+  async changeUserPassword(userId: number, oldPassword: string, newPassword: string): Promise<boolean> {
+    console.log('🔐 [DATABASE] Changement de mot de passe pour utilisateur:', userId);
+
+    // Validation des champs
+    if (!userId || userId <= 0) {
+      throw new Error('ID utilisateur invalide');
+    }
+    if (!oldPassword) {
+      throw new Error('L\'ancien mot de passe est requis');
+    }
+    if (!newPassword) {
+      throw new Error('Le nouveau mot de passe est requis');
+    }
+    if (newPassword.length < 6) {
+      throw new Error('Le nouveau mot de passe doit contenir au moins 6 caractères');
+    }
+
+    // Échapper les apostrophes dans les chaînes
+    const escapedOldPassword = oldPassword.replace(/'/g, "''");
+    const escapedNewPassword = newPassword.replace(/'/g, "''");
+
+    // Construction directe de la requête SQL
+    const query = `SELECT change_user_password(${userId}, '${escapedOldPassword}', '${escapedNewPassword}');`;
+
+    console.log('📝 [DATABASE] Requête SQL changePassword:', {
+      functionName: 'change_user_password',
+      id_utilisateur: userId
+    });
+
+    const result = await this.query(query);
+    
+    // Vérifier le résultat de la fonction
+    const changeResult = result?.[0]?.change_user_password;
+    
+    if (changeResult === true || changeResult === 't' || changeResult === 1) {
+      console.log('✅ [DATABASE] Mot de passe changé avec succès');
+      return true;
+    } else {
+      console.log('⚠️ [DATABASE] Échec du changement de mot de passe');
+      return false;
+    }
+  }
+
+  /**
+   * Mise à jour complète d'une structure existante
+   * Appelle directement la fonction PostgreSQL add_edit_structure
+   * @param structure - Objet contenant toutes les données de la structure
+   * @returns Promise avec le résultat de la mise à jour
+   */
+  async updateStructure(structure: {
+    id_structure: number;
+    id_type: number;
+    nom_structure: string;
+    adresse: string;
+    mobile_om: string;
+    mobile_wave?: string;
+    mobile_free?: string;
+    numautorisatioon?: string;
+    nummarchand?: string;
+    email?: string;
+    logo?: string;
+  }): Promise<unknown[]> {
+    console.log('🏢 [DATABASE] Mise à jour structure:', {
+      id_structure: structure.id_structure,
+      nom_structure: structure.nom_structure
+    });
+
+    // Validation des champs requis
+    if (!structure.id_structure || structure.id_structure <= 0) {
+      throw new Error('ID de structure invalide');
+    }
+    if (!structure.nom_structure || structure.nom_structure.trim() === '') {
+      throw new Error('Le nom de la structure est requis');
+    }
+    if (!structure.adresse || structure.adresse.trim() === '') {
+      throw new Error('L\'adresse est requise');
+    }
+    if (!structure.mobile_om) {
+      throw new Error('Le numéro Orange Money est requis');
+    }
+
+    // Échapper les apostrophes dans les chaînes pour éviter les injections SQL
+    const escapedNomStructure = structure.nom_structure.replace(/'/g, "''");
+    const escapedAdresse = structure.adresse.replace(/'/g, "''");
+    const escapedMobileOm = structure.mobile_om.replace(/'/g, "''");
+    const escapedMobileWave = (structure.mobile_wave || '').replace(/'/g, "''");
+    const escapedNumAutorisation = (structure.numautorisatioon || '').replace(/'/g, "''");
+    const escapedNumMarchand = (structure.nummarchand || '').replace(/'/g, "''");
+    const escapedEmail = (structure.email || '').replace(/'/g, "''");
+    const escapedLogo = (structure.logo || '').replace(/'/g, "''");
+
+    // Construction directe de la requête SQL pour appeler la fonction PostgreSQL
+    // Sans forçage de type pour éviter les erreurs XML
+    const query = `SELECT add_edit_structure(${structure.id_type}, '${escapedNomStructure}', '${escapedAdresse}', '${escapedMobileOm}', '${escapedMobileWave}', '${escapedNumAutorisation}', '${escapedNumMarchand}', '${escapedEmail}', '${escapedLogo}', ${structure.id_structure});`;
+
+    console.log('📝 [DATABASE] Requête SQL updateStructure:', {
+      functionName: 'add_edit_structure',
+      id_structure: structure.id_structure
+    });
+
+    // Exécution directe de la requête
+    return this.query(query);
+  }
+
+  /**
+   * Récupération des types de structure disponibles
+   */
+  async getStructureTypes(): Promise<unknown[]> {
+    const query = 'SELECT id_type, nom_type FROM type_structure WHERE id_type != 0 ORDER BY nom_type';
+    console.log('📄 [DATABASE] Récupération types structure');
+    return this.query(query);
   }
 
   /**

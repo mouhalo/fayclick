@@ -12,6 +12,7 @@ interface StatsCardProps {
   onClick?: () => void;
   isLoading?: boolean;
   className?: string;
+  disableClick?: boolean; // Nouvelle prop pour désactiver le clic
 }
 
 /**
@@ -19,6 +20,7 @@ interface StatsCardProps {
  * - Tailles adaptatives selon breakpoints
  * - Espacement et typography adaptatifs
  * - Loading state intégré
+ * - Possibilité de désactiver le clic
  */
 export default function StatsCard({
   icon,
@@ -28,7 +30,8 @@ export default function StatsCard({
   borderColor = "border-blue-500",
   onClick,
   isLoading = false,
-  className = ""
+  className = "",
+  disableClick = false // Par défaut, le clic est activé
 }: StatsCardProps) {
   const cardContent = (
     <>
@@ -55,14 +58,22 @@ export default function StatsCard({
     </>
   );
 
-  const cardClasses = `
-    bg-white rounded-2xl p-4 shadow-lg border-l-4 cursor-pointer
+  // Classes de base pour la carte
+  const baseCardClasses = `
+    bg-white rounded-2xl p-4 shadow-lg border-l-4
     lg:p-6 lg:rounded-3xl lg:shadow-xl
     xl:p-8
     ${borderColor} ${className}
   `;
 
-  if (onClick) {
+  // Classes avec cursor-pointer seulement si onClick est défini et non désactivé
+  const cardClasses = `
+    ${baseCardClasses}
+    ${onClick && !disableClick ? 'cursor-pointer' : ''}
+  `;
+
+  // Si onClick est défini et non désactivé, utiliser motion.div avec interactions
+  if (onClick && !disableClick) {
     return (
       <motion.div
         whileHover={{ scale: 1.05 }}
@@ -75,8 +86,9 @@ export default function StatsCard({
     );
   }
 
+  // Sinon, retourner une div normale sans interactions
   return (
-    <div className={cardClasses}>
+    <div className={baseCardClasses}>
       {cardContent}
     </div>
   );

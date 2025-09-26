@@ -13,6 +13,67 @@ body {
   overflow-x: hidden;      /* Prévient le scroll horizontal indésirable */
 }
 
+/* ===== DÉSACTIVATION DU PULL-TO-REFRESH ===== */
+/* Solution non-invasive pour désactiver le pull-to-refresh sur mobile */
+html, body {
+  /* Désactive le comportement de dépassement (overscroll) */
+  overscroll-behavior: none;
+  overscroll-behavior-y: contain;
+  
+  /* Empêche le rebond élastique sur iOS */
+  -webkit-overflow-scrolling: touch;
+  
+  /* Assure que le scroll reste fluide */
+  scroll-behavior: smooth;
+}
+
+/* Pour les conteneurs principaux de l'application */
+#__next, 
+.app-container,
+main {
+  /* Contient le scroll dans le conteneur */
+  overscroll-behavior: contain;
+  
+  /* Maintient la hauteur minimale */
+  min-height: 100vh;
+}
+
+/* Pour les éléments scrollables internes (listes, tableaux, etc.) */
+.scrollable,
+.overflow-auto,
+.overflow-y-auto,
+.overflow-x-auto {
+  /* Permet le scroll normal dans ces conteneurs */
+  overscroll-behavior-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Fix spécifique pour iOS Safari */
+@supports (-webkit-touch-callout: none) {
+  body {
+    /* Position fixe pour éviter le bounce sur iOS */
+    position: fixed;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+  }
+  
+  #__next {
+    /* Permet le scroll dans le conteneur Next.js */
+    height: 100%;
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* Alternative plus douce si la solution ci-dessus est trop restrictive */
+/* Décommentez ces lignes si vous préférez une approche moins agressive */
+/*
+html, body {
+  overscroll-behavior-y: contain;
+}
+*/
+
 /* PWA Safe Area - Support pour les encoches iPhone/Android */
 @media (display-mode: standalone) {
   .safe-area-container {

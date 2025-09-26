@@ -36,8 +36,6 @@ export function CarteProduit({
   produit, 
   onEdit, 
   onDelete, 
-  typeStructure, 
-  compactMode = false 
 }: CarteProduitProps) {
   const [quantity, setQuantity] = useState(1);
   const { addArticle } = usePanierStore();
@@ -175,12 +173,12 @@ export function CarteProduit({
             whileTap={{ scale: 0.9 }}
             onClick={() => handleQuantityChange(quantity - 1)}
             disabled={quantity <= 1}
-            className="w-10 h-10 rounded-full border-2 border-gray-200 bg-white flex items-center justify-center hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-md"
+            className="w-9 h-7 rounded-full border-2 border-gray-200 bg-white flex items-center justify-center hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-md"
           >
             <Minus className="w-5 h-5 text-gray-600" />
           </motion.button>
 
-          <div className="text-xl font-bold text-gray-900 min-w-[2rem] text-center">
+          <div className="text-xl font-bold text-gray-900 min-w-[1rem] text-center">
             {quantity}
           </div>
 
@@ -188,7 +186,7 @@ export function CarteProduit({
             whileTap={{ scale: 0.9 }}
             onClick={() => handleQuantityChange(quantity + 1)}
             disabled={quantity >= niveauStock}
-            className="w-10 h-10 rounded-full border-2 border-gray-200 bg-white flex items-center justify-center hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-md"
+            className="w-7 h-10 rounded-full border-2 border-gray-200 bg-white flex items-center justify-center hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-md"
           >
             <Plus className="w-5 h-5 text-gray-600" />
           </motion.button>
@@ -239,7 +237,7 @@ export function CarteProduit({
         className="w-full bg-emerald-500 text-white py-4 px-4 rounded-xl font-semibold text-lg hover:bg-emerald-600 transition-all duration-300 flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
       >
         <ShoppingCart className="w-5 h-5" />
-        Ajouter au panier
+        Vendre ce produit
       </motion.button>
 
       {/* Message stock insuffisant */}

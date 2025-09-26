@@ -74,16 +74,16 @@ function InscriptionSuccessContent() {
   if (!data) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
       </div>
     );
   }
 
   return (
     <div className="min-h-screen overflow-hidden relative">
-      {/* Container Mobile */}
-      <div className="max-w-[425px] mx-auto min-h-screen bg-white shadow-2xl relative">
-        {/* Status Bar */}
+      {/* Container Responsive */}
+      <div className="max-w-sm md:max-w-md lg:max-w-lg xl:max-w-xl mx-auto min-h-screen bg-white shadow-2xl relative">
+        {/* Status Bar - Plus compact */}
         <div className="status-bar">
           <span>9:41</span>
           <div className="flex gap-1">
@@ -92,36 +92,36 @@ function InscriptionSuccessContent() {
           </div>
         </div>
 
-        {/* Header avec animation de succès */}
-        <div className="header py-8 px-6 relative overflow-hidden bg-gradient-to-br from-green-400 via-green-500 to-green-600">
+        {/* Header avec animation de succès - Plus compact */}
+        <div className="header py-5 px-4 relative overflow-hidden bg-gradient-to-br from-green-400 via-green-500 to-green-600">
           {/* Pattern d'arrière-plan */}
           <div className="absolute inset-0 opacity-20">
             <div className="absolute inset-0 bg-gradient-to-br from-white/30 to-transparent animate-sparkle" />
           </div>
 
           {/* Contenu du header */}
-          <div className="text-center pt-4 relative z-10">
-            {/* Icône de succès animée */}
-            <div className="w-24 h-24 mx-auto mb-5 bg-white rounded-full flex items-center justify-center shadow-xl animate-bounce">
-              <span className="text-4xl">✅</span>
+          <div className="text-center pt-2 relative z-10">
+            {/* Icône de succès animée - Plus petite */}
+            <div className="w-16 h-16 mx-auto mb-3 bg-white rounded-full flex items-center justify-center shadow-xl animate-bounce">
+              <span className="text-2xl">✅</span>
             </div>
             
-            <h1 className="heading-lg text-white mb-2">
+            <h1 className="text-xl font-bold text-white mb-1">
               Inscription Réussie !
             </h1>
-            <p className="text-white/90 text-base">
+            <p className="text-white/90 text-sm">
               Votre compte a été créé avec succès
             </p>
           </div>
         </div>
 
-        {/* Content */}
-        <div className="px-6 py-6 -mt-6 relative bg-gradient-to-b from-green-50 to-blue-50 min-h-[70vh]">
-          <Card className="bg-white/95 backdrop-blur-sm border-0 shadow-lg mb-6">
-            <div className="p-6 space-y-6">
-              {/* Message de bienvenue */}
+        {/* Content - Plus compact */}
+        <div className="px-4 py-4 -mt-4 relative bg-gradient-to-b from-green-50 to-blue-50 min-h-[70vh]">
+          <Card className="bg-white/95 backdrop-blur-sm border-0 shadow-lg mb-4">
+            <div className="p-4 space-y-4">
+              {/* Message de bienvenue - Plus compact */}
               <div className="text-center">
-                <h2 className="heading-sm text-gray-800 mb-4">
+                <h2 className="text-lg font-semibold text-gray-800 mb-2">
                   Bienvenue dans FayClick ! 🎉
                 </h2>
                 <p className="text-gray-600 text-sm leading-relaxed">
@@ -129,13 +129,13 @@ function InscriptionSuccessContent() {
                 </p>
               </div>
 
-              {/* Informations de la structure */}
-              <div className="border-t pt-6">
-                <h3 className="text-md font-semibold text-gray-800 mb-4">
+              {/* Informations de la structure - Plus compact */}
+              <div className="border-t pt-4">
+                <h3 className="text-base font-semibold text-gray-800 mb-3">
                   Récapitulatif de votre inscription
                 </h3>
                 
-                <div className="bg-gray-50 rounded-xl p-4 space-y-3">
+                <div className="bg-gray-50 rounded-lg p-3 space-y-2">
                   <div className="flex justify-between items-center">
                     <span className="text-sm font-medium text-gray-600">Structure :</span>
                     <span className="text-sm font-semibold text-gray-800">{data.structureName}</span>
@@ -148,64 +148,64 @@ function InscriptionSuccessContent() {
                 </div>
               </div>
 
-              {/* Informations de connexion */}
+              {/* Informations de connexion - Plus compact */}
               {data.login && data.password && (
-                <div className="border-t pt-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-md font-semibold text-gray-800">
+                <div className="border-t pt-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-base font-semibold text-gray-800">
                       Vos identifiants de connexion
                     </h3>
                     <button
                       onClick={() => setShowCredentials(!showCredentials)}
                       className="text-xs text-primary-600 hover:text-primary-700 font-medium"
                     >
-                      {showCredentials ? 'Masquer' : 'Afficher'}
+                      {showCredentials ? '👁️' : '🙈'}
                     </button>
                   </div>
                   
-                  <div className="bg-primary-50 border border-primary-200 rounded-xl p-4 space-y-4">
-                    <div className="text-center text-xs text-primary-700 mb-3">
-                      ⚠️ Notez bien ces informations et changez votre mot de passe dès la première connexion
+                  <div className="bg-primary-50 border border-primary-200 rounded-lg p-3 space-y-3">
+                    <div className="text-center text-xs text-primary-700 mb-2">
+                      ⚠️ Changez votre mot de passe dès la première connexion
                     </div>
                     
-                    {/* Login */}
+                    {/* Login - Plus compact */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Nom d'utilisateur :
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Utilisateur :
                       </label>
                       <div className="flex">
                         <input
                           type="text"
-                          value={showCredentials ? data.login : '•'.repeat(data.login.length)}
+                          value={showCredentials ? data.login : '•'.repeat(Math.min(data.login.length, 12))}
                           readOnly
-                          className="flex-1 px-3 py-2 bg-white border border-gray-300 rounded-l-lg text-sm font-mono"
+                          className="flex-1 px-2 py-1.5 bg-white border border-gray-300 rounded-l-md text-xs font-mono min-w-0"
                         />
                         <button
                           onClick={() => copyToClipboard(data.login!, 'login')}
-                          className="px-3 py-2 bg-primary-600 text-white rounded-r-lg hover:bg-primary-700 transition-colors"
-                          title="Copier le login"
+                          className="px-2 py-1.5 bg-primary-600 text-white rounded-r-md hover:bg-primary-700 transition-colors text-xs flex-shrink-0"
+                          title="Copier"
                         >
                           {copied.login ? '✓' : '📋'}
                         </button>
                       </div>
                     </div>
                     
-                    {/* Password */}
+                    {/* Password - Plus compact */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Mot de passe temporaire :
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Mot de passe :
                       </label>
                       <div className="flex">
                         <input
                           type="text"
-                          value={showCredentials ? data.password : '•'.repeat(data.password.length)}
+                          value={showCredentials ? data.password : '•'.repeat(Math.min(data.password.length, 12))}
                           readOnly
-                          className="flex-1 px-3 py-2 bg-white border border-gray-300 rounded-l-lg text-sm font-mono"
+                          className="flex-1 px-2 py-1.5 bg-white border border-gray-300 rounded-l-md text-xs font-mono min-w-0"
                         />
                         <button
                           onClick={() => copyToClipboard(data.password!, 'password')}
-                          className="px-3 py-2 bg-primary-600 text-white rounded-r-lg hover:bg-primary-700 transition-colors"
-                          title="Copier le mot de passe"
+                          className="px-2 py-1.5 bg-primary-600 text-white rounded-r-md hover:bg-primary-700 transition-colors text-xs flex-shrink-0"
+                          title="Copier"
                         >
                           {copied.password ? '✓' : '📋'}
                         </button>
@@ -215,40 +215,40 @@ function InscriptionSuccessContent() {
                 </div>
               )}
 
-              {/* Prochaines étapes */}
-              <div className="border-t pt-6">
-                <h3 className="text-md font-semibold text-gray-800 mb-4">
+              {/* Prochaines étapes - Plus compact */}
+              <div className="border-t pt-4">
+                <h3 className="text-base font-semibold text-gray-800 mb-3">
                   Prochaines étapes
                 </h3>
                 
-                <div className="space-y-3">
-                  <div className="flex items-start space-x-3">
-                    <div className="w-6 h-6 bg-primary-600 text-white rounded-full flex items-center justify-center text-xs font-bold mt-0.5">
+                <div className="space-y-2">
+                  <div className="flex items-start space-x-2">
+                    <div className="w-5 h-5 bg-primary-600 text-white rounded-full flex items-center justify-center text-xs font-bold mt-0.5 flex-shrink-0">
                       1
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-gray-800">Connectez-vous à votre dashboard</p>
-                      <p className="text-xs text-gray-600">Utilisez vos identifiants pour accéder à votre espace</p>
+                      <p className="text-sm font-medium text-gray-800">Se connecter au dashboard</p>
+                      <p className="text-xs text-gray-600">Utilisez vos identifiants</p>
                     </div>
                   </div>
                   
-                  <div className="flex items-start space-x-3">
-                    <div className="w-6 h-6 bg-primary-600 text-white rounded-full flex items-center justify-center text-xs font-bold mt-0.5">
+                  <div className="flex items-start space-x-2">
+                    <div className="w-5 h-5 bg-primary-600 text-white rounded-full flex items-center justify-center text-xs font-bold mt-0.5 flex-shrink-0">
                       2
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-gray-800">Changez votre mot de passe</p>
-                      <p className="text-xs text-gray-600">Menu Mon Compte → Changer mot de passe</p>
+                      <p className="text-sm font-medium text-gray-800">Changer le mot de passe</p>
+                      <p className="text-xs text-gray-600">Menu Mon Compte</p>
                     </div>
                   </div>
                   
-                  <div className="flex items-start space-x-3">
-                    <div className="w-6 h-6 bg-primary-600 text-white rounded-full flex items-center justify-center text-xs font-bold mt-0.5">
+                  <div className="flex items-start space-x-2">
+                    <div className="w-5 h-5 bg-primary-600 text-white rounded-full flex items-center justify-center text-xs font-bold mt-0.5 flex-shrink-0">
                       3
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-gray-800">Configurez votre structure</p>
-                      <p className="text-xs text-gray-600">Complétez vos informations et personnalisez votre espace</p>
+                      <p className="text-sm font-medium text-gray-800">Configurer votre structure</p>
+                      <p className="text-xs text-gray-600">Personnalisez votre espace</p>
                     </div>
                   </div>
                 </div>
@@ -256,13 +256,13 @@ function InscriptionSuccessContent() {
             </div>
           </Card>
 
-          {/* Boutons d'action */}
-          <div className="space-y-4">
+          {/* Boutons d'action - Plus compacts */}
+          <div className="space-y-3">
             <Button
               onClick={handleGoToDashboard}
               variant="gradient"
               size="lg"
-              className="w-full shadow-lg"
+              className="w-full shadow-lg py-2.5 text-sm"
             >
               Accéder à mon Dashboard
             </Button>
@@ -272,22 +272,22 @@ function InscriptionSuccessContent() {
                 href="/" 
                 className="text-gray-600 hover:text-gray-800 text-sm font-medium transition-colors"
               >
-                Retour à l'accueil
+                Retour à ld&apos;accueil
               </Link>
             </div>
           </div>
 
-          {/* Contact support */}
-          <Card className="bg-white/90 backdrop-blur-sm border-0 shadow-lg mt-6">
-            <div className="p-4 text-center">
-              <p className="text-xs text-gray-600 mb-2">
-                Besoin d'aide ? Contactez notre support :
+          {/* Contact support - Plus compact */}
+          <Card className="bg-white/90 backdrop-blur-sm border-0 shadow-lg mt-4">
+            <div className="p-3 text-center">
+              <p className="text-xs text-gray-600 mb-1">
+                Besoin dd&apos;aide ? Contactez notre support :
               </p>
-              <div className="flex justify-center space-x-4 text-xs">
+              <div className="flex flex-col sm:flex-row justify-center sm:space-x-4 space-y-1 sm:space-y-0 text-xs">
                 <a href="tel:+221771234567" className="text-primary-600 hover:text-primary-700 font-medium">
-                  📞 +221 77 123 45 67
+                  📞 +221 78 104 35 05
                 </a>
-                <span className="text-gray-400">|</span>
+                <span className="hidden sm:inline text-gray-400">|</span>
                 <a href="mailto:support@fayclick.net" className="text-primary-600 hover:text-primary-700 font-medium">
                   ✉️ support@fayclick.net
                 </a>
@@ -304,10 +304,11 @@ export default function InscriptionSuccessPage() {
   return (
     <Suspense fallback={
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
       </div>
     }>
       <InscriptionSuccessContent />
     </Suspense>
   );
 }
+//Ce code représente une page de succès d'inscription pour une application web, probablement un tableau de bord ou un service en ligne. Voici une explication détaillée de chaque partie du code :

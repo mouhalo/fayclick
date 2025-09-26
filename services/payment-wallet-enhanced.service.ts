@@ -158,11 +158,11 @@ class PaymentWalletEnhancedService {
         pAppName: 'FAYCLICK',
         pMethode: method,
         pReference: context.facture.num_facture,
-        pClientTel: this.formatPhoneNumber(context.facture.tel_client, method),
+        pClientTel: this.formatPhoneNumber(context.facture.tel_client),
         pMontant: context.montant_acompte,
         pServiceName: WALLET_SERVICE_MAP[method],
         pNomClient: context.facture.nom_client,
-        pnom_structure: context.nom_structure || 'FAYCLICK',
+        pnom_structure: context.facture.nom_structure || 'FAYCLICK',
       };
 
       console.log('🔄 Création de paiement wallet amélioré:', {
@@ -396,7 +396,7 @@ class PaymentWalletEnhancedService {
   /**
    * Formater le numéro de téléphone selon le wallet
    */
-  formatPhoneNumber(phone: string, method: PaymentMethod): string {
+  formatPhoneNumber(phone: string): string {
     // Supprimer les espaces et caractères spéciaux
     let cleanPhone = phone.replace(/[\s\-\(\)]/g, '');
 
@@ -629,7 +629,7 @@ class PaymentWalletEnhancedService {
     return new Promise(resolve => setTimeout(resolve, ms));
   }
 
-  private emitPaymentEvent(type: string, data: any): void {
+  private emitPaymentEvent(type: string, data: unknown): void {
     window.dispatchEvent(new CustomEvent(`payment:${type}`, { detail: data }));
   }
 

@@ -643,6 +643,54 @@ export class AuthService {
       };
     }
   }
+
+  /**
+   * Rafraîchir les données utilisateur depuis la base de données
+   * Recharge les informations de l'utilisateur connecté et met à jour le localStorage
+   */
+  async refreshUserData(): Promise<void> {
+    try {
+      const currentUser = this.getUser();
+      if (!currentUser?.id_structure) {
+        throw new ApiException('Aucun utilisateur connecté', 401);
+      }
+
+      console.log('🔄 [AUTH] Rafraîchissement des données utilisateur:', currentUser.login);
+
+      // Recharger les détails de structure uniquement (pas besoin de ré-authentifier)
+      const updatedStructure = await this.fetchStructureDetails(currentUser.id_structure);
+      
+      // Récupérer les données complètes actuelles
+      const currentAuthData = this.getCompleteAuthData();
+      if (currentAuthData) {
+        // Mettre à jour seulement la structure
+        const updatedAuthData = {
+          ...currentAuthData,
+          structure: updatedStructure,
+          permissions: this.getUserPermissions(currentAuthData.user, updatedStructure)
+        };
+        
+        // Sauvegarder les données mises à jour
+        this.saveCompleteAuthData(updatedAuthData);
+        
+        console.log('✅ [AUTH] Données de structure rafraîchies avec succès');
+      } else {
+        console.warn('⚠️ [AUTH] Aucune donnée d\'authentification trouvée');
+      }
+
+    } catch (error) {
+      console.error('❌ [AUTH] Erreur rafraîchissement données utilisateur:', error);
+      
+      // Si l'erreur est due à l'authentification, déconnecter l'utilisateur
+      if (error instanceof ApiException && error.status === 401) {
+        console.warn('⚠️ [AUTH] Session expirée, déconnexion automatique');
+        this.logout();
+      }
+      
+      throw error instanceof ApiException ? error :
+        new ApiException('Impossible de rafraîchir les données utilisateur', 500);
+    }
+  }
 }
 
 // Export instance unique

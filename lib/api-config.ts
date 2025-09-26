@@ -53,10 +53,10 @@ export function getApiBaseUrl(): string {
   
   switch (detectedEnv) {
     case 'production':
-      return process.env.NEXT_PUBLIC_API_URL_PROD || 'https://api.icelabsoft.com/api/psql_request/api/psql_request';
+      return process.env.NEXT_PUBLIC_API_URL_PROD || 'https://api.icelabsoft.com/api/psql_request';
     case 'development':
     default:
-      return process.env.NEXT_PUBLIC_API_URL_DEV || 'https://api.icelabsoft.com/api/psql_request/api/psql_request';
+      return process.env.NEXT_PUBLIC_API_URL_DEV || 'https://api.icelabsoft.com/api/psql_request';
   }
 }
 
