@@ -7,7 +7,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Eye, FileText, CreditCard, Trash2 } from 'lucide-react';
+import { Eye, Receipt, CreditCard, Trash2 } from 'lucide-react';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { FactureComplete } from '@/types/facture';
@@ -18,6 +18,7 @@ interface FactureCardProps {
   onVoirDetailsModal?: (facture: FactureComplete) => void;
   onAjouterAcompte?: (facture: FactureComplete) => void;
   onPartager?: (facture: FactureComplete) => void;
+  onVoirRecu?: (facture: FactureComplete) => void;
   onSupprimer?: (facture: FactureComplete) => void;
   delay?: number;
 }
@@ -27,6 +28,7 @@ export const FactureCard = ({
   onVoirDetailsModal,
   onAjouterAcompte,
   onPartager,
+  onVoirRecu,
   onSupprimer,
   delay = 0
 }: FactureCardProps) => {
@@ -195,10 +197,10 @@ export const FactureCard = ({
                 Voir
               </motion.button>
 
-              {/* Bouton PDF pour factures payées */}
+              {/* Bouton Reçu pour factures payées */}
               <motion.button
                 whileTap={{ scale: 0.95 }}
-                onClick={() => onPartager?.(facture)}
+                onClick={() => onVoirRecu?.(facture)}
                 className={cn(
                   'flex-1 flex items-center justify-center',
                   'px-3 py-2.5 rounded-lg',
@@ -209,9 +211,10 @@ export const FactureCard = ({
                   'transition-all duration-200',
                   'shadow-lg shadow-emerald-500/20'
                 )}
+                title="Voir le reçu de paiement"
               >
-                <FileText className="w-4 h-4 mr-1.5" />
-                PDF
+                <Receipt className="w-4 h-4 mr-1.5" />
+                Reçu
               </motion.button>
             </>
           )}

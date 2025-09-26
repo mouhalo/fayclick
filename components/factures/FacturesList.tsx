@@ -16,6 +16,7 @@ interface FacturesListProps {
   onVoirDetailsModal?: (facture: FactureComplete) => void;
   onAjouterAcompte?: (facture: FactureComplete) => void;
   onPartager?: (facture: FactureComplete) => void;
+  onVoirRecu?: (facture: FactureComplete) => void;
   onSupprimer?: (facture: FactureComplete) => void;
 }
 
@@ -64,6 +65,7 @@ export const FacturesList = ({
   onVoirDetailsModal,
   onAjouterAcompte,
   onPartager,
+  onVoirRecu,
   onSupprimer
 }: FacturesListProps) => {
 
@@ -144,6 +146,7 @@ export const FacturesList = ({
               onVoirDetailsModal={onVoirDetailsModal}
               onAjouterAcompte={onAjouterAcompte}
               onPartager={onPartager}
+              onVoirRecu={onVoirRecu}
               onSupprimer={onSupprimer}
               delay={index * 0.05} // Délai plus court pour la fluidité
             />
