@@ -30,6 +30,7 @@ import { facturePriveeService, FacturePriveeData, PaiementHistorique } from '@/s
 import { ModalPaiementWalletNew, WalletType } from './ModalPaiementWalletNew';
 import { ModalFacturePriveeProps } from '@/types/facture-privee';
 import { ModalConfirmation } from '@/components/ui/ModalConfirmation';
+import { ModalRecuGenere } from '@/components/recu';
 
 export function ModalFacturePrivee({
   isOpen,
@@ -51,6 +52,16 @@ export function ModalFacturePrivee({
   const [showDetails, setShowDetails] = useState(false);
   const [showQrCode, setShowQrCode] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  // États pour le reçu généré
+  const [showRecuModal, setShowRecuModal] = useState(false);
+  const [lastPaymentInfo, setLastPaymentInfo] = useState<{
+    wallet: WalletType;
+    montant: number;
+    numeroRecu?: string;
+    dateTimePaiement?: string;
+    referenceTransaction?: string;
+  } | null>(null);
 
   // Charger les données de la facture si un ID est fourni
   useEffect(() => {
@@ -147,13 +158,32 @@ export function ModalFacturePrivee({
     }
   };
 
-  const handlePaymentComplete = (wallet: WalletType) => {
+  const handlePaymentComplete = (wallet: WalletType, referenceTransaction?: string) => {
     setShowWalletModal(false);
-    onPaymentComplete?.(facture?.id_facture || 0);
-    // Recharger l'historique des paiements
+
+    // Générer les informations du reçu
     if (facture) {
+      const numeroRecu = `REC-${facture.num_facture}-${Date.now()}`;
+      const dateTimePaiement = new Date().toISOString();
+
+      setLastPaymentInfo({
+        wallet,
+        montant: facture.montant,
+        numeroRecu,
+        dateTimePaiement,
+        referenceTransaction
+      });
+
+      // Afficher le modal de reçu après un court délai pour une meilleure UX
+      setTimeout(() => {
+        setShowRecuModal(true);
+      }, 300);
+
+      // Recharger l'historique des paiements
       loadHistoriquePaiements(facture.id_facture);
     }
+
+    onPaymentComplete?.(facture?.id_facture || 0);
   };
 
   const formatMontant = (montant: number): string => {
@@ -563,6 +593,20 @@ export function ModalFacturePrivee({
             cancelText="Annuler"
             type="danger"
             loading={deleting}
+          />
+        )}
+
+        {/* Modal de reçu généré */}
+        {facture && lastPaymentInfo && (
+          <ModalRecuGenere
+            isOpen={showRecuModal}
+            onClose={() => setShowRecuModal(false)}
+            factureId={facture.id_facture}
+            walletUsed={lastPaymentInfo.wallet}
+            montantPaye={lastPaymentInfo.montant}
+            numeroRecu={lastPaymentInfo.numeroRecu}
+            dateTimePaiement={lastPaymentInfo.dateTimePaiement}
+            referenceTransaction={lastPaymentInfo.referenceTransaction}
           />
         )}
       </motion.div>
