@@ -18,6 +18,7 @@ import { GlassPagination, usePagination } from '@/components/ui/GlassPagination'
 import { ModalPaiement } from '@/components/factures/ModalPaiement';
 import { ModalPartage } from '@/components/factures/ModalPartage';
 import { ModalFacturePrivee } from '@/components/facture/ModalFacturePrivee';
+import { ModalRecuGenere } from '@/components/recu';
 import { ModalConfirmation } from '@/components/ui/ModalConfirmation';
 import { Toast } from '@/components/ui/Toast';
 import { factureListService } from '@/services/facture-list.service';
@@ -58,6 +59,11 @@ export default function FacturesGlassPage() {
   }>({ isOpen: false, facture: null });
 
   const [modalFacturePrivee, setModalFacturePrivee] = useState<{
+    isOpen: boolean;
+    facture: FactureComplete | null;
+  }>({ isOpen: false, facture: null });
+
+  const [modalRecuGenere, setModalRecuGenere] = useState<{
     isOpen: boolean;
     facture: FactureComplete | null;
   }>({ isOpen: false, facture: null });
@@ -140,6 +146,16 @@ export default function FacturesGlassPage() {
     setModalFacturePrivee({ isOpen: true, facture });
   }, []);
 
+  const handleVoirRecu = useCallback((facture: FactureComplete) => {
+    // Vérifier que la facture est payée avant d'afficher le reçu
+    if (facture.facture.libelle_etat === 'PAYEE') {
+      console.log('Ouverture modal reçu pour facture:', facture.facture.id_facture);
+      setModalRecuGenere({ isOpen: true, facture });
+    } else {
+      console.warn('Tentative d\'affichage de reçu pour facture non payée:', facture.facture.id_facture);
+    }
+  }, []);
+
   const handleSupprimer = useCallback((facture: FactureComplete) => {
     console.log('Demande de suppression facture:', facture.facture.num_facture);
 
@@ -214,6 +230,10 @@ export default function FacturesGlassPage() {
 
   const closeModalFacturePrivee = useCallback(() => {
     setModalFacturePrivee({ isOpen: false, facture: null });
+  }, []);
+
+  const closeModalRecuGenere = useCallback(() => {
+    setModalRecuGenere({ isOpen: false, facture: null });
   }, []);
 
   const closeToast = useCallback(() => {
@@ -324,6 +344,7 @@ export default function FacturesGlassPage() {
             onVoirDetailsModal={handleVoirDetailsModal}
             onAjouterAcompte={handleAjouterAcompte}
             onPartager={handlePartager}
+            onVoirRecu={handleVoirRecu}
             onSupprimer={handleSupprimer}
           />
 
@@ -413,6 +434,17 @@ export default function FacturesGlassPage() {
           });
         }}
       />
+
+      {/* Modal de reçu généré */}
+      {modalRecuGenere.facture && (
+        <ModalRecuGenere
+          isOpen={modalRecuGenere.isOpen}
+          onClose={closeModalRecuGenere}
+          factureId={modalRecuGenere.facture.facture.id_facture}
+          walletUsed={'orange-money'} // Valeur par défaut, sera récupérée du service
+          montantPaye={modalRecuGenere.facture.facture.montant}
+        />
+      )}
 
       {/* Modal de confirmation de suppression */}
       <ModalConfirmation
