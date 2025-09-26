@@ -106,34 +106,34 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-900 via-emerald-800 to-teal-900 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-900 via-emerald-800 to-teal-900 p-3 sm:p-4">
       {/* Container principal */}
-      <div className="w-full max-w-md">
-        {/* Logo et titre */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center mb-4">
-            <LogoFayclick className="w-24 h-24" />
+      <div className="w-full max-w-sm">
+        {/* Logo et titre compacts */}
+        <div className="text-center mb-6">
+          <div className="inline-flex items-center justify-center mb-3">
+            <LogoFayclick className="w-16 h-16 sm:w-20 sm:h-20" />
           </div>
-          <h1 className="text-3xl font-bold text-white drop-shadow-lg">FayClick</h1>
-          <p className="text-green-100 text-lg mt-2 drop-shadow">Gestion simplifiée de votre business</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-white drop-shadow-lg">FayClick</h1>
+          <p className="text-green-100 text-sm sm:text-base mt-1 drop-shadow">Gestion simplifiée de votre business</p>
         </div>
 
-        {/* Carte de connexion avec effet glassmorphisme vert */}
-        <div className="bg-gradient-to-br from-green-400/10 via-emerald-400/15 to-teal-400/10 backdrop-blur-2xl rounded-3xl shadow-2xl overflow-hidden border border-green-200/30">
-          <div className="p-8">
-            <h2 className="text-2xl font-semibold text-white mb-6 drop-shadow">Connexion</h2>
+        {/* Carte de connexion avec effet glassmorphisme vert - Plus compacte */}
+        <div className="bg-gradient-to-br from-green-400/10 via-emerald-400/15 to-teal-400/10 backdrop-blur-2xl rounded-2xl shadow-2xl overflow-hidden border border-green-200/30">
+          <div className="p-5 sm:p-6">
+            <h2 className="text-xl font-semibold text-white mb-4 drop-shadow">Connexion</h2>
             
-            {/* Affichage des erreurs */}
+            {/* Affichage des erreurs - Plus compact */}
             {authError && (
-              <div className="mb-4 p-3 bg-red-500/20 border border-red-400/30 rounded-xl backdrop-blur-sm">
+              <div className="mb-3 p-2.5 bg-red-500/20 border border-red-400/30 rounded-lg backdrop-blur-sm">
                 <p className="text-red-200 text-sm">{authError}</p>
               </div>
             )}
             
-            <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Champ Email */}
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Champ Email - Plus compact */}
               <div>
-                <label htmlFor="email" className="block text-sm font-medium text-green-100 mb-2 drop-shadow">
+                <label htmlFor="email" className="block text-sm font-medium text-green-100 mb-1.5 drop-shadow">
                   Email / Login
                 </label>
                 <div className="relative">
@@ -145,20 +145,20 @@ export default function LoginPage() {
                     required
                     value={formData.email}
                     onChange={handleChange}
-                    className="w-full px-4 py-3 pl-12 border border-green-200/30 rounded-xl focus:ring-2 focus:ring-emerald-400 focus:border-transparent transition-all duration-200 bg-white/20 backdrop-blur-sm hover:bg-white/30 text-white placeholder-green-100/60"
+                    className="w-full px-3 py-2.5 pl-10 border border-green-200/30 rounded-lg focus:ring-2 focus:ring-emerald-400 focus:border-transparent transition-all duration-200 bg-white/20 backdrop-blur-sm hover:bg-white/30 text-white placeholder-green-100/60 text-sm"
                     placeholder="votre@email.com ou login"
                   />
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <svg className="h-5 w-5 text-green-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none">
+                    <svg className="h-4 w-4 text-green-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
                     </svg>
                   </div>
                 </div>
               </div>
 
-              {/* Champ Mot de passe */}
+              {/* Champ Mot de passe - Plus compact */}
               <div>
-                <label htmlFor="password" className="block text-sm font-medium text-green-100 mb-2 drop-shadow">
+                <label htmlFor="password" className="block text-sm font-medium text-green-100 mb-1.5 drop-shadow">
                   Mot de passe
                 </label>
                 <div className="relative">
@@ -170,18 +170,18 @@ export default function LoginPage() {
                     required
                     value={formData.password}
                     onChange={handleChange}
-                    className="w-full px-4 py-3 pl-12 pr-12 border border-green-200/30 rounded-xl focus:ring-2 focus:ring-emerald-400 focus:border-transparent transition-all duration-200 bg-white/20 backdrop-blur-sm hover:bg-white/30 text-white placeholder-green-100/60"
+                    className="w-full px-3 py-2.5 pl-10 pr-10 border border-green-200/30 rounded-lg focus:ring-2 focus:ring-emerald-400 focus:border-transparent transition-all duration-200 bg-white/20 backdrop-blur-sm hover:bg-white/30 text-white placeholder-green-100/60 text-sm"
                     placeholder="••••••••"
                   />
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <svg className="h-5 w-5 text-green-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none">
+                    <svg className="h-4 w-4 text-green-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                     </svg>
                   </div>
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute inset-y-0 right-0 pr-3 flex items-center hover:bg-white/10 rounded-r-xl transition-colors"
+                    className="absolute inset-y-0 right-0 pr-2.5 flex items-center hover:bg-white/10 rounded-r-lg transition-colors"
                   >
                     <svg className="h-4 w-4 text-green-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       {showPassword ? (
@@ -194,15 +194,15 @@ export default function LoginPage() {
                 </div>
               </div>
 
-              {/* Bouton de connexion */}
+              {/* Bouton de connexion - Plus compact */}
               <button
                 type="submit"
                 disabled={isLoading || authLoading}
-                className="w-full flex justify-center py-3 px-4 border border-transparent rounded-xl shadow-lg text-sm font-medium text-white bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 focus:ring-offset-green-900 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 backdrop-blur-sm"
+                className="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-lg shadow-lg text-sm font-medium text-white bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 focus:ring-offset-green-900 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 backdrop-blur-sm"
               >
                 {(isLoading || authLoading) ? (
                   <div className="flex items-center">
-                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                       <path className="opacity-75" fill="currentColor" d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
@@ -213,8 +213,8 @@ export default function LoginPage() {
                 )}
               </button>
 
-              {/* Lien mot de passe oublié */}
-              <div className="text-center">
+              {/* Lien mot de passe oublié - Plus compact */}
+              <div className="text-center pt-2">
                 <button
                   type="button"
                   onClick={() => setShowPasswordRecovery(true)}
@@ -225,16 +225,16 @@ export default function LoginPage() {
               </div>
             </form>
 
-            {/* Liens supplémentaires */}
-            <div className="mt-6 text-center">
+            {/* Liens supplémentaires - Plus compacts */}
+            <div className="mt-4 text-center space-y-2">
               <p className="text-green-100 text-sm">
                 Pas encore de compte ?{' '}
                 <Link href="/register" className="text-green-200 hover:text-white underline transition-colors">
                   Inscrivez-vous
                 </Link>
               </p>
-              <Link href="/" className="inline-block mt-3 text-green-200 hover:text-white text-sm underline transition-colors">
-                ← Retour à l'accueil
+              <Link href="/" className="inline-block text-green-200 hover:text-white text-sm underline transition-colors">
+                ← Retour vers Accueil
               </Link>
             </div>
           </div>

@@ -241,7 +241,7 @@ export function ModalPaiementWallet({
                         className="flex-1 py-3 px-4 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors font-medium flex items-center justify-center gap-2"
                       >
                         <CheckCircle className="w-5 h-5" />
-                        J'ai payé
+                        J&diapos;ai payé
                       </motion.button>
                     </div>
                   </motion.div>

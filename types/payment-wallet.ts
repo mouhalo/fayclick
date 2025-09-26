@@ -60,6 +60,7 @@ export interface CreatePaymentRequest {
   pnom_structure: string;       // nom de la structure du marchant
   purl_success?: string;
   purl_fail?: string;
+  ref_all_facture?: string;
 }
 
 /**
@@ -122,6 +123,7 @@ export interface PaymentContext {
     num_facture: string;
     nom_client: string;
     tel_client: string;
+    nom_structure: string;
     montant_total: number;
     montant_restant: number;
   };

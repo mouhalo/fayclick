@@ -49,7 +49,7 @@ export function ModalPaiementQRCode({
   const [modalState, setModalState] = useState<ModalState>('LOADING');
   const [qrCode, setQrCode] = useState<string>('');
   const [paymentUrl, setPaymentUrl] = useState<string | null>(null);
-  const [timeRemaining, setTimeRemaining] = useState(120); // 120 secondes
+  const [timeRemaining, setTimeRemaining] = useState(60); // 60 secondes
   const [error, setError] = useState<string>('');
   const [paymentStatusResponse, setPaymentStatusResponse] = useState<any>(null); // Store la réponse complète
 
@@ -99,7 +99,7 @@ export function ModalPaiementQRCode({
             break;
         }
       },
-      120000 // 2 minutes
+      90000 // 1 minute 30
     );
   }, [onPaymentComplete, onPaymentFailed, handleTimeout]);
 
@@ -168,7 +168,7 @@ export function ModalPaiementQRCode({
   const handleRetry = () => {
     setModalState('LOADING');
     setError('');
-    setTimeRemaining(120);
+    setTimeRemaining(60);
     setPaymentStatusResponse(null); // Reset la réponse
     initializePayment();
   };

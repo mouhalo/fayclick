@@ -44,6 +44,12 @@ export function ModalPaiement({ isOpen, onClose, facture, onSuccess }: ModalPaie
   const [showQRCode, setShowQRCode] = useState(false);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethod | null>(null);
 
+  // État pour stocker les données de paiement wallet
+  const [walletPaymentData, setWalletPaymentData] = useState<{
+    uuid: string;
+    transaction_id: string;
+  } | null>(null);
+
   // Reset des états à l'ouverture
   useEffect(() => {
     if (isOpen && facture) {
@@ -53,6 +59,7 @@ export function ModalPaiement({ isOpen, onClose, facture, onSuccess }: ModalPaie
       setShowChoixPaiement(false);
       setShowQRCode(false);
       setSelectedPaymentMethod(null);
+      setWalletPaymentData(null);
     }
   }, [isOpen, facture]);
 
@@ -128,6 +135,18 @@ export function ModalPaiement({ isOpen, onClose, facture, onSuccess }: ModalPaie
 
   const styles = getModalStyles();
 
+  // Générer le transaction_id pour paiement CASH
+  const generateCashTransactionId = (): string => {
+    const now = new Date();
+    const day = now.getDate().toString().padStart(2, '0');
+    const month = (now.getMonth() + 1).toString().padStart(2, '0');
+    const year = now.getFullYear().toString();
+    const hours = now.getHours().toString().padStart(2, '0');
+    const minutes = now.getMinutes().toString().padStart(2, '0');
+    
+    return `CASH-${facture?.facture.id_structure}-${day}${month}${year}${hours}${minutes}`;
+  };
+
   // Ouvrir le modal de choix de paiement
   const handleSubmit = async () => {
     if (!facture || !validation.isValid || !montants) return;
@@ -142,7 +161,7 @@ export function ModalPaiement({ isOpen, onClose, facture, onSuccess }: ModalPaie
     setShowChoixPaiement(false);
 
     if (method === 'CASH') {
-      // Paiement cash - utiliser l'ancien système
+      // Paiement cash - utiliser l'ancien système avec les nouvelles données
       await processCashPayment();
     } else {
       // Paiement wallet - ouvrir le modal QR Code
@@ -150,7 +169,7 @@ export function ModalPaiement({ isOpen, onClose, facture, onSuccess }: ModalPaie
     }
   };
 
-  // Traiter le paiement cash (ancien système)
+  // Traiter le paiement cash avec les nouvelles spécifications
   const processCashPayment = async () => {
     if (!facture || !montants) return;
 
@@ -161,8 +180,16 @@ export function ModalPaiement({ isOpen, onClose, facture, onSuccess }: ModalPaie
       const acompteData: AjouterAcompteData = {
         id_structure: facture.facture.id_structure,
         id_facture: facture.facture.id_facture,
-        montant_acompte: montants.montantSaisi
+        montant_acompte: montants.montantSaisi,
+        transaction_id: generateCashTransactionId(),
+        uuid: 'face2face'
       };
+
+      console.log('💰 [CASH] Enregistrement acompte avec:', {
+        transaction_id: acompteData.transaction_id,
+        uuid: acompteData.uuid,
+        montant: acompteData.montant_acompte
+      });
 
       const response = await factureService.addAcompte(acompteData);
 
@@ -184,17 +211,47 @@ export function ModalPaiement({ isOpen, onClose, facture, onSuccess }: ModalPaie
     }
   };
 
-  // Gérer le succès du paiement wallet
-  const handleWalletPaymentComplete = async () => {
+  // Gérer le succès du paiement wallet avec récupération des données
+  const handleWalletPaymentComplete = async (paymentStatusResponse: any) => {
     if (!facture || !montants || !selectedPaymentMethod) return;
 
     try {
-      // Ajouter l'acompte avec la référence du paiement wallet
+      console.log('🔄 [WALLET] Traitement paiement wallet réussi:', paymentStatusResponse);
+
+      // Extraire UUID et transaction_id depuis la réponse
+      let uuid = '';
+      let transaction_id = '';
+
+      if (paymentStatusResponse?.data?.uuid) {
+        uuid = paymentStatusResponse.data.uuid;
+      }
+
+      if (paymentStatusResponse?.data?.reference_externe) {
+        transaction_id = paymentStatusResponse.data.reference_externe;
+      }
+
+      console.log('💳 [WALLET] Données extraites:', {
+        uuid,
+        transaction_id,
+        status: paymentStatusResponse?.data?.statut
+      });
+
+      // Vérifier que nous avons les données nécessaires
+      if (!uuid || !transaction_id) {
+        console.error('❌ [WALLET] Données manquantes:', { uuid, transaction_id });
+        throw new Error('Données de paiement incomplètes (UUID ou transaction_id manquant)');
+      }
+
+      // Ajouter l'acompte avec les données de paiement wallet
       const acompteData: AjouterAcompteData = {
         id_structure: facture.facture.id_structure,
         id_facture: facture.facture.id_facture,
-        montant_acompte: montants.montantSaisi
+        montant_acompte: montants.montantSaisi,
+        transaction_id: transaction_id,
+        uuid: uuid
       };
+
+      console.log('💾 [WALLET] Enregistrement acompte avec:', acompteData);
 
       const response = await factureService.addAcompte(acompteData);
 
@@ -211,14 +268,15 @@ export function ModalPaiement({ isOpen, onClose, facture, onSuccess }: ModalPaie
         }, 2000);
       }
     } catch (error: unknown) {
-      console.error('Erreur enregistrement acompte:', error);
+      console.error('❌ [WALLET] Erreur enregistrement acompte:', error);
       setShowQRCode(false);
-      setError(error instanceof Error ? error.message : 'Erreur lors de l\'enregistrement');
+      setError(error instanceof Error ? error.message : 'Erreur lors de l\'enregistrement du paiement wallet');
     }
   };
 
   // Gérer l'échec du paiement wallet
   const handleWalletPaymentFailed = (error: string) => {
+    console.error('❌ [WALLET] Échec du paiement wallet:', error);
     setShowQRCode(false);
     setError(error);
   };
@@ -234,7 +292,8 @@ export function ModalPaiement({ isOpen, onClose, facture, onSuccess }: ModalPaie
         nom_client: facture.facture.nom_client,
         tel_client: facture.facture.tel_client,
         montant_total: facture.facture.montant,
-        montant_restant: facture.facture.mt_restant
+        montant_restant: facture.facture.mt_restant,
+        nom_structure: facture.facture.nom_structure
       },
       montant_acompte: montants.montantSaisi
     };
@@ -305,6 +364,30 @@ export function ModalPaiement({ isOpen, onClose, facture, onSuccess }: ModalPaie
                   : `Acompte de ${montants?.montantSaisi.toLocaleString('fr-FR')} FCFA ajouté`
                 }
               </p>
+
+              {/* Afficher les détails du paiement selon le mode */}
+              {selectedPaymentMethod && (
+                <div className="mt-4 p-3 bg-emerald-50 rounded-lg">
+                  <p className="text-sm text-emerald-700">
+                    Mode de paiement : {selectedPaymentMethod === 'CASH' ? 'Espèces' : selectedPaymentMethod}
+                  </p>
+                  {walletPaymentData && selectedPaymentMethod !== 'CASH' && (
+                    <>
+                      <p className="text-xs text-emerald-600 mt-1">
+                        Transaction : {walletPaymentData.transaction_id}
+                      </p>
+                      <p className="text-xs text-emerald-600">
+                        UUID : {walletPaymentData.uuid}
+                      </p>
+                    </>
+                  )}
+                  {selectedPaymentMethod === 'CASH' && (
+                    <p className="text-xs text-emerald-600 mt-1">
+                      Transaction : {generateCashTransactionId()}
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
           ) : (
             <>

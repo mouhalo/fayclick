@@ -34,7 +34,7 @@ class PaymentWalletService {
         pMontant: context.montant_acompte,
         pServiceName: WALLET_SERVICE_MAP[method],
         pNomClient: context.facture.nom_client,
-        pnom_structure: 'FAYCLICK', // TODO: Récupérer depuis le contexte utilisateur
+        pnom_structure: context.facture.nom_structure || 'FAYCLICK',
       };
 
       console.log('🔄 Création de paiement wallet:', {
@@ -76,6 +76,8 @@ class PaymentWalletService {
    */
   async checkPaymentStatus(uuid: string): Promise<PaymentStatusResponse> {
     try {
+      console.log('🔍 Vérification statut pour UUID:', uuid);
+      
       const response = await fetch(`${this.API_BASE_URL}/payment_status/${uuid}`, {
         method: 'GET',
         headers: {
@@ -84,10 +86,15 @@ class PaymentWalletService {
       });
 
       if (!response.ok) {
+        console.error('❌ Réponse HTTP non-ok:', response.status);
         throw new Error(`Erreur HTTP: ${response.status}`);
       }
 
       const data: PaymentStatusResponse = await response.json();
+      
+      // Log détaillé de la réponse complète
+      console.log('📦 Réponse complète du statut:', JSON.stringify(data, null, 2));
+      
       return data;
     } catch (error) {
       console.error('❌ Erreur vérification statut:', error);
@@ -99,12 +106,12 @@ class PaymentWalletService {
    * Démarrer le polling du statut de paiement
    * @param uuid - UUID du paiement
    * @param onStatusUpdate - Callback appelé à chaque mise à jour
-   * @param timeout - Timeout en millisecondes (défaut: 60000ms = 1 minute +30 secondes)
+   * @param timeout - Timeout en millisecondes (défaut: 120000ms = 2 minutes)
    */
   startPolling(
     uuid: string,
     onStatusUpdate: (status: PaymentStatus, data?: PaymentStatusResponse) => void,
-    timeout: number = 90000
+    timeout: number = 120000
   ): void {
     // Nettoyer le polling précédent si existant
     this.stopPolling();
@@ -132,22 +139,67 @@ class PaymentWalletService {
 
         console.log('📊 Statut reçu:', response.data?.statut || response.status);
 
-        // Vérifier le statut
-        if (response.data?.statut === 'COMPLETED') {
-          clearTimeout(timeoutId);
-          this.stopPolling();
-          onStatusUpdate('COMPLETED', response);
-          return;
+        console.log('📊 Analyse du statut:', {
+          apiStatus: response.data?.statut,
+          hasData: !!response.data,
+          completedAt: response.data?.completed_at,
+          originalStatus: response.data?.metadata?.original_status,
+          referenceExterne: response.data?.reference_externe,
+          numTransaction: response.data?.metadata?.intouch_response?.numTransaction
+        });
+
+        // Vérifier le statut selon la nouvelle structure
+        // IMPORTANT: response.status === 'success' signifie que l'API a répondu correctement
+        // Ce n'est PAS le statut du paiement lui-même
+        
+        if (response.status === 'success' && response.data) {
+          // Vérifier si le paiement a échoué
+          // Si original_status est FAILED, c'est un échec confirmé
+          if (response.data.metadata?.original_status === 'FAILED') {
+            console.log('❌ Paiement détecté comme ÉCHOUÉ (original_status: FAILED)');
+            clearTimeout(timeoutId);
+            this.stopPolling();
+            onStatusUpdate('FAILED', response);
+            return;
+          }
+          
+          // Vérifier si le paiement est complété avec succès
+          // Un paiement est réussi si:
+          // 1. completed_at existe (transaction terminée)
+          // 2. reference_externe existe (numéro de transaction attribué)
+          // 3. original_status n'est PAS 'FAILED'
+          if (response.data.completed_at && 
+              response.data.reference_externe && 
+              response.data.metadata?.original_status !== 'FAILED') {
+            console.log('✅ Paiement détecté comme RÉUSSI');
+            console.log('   - Reference:', response.data.reference_externe);
+            console.log('   - UUID:', response.data.uuid);
+            clearTimeout(timeoutId);
+            this.stopPolling();
+            onStatusUpdate('COMPLETED', response);
+            return;
+          }
+
+          // Si on a un statut explicite (ancien format)
+          if (response.data.statut === 'COMPLETED') {
+            console.log('✅ Paiement COMPLETED (ancien format)');
+            clearTimeout(timeoutId);
+            this.stopPolling();
+            onStatusUpdate('COMPLETED', response);
+            return;
+          }
+          
+          if (response.data.statut === 'FAILED') {
+            console.log('❌ Paiement FAILED (ancien format)');
+            clearTimeout(timeoutId);
+            this.stopPolling();
+            onStatusUpdate('FAILED', response);
+            return;
+          }
         }
 
-        if (response.data?.statut === 'FAILED') {
-          clearTimeout(timeoutId);
-          this.stopPolling();
-          onStatusUpdate('FAILED', response);
-          return;
-        }
-
-        // Statut toujours en cours
+        // Le paiement est toujours en cours de traitement
+        console.log('⏳ Paiement toujours en cours...');
         onStatusUpdate('PROCESSING', response);
 
       } catch (error) {
@@ -231,15 +283,37 @@ class PaymentWalletService {
    * Valider le montant selon le wallet
    */
   validateAmount(amount: number, method: PaymentMethod): { valid: boolean; message?: string } {
-    const minAmount = 100;
-    const maxAmount = 5000000;
-
+    const minAmount = 50;
+    const maxAmount = 1000000;
+    //TODO: ajouter des validations selon le wallet
+    switch (method) {
+      case 'OM':
+        return {
+          valid: false,
+          message: `Le montant minimum est de ${minAmount} FCFA`
+        };
+      case 'WAVE':
+        return {
+          valid: false,
+          message: `Le montant minimum est de ${minAmount} FCFA`
+        };
+      case 'FREE':
+        return {
+          valid: false,
+          message: `Le montant minimum est de ${minAmount} FCFA`
+        };
+      default:
+        return {
+          valid: false,
+          message: `Le montant minimum est de ${minAmount} FCFA`
+        };
+    }   
     if (amount < minAmount) {
       return {
         valid: false,
         message: `Le montant minimum est de ${minAmount} FCFA`
       };
-    }
+    } 
 
     if (amount > maxAmount) {
       return {

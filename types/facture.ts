@@ -108,6 +108,8 @@ export interface AjouterAcompteData {
   id_structure: number;
   id_facture: number;
   montant_acompte: number;
+  transaction_id: string;
+  uuid: string;
 }
 
 // Interface pour la réponse d'ajout d'acompte
