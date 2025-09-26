@@ -808,7 +808,7 @@ export default function StructureEditPage() {
                         </div>
                         <div>
                           <h3 className="font-bold text-gray-900">Crédit autorisé</h3>
-                          <p className="text-sm text-gray-600">Permettre aux clients d'acheter à crédit</p>
+                          <p className="text-sm text-gray-600">Permettre aux clients d&diapos;acheter à crédit</p>
                         </div>
                       </div>
                       <label className="relative inline-flex items-center cursor-pointer">

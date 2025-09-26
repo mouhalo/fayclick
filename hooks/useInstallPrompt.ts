@@ -32,9 +32,10 @@ export function useInstallPrompt(): InstallPromptHook {
   const [isInstalled, setIsInstalled] = useState(false);
   const [showInstallPrompt, setShowInstallPrompt] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [canShowPrompt, setCanShowPrompt] = useState(false);
 
-  // Vérifier si l'app est déjà installée
-  const checkIfInstalled = useCallback(() => {
+  // Fonction utilitaire pour vérifier l'installation (sans état)
+  const getInstallationStatus = useCallback(() => {
     if (typeof window === 'undefined') return false;
 
     // Vérifier via localStorage
@@ -45,18 +46,26 @@ export function useInstallPrompt(): InstallPromptHook {
                         (window.navigator as any).standalone ||
                         document.referrer.includes('android-app://');
 
-    const installed = localInstalled || isStandalone;
+    return localInstalled || isStandalone;
+  }, []);
+
+  // Vérifier si l'app est déjà installée (avec mise à jour d'état)
+  const checkIfInstalled = useCallback(() => {
+    const installed = getInstallationStatus();
     setIsInstalled(installed);
 
-    if (installed && !localInstalled) {
-      // Marquer comme installée dans localStorage
-      localStorage.setItem(APP_INSTALLED_KEY, 'true');
+    if (installed && typeof window !== 'undefined') {
+      const localInstalled = localStorage.getItem(APP_INSTALLED_KEY) === 'true';
+      if (!localInstalled) {
+        // Marquer comme installée dans localStorage
+        localStorage.setItem(APP_INSTALLED_KEY, 'true');
+      }
     }
 
     return installed;
-  }, []);
+  }, [getInstallationStatus]);
 
-  // Vérifier si on doit montrer le prompt
+  // Vérifier si on doit montrer le prompt (sans dépendance circulaire)
   const shouldShowPrompt = useCallback((): boolean => {
     if (typeof window === 'undefined') return false;
 
@@ -69,8 +78,8 @@ export function useInstallPrompt(): InstallPromptHook {
       return false;
     }
 
-    // Si l'app est installée, ne pas montrer
-    if (checkIfInstalled()) {
+    // Si l'app est installée, ne pas montrer (utiliser la fonction sans état)
+    if (getInstallationStatus()) {
       return false;
     }
 
@@ -100,7 +109,7 @@ export function useInstallPrompt(): InstallPromptHook {
     }
 
     return true;
-  }, [checkIfInstalled]);
+  }, [getInstallationStatus]);
 
   // Installer l'app
   const installApp = useCallback(async () => {
@@ -175,10 +184,12 @@ export function useInstallPrompt(): InstallPromptHook {
     localStorage.removeItem(APP_INSTALLED_KEY);
     setIsInstalled(false);
 
-    if (deferredPrompt && shouldShowPrompt()) {
+    // Vérifier si on peut montrer le prompt sans dépendance circulaire
+    const canShow = deferredPrompt && !getInstallationStatus();
+    if (canShow) {
       setShowInstallPrompt(true);
     }
-  }, [deferredPrompt, shouldShowPrompt]);
+  }, [deferredPrompt, getInstallationStatus]);
 
   useEffect(() => {
     // Vérifier si déjà installée
@@ -233,6 +244,11 @@ export function useInstallPrompt(): InstallPromptHook {
     };
   }, [shouldShowPrompt, checkIfInstalled]);
 
+  // Mettre à jour canShowPrompt quand nécessaire
+  useEffect(() => {
+    setCanShowPrompt(shouldShowPrompt());
+  }, [shouldShowPrompt, isInstalled, isLoading]);
+
   return {
     isInstallable,
     isInstalled,
@@ -240,7 +256,7 @@ export function useInstallPrompt(): InstallPromptHook {
     installApp,
     dismissPrompt,
     resetPrompt,
-    shouldShowPrompt: shouldShowPrompt(),
+    shouldShowPrompt: canShowPrompt,
     isLoading
   };
 }
