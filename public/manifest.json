@@ -1,14 +1,17 @@
 {
-  "name": "FayClick - La Super App du Sénégal",
+  "name": "FayClick - La Super App des Marchands",
   "short_name": "FayClick",
-  "description": "Gérez votre business en toute simplicité avec FayClick",
+  "description": "Gérez votre commerce, école ou immobilier en toute simplicité avec FayClick",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0ea5e9",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
+  "background_color": "#ffffff",
   "theme_color": "#0ea5e9",
-  "orientation": "portrait-primary",
+  "orientation": "any",
   "scope": "/",
   "lang": "fr",
+  "dir": "ltr",
+  "prefer_related_applications": false,
   "icons": [
     {
       "src": "/favicon.ico",
@@ -18,36 +21,76 @@
     {
       "src": "/apple-touch-icon.png",
       "sizes": "180x180",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
     },
     {
       "src": "/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "maskable"
+      "purpose": "any maskable"
     },
     {
       "src": "/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "maskable"
+      "purpose": "any maskable"
     }
   ],
-  "categories": ["business", "productivity", "finance"],
+  "categories": ["business", "productivity", "finance", "education"],
+  "screenshots": [
+    {
+      "src": "/screenshots/dashboard.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "label": "Dashboard FayClick"
+    },
+    {
+      "src": "/screenshots/mobile.png",
+      "sizes": "750x1334",
+      "type": "image/png",
+      "label": "Version Mobile"
+    }
+  ],
   "shortcuts": [
     {
-      "name": "Connexion",
-      "short_name": "Login",
-      "description": "Se connecter à FayClick",
-      "url": "/login",
+      "name": "Dashboard",
+      "short_name": "Dashboard",
+      "description": "Accéder au tableau de bord",
+      "url": "/dashboard",
       "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
     },
     {
-      "name": "Inscription",
-      "short_name": "Register", 
-      "description": "Créer un compte FayClick",
-      "url": "/register",
+      "name": "Factures",
+      "short_name": "Factures",
+      "description": "Gérer les factures",
+      "url": "/factures",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Clients",
+      "short_name": "Clients",
+      "description": "Gérer les clients",
+      "url": "/clients",
       "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
     }
-  ]
+  ],
+  "share_target": {
+    "action": "/share",
+    "method": "GET",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url"
+    }
+  },
+  "features": [
+    "screen-wake-lock",
+    "shortcuts",
+    "share",
+    "file-upload"
+  ],
+  "edge_side_panel": {
+    "preferred_width": 400
+  }
 }

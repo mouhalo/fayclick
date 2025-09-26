@@ -3,6 +3,7 @@ import { Inter, Montserrat } from "next/font/google";
 import "./globals.css";
 import ConditionalAuthProvider from '@/components/providers/ConditionalAuthProvider';
 import { VersionProvider } from '@/contexts/VersionContext';
+import { PWAInstallProvider } from '@/components/pwa/PWAInstallProvider';
 import { Toaster } from 'sonner';
 
 const inter = Inter({
@@ -67,18 +68,20 @@ export default function RootLayout({
       <body className="font-inter antialiased min-h-screen">
         <ConditionalAuthProvider>
           <VersionProvider autoCheck={true}>
-            <div className="safe-area-container">
-              {children}
-            </div>
-            <Toaster
-              position="top-center"
-              richColors
-              closeButton
-              toastOptions={{
-                className: 'glassmorphism-toast',
-                duration: 4000,
-              }}
-            />
+            <PWAInstallProvider>
+              <div className="safe-area-container">
+                {children}
+              </div>
+              <Toaster
+                position="top-center"
+                richColors
+                closeButton
+                toastOptions={{
+                  className: 'glassmorphism-toast',
+                  duration: 4000,
+                }}
+              />
+            </PWAInstallProvider>
           </VersionProvider>
         </ConditionalAuthProvider>
       </body>
