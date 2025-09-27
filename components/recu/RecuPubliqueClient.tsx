@@ -85,7 +85,7 @@ export default function RecuPubliqueClient({ token }: RecuPubliqueClientProps) {
         }
 
         // Récupérer le reçu via le service
-        const recuData = await recuService.getRecuPublique(params.idStructure, params.idFacture);
+        const recuData = await recuService.getRecuPublique(params.id_structure, params.id_facture);
         setRecu(recuData);
       } catch (err: unknown) {
         console.error('Erreur chargement reçu:', err);

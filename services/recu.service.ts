@@ -8,6 +8,21 @@ import { RecuDetails, RecuGenere } from '@/types/recu';
 import { WalletType } from '@/components/facture/ModalPaiementWalletNew';
 import { authService } from './auth.service';
 
+// Fonction utilitaire pour convertir les types de wallet
+function convertWalletType(wallet: string): string {
+  const walletMap: { [key: string]: string } = {
+    'OM': 'orange-money',
+    'WAVE': 'wave',
+    'FREE': 'free-money',
+    'CASH': 'free-money', // Mapper CASH vers free-money par défaut
+    'orange-money': 'orange-money',
+    'wave': 'wave',
+    'free-money': 'free-money'
+  };
+
+  return walletMap[wallet] || 'free-money';
+}
+
 // Interface pour les données de création de reçu
 export interface CreerRecuData {
   id_facture: number;
@@ -102,9 +117,10 @@ class RecuService {
         date_paiement
       } = recuData;
 
-      // Générer numéro de reçu si non fourni
-      const numRecu = numero_recu || `REC-${id_facture}-${Date.now()}`;
+      // Générer numéro de reçu si non fourni (différencier acomptes)
+      const numRecu = numero_recu || `REC-ACOMPTE-${id_facture}-${Date.now()}`;
       const datePaiement = date_paiement || new Date().toISOString();
+      const walletConverted = convertWalletType(methode_paiement);
 
       const requete = `
         INSERT INTO public.recus_paiement (
@@ -121,7 +137,7 @@ class RecuService {
           ${id_facture},
           ${id_structure},
           '${numRecu}',
-          '${methode_paiement}',
+          '${walletConverted}',
           ${montant_paye},
           ${reference_transaction ? `'${reference_transaction}'` : 'NULL'},
           ${numero_telephone ? `'${numero_telephone}'` : 'NULL'},
@@ -155,34 +171,31 @@ class RecuService {
   async getRecuPublique(idStructure: number, idFacture: number): Promise<RecuDetails> {
     try {
       const requete = `
-        SELECT
+       SELECT
           f.id_facture,
           f.num_facture,
           f.id_structure,
-          s.nom_structure,
+          f.nom_structure,
           f.date_facture,
           f.nom_client,
           f.tel_client,
           f.montant,
-          f.libelle_etat,
+          f.libelle_etat ,
           f.description,
           f.mt_remise,
           f.mt_acompte,
           f.mt_restant,
-          s.logo,
+          f.logo,
           r.numero_recu,
           r.methode_paiement,
           r.montant_paye,
           r.reference_transaction,
           r.numero_telephone,
           r.date_paiement
-        FROM public.factures f
-        INNER JOIN public.structures s ON f.id_structure = s.id_structure
+        FROM public.list_factures_com f
         LEFT JOIN public.recus_paiement r ON f.id_facture = r.id_facture
         WHERE f.id_structure = ${idStructure}
           AND f.id_facture = ${idFacture}
-          AND f.libelle_etat = 'PAYEE'
-          AND r.numero_recu IS NOT NULL
       `;
 
       const result = await this.executerRequete(requete);

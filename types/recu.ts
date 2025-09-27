@@ -5,6 +5,9 @@
 
 import { WalletType } from '@/components/facture/ModalPaiementWalletNew';
 
+// Types de paiement
+export type TypePaiement = 'COMPLET' | 'ACOMPTE';
+
 // Interface principale pour un reçu généré
 export interface RecuGenere {
   id_facture: number;
@@ -21,6 +24,8 @@ export interface RecuGenere {
   methode_paiement: WalletType;
   reference_paiement?: string;
   logo_structure?: string;
+  type_paiement?: TypePaiement;
+  montant_restant_apres?: number; // Pour les acomptes
 }
 
 // Props pour le modal de reçu généré
@@ -33,6 +38,8 @@ export interface ModalRecuGenereProps {
   numeroRecu?: string;
   dateTimePaiement?: string;
   referenceTransaction?: string;
+  typePaiement?: TypePaiement;
+  montantFactureTotal?: number; // Pour contexte dans les acomptes
 }
 
 // Informations de paiement pour le reçu

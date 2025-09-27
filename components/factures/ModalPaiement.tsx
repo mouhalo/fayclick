@@ -19,8 +19,10 @@ import {
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { FactureComplete, AjouterAcompteData } from '@/types/facture';
 import { factureService } from '@/services/facture.service';
+import { recuService } from '@/services/recu.service';
 import { ModalChoixPaiement } from './ModalChoixPaiement';
 import { ModalPaiementQRCode } from './ModalPaiementQRCode';
+import { ModalRecuGenere } from '@/components/recu';
 import { PaymentMethod, PaymentContext } from '@/types/payment-wallet';
 
 interface ModalPaiementProps {
@@ -43,6 +45,23 @@ export function ModalPaiement({ isOpen, onClose, facture, onSuccess }: ModalPaie
   const [showChoixPaiement, setShowChoixPaiement] = useState(false);
   const [showQRCode, setShowQRCode] = useState(false);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethod | null>(null);
+
+  // État pour le modal de reçu d'acompte
+  const [modalRecuAcompte, setModalRecuAcompte] = useState<{
+    isOpen: boolean;
+    factureId: number | null;
+    walletUsed: PaymentMethod | null;
+    montantPaye: number;
+    numeroRecu?: string;
+    referenceTransaction?: string;
+    typePaiement?: 'COMPLET' | 'ACOMPTE';
+    montantFactureTotal?: number;
+  }>({
+    isOpen: false,
+    factureId: null,
+    walletUsed: null,
+    montantPaye: 0
+  });
 
   // État pour stocker les données de paiement wallet
   const [walletPaymentData, setWalletPaymentData] = useState<{
@@ -195,6 +214,46 @@ export function ModalPaiement({ isOpen, onClose, facture, onSuccess }: ModalPaie
 
       if (response.success) {
         setSuccess(true);
+
+        // Générer automatiquement un reçu pour l'acompte cash
+        try {
+          console.log('🧾 [ACOMPTE-CASH] Génération reçu pour acompte cash:', {
+            factureId: facture.facture.id_facture,
+            montantAcompte: montants.montantSaisi,
+            paymentMethod: 'CASH'
+          });
+
+          const recuResponse = await recuService.creerRecu({
+            id_facture: facture.facture.id_facture,
+            id_structure: facture.facture.id_structure,
+            methode_paiement: 'CASH', // Le service convertira vers free-money
+            montant_paye: montants.montantSaisi, // Montant de l'acompte
+            numero_recu: `REC-ACOMPTE-CASH-${facture.facture.num_facture}-${Date.now()}`,
+            reference_transaction: acompteData.transaction_id,
+            numero_telephone: facture.facture.tel_client,
+            date_paiement: new Date().toISOString()
+          });
+
+          if (recuResponse.success) {
+            console.log('✅ [ACOMPTE-CASH] Reçu créé avec succès:', recuResponse.numero_recu);
+
+            // Préparer et afficher le modal de reçu d'acompte cash
+            setModalRecuAcompte({
+              isOpen: true,
+              factureId: facture.facture.id_facture,
+              walletUsed: 'CASH',
+              montantPaye: montants.montantSaisi,
+              numeroRecu: recuResponse.numero_recu,
+              referenceTransaction: acompteData.transaction_id,
+              typePaiement: 'ACOMPTE',
+              montantFactureTotal: facture.facture.montant
+            });
+          }
+        } catch (recuError) {
+          console.error('❌ [ACOMPTE-CASH] Erreur génération reçu:', recuError);
+          // Ne pas bloquer le flow principal, le reçu est optionnel
+        }
+
         if (onSuccess) {
           onSuccess(response);
         }
@@ -258,11 +317,51 @@ export function ModalPaiement({ isOpen, onClose, facture, onSuccess }: ModalPaie
       if (response.success) {
         setShowQRCode(false);
         setSuccess(true);
+
+        // Générer automatiquement un reçu pour l'acompte
+        try {
+          console.log('🧾 [ACOMPTE] Génération reçu pour acompte:', {
+            factureId: facture.facture.id_facture,
+            montantAcompte: montants.montantSaisi,
+            paymentMethod: selectedPaymentMethod
+          });
+
+          const recuResponse = await recuService.creerRecu({
+            id_facture: facture.facture.id_facture,
+            id_structure: facture.facture.id_structure,
+            methode_paiement: selectedPaymentMethod, // Le service convertira automatiquement
+            montant_paye: montants.montantSaisi, // Montant de l'acompte, pas le total
+            numero_recu: `REC-ACOMPTE-${facture.facture.num_facture}-${Date.now()}`,
+            reference_transaction: transaction_id,
+            numero_telephone: facture.facture.tel_client,
+            date_paiement: new Date().toISOString()
+          });
+
+          if (recuResponse.success) {
+            console.log('✅ [ACOMPTE] Reçu créé avec succès:', recuResponse.numero_recu);
+
+            // Préparer et afficher le modal de reçu d'acompte
+            setModalRecuAcompte({
+              isOpen: true,
+              factureId: facture.facture.id_facture,
+              walletUsed: selectedPaymentMethod,
+              montantPaye: montants.montantSaisi,
+              numeroRecu: recuResponse.numero_recu,
+              referenceTransaction: transaction_id,
+              typePaiement: 'ACOMPTE',
+              montantFactureTotal: facture.facture.montant
+            });
+          }
+        } catch (recuError) {
+          console.error('❌ [ACOMPTE] Erreur génération reçu:', recuError);
+          // Ne pas bloquer le flow principal, le reçu est optionnel
+        }
+
         if (onSuccess) {
           onSuccess(response);
         }
 
-        // Fermer automatiquement après 2 secondes
+        // Fermer automatiquement le modal principal après 2 secondes
         setTimeout(() => {
           onClose();
         }, 2000);
@@ -272,6 +371,20 @@ export function ModalPaiement({ isOpen, onClose, facture, onSuccess }: ModalPaie
       setShowQRCode(false);
       setError(error instanceof Error ? error.message : 'Erreur lors de l\'enregistrement du paiement wallet');
     }
+  };
+
+  // Fermer le modal de reçu d'acompte
+  const closeModalRecuAcompte = () => {
+    setModalRecuAcompte({
+      isOpen: false,
+      factureId: null,
+      walletUsed: null,
+      montantPaye: 0,
+      numeroRecu: null,
+      referenceTransaction: null,
+      typePaiement: undefined,
+      montantFactureTotal: undefined
+    });
   };
 
   // Gérer l'échec du paiement wallet
@@ -602,6 +715,22 @@ export function ModalPaiement({ isOpen, onClose, facture, onSuccess }: ModalPaie
             paymentContext={createPaymentContext()!}
             onPaymentComplete={handleWalletPaymentComplete}
             onPaymentFailed={handleWalletPaymentFailed}
+          />
+        )}
+
+        {/* Modal de reçu d'acompte */}
+        {modalRecuAcompte.isOpen && modalRecuAcompte.factureId && modalRecuAcompte.walletUsed && (
+          <ModalRecuGenere
+            isOpen={modalRecuAcompte.isOpen}
+            onClose={closeModalRecuAcompte}
+            factureId={modalRecuAcompte.factureId}
+            walletUsed={modalRecuAcompte.walletUsed as any} // Conversion PaymentMethod vers WalletType
+            montantPaye={modalRecuAcompte.montantPaye}
+            numeroRecu={modalRecuAcompte.numeroRecu}
+            dateTimePaiement={new Date().toISOString()}
+            referenceTransaction={modalRecuAcompte.referenceTransaction}
+            typePaiement={modalRecuAcompte.typePaiement}
+            montantFactureTotal={modalRecuAcompte.montantFactureTotal}
           />
         )}
       </motion.div>
