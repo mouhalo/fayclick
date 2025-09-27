@@ -170,8 +170,9 @@ class RecuService {
    */
   async getRecuPublique(idStructure: number, idFacture: number): Promise<RecuDetails> {
     try {
-      const requete = `
-       SELECT
+      // D'abord vérifier si la facture existe
+      const factureRequete = `
+        SELECT
           f.id_facture,
           f.num_facture,
           f.id_structure,
@@ -180,31 +181,46 @@ class RecuService {
           f.nom_client,
           f.tel_client,
           f.montant,
-          f.libelle_etat ,
+          f.libelle_etat,
           f.description,
           f.mt_remise,
           f.mt_acompte,
           f.mt_restant,
-          f.logo,
-          r.numero_recu,
-          r.methode_paiement,
-          r.montant_paye,
-          r.reference_transaction,
-          r.numero_telephone,
-          r.date_paiement
+          f.logo
         FROM public.list_factures_com f
-        LEFT JOIN public.recus_paiement r ON f.id_facture = r.id_facture
         WHERE f.id_structure = ${idStructure}
           AND f.id_facture = ${idFacture}
       `;
 
-      const result = await this.executerRequete(requete);
+      const factureResult = await this.executerRequete(factureRequete);
 
-      if (!result || result.length === 0) {
-        throw new Error('Reçu introuvable ou facture non payée');
+      if (!factureResult || factureResult.length === 0) {
+        throw new Error('Facture introuvable');
       }
 
-      const recuData = result[0];
+      // Maintenant chercher le reçu associé
+      const recuRequete = `
+        SELECT
+          numero_recu,
+          methode_paiement,
+          montant_paye,
+          reference_transaction,
+          numero_telephone,
+          date_paiement
+        FROM public.recus_paiement
+        WHERE id_facture = ${idFacture}
+        ORDER BY date_paiement DESC
+        LIMIT 1
+      `;
+
+      const recuResult = await this.executerRequete(recuRequete);
+
+      if (!recuResult || recuResult.length === 0) {
+        throw new Error('Aucun reçu trouvé pour cette facture');
+      }
+
+      const factureData = factureResult[0];
+      const recuData = recuResult[0];
 
       // Récupérer les détails des articles si disponibles
       const detailsRequete = `
@@ -212,10 +228,10 @@ class RecuService {
           p.nom_produit,
           d.quantite,
           d.prix,
-          d.sous_total,
+          (d.prix * d.quantite) as sous_total,
           p.description as description_produit
-        FROM public.facture_details d
-        INNER JOIN public.produits p ON d.id_produit = p.id_produit
+        FROM public.detail_facture_com d
+        INNER JOIN public.produit_service p ON d.id_produit = p.id_produit
         WHERE d.id_facture = ${idFacture}
         ORDER BY d.id_detail
       `;
@@ -224,21 +240,21 @@ class RecuService {
 
       const recuComplet: RecuDetails = {
         facture: {
-          id_facture: recuData.id_facture,
-          num_facture: recuData.num_facture,
-          id_structure: recuData.id_structure,
-          nom_structure: recuData.nom_structure,
-          date_facture: recuData.date_facture,
-          nom_client: recuData.nom_client,
-          tel_client: recuData.tel_client,
-          montant: recuData.montant,
+          id_facture: factureData.id_facture,
+          num_facture: factureData.num_facture,
+          id_structure: factureData.id_structure,
+          nom_structure: factureData.nom_structure,
+          date_facture: factureData.date_facture,
+          nom_client: factureData.nom_client,
+          tel_client: factureData.tel_client,
+          montant: factureData.montant,
           libelle_etat: 'PAYEE',
           numrecu: recuData.numero_recu,
-          logo: recuData.logo || '',
-          description: recuData.description,
-          mt_remise: recuData.mt_remise,
-          mt_acompte: recuData.mt_acompte,
-          mt_restant: recuData.mt_restant
+          logo: factureData.logo || '',
+          description: factureData.description,
+          mt_remise: factureData.mt_remise,
+          mt_acompte: factureData.mt_acompte,
+          mt_restant: factureData.mt_restant
         },
         paiement: {
           date_paiement: recuData.date_paiement,
