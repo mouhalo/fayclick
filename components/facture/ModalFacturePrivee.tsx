@@ -202,7 +202,7 @@ export function ModalFacturePrivee({
         console.error('❌ [FACTURE-PRIVEE] Erreur création reçu:', error);
 
         // En cas d'erreur, afficher quand même le reçu avec les infos locales
-        const numeroRecu = `REC-${facture.num_facture}-${Date.now()}`;
+        const numeroRecu = `REC-${facture.id_structure}-${facture.id_facture}-${Date.now()}`;
         setLastPaymentInfo({
           wallet,
           montant: facture.montant,
