@@ -39,7 +39,6 @@ export interface CreerRecuData {
 export interface CreerRecuResponse {
   success: boolean;
   message: string;
-  numero_recu: string;
   id_recu?: number;
 }
 
@@ -143,17 +142,16 @@ class RecuService {
           ${numero_telephone ? `'${numero_telephone}'` : 'NULL'},
           '${datePaiement}',
           NOW()
-        ) RETURNING id_recu, numero_recu
+        ) RETURNING id_recu
       `;
 
       const result = await this.executerRequete(requete);
 
-      if (result && result.length > 0) {
+      if (result?.datas && result.datas.length > 0) {
         return {
           success: true,
           message: 'Reçu créé avec succès',
-          numero_recu: result[0].numero_recu,
-          id_recu: result[0].id_recu
+          id_recu: result.datas[0].id_recu
         };
       }
 
@@ -196,7 +194,7 @@ class RecuService {
 
       console.log('🧾 [RECU-SERVICE] Résultat facture:', factureResult);
 
-      if (!factureResult || factureResult.length === 0) {
+      if (!factureResult?.datas || factureResult.datas.length === 0) {
         throw new Error('Facture introuvable');
       }
 
@@ -219,12 +217,12 @@ class RecuService {
 
       console.log('🧾 [RECU-SERVICE] Résultat reçu:', recuResult);
 
-      if (!recuResult || recuResult.length === 0) {
+      if (!recuResult?.datas || recuResult.datas.length === 0) {
         throw new Error('Aucun reçu trouvé pour cette facture');
       }
 
-      const factureData = factureResult[0];
-      const recuData = recuResult[0];
+      const factureData = factureResult?.datas?.[0];
+      const recuData = recuResult?.datas?.[0];
 
       console.log('🧾 [RECU-SERVICE] FactureData:', factureData);
       console.log('🧾 [RECU-SERVICE] RecuData:', recuData);
@@ -278,7 +276,7 @@ class RecuService {
           reference_transaction: recuData?.reference_transaction || '',
           numero_telephone: recuData?.numero_telephone || ''
         },
-        details_articles: detailsResult || []
+        details_articles: detailsResult?.datas || []
       };
 
       return recuComplet;
@@ -332,7 +330,7 @@ class RecuService {
 
       const result = await this.executerRequete(requete);
 
-      return result || [];
+      return result?.datas || [];
 
     } catch (error: unknown) {
       console.error('❌ [RECU-SERVICE] Erreur historique reçus:', error);
@@ -352,7 +350,7 @@ class RecuService {
       `;
 
       const result = await this.executerRequete(requete);
-      return result && result.length > 0 && result[0].count > 0;
+      return result?.datas && result.datas.length > 0 && result.datas[0].count > 0;
 
     } catch (error: unknown) {
       console.error('❌ [RECU-SERVICE] Erreur vérification reçu:', error);
@@ -408,9 +406,9 @@ class RecuService {
       ]);
 
       return {
-        total_recus: statsResult?.[0]?.total_recus || 0,
-        montant_total: statsResult?.[0]?.montant_total || 0,
-        methodes_populaires: methodesResult || []
+        total_recus: statsResult?.datas?.[0]?.total_recus || 0,
+        montant_total: statsResult?.datas?.[0]?.montant_total || 0,
+        methodes_populaires: methodesResult?.datas || []
       };
 
     } catch (error: unknown) {
