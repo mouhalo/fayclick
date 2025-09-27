@@ -18,7 +18,7 @@ import QRCode from 'react-qr-code';
 import { factureService } from '@/services/facture.service';
 import { authService } from '@/services/auth.service';
 import { encodeFactureParams } from '@/lib/url-encoder';
-import { ModalRecuGenereProps, RecuDetails, RecuUrls } from '@/types/recu';
+import { ModalRecuGenereProps, RecuDetails, RecuUrls, TypePaiement } from '@/types/recu';
 import { WalletType } from '@/components/facture/ModalPaiementWalletNew';
 import { recuService } from '@/services/recu.service';
 
@@ -55,7 +55,9 @@ export function ModalRecuGenere({
   montantPaye,
   numeroRecu,
   dateTimePaiement,
-  referenceTransaction
+  referenceTransaction,
+  typePaiement,
+  montantFactureTotal
 }: ModalRecuGenereProps) {
   const { isMobile, isMobileLarge, isTablet, isDesktop } = useBreakpoint();
   const [recuDetails, setRecuDetails] = useState<RecuDetails | null>(null);
@@ -162,16 +164,21 @@ export function ModalRecuGenere({
     const walletInfo = WALLET_CONFIG[walletUsed];
     const datePaiement = new Date(recuDetails.paiement.date_paiement).toLocaleDateString('fr-FR');
 
+    const isAcompte = typePaiement === 'ACOMPTE';
+    const montantRestant = montantFactureTotal ? montantFactureTotal - montantPaye : 0;
+
     const message = encodeURIComponent(
-      `🧾 *REÇU DE PAIEMENT* ✅\n\n` +
+      `🧾 *${isAcompte ? 'REÇU ACOMPTE' : 'REÇU DE PAIEMENT'}* ✅\n\n` +
       `📄 Facture: ${recuDetails.facture.num_facture}\n` +
       `🏪 ${recuDetails.facture.nom_structure}\n\n` +
-      `💰 *Montant payé: ${montantPaye?.toLocaleString('fr-FR')} FCFA*\n` +
+      `💰 *${isAcompte ? 'Acompte versé' : 'Montant payé'}: ${montantPaye?.toLocaleString('fr-FR')} FCFA*\n` +
+      (isAcompte && montantFactureTotal ? `💳 Total facture: ${montantFactureTotal.toLocaleString('fr-FR')} FCFA\n` : '') +
+      (isAcompte && montantRestant > 0 ? `⚠️ Restant dû: ${montantRestant.toLocaleString('fr-FR')} FCFA\n\n` : '\n') +
       `💳 Méthode: ${walletInfo.name}\n` +
       `📅 Date: ${datePaiement}\n` +
       `🧾 N° Reçu: ${recuDetails.facture.numrecu}\n\n` +
       `🔗 Voir le reçu officiel:\n${urls.full || 'URL en cours de génération...'}\n\n` +
-      `✅ *Paiement confirmé*\n` +
+      `✅ *${isAcompte ? 'Acompte confirmé' : 'Paiement confirmé'}*\n` +
       `_Merci pour votre confiance !_`
     );
 
@@ -318,12 +325,19 @@ export function ModalRecuGenere({
                 </div>
               ) : recuDetails ? (
                 <>
-                  {/* Badge REÇU OFFICIEL */}
+                  {/* Badge REÇU OFFICIEL avec type paiement */}
                   <div className="flex justify-center mb-4">
-                    <div className="bg-gradient-to-r from-emerald-500 to-green-600 text-white px-4 py-2 rounded-full text-sm font-bold flex items-center gap-2">
-                      <CheckCircle className="w-4 h-4" />
-                      REÇU OFFICIEL
-                    </div>
+                    {typePaiement === 'ACOMPTE' ? (
+                      <div className="bg-gradient-to-r from-orange-500 to-amber-600 text-white px-4 py-2 rounded-full text-sm font-bold flex items-center gap-2">
+                        <CheckCircle className="w-4 h-4" />
+                        REÇU ACOMPTE
+                      </div>
+                    ) : (
+                      <div className="bg-gradient-to-r from-emerald-500 to-green-600 text-white px-4 py-2 rounded-full text-sm font-bold flex items-center gap-2">
+                        <CheckCircle className="w-4 h-4" />
+                        REÇU OFFICIEL
+                      </div>
+                    )}
                   </div>
 
                   {/* Informations du reçu */}
@@ -372,11 +386,49 @@ export function ModalRecuGenere({
                       </div>
 
                       <div className="flex items-center justify-between pt-2">
-                        <span className={`${isMobile ? 'text-sm' : 'text-lg'} font-semibold text-gray-700`}>Montant payé</span>
-                        <span className={`${isMobile ? 'text-lg' : 'text-2xl'} font-bold text-emerald-600`}>
+                        <span className={`${isMobile ? 'text-sm' : 'text-lg'} font-semibold text-gray-700`}>
+                          {typePaiement === 'ACOMPTE' ? 'Acompte versé' : 'Montant payé'}
+                        </span>
+                        <span className={`${isMobile ? 'text-lg' : 'text-2xl'} font-bold ${
+                          typePaiement === 'ACOMPTE' ? 'text-orange-600' : 'text-emerald-600'
+                        }`}>
                           {montantPaye?.toLocaleString('fr-FR')} FCFA
                         </span>
                       </div>
+
+                      {/* Affichage spécial pour les acomptes */}
+                      {typePaiement === 'ACOMPTE' && montantFactureTotal && (
+                        <div className="mt-3 pt-3 border-t border-orange-100">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className={`${isMobile ? 'text-xs' : 'text-sm'} text-gray-600`}>Montant total facture</span>
+                            <span className={`font-medium text-gray-800 ${isMobile ? 'text-sm' : 'text-base'}`}>
+                              {montantFactureTotal.toLocaleString('fr-FR')} FCFA
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className={`${isMobile ? 'text-xs' : 'text-sm'} text-gray-600`}>Montant restant</span>
+                            <span className={`font-bold text-red-600 ${isMobile ? 'text-sm' : 'text-base'}`}>
+                              {(montantFactureTotal - montantPaye).toLocaleString('fr-FR')} FCFA
+                            </span>
+                          </div>
+
+                          {/* Barre de progression */}
+                          <div className="mt-3">
+                            <div className="flex justify-between items-center mb-1">
+                              <span className={`${isMobile ? 'text-xs' : 'text-sm'} text-gray-600`}>Progression paiement</span>
+                              <span className={`${isMobile ? 'text-xs' : 'text-sm'} font-medium text-orange-600`}>
+                                {Math.round((montantPaye / montantFactureTotal) * 100)}%
+                              </span>
+                            </div>
+                            <div className="w-full bg-gray-200 rounded-full h-2">
+                              <div
+                                className="bg-gradient-to-r from-orange-500 to-amber-500 h-2 rounded-full transition-all duration-300"
+                                style={{ width: `${(montantPaye / montantFactureTotal) * 100}%` }}
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
 
