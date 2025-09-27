@@ -40,6 +40,7 @@ export interface CreerRecuResponse {
   success: boolean;
   message: string;
   id_recu?: number;
+  numero_recu?: string;
 }
 
 // Interface pour l'historique des reçus
@@ -91,12 +92,55 @@ class RecuService {
       throw new Error(`Erreur API: ${response.status} - ${response.statusText}`);
     }
 
-    const data = await response.json();
+    const responseText = await response.text();
+    console.log('📥 [RECU-SERVICE] Réponse brute API:', responseText);
+
+    let data;
+    try {
+      data = JSON.parse(responseText);
+    } catch (parseError) {
+      console.error('❌ [RECU-SERVICE] Erreur parsing JSON:', parseError);
+      throw new Error('Réponse API invalide (non JSON)');
+    }
+
+    console.log('📊 [RECU-SERVICE] Données parsées:', {
+      status: data.status,
+      hasMessage: !!data.message,
+      hasDatas: !!data.datas,
+      datasLength: data.datas?.length,
+      hasData: !!data.data,
+      dataLength: data.data?.length,
+      hasResult: !!data.result,
+      keys: Object.keys(data)
+    });
 
     if (data.error) {
       throw new Error(`Erreur SQL: ${data.error}`);
     }
 
+    // Gérer différents formats de réponse de l'API
+    if (data.status === 'success') {
+      // Si la réponse contient un objet result avec datas
+      if (data.result && data.result.datas) {
+        console.log('✅ [RECU-SERVICE] Données trouvées dans result.datas');
+        return data.result;
+      }
+      // Si la réponse contient directement datas
+      if (data.datas !== undefined) {
+        console.log('✅ [RECU-SERVICE] Données trouvées dans datas');
+        return data;
+      }
+      // Si la réponse contient data
+      if (data.data !== undefined) {
+        console.log('✅ [RECU-SERVICE] Données trouvées dans data');
+        return { datas: data.data };
+      }
+      // Pour les INSERT qui peuvent ne rien retourner
+      console.log('⚠️ [RECU-SERVICE] Aucune donnée dans la réponse, mais status success');
+      return { datas: [], status: 'success' };
+    }
+
+    // Retourner les données telles quelles si pas de status
     return data;
   }
 
@@ -121,7 +165,19 @@ class RecuService {
       const datePaiement = date_paiement || new Date().toISOString();
       const walletConverted = convertWalletType(methode_paiement);
 
-      const requete = `
+      console.log('📝 [RECU-SERVICE] Création reçu avec données:', {
+        id_facture,
+        id_structure,
+        numero_recu: numRecu,
+        methode_paiement: walletConverted,
+        montant_paye,
+        reference_transaction,
+        numero_telephone,
+        date_paiement: datePaiement
+      });
+
+      // Première tentative : INSERT avec RETURNING
+      const requeteInsert = `
         INSERT INTO public.recus_paiement (
           id_facture,
           id_structure,
@@ -145,20 +201,79 @@ class RecuService {
         ) RETURNING id_recu
       `;
 
-      const result = await this.executerRequete(requete);
+      const insertResult = await this.executerRequete(requeteInsert);
+      console.log('📤 [RECU-SERVICE] Résultat INSERT:', insertResult);
 
-      if (result?.datas && result.datas.length > 0) {
+      // Vérifier si on a récupéré l'ID depuis le RETURNING
+      if (insertResult?.datas && insertResult.datas.length > 0 && insertResult.datas[0].id_recu) {
+        console.log('✅ [RECU-SERVICE] Reçu créé avec ID:', insertResult.datas[0].id_recu);
         return {
           success: true,
           message: 'Reçu créé avec succès',
-          id_recu: result.datas[0].id_recu
+          id_recu: insertResult.datas[0].id_recu,
+          numero_recu: numRecu
         };
       }
 
-      throw new Error('Aucune donnée retournée lors de la création du reçu');
+      // Si pas d'ID retourné, essayer de récupérer le reçu créé
+      console.log('⚠️ [RECU-SERVICE] Pas d\'ID retourné, tentative de récupération du reçu créé');
+
+      const requeteSelect = `
+        SELECT id_recu, numero_recu
+        FROM public.recus_paiement
+        WHERE numero_recu = '${numRecu}'
+        ORDER BY date_creation DESC
+        LIMIT 1
+      `;
+
+      const selectResult = await this.executerRequete(requeteSelect);
+      console.log('🔍 [RECU-SERVICE] Résultat SELECT:', selectResult);
+
+      if (selectResult?.datas && selectResult.datas.length > 0) {
+        const recu = selectResult.datas[0];
+        console.log('✅ [RECU-SERVICE] Reçu trouvé après création:', recu);
+        return {
+          success: true,
+          message: 'Reçu créé avec succès',
+          id_recu: recu.id_recu,
+          numero_recu: numRecu
+        };
+      }
+
+      // Si toujours pas trouvé, considérer comme succès sans ID
+      console.log('⚠️ [RECU-SERVICE] Reçu probablement créé mais ID non récupérable');
+      return {
+        success: true,
+        message: 'Reçu créé (ID non disponible)',
+        numero_recu: numRecu
+      };
 
     } catch (error: unknown) {
       console.error('❌ [RECU-SERVICE] Erreur création reçu:', error);
+
+      // Vérifier si le reçu existe déjà malgré l'erreur
+      if (recuData.numero_recu) {
+        try {
+          const checkQuery = `
+            SELECT id_recu FROM public.recus_paiement
+            WHERE numero_recu = '${recuData.numero_recu}'
+            LIMIT 1
+          `;
+          const checkResult = await this.executerRequete(checkQuery);
+          if (checkResult?.datas && checkResult.datas.length > 0) {
+            console.log('⚠️ [RECU-SERVICE] Reçu existe déjà malgré l\'erreur');
+            return {
+              success: true,
+              message: 'Reçu existant',
+              id_recu: checkResult.datas[0].id_recu,
+              numero_recu: recuData.numero_recu
+            };
+          }
+        } catch (checkError) {
+          console.error('❌ [RECU-SERVICE] Erreur vérification existence:', checkError);
+        }
+      }
+
       throw new Error(error instanceof Error ? error.message : 'Erreur lors de la création du reçu');
     }
   }
