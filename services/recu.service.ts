@@ -194,6 +194,8 @@ class RecuService {
 
       const factureResult = await this.executerRequete(factureRequete);
 
+      console.log('🧾 [RECU-SERVICE] Résultat facture:', factureResult);
+
       if (!factureResult || factureResult.length === 0) {
         throw new Error('Facture introuvable');
       }
@@ -215,12 +217,25 @@ class RecuService {
 
       const recuResult = await this.executerRequete(recuRequete);
 
+      console.log('🧾 [RECU-SERVICE] Résultat reçu:', recuResult);
+
       if (!recuResult || recuResult.length === 0) {
         throw new Error('Aucun reçu trouvé pour cette facture');
       }
 
       const factureData = factureResult[0];
       const recuData = recuResult[0];
+
+      console.log('🧾 [RECU-SERVICE] FactureData:', factureData);
+      console.log('🧾 [RECU-SERVICE] RecuData:', recuData);
+
+      if (!factureData) {
+        throw new Error('Données facture manquantes');
+      }
+
+      if (!recuData) {
+        throw new Error('Données reçu manquantes');
+      }
 
       // Récupérer les détails des articles si disponibles
       const detailsRequete = `
@@ -240,28 +255,28 @@ class RecuService {
 
       const recuComplet: RecuDetails = {
         facture: {
-          id_facture: factureData.id_facture,
-          num_facture: factureData.num_facture,
-          id_structure: factureData.id_structure,
-          nom_structure: factureData.nom_structure,
-          date_facture: factureData.date_facture,
-          nom_client: factureData.nom_client,
-          tel_client: factureData.tel_client,
-          montant: factureData.montant,
+          id_facture: factureData?.id_facture || 0,
+          num_facture: factureData?.num_facture || '',
+          id_structure: factureData?.id_structure || 0,
+          nom_structure: factureData?.nom_structure || '',
+          date_facture: factureData?.date_facture || '',
+          nom_client: factureData?.nom_client || '',
+          tel_client: factureData?.tel_client || '',
+          montant: factureData?.montant || 0,
           libelle_etat: 'PAYEE',
-          numrecu: recuData.numero_recu,
-          logo: factureData.logo || '',
-          description: factureData.description,
-          mt_remise: factureData.mt_remise,
-          mt_acompte: factureData.mt_acompte,
-          mt_restant: factureData.mt_restant
+          numrecu: recuData?.numero_recu || '',
+          logo: factureData?.logo || '',
+          description: factureData?.description || '',
+          mt_remise: factureData?.mt_remise || 0,
+          mt_acompte: factureData?.mt_acompte || 0,
+          mt_restant: factureData?.mt_restant || 0
         },
         paiement: {
-          date_paiement: recuData.date_paiement,
-          methode_paiement: recuData.methode_paiement as WalletType,
-          montant_paye: recuData.montant_paye,
-          reference_transaction: recuData.reference_transaction,
-          numero_telephone: recuData.numero_telephone
+          date_paiement: recuData?.date_paiement || '',
+          methode_paiement: (recuData?.methode_paiement as WalletType) || 'OM',
+          montant_paye: recuData?.montant_paye || 0,
+          reference_transaction: recuData?.reference_transaction || '',
+          numero_telephone: recuData?.numero_telephone || ''
         },
         details_articles: detailsResult || []
       };
