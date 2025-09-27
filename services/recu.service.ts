@@ -117,8 +117,8 @@ class RecuService {
         date_paiement
       } = recuData;
 
-      // Générer numéro de reçu si non fourni (différencier acomptes)
-      const numRecu = numero_recu || `REC-ACOMPTE-${id_facture}-${Date.now()}`;
+      // Générer numéro de reçu si non fourni (format: REC-{id_structure}-{id_facture}-{timestamp})
+      const numRecu = numero_recu || `REC-${id_structure}-${id_facture}-${Date.now()}`;
       const datePaiement = date_paiement || new Date().toISOString();
       const walletConverted = convertWalletType(methode_paiement);
 

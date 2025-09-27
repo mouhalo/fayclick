@@ -228,7 +228,7 @@ export function ModalPaiement({ isOpen, onClose, facture, onSuccess }: ModalPaie
             id_structure: facture.facture.id_structure,
             methode_paiement: 'CASH', // Le service convertira vers free-money
             montant_paye: montants.montantSaisi, // Montant de l'acompte
-            numero_recu: `REC-ACOMPTE-CASH-${facture.facture.num_facture}-${Date.now()}`,
+            numero_recu: `REC-${facture.facture.id_structure}-${facture.facture.id_facture}-${Date.now()}`,
             reference_transaction: acompteData.transaction_id,
             numero_telephone: facture.facture.tel_client,
             date_paiement: new Date().toISOString()
@@ -331,7 +331,7 @@ export function ModalPaiement({ isOpen, onClose, facture, onSuccess }: ModalPaie
             id_structure: facture.facture.id_structure,
             methode_paiement: selectedPaymentMethod, // Le service convertira automatiquement
             montant_paye: montants.montantSaisi, // Montant de l'acompte, pas le total
-            numero_recu: `REC-ACOMPTE-${facture.facture.num_facture}-${Date.now()}`,
+            numero_recu: `REC-${facture.facture.id_structure}-${facture.facture.id_facture}-${Date.now()}`,
             reference_transaction: transaction_id,
             numero_telephone: facture.facture.tel_client,
             date_paiement: new Date().toISOString()
