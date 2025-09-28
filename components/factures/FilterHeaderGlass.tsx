@@ -71,7 +71,7 @@ export function FilterHeaderGlass({
       {/* Barre de recherche principale */}
       <div className="flex items-center space-x-2">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-emerald-200 w-4 h-4" />
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
           <input
             type="text"
             placeholder="Rechercher facture..."
@@ -79,16 +79,16 @@ export function FilterHeaderGlass({
             onChange={(e) => setSearchTerm(e.target.value)}
             className="
               w-full pl-10 pr-10 py-2.5 text-sm
-              bg-white/10 border border-white/20 rounded-lg 
-              text-white placeholder-emerald-200
-              focus:bg-white/20 focus:border-white/40 focus:outline-none
+              bg-white/80 border border-gray-200 rounded-lg
+              text-gray-800 placeholder-gray-500
+              focus:bg-white focus:border-green-400 focus:outline-none focus:ring-2 focus:ring-green-200
               transition-all duration-200
             "
           />
           {searchTerm && (
             <button
               onClick={() => setSearchTerm('')}
-              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-emerald-200 hover:text-white"
+              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
             >
               <X className="w-4 h-4" />
             </button>
@@ -100,9 +100,9 @@ export function FilterHeaderGlass({
           whileTap={{ scale: 0.95 }}
           onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
           className="
-            bg-white/20 text-white p-2.5 rounded-lg 
-            hover:bg-white/30 transition-all duration-200
-            border border-white/30 flex items-center space-x-1
+            bg-white/80 text-gray-700 p-2.5 rounded-lg
+            hover:bg-white hover:text-gray-800 transition-all duration-200
+            border border-gray-200 flex items-center space-x-1 shadow-sm
           "
         >
           <Filter className="w-4 h-4" />
@@ -166,9 +166,10 @@ export function FilterHeaderGlass({
                 value={periode.debut}
                 onChange={(e) => setPeriode(prev => ({ ...prev, debut: e.target.value }))}
                 className="
-                  glass-input
                   flex-1 py-2 px-3 text-sm rounded-lg
-                  focus:bg-white/20 focus:border-white/40 focus:outline-none
+                  bg-white/80 border border-gray-200 text-gray-800
+                  focus:bg-white focus:border-green-400 focus:outline-none focus:ring-2 focus:ring-green-200
+                  transition-all duration-200
                 "
               />
               <input
@@ -176,9 +177,10 @@ export function FilterHeaderGlass({
                 value={periode.fin}
                 onChange={(e) => setPeriode(prev => ({ ...prev, fin: e.target.value }))}
                 className="
-                  glass-input
                   flex-1 py-2 px-3 text-sm rounded-lg
-                  focus:bg-white/20 focus:border-white/40 focus:outline-none
+                  bg-white/80 border border-gray-200 text-gray-800
+                  focus:bg-white focus:border-green-400 focus:outline-none focus:ring-2 focus:ring-green-200
+                  transition-all duration-200
                 "
               />
             </div>
@@ -188,7 +190,7 @@ export function FilterHeaderGlass({
           <div className="grid grid-cols-2 gap-4">
             {/* Client */}
             <div className="space-y-2">
-              <label className="block text-xs font-medium text-emerald-100">Client</label>
+              <label className="block text-xs font-medium text-white">Client</label>
               <input
                 type="text"
                 placeholder="Nom..."
@@ -196,16 +198,17 @@ export function FilterHeaderGlass({
                 onChange={(e) => setNomClient(e.target.value)}
                 className="
                   w-full py-2 px-3 text-sm
-                  bg-white/10 border border-white/20 rounded-lg 
-                  text-white placeholder-emerald-200
-                  focus:bg-white/20 focus:border-white/40 focus:outline-none
+                  bg-white/80 border border-gray-200 rounded-lg
+                  text-gray-800 placeholder-gray-500
+                  focus:bg-white focus:border-green-400 focus:outline-none focus:ring-2 focus:ring-green-200
+                  transition-all duration-200
                 "
               />
             </div>
 
             {/* Téléphone */}
             <div className="space-y-2">
-              <label className="block text-xs font-medium text-emerald-100">Téléphone</label>
+              <label className="block text-xs font-medium text-white">Téléphone</label>
               <input
                 type="text"
                 placeholder="77 123 45 67"
@@ -213,9 +216,10 @@ export function FilterHeaderGlass({
                 onChange={(e) => setTelClient(e.target.value)}
                 className="
                   w-full py-2 px-3 text-sm
-                  bg-white/10 border border-white/20 rounded-lg 
-                  text-white placeholder-emerald-200
-                  focus:bg-white/20 focus:border-white/40 focus:outline-none
+                  bg-white/80 border border-gray-200 rounded-lg
+                  text-gray-800 placeholder-gray-500
+                  focus:bg-white focus:border-green-400 focus:outline-none focus:ring-2 focus:ring-green-200
+                  transition-all duration-200
                 "
               />
             </div>
@@ -225,13 +229,15 @@ export function FilterHeaderGlass({
           <div className="grid grid-cols-2 gap-4">
             {/* Statut */}
             <div className="space-y-2">
-              <label className="block text-xs font-medium text-emerald-100">Statut</label>
+              <label className="block text-xs font-medium text-white">Statut</label>
               <select
                 value={statut}
                 onChange={(e) => setStatut(e.target.value as any)}
                 className="
-                  glass-select
                   w-full py-2 px-3 text-sm rounded-lg
+                  bg-white/80 border border-gray-200 text-gray-800
+                  focus:bg-white focus:border-green-400 focus:outline-none focus:ring-2 focus:ring-green-200
+                  transition-all duration-200
                 "
               >
                 <option value="TOUS">Tous</option>
@@ -242,7 +248,7 @@ export function FilterHeaderGlass({
 
             {/* Tri */}
             <div className="space-y-2">
-              <label className="block text-xs font-medium text-emerald-100">Trier par</label>
+              <label className="block text-xs font-medium text-white">Trier par</label>
               <select
                 value={`${sortBy}-${sortOrder}`}
                 onChange={(e) => {
@@ -251,8 +257,10 @@ export function FilterHeaderGlass({
                   setSortOrder(order as any);
                 }}
                 className="
-                  glass-select
                   w-full py-2 px-3 text-sm rounded-lg
+                  bg-white/80 border border-gray-200 text-gray-800
+                  focus:bg-white focus:border-green-400 focus:outline-none focus:ring-2 focus:ring-green-200
+                  transition-all duration-200
                 "
               >
                 <option value="date-desc">Date (récent)</option>
