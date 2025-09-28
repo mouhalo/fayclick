@@ -52,6 +52,7 @@ export function ModalPaiementQRCode({
   const [timeRemaining, setTimeRemaining] = useState(120); // 120 secondes
   const [error, setError] = useState<string>('');
   const [paymentStatusResponse, setPaymentStatusResponse] = useState<any>(null); // Store la réponse complète
+  const [isInitialized, setIsInitialized] = useState(false); // Flag pour éviter les doubles initialisations
 
   const walletConfig = WALLET_CONFIG[paymentMethod];
 
@@ -106,7 +107,7 @@ export function ModalPaiementQRCode({
   // Fonction d'initialisation avec useCallback pour éviter les re-renders
   const initializePayment = useCallback(async () => {
     try {
-      console.log('🚀 Initialisation du paiement:', paymentMethod);
+      console.log('🚀 [QR] Initialisation du paiement:', paymentMethod, 'UUID sera créé...');
 
       const response = await paymentWalletService.createPayment(
         paymentMethod,
@@ -129,12 +130,14 @@ export function ModalPaiementQRCode({
     }
   }, [paymentMethod, paymentContext, startPolling]);
 
-  // Effet pour initialiser le paiement
+  // Effet pour initialiser le paiement - sans initializePayment dans les dépendances
   useEffect(() => {
-    if (isOpen && modalState === 'LOADING') {
+    if (isOpen && modalState === 'LOADING' && !isInitialized) {
+      console.log('🔄 Initialisation du paiement (effet)');
+      setIsInitialized(true);
       initializePayment();
     }
-  }, [isOpen, modalState, initializePayment]);
+  }, [isOpen, modalState, isInitialized]);
 
   // Effet pour le timer
   useEffect(() => {
@@ -160,17 +163,42 @@ export function ModalPaiementQRCode({
     };
   }, []);
 
+  // Effet pour reset le modal quand il s'ouvre/ferme
+  useEffect(() => {
+    if (isOpen) {
+      console.log('🔄 [QR] Modal ouvert - Reset complet');
+      // Reset complet du modal à l'ouverture
+      setModalState('LOADING');
+      setIsInitialized(false);
+      setError('');
+      setTimeRemaining(120);
+      setPaymentStatusResponse(null);
+      setQrCode('');
+      setPaymentUrl(null);
+    } else {
+      console.log('🔄 [QR] Modal fermé - Nettoyage');
+      // Nettoyage à la fermeture
+      paymentWalletService.stopPolling();
+      setIsInitialized(false);
+    }
+  }, [isOpen]);
+
   const handleClose = () => {
     paymentWalletService.stopPolling();
     onClose();
   };
 
   const handleRetry = () => {
+    console.log('🔄 Retry du paiement');
+    paymentWalletService.stopPolling(); // Stop le polling existant
     setModalState('LOADING');
+    setIsInitialized(false); // Reset le flag pour permettre une nouvelle initialisation
     setError('');
     setTimeRemaining(120);
-    setPaymentStatusResponse(null); // Reset la réponse
-    initializePayment();
+    setPaymentStatusResponse(null);
+    setQrCode('');
+    setPaymentUrl(null);
+    // initializePayment sera appelé par le useEffect quand isInitialized devient false
   };
 
   const openPaymentUrl = () => {
