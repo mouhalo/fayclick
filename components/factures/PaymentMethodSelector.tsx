@@ -248,10 +248,12 @@ export function PaymentMethodSelector({
         Choisissez votre mode de paiement
       </div>
 
-      {/* Mode Cash (1x1) - Bouton principal */}
+      {/* Mode Cash - Bouton principal avec largeur proportionnelle */}
       {cashMethod && (
-        <div className="w-full">
-          {createActionButton(cashMethod, true)}
+        <div className="flex justify-center">
+          <div className="w-full max-w-xs">
+            {createActionButton(cashMethod, true)}
+          </div>
         </div>
       )}
 
