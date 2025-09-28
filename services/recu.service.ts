@@ -14,7 +14,7 @@ function convertWalletType(wallet: string): string {
     'OM': 'orange-money',
     'WAVE': 'wave',
     'FREE': 'free-money',
-    'CASH': 'free-money', // Mapper CASH vers free-money par défaut
+    'CASH': 'espèces', 
     'orange-money': 'orange-money',
     'wave': 'wave',
     'free-money': 'free-money'
