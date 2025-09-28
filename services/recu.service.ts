@@ -423,21 +423,26 @@ class RecuService {
         SELECT
           f.id_facture,
           f.num_facture,
-          r.numero_recu,
           f.id_structure,
-          s.nom_structure,
+          f.nom_structure,
           f.date_facture,
-          r.date_paiement,
           f.nom_client,
           f.tel_client,
-          f.montant as montant_facture,
-          r.montant_paye,
+          f.montant,
+          f.libelle_etat ,
+          f.description,
+          f.mt_remise,
+          f.mt_acompte,
+          f.mt_restant,
+          f.logo,
+          r.numero_recu,
           r.methode_paiement,
+          r.montant_paye,
           r.reference_transaction,
-          s.logo as logo_structure
-        FROM public.recus_paiement r
-        INNER JOIN public.factures f ON r.id_facture = f.id_facture
-        INNER JOIN public.structures s ON r.id_structure = s.id_structure
+          r.numero_telephone,
+          r.date_paiement
+        FROM public.list_factures_com f
+        LEFT JOIN public.recus_paiement r ON f.id_facture = r.id_facture
         ${whereClause}
         ORDER BY r.date_paiement DESC
         LIMIT ${limite}

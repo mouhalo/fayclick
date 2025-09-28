@@ -41,38 +41,128 @@ class FactureListService {
         throw new FactureListApiException('Utilisateur non authentifié', 401);
       }
 
-      SecurityService.secureLog('log', 'Récupération factures structure', {
+      console.log('📋 [FACTURE-LIST] Récupération factures pour structure:', {
         id_structure: user.id_structure,
         id_facture
       });
 
       // Appel de la fonction PostgreSQL get_my_facture
       const query = `SELECT * FROM get_my_facture(${user.id_structure}, ${id_facture})`;
-      
+
       const result = await DatabaseService.query(query);
-      
+
+      console.log('📊 [FACTURE-LIST] Résultat brut de la requête:', {
+        resultType: typeof result,
+        isArray: Array.isArray(result),
+        length: Array.isArray(result) ? result.length : 0,
+        firstElement: result?.[0] ? Object.keys(result[0]) : null,
+        fullResult: result
+      });
+
       if (!result || result.length === 0) {
-        throw new FactureListApiException('Aucune donnée retournée par get_my_facture', 404);
+        // Retourner une réponse vide structurée au lieu d'une erreur
+        console.warn('⚠️ [FACTURE-LIST] Aucune donnée, retour structure vide');
+        return {
+          factures: [],
+          resume_global: {
+            nombre_factures: 0,
+            montant_total: 0,
+            montant_paye: 0,
+            montant_impaye: 0
+          },
+          total_factures: 0,
+          montant_total: 0,
+          montant_paye: 0,
+          montant_impaye: 0
+        };
       }
 
       // Récupération du JSON depuis la première ligne
-      const factureData = result[0].get_my_facture;
-      
-      if (!factureData) {
-        throw new FactureListApiException('Format de données invalide', 500);
-      }
+      const firstRow = result[0];
+      console.log('🔍 [FACTURE-LIST] Première ligne:', firstRow);
 
-      // Parse du JSON si c'est une chaîne
-      const parsedData = typeof factureData === 'string' 
-        ? JSON.parse(factureData) 
-        : factureData;
+      // La fonction get_my_facture peut retourner le résultat de différentes façons
+      let factureData = firstRow.get_my_facture || firstRow;
 
-      SecurityService.secureLog('log', 'Factures récupérées avec succès', {
-        nombre_factures: parsedData.resume_global?.nombre_factures || 0,
-        montant_total: parsedData.resume_global?.montant_total || 0
+      console.log('📦 [FACTURE-LIST] Données facture extraites:', {
+        type: typeof factureData,
+        keys: typeof factureData === 'object' ? Object.keys(factureData) : 'not-object'
       });
 
-      return parsedData;
+      // Parse du JSON si c'est une chaîne
+      if (typeof factureData === 'string') {
+        try {
+          factureData = JSON.parse(factureData);
+          console.log('✅ [FACTURE-LIST] JSON parsé avec succès');
+        } catch (parseError) {
+          console.error('❌ [FACTURE-LIST] Erreur parsing JSON:', parseError);
+          throw new FactureListApiException('Impossible de parser les données des factures', 500);
+        }
+      }
+
+      // Vérifier et formater la structure de réponse
+      // Normaliser les factures au format attendu
+      let facturesFormatees: FactureComplete[] = [];
+
+      if (Array.isArray(factureData.factures)) {
+        facturesFormatees = factureData.factures.map((f: any) => {
+          // Si la facture est déjà au format FactureComplete
+          if (f.facture && f.details && f.resume) {
+            return f;
+          }
+          // Sinon, créer la structure FactureComplete
+          return {
+            facture: f.facture || f,
+            details: f.details || [],
+            resume: f.resume || {
+              nombre_articles: 0,
+              quantite_totale: 0,
+              cout_total_revient: 0,
+              marge_totale: 0
+            }
+          };
+        });
+      } else if (Array.isArray(factureData)) {
+        // Si factureData est directement un tableau de factures
+        facturesFormatees = factureData.map((f: any) => ({
+          facture: f,
+          details: [],
+          resume: {
+            nombre_articles: 0,
+            quantite_totale: 0,
+            cout_total_revient: 0,
+            marge_totale: 0
+          }
+        }));
+      }
+
+      const response: GetMyFactureResponse = {
+        factures: facturesFormatees,
+        resume_global: factureData.resume_global || {
+          nombre_factures: facturesFormatees.length,
+          montant_total: 0,
+          montant_paye: 0,
+          montant_impaye: 0
+        },
+        // Ajouter les champs au niveau racine pour compatibilité
+        total_factures: factureData.resume_global?.nombre_factures || factureData.total_factures || facturesFormatees.length,
+        montant_total: factureData.resume_global?.montant_total || factureData.montant_total || 0,
+        montant_paye: factureData.resume_global?.montant_paye || factureData.montant_paye || 0,
+        montant_impaye: factureData.resume_global?.montant_impaye || factureData.montant_impaye || 0
+      };
+
+      console.log('📈 [FACTURE-LIST] Réponse formatée:', {
+        nombre_factures: response.factures.length,
+        total_factures: response.total_factures,
+        montant_total: response.montant_total,
+        hasFactures: response.factures.length > 0,
+        firstFacture: response.factures[0] ? {
+          num: response.factures[0].num_facture || response.factures[0].facture?.num_facture,
+          client: response.factures[0].nom_client || response.factures[0].facture?.nom_client
+        } : null
+      });
+
+      return response;
 
     } catch (error) {
       SecurityService.secureLog('error', 'Erreur récupération factures', error);

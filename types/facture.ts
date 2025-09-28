@@ -74,7 +74,12 @@ export interface ResumeGlobal {
 export interface GetMyFactureResponse {
   factures: FactureComplete[];
   resume_global: ResumeGlobal;
-  timestamp_generation: string;
+  timestamp_generation?: string;
+  // Champs additionnels pour compatibilité avec les stats cards
+  total_factures: number;
+  montant_total: number;
+  montant_paye: number;
+  montant_impaye: number;
 }
 
 // Interface pour les filtres de recherche
