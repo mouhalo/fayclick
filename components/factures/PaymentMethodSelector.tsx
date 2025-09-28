@@ -12,12 +12,13 @@ import { PaymentMethod } from '@/types/payment-wallet';
 import Image from 'next/image';
 
 interface PaymentMethodSelectorProps {
-  selectedMethod: PaymentMethod | null;
-  onMethodSelect: (method: PaymentMethod) => void;
+  selectedMethod?: PaymentMethod | null; // Optionnel maintenant car on a un défaut
+  onMethodAction: (method: PaymentMethod) => void; // Renommé pour refléter l'action directe
+  onCancel: () => void; // Nouvelle prop pour le bouton annuler
   availableMethods?: PaymentMethod[];
   size?: 'sm' | 'md' | 'lg';
-  layout?: 'grid' | 'row';
   disabled?: boolean;
+  montant?: number; // Pour afficher le montant dans les boutons
 }
 
 interface PaymentMethodConfig {
@@ -32,12 +33,13 @@ interface PaymentMethodConfig {
 }
 
 export function PaymentMethodSelector({
-  selectedMethod,
-  onMethodSelect,
+  selectedMethod = 'CASH', // Cash par défaut
+  onMethodAction,
+  onCancel,
   availableMethods = ['CASH', 'OM', 'WAVE', 'FREE'],
   size = 'md',
-  layout = 'grid',
-  disabled = false
+  disabled = false,
+  montant = 0
 }: PaymentMethodSelectorProps) {
 
   // Configuration des méthodes de paiement
@@ -83,170 +85,176 @@ export function PaymentMethodSelector({
     }
   ];
 
-  // Filtrer les méthodes disponibles
+  // Formater le montant pour affichage
+  const formatMontant = (amount: number) => {
+    return amount > 0 ? `${amount.toLocaleString('fr-FR')} FCFA` : '';
+  };
+
+  // Filtrer les méthodes disponibles et séparer Cash des wallets
   const filteredMethods = paymentMethods.filter(method =>
     availableMethods.includes(method.id)
   );
+
+  const cashMethod = filteredMethods.find(method => method.id === 'CASH');
+  const walletMethods = filteredMethods.filter(method => method.id !== 'CASH');
 
   // Styles selon la taille
   const getSizeStyles = () => {
     switch (size) {
       case 'sm':
         return {
-          button: 'p-2',
+          button: 'p-3',
           icon: 'w-4 h-4',
           text: 'text-xs',
-          logo: 'w-6 h-6'
+          logo: 'w-6 h-6',
+          title: 'text-sm'
         };
       case 'lg':
         return {
-          button: 'p-4',
+          button: 'p-5',
           icon: 'w-6 h-6',
           text: 'text-base',
-          logo: 'w-10 h-10'
+          logo: 'w-10 h-10',
+          title: 'text-lg'
         };
       default: // md
         return {
-          button: 'p-3',
+          button: 'p-4',
           icon: 'w-5 h-5',
           text: 'text-sm',
-          logo: 'w-8 h-8'
+          logo: 'w-8 h-8',
+          title: 'text-base'
         };
     }
   };
 
   const sizeStyles = getSizeStyles();
 
-  // Layout responsive
-  const getLayoutClasses = () => {
-    if (layout === 'row') {
-      return 'flex flex-row gap-2 overflow-x-auto';
-    }
+  // Créer un bouton d'action pour chaque méthode
+  const createActionButton = (method: PaymentMethodConfig, isMainAction = false) => (
+    <motion.button
+      key={method.id}
+      type="button"
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.05 }}
+      whileHover={disabled ? {} : { scale: 1.02 }}
+      whileTap={disabled ? {} : { scale: 0.98 }}
+      onClick={() => !disabled && onMethodAction(method.id)}
+      disabled={disabled}
+      className={`
+        relative ${sizeStyles.button} rounded-xl border-2
+        bg-gradient-to-br ${method.bgGradient}
+        transition-all duration-200
+        ${disabled
+          ? 'opacity-50 cursor-not-allowed border-gray-200'
+          : `${method.borderColor} hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1`
+        }
+        ${isMainAction ? 'ring-2 ring-green-300 border-green-400' : ''}
+        flex flex-col items-center text-center justify-center
+        group min-h-[100px]
+      `}
+      aria-label={`Payer ${formatMontant(montant)} avec ${method.name}`}
+    >
+      {/* Badge "Par défaut" pour le mode cash */}
+      {isMainAction && (
+        <div className="absolute -top-2 left-1/2 transform -translate-x-1/2">
+          <span className="px-2 py-0.5 bg-green-500 text-white text-xs rounded-full font-medium">
+            Par défaut
+          </span>
+        </div>
+      )}
 
-    // Grid responsive par défaut
-    return `grid gap-2 ${
-      filteredMethods.length <= 2
-        ? 'grid-cols-2'
-        : 'grid-cols-2 md:grid-cols-4'
-    }`;
-  };
-
-  return (
-    <div className="space-y-3">
-      <label className={`block text-gray-700 font-medium ${sizeStyles.text}`}>
-        Mode de paiement
-      </label>
-
-      <div className={getLayoutClasses()}>
-        {filteredMethods.map((method, index) => {
-          const isSelected = selectedMethod === method.id;
-
-          return (
-            <motion.button
-              key={method.id}
-              type="button"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.05 }}
-              whileHover={disabled ? {} : { scale: 1.02 }}
-              whileTap={disabled ? {} : { scale: 0.98 }}
-              onClick={() => !disabled && onMethodSelect(method.id)}
-              disabled={disabled}
-              className={`
-                relative ${sizeStyles.button} rounded-xl border-2
-                bg-gradient-to-br ${method.bgGradient}
-                transition-all duration-200
-                ${disabled
-                  ? 'opacity-50 cursor-not-allowed border-gray-200'
-                  : `${method.borderColor} hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1`
-                }
-                ${isSelected
-                  ? `border-blue-500 shadow-md ring-2 ring-blue-200 ${method.bgGradient}`
-                  : ''
-                }
-                flex flex-col items-center text-center min-h-[80px] justify-center
-                group
-              `}
-              aria-pressed={isSelected}
-              aria-label={`Payer avec ${method.name}`}
-            >
-              {/* Indicateur de sélection */}
-              {isSelected && (
-                <motion.div
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  className="absolute -top-1 -right-1 w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center"
-                >
-                  <div className="w-2 h-2 bg-white rounded-full" />
-                </motion.div>
-              )}
-
-              {/* Icône ou logo */}
-              <div className={`mb-2 ${method.color} group-hover:scale-110 transition-transform`}>
-                {method.logo ? (
-                  <div className={`${sizeStyles.logo} relative bg-white rounded-lg p-1 shadow-sm`}>
-                    <Image
-                      src={method.logo}
-                      alt={method.name}
-                      fill
-                      className="object-contain p-0.5"
-                      sizes="40px"
-                    />
-                  </div>
-                ) : (
-                  <div className={`${sizeStyles.logo} bg-white rounded-lg flex items-center justify-center shadow-sm`}>
-                    {method.icon}
-                  </div>
-                )}
-              </div>
-
-              {/* Nom de la méthode */}
-              <div>
-                <p className={`${sizeStyles.text} font-semibold text-gray-900 leading-tight`}>
-                  {layout === 'grid' ? method.shortName : method.name}
-                </p>
-                {method.id === 'CASH' && (
-                  <p className="text-xs text-gray-500 mt-0.5">Liquide</p>
-                )}
-                {method.id !== 'CASH' && layout === 'grid' && (
-                  <p className="text-xs text-gray-500 mt-0.5">Mobile</p>
-                )}
-              </div>
-
-              {/* Badge recommandé (optionnel) */}
-              {method.id === 'CASH' && (
-                <div className="absolute -top-2 left-1/2 transform -translate-x-1/2">
-                  <span className="px-2 py-0.5 bg-green-500 text-white text-xs rounded-full font-medium">
-                    Rapide
-                  </span>
-                </div>
-              )}
-            </motion.button>
-          );
-        })}
+      {/* Icône ou logo */}
+      <div className={`mb-3 ${method.color} group-hover:scale-110 transition-transform`}>
+        {method.logo ? (
+          <div className={`${sizeStyles.logo} relative bg-white rounded-lg p-1 shadow-sm`}>
+            <Image
+              src={method.logo}
+              alt={method.name}
+              fill
+              className="object-contain p-0.5"
+              sizes="40px"
+            />
+          </div>
+        ) : (
+          <div className={`${sizeStyles.logo} bg-white rounded-lg flex items-center justify-center shadow-sm`}>
+            {method.icon}
+          </div>
+        )}
       </div>
 
-      {/* Message d'aide */}
-      {selectedMethod && (
-        <motion.div
-          initial={{ opacity: 0, height: 0 }}
-          animate={{ opacity: 1, height: 'auto' }}
-          exit={{ opacity: 0, height: 0 }}
-          className="mt-3 p-2.5 bg-blue-50 rounded-lg border border-blue-200"
-        >
-          <p className="text-xs text-blue-800">
-            {selectedMethod === 'CASH' ? (
-              <>
-                <span className="font-semibold">Paiement en espèces :</span> Le paiement sera enregistré immédiatement.
-              </>
-            ) : (
-              <>
-                <span className="font-semibold">Paiement mobile :</span> Un QR code sera généré pour le client.
-              </>
-            )}
+      {/* Nom et action */}
+      <div className="space-y-1">
+        <p className={`${sizeStyles.title} font-bold text-gray-900 leading-tight`}>
+          {method.name}
+        </p>
+        {montant > 0 && (
+          <p className={`${sizeStyles.text} text-gray-600 leading-tight`}>
+            {formatMontant(montant)}
           </p>
-        </motion.div>
+        )}
+        <p className="text-xs text-gray-500 leading-tight">
+          {method.id === 'CASH' ? 'Paiement immédiat' : 'Générer QR code'}
+        </p>
+      </div>
+    </motion.button>
+  );
+
+  return (
+    <div className="space-y-4">
+      <div className={`text-center ${sizeStyles.text} text-gray-700 font-medium`}>
+        Choisissez votre mode de paiement
+      </div>
+
+      {/* Mode Cash (1x1) - Bouton principal */}
+      {cashMethod && (
+        <div className="w-full">
+          {createActionButton(cashMethod, true)}
+        </div>
       )}
+
+      {/* Modes Wallets (3x1) */}
+      {walletMethods.length > 0 && (
+        <div className="grid grid-cols-3 gap-2">
+          {walletMethods.map((method) => createActionButton(method))}
+        </div>
+      )}
+
+      {/* Bouton Annuler (1x1) */}
+      <motion.button
+        type="button"
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1 }}
+        whileHover={{ scale: 1.02 }}
+        whileTap={{ scale: 0.98 }}
+        onClick={onCancel}
+        disabled={disabled}
+        className={`
+          w-full ${sizeStyles.button} rounded-xl border-2
+          bg-gradient-to-br from-gray-50 to-gray-100
+          border-gray-200 hover:border-gray-300
+          transition-all duration-200
+          ${disabled
+            ? 'opacity-50 cursor-not-allowed'
+            : 'hover:shadow-md focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-1'
+          }
+          flex items-center justify-center
+          text-gray-700 font-medium
+          min-h-[60px]
+        `}
+        aria-label="Annuler le paiement"
+      >
+        <span className={sizeStyles.title}>Annuler</span>
+      </motion.button>
+
+      {/* Message d'information */}
+      <div className="text-center">
+        <p className="text-xs text-gray-500">
+          💡 Le mode espèces est sélectionné par défaut pour un paiement rapide
+        </p>
+      </div>
     </div>
   );
 }
