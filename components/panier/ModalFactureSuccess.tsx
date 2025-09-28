@@ -7,9 +7,9 @@
 
 import { useEffect, useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  X, CheckCircle, QrCode as QrIcon, MessageCircle, 
-  Copy, ExternalLink, Download, ChevronDown 
+import {
+  X, CheckCircle, QrCode as QrIcon, MessageCircle,
+  Copy, ExternalLink, Download, ChevronDown
 } from 'lucide-react';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import QRCode from 'react-qr-code';
@@ -18,6 +18,10 @@ import { authService } from '@/services/auth.service';
 import { encodeFactureParams } from '@/lib/url-encoder';
 import { produitsService } from '@/services/produits.service';
 import { useFactureSuccessStore } from '@/hooks/useFactureSuccess';
+import { PaymentMethodSelector } from '@/components/factures/PaymentMethodSelector';
+import { ModalPaiementQRCode } from '@/components/factures/ModalPaiementQRCode';
+import { PaymentMethod, PaymentContext } from '@/types/payment-wallet';
+import { AjouterAcompteData } from '@/types/facture';
 
 export function ModalFactureSuccess() {
   const { isOpen, factureId, closeModal } = useFactureSuccessStore();
@@ -27,6 +31,16 @@ export function ModalFactureSuccess() {
   const [error, setError] = useState<string | null>(null);
   const [copiedUrl, setCopiedUrl] = useState(false);
   const [qrExpanded, setQrExpanded] = useState(false);
+
+  // États pour la gestion des paiements
+  const [showPaymentSection, setShowPaymentSection] = useState(true);
+  const [paymentLoading, setPaymentLoading] = useState(false);
+  const [paymentError, setPaymentError] = useState<string>('');
+  const [paymentSuccess, setPaymentSuccess] = useState(false);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethod | null>(null);
+
+  // États pour les modals de paiement
+  const [showQRCodeModal, setShowQRCodeModal] = useState(false);
 
   // Générer les URLs seulement quand les données sont disponibles
   const urls = useMemo(() => {
@@ -65,6 +79,14 @@ export function ModalFactureSuccess() {
 
   useEffect(() => {
     if (isOpen && factureId) {
+      // Reset des états de paiement lors de l'ouverture
+      setPaymentError('');
+      setPaymentSuccess(false);
+      setSelectedPaymentMethod(null);
+      setShowPaymentSection(true);
+      setShowQRCodeModal(false);
+      setPaymentLoading(false);
+
       loadFactureDetails();
     }
   }, [isOpen, factureId]);
@@ -125,6 +147,167 @@ export function ModalFactureSuccess() {
     );
     
     window.open(`https://wa.me/${senegalPhone}?text=${message}`, '_blank');
+  };
+
+  // Logique de paiement - Fonction principale
+  const handlePaymentAction = async (method: PaymentMethod) => {
+    if (!factureDetails || factureDetails.mt_restant <= 0) return;
+
+    setPaymentError('');
+    setSelectedPaymentMethod(method);
+
+    if (method === 'CASH') {
+      await processCashPayment();
+    } else {
+      // Paiement wallet - ouvrir le modal QR Code
+      setShowQRCodeModal(true);
+    }
+  };
+
+  // Traitement du paiement cash (solde complet)
+  const processCashPayment = async () => {
+    if (!factureDetails) return;
+
+    setPaymentLoading(true);
+    setPaymentError('');
+
+    try {
+      const user = authService.getUser();
+      if (!user) {
+        throw new Error('Utilisateur non authentifié');
+      }
+
+      // Générer transaction_id pour paiement cash
+      const generateCashTransactionId = (): string => {
+        const now = new Date();
+        const day = now.getDate().toString().padStart(2, '0');
+        const month = (now.getMonth() + 1).toString().padStart(2, '0');
+        const year = now.getFullYear().toString();
+        const hours = now.getHours().toString().padStart(2, '0');
+        const minutes = now.getMinutes().toString().padStart(2, '0');
+
+        return `CASH-${factureDetails.id_structure}-${day}${month}${year}${hours}${minutes}`;
+      };
+
+      const acompteData: AjouterAcompteData = {
+        id_structure: factureDetails.id_structure,
+        id_facture: factureDetails.id_facture,
+        montant_acompte: factureDetails.mt_restant, // Solde complet
+        transaction_id: generateCashTransactionId(),
+        uuid: 'face2face'
+      };
+
+      console.log('💰 [CASH-SUCCESS] Encaissement facture avec:', {
+        transaction_id: acompteData.transaction_id,
+        uuid: acompteData.uuid,
+        montant: acompteData.montant_acompte,
+        facture: factureDetails.num_facture
+      });
+
+      const response = await factureService.addAcompte(acompteData);
+
+      if (response.success) {
+        setPaymentSuccess(true);
+        setShowPaymentSection(false);
+
+        // Actualiser les détails de la facture
+        await loadFactureDetails();
+
+        console.log('✅ [CASH-SUCCESS] Facture entièrement payée');
+      }
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Erreur lors du paiement cash';
+      setPaymentError(errorMessage);
+      console.error('❌ [CASH-ERROR]:', errorMessage);
+    } finally {
+      setPaymentLoading(false);
+    }
+  };
+
+  // Gérer le succès du paiement wallet
+  const handleWalletPaymentComplete = async (paymentStatusResponse: any) => {
+    if (!factureDetails || !selectedPaymentMethod) return;
+
+    try {
+      console.log('🔄 [WALLET-SUCCESS] Traitement paiement wallet réussi:', paymentStatusResponse);
+
+      // Extraire UUID et transaction_id depuis la réponse
+      let uuid = '';
+      let transaction_id = '';
+
+      if (paymentStatusResponse?.data?.uuid) {
+        uuid = paymentStatusResponse.data.uuid;
+      }
+
+      if (paymentStatusResponse?.data?.reference_externe) {
+        transaction_id = paymentStatusResponse.data.reference_externe;
+      }
+
+      console.log('💳 [WALLET-SUCCESS] Données extraites:', {
+        uuid,
+        transaction_id,
+        status: paymentStatusResponse?.data?.statut
+      });
+
+      if (!uuid || !transaction_id) {
+        console.error('❌ [WALLET-ERROR] Données manquantes:', { uuid, transaction_id });
+        throw new Error('Données de paiement incomplètes (UUID ou transaction_id manquant)');
+      }
+
+      // Ajouter l'acompte avec les données de paiement wallet
+      const acompteData: AjouterAcompteData = {
+        id_structure: factureDetails.id_structure,
+        id_facture: factureDetails.id_facture,
+        montant_acompte: factureDetails.mt_restant, // Solde complet
+        transaction_id: transaction_id,
+        uuid: uuid
+      };
+
+      console.log('💾 [WALLET-SUCCESS] Enregistrement solde avec:', acompteData);
+
+      const response = await factureService.addAcompte(acompteData);
+
+      if (response.success) {
+        setShowQRCodeModal(false);
+        setPaymentSuccess(true);
+        setShowPaymentSection(false);
+
+        // Actualiser les détails de la facture
+        await loadFactureDetails();
+
+        console.log('✅ [WALLET-SUCCESS] Facture entièrement payée');
+      }
+    } catch (error: unknown) {
+      console.error('❌ [WALLET-ERROR] Erreur enregistrement:', error);
+      setShowQRCodeModal(false);
+      const errorMessage = error instanceof Error ? error.message : 'Erreur lors de l\'enregistrement du paiement wallet';
+      setPaymentError(errorMessage);
+    }
+  };
+
+  // Gérer l'échec du paiement wallet
+  const handleWalletPaymentFailed = (error: string) => {
+    console.error('❌ [WALLET-FAILED] Échec du paiement wallet:', error);
+    setShowQRCodeModal(false);
+    setPaymentError(error);
+  };
+
+  // Créer le contexte de paiement pour les modals wallet
+  const createPaymentContext = (): PaymentContext | null => {
+    if (!factureDetails) return null;
+
+    return {
+      facture: {
+        id_facture: factureDetails.id_facture,
+        num_facture: factureDetails.num_facture,
+        nom_client: factureDetails.nom_client_payeur,
+        tel_client: factureDetails.tel_client,
+        montant_total: factureDetails.montant,
+        montant_restant: factureDetails.mt_restant,
+        nom_structure: factureDetails.nom_structure
+      },
+      montant_acompte: factureDetails.mt_restant // Solde complet
+    };
   };
 
   const handleDownloadQR = () => {
@@ -231,8 +414,22 @@ export function ModalFactureSuccess() {
                     <CheckCircle className={isMobile ? 'w-5 h-5' : 'w-7 h-7'} />
                   </div>
                   <div>
-                    <h2 className={`${styles.titleSize} font-bold`}>Facture créée !</h2>
-                    <p className={`text-sky-100 ${styles.subtitleSize}`}>Prête à partager</p>
+                    <h2 className={`${styles.titleSize} font-bold`}>
+                      {paymentSuccess
+                        ? 'Facture payée !'
+                        : factureDetails?.mt_restant <= 0
+                          ? 'Facture soldée !'
+                          : 'Facture créée !'
+                      }
+                    </h2>
+                    <p className={`text-sky-100 ${styles.subtitleSize}`}>
+                      {paymentSuccess
+                        ? 'Paiement enregistré'
+                        : factureDetails?.mt_restant <= 0
+                          ? 'Entièrement payée'
+                          : 'Prête à partager'
+                      }
+                    </p>
                   </div>
                 </div>
                 <button
@@ -279,6 +476,73 @@ export function ModalFactureSuccess() {
                       </div>
                     </div>
                   </div>
+
+                  {/* Section Paiement - Seulement si montant restant > 0 */}
+                  {factureDetails.mt_restant > 0 && showPaymentSection && (
+                    <div className={`bg-gradient-to-br from-emerald-50/60 to-green-50/60 backdrop-blur-sm rounded-2xl ${isMobile ? 'p-3' : 'p-5'} mb-4 sm:mb-6 border border-emerald-100`}>
+                      <div className={`text-center ${isMobile ? 'mb-3' : 'mb-4'}`}>
+                        <h3 className={`${isMobile ? 'text-base' : 'text-lg'} font-bold text-emerald-800 mb-1`}>
+                          Encaisser maintenant
+                        </h3>
+                        <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-emerald-600`}>
+                          Choisissez votre mode de paiement
+                        </p>
+                      </div>
+
+                      <PaymentMethodSelector
+                        onMethodAction={handlePaymentAction}
+                        onCancel={() => setShowPaymentSection(false)}
+                        montant={factureDetails.mt_restant}
+                        size={isMobile ? 'sm' : 'md'}
+                        disabled={paymentLoading}
+                      />
+
+                      {/* Messages d'erreur de paiement */}
+                      {paymentError && (
+                        <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
+                          <p className={`text-red-700 ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                            {paymentError}
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Message de succès de paiement */}
+                      {paymentSuccess && (
+                        <div className="mt-3 p-3 bg-emerald-50 border border-emerald-200 rounded-lg">
+                          <p className={`text-emerald-700 font-medium ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                            ✅ Facture entièrement payée !
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Loader de paiement */}
+                      {paymentLoading && (
+                        <div className="mt-3 flex items-center justify-center">
+                          <div className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} border-2 border-emerald-500 border-t-transparent rounded-full animate-spin mr-2`} />
+                          <span className={`text-emerald-700 ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                            Traitement du paiement...
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Message si facture déjà soldée */}
+                  {factureDetails.mt_restant <= 0 && (
+                    <div className={`bg-gradient-to-br from-emerald-50/60 to-green-50/60 backdrop-blur-sm rounded-2xl ${isMobile ? 'p-3' : 'p-5'} mb-4 sm:mb-6 border border-emerald-100`}>
+                      <div className="text-center">
+                        <div className={`${isMobile ? 'w-10 h-10' : 'w-12 h-12'} bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-2`}>
+                          <CheckCircle className={`${isMobile ? 'w-5 h-5' : 'w-6 h-6'} text-emerald-600`} />
+                        </div>
+                        <h3 className={`${isMobile ? 'text-base' : 'text-lg'} font-bold text-emerald-800 mb-1`}>
+                          Facture soldée
+                        </h3>
+                        <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-emerald-600`}>
+                          Cette facture a été entièrement payée
+                        </p>
+                      </div>
+                    </div>
+                  )}
 
                   {/* QR Code Section Repliable */}
                   <div className={`bg-gradient-to-br from-sky-50/60 to-white/60 backdrop-blur-sm rounded-2xl ${isMobile ? 'p-3' : 'p-6'} mb-4 sm:mb-6 border border-sky-100`}>
@@ -418,6 +682,18 @@ export function ModalFactureSuccess() {
             </div>
           </motion.div>
         </motion.div>
+      )}
+
+      {/* Modal de paiement QR Code pour les wallets */}
+      {factureDetails && selectedPaymentMethod && selectedPaymentMethod !== 'CASH' && (
+        <ModalPaiementQRCode
+          isOpen={showQRCodeModal}
+          onClose={() => setShowQRCodeModal(false)}
+          paymentMethod={selectedPaymentMethod}
+          paymentContext={createPaymentContext()!}
+          onPaymentComplete={handleWalletPaymentComplete}
+          onPaymentFailed={handleWalletPaymentFailed}
+        />
       )}
     </AnimatePresence>
   );
