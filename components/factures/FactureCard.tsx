@@ -8,7 +8,6 @@
 
 import { motion } from 'framer-motion';
 import { Eye, Receipt, CreditCard, Trash2 } from 'lucide-react';
-import { GlassCard } from '@/components/ui/GlassCard';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { FactureComplete } from '@/types/facture';
 import { formatAmount, formatDate, cn } from '@/lib/utils';
@@ -164,12 +163,12 @@ export const FactureCard = ({
                 className={cn(
                   'flex-1 flex items-center justify-center',
                   'px-2 py-2.5 rounded-lg',
-                  'bg-orange-500/90 backdrop-blur-lg',
-                  'border border-orange-400/50',
+                  'bg-orange-500 hover:bg-orange-600',
+                  'border border-orange-400',
                   'text-white text-sm font-medium',
-                  'hover:bg-orange-500 hover:scale-105',
+                  'hover:scale-105',
                   'transition-all duration-200',
-                  'shadow-lg shadow-orange-500/20'
+                  'shadow-lg'
                 )}
               >
                 <CreditCard className="w-4 h-4 mr-1" />
@@ -185,10 +184,10 @@ export const FactureCard = ({
                 className={cn(
                   'flex-1 flex items-center justify-center',
                   'px-3 py-2.5 rounded-lg',
-                  'bg-white/20 backdrop-blur-lg',
-                  'border border-white/30',
+                  'bg-green-500 hover:bg-green-600',
+                  'border border-green-400',
                   'text-white text-sm font-medium',
-                  'hover:bg-white/30 hover:scale-105',
+                  'hover:scale-105',
                   'transition-all duration-200',
                   'shadow-lg'
                 )}
@@ -204,12 +203,12 @@ export const FactureCard = ({
                 className={cn(
                   'flex-1 flex items-center justify-center',
                   'px-3 py-2.5 rounded-lg',
-                  'bg-emerald-600/90 backdrop-blur-lg',
-                  'border border-emerald-500/50',
+                  'bg-blue-500 hover:bg-blue-600',
+                  'border border-blue-400',
                   'text-white text-sm font-medium',
-                  'hover:bg-emerald-600 hover:scale-105',
+                  'hover:scale-105',
                   'transition-all duration-200',
-                  'shadow-lg shadow-emerald-500/20'
+                  'shadow-lg'
                 )}
                 title="Voir le reçu de paiement"
               >
@@ -221,7 +220,7 @@ export const FactureCard = ({
         </div>
 
         {/* Effet de brillance sur hover */}
-        <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-transparent via-white/5 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 pointer-events-none" />
+        <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 pointer-events-none" />
       </GlassCard>
     </motion.div>
   );
@@ -257,7 +256,7 @@ export const FactureCardSkeleton = ({ delay = 0 }: { delay?: number }) => {
           <div className="flex-1 h-10 bg-white/15 rounded-lg"></div>
           <div className="flex-1 h-10 bg-white/15 rounded-lg"></div>
         </div>
-      </GlassCard>
+      </div>
     </motion.div>
   );
 };

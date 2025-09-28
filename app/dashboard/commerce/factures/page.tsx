@@ -344,9 +344,9 @@ export default function FacturesGlassPage() {
       <GlassHeader
         title="Gestion des Factures"
         subtitle="Gérez vos factures et paiements"
-        icon={<Receipt className="w-8 h-8" />}
-        gradientFrom="from-blue-500"
-        gradientTo="to-purple-500"
+        onBack={() => router.push('/dashboard/commerce')}
+        showBackButton={true}
+        backgroundGradient="bg-gradient-to-r from-green-400 to-orange-500"
       />
 
       {/* Message d'erreur global */}
