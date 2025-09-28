@@ -33,6 +33,12 @@ export const FactureCard = ({
 }: FactureCardProps) => {
   const { facture: factureData } = facture;
 
+  // Vérification de sécurité pour éviter les erreurs de rendu
+  if (!factureData) {
+    console.error('❌ [FACTURE-CARD] Données de facture manquantes:', facture);
+    return null;
+  }
+
   const handleVoirDetails = () => {
     onVoirDetailsModal?.(facture);
   };
@@ -65,168 +71,114 @@ export const FactureCard = ({
       layout
       className="w-full"
     >
-      <GlassCard 
-        variant="hover" 
-        className="p-4 hover:scale-[1.02] transition-transform duration-200"
-      >
+      <div className="
+        bg-green-800/90 backdrop-blur-sm rounded-xl sm:rounded-2xl p-3 sm:p-4
+        border border-green-700/50 hover:bg-green-800
+        transition-all duration-200
+        group relative overflow-hidden
+      ">
         {/* En-tête avec numéro de facture et statut */}
-        <div className="flex items-start justify-between mb-3">
-          <div>
-            <h3 className="text-white font-bold text-lg tracking-wide">
+        <div className="flex items-start justify-between mb-2 sm:mb-3">
+          <div className="flex-1 min-w-0">
+            <h3 className="text-white font-semibold text-base sm:text-lg tracking-wide truncate pr-2">
               {factureData.num_facture}
             </h3>
-            <p className="text-emerald-100 text-sm opacity-90">
+            <p className="text-white/80 text-xs sm:text-sm">
               📞 {factureData.tel_client}
             </p>
           </div>
-          
-          <StatusBadge 
-            status={factureData.libelle_etat} 
-            size="md"
+
+          <StatusBadge
+            status={factureData.libelle_etat}
+            size="sm"
           />
         </div>
 
         {/* Informations client */}
-        <div className="mb-4">
-          <div className="flex items-center text-emerald-100 text-sm mb-1">
-            <span className="mr-2">👤</span>
-            <span className="font-medium">{factureData.nom_client}</span>
+        <div className="mb-3 sm:mb-4 space-y-1 sm:space-y-2 text-white/80 text-xs sm:text-sm">
+          <div className="flex items-center gap-2">
+            <span className="w-3 h-3 sm:w-4 sm:h-4">👤</span>
+            <span className="font-medium truncate">{factureData.nom_client}</span>
           </div>
-          <div className="flex items-center text-emerald-100 text-sm">
-            <span className="mr-2">📅</span>
-            <span>{formatDate(factureData.date_facture)}</span>
+          <div className="flex items-center gap-2">
+            <span className="w-3 h-3 sm:w-4 sm:h-4">📅</span>
+            <span className="truncate">{formatDate(factureData.date_facture)}</span>
           </div>
         </div>
 
-        {/* Montant principal */}
-        <div className="text-center mb-4">
-          <p className="text-white text-2xl font-bold tracking-wide">
+        {/* Montant principal responsive */}
+        <div className="text-center mb-3 sm:mb-4">
+          <p className="text-white text-xl sm:text-2xl font-bold">
             {formatAmount(factureData.montant)}
           </p>
           {factureData.mt_restant > 0 && (
-            <p className="text-orange-200 text-sm font-medium">
+            <p className="text-orange-300 text-xs sm:text-sm font-medium">
               Reste: {formatAmount(factureData.mt_restant)}
             </p>
           )}
         </div>
 
-        {/* Actions */}
-        <div className="flex space-x-2">
-          {/* Configuration des boutons selon le statut */}
+        {/* Actions responsive */}
+        <div className="flex gap-1 sm:gap-2">
           {factureData.libelle_etat === 'IMPAYEE' ? (
             <>
-              {/* Bouton Voir */}
-              <motion.button
-                whileTap={{ scale: 0.95 }}
+              <button
                 onClick={handleVoirDetails}
-                className={cn(
-                  'flex-1 flex items-center justify-center',
-                  'px-2 py-2.5 rounded-lg',
-                  'bg-white/20 backdrop-blur-lg',
-                  'border border-white/30',
-                  'text-white text-sm font-medium',
-                  'hover:bg-white/30 hover:scale-105',
-                  'transition-all duration-200',
-                  'shadow-lg'
-                )}
+                className="flex-1 py-1.5 sm:py-2 bg-white/20 rounded-md sm:rounded-lg text-white text-xs sm:text-sm hover:bg-white/30 transition-colors flex items-center justify-center gap-1"
               >
-                <Eye className="w-4 h-4 mr-1" />
-                Voir
-              </motion.button>
+                <Eye className="w-3 h-3 sm:w-4 sm:h-4" />
+                <span className="hidden xs:inline">Voir</span>
+              </button>
 
-              {/* Bouton Supprimer */}
               {onSupprimer && (
-                <motion.button
-                  whileTap={{ scale: 0.95 }}
+                <button
                   onClick={() => onSupprimer(facture)}
-                  className={cn(
-                    'flex-1 flex items-center justify-center',
-                    'px-2 py-2.5 rounded-lg',
-                    'bg-red-500/90 backdrop-blur-lg',
-                    'border border-red-400/50',
-                    'text-white text-sm font-medium',
-                    'hover:bg-red-500 hover:scale-105',
-                    'transition-all duration-200',
-                    'shadow-lg shadow-red-500/20'
-                  )}
+                  className="flex-1 py-1.5 sm:py-2 bg-red-500/20 rounded-md sm:rounded-lg text-red-200 text-xs sm:text-sm hover:bg-red-500/30 transition-colors flex items-center justify-center gap-1"
                   title="Supprimer la facture"
                 >
-                  <Trash2 className="w-4 h-4 mr-1" />
-                  Sup.
-                </motion.button>
+                  <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
+                  <span className="hidden xs:inline">Sup.</span>
+                </button>
               )}
 
-              {/* Bouton Payer */}
-              <motion.button
-                whileTap={{ scale: 0.95 }}
+              <button
                 onClick={() => onAjouterAcompte?.(facture)}
-                className={cn(
-                  'flex-1 flex items-center justify-center',
-                  'px-2 py-2.5 rounded-lg',
-                  'bg-orange-500 hover:bg-orange-600',
-                  'border border-orange-400',
-                  'text-white text-sm font-medium',
-                  'hover:scale-105',
-                  'transition-all duration-200',
-                  'shadow-lg'
-                )}
+                className="flex-1 py-1.5 sm:py-2 bg-emerald-500/20 rounded-md sm:rounded-lg text-emerald-200 text-xs sm:text-sm hover:bg-emerald-500/30 transition-colors flex items-center justify-center gap-1"
               >
-                <CreditCard className="w-4 h-4 mr-1" />
-                Payer
-              </motion.button>
+                <CreditCard className="w-3 h-3 sm:w-4 sm:h-4" />
+                <span className="hidden xs:inline">Payer</span>
+              </button>
             </>
           ) : (
             <>
-              {/* Bouton Voir pour factures payées */}
-              <motion.button
-                whileTap={{ scale: 0.95 }}
+              <button
                 onClick={handleVoirDetails}
-                className={cn(
-                  'flex-1 flex items-center justify-center',
-                  'px-3 py-2.5 rounded-lg',
-                  'bg-green-500 hover:bg-green-600',
-                  'border border-green-400',
-                  'text-white text-sm font-medium',
-                  'hover:scale-105',
-                  'transition-all duration-200',
-                  'shadow-lg'
-                )}
+                className="flex-1 py-1.5 sm:py-2 bg-white/20 rounded-md sm:rounded-lg text-white text-xs sm:text-sm hover:bg-white/30 transition-colors flex items-center justify-center gap-1"
               >
-                <Eye className="w-4 h-4 mr-1.5" />
-                Voir
-              </motion.button>
+                <Eye className="w-3 h-3 sm:w-4 sm:h-4" />
+                <span className="hidden xs:inline">Voir</span>
+              </button>
 
-              {/* Bouton Reçu pour factures payées */}
-              <motion.button
-                whileTap={{ scale: 0.95 }}
+              <button
                 onClick={() => onVoirRecu?.(facture)}
-                className={cn(
-                  'flex-1 flex items-center justify-center',
-                  'px-3 py-2.5 rounded-lg',
-                  'bg-blue-500 hover:bg-blue-600',
-                  'border border-blue-400',
-                  'text-white text-sm font-medium',
-                  'hover:scale-105',
-                  'transition-all duration-200',
-                  'shadow-lg'
-                )}
+                className="flex-1 py-1.5 sm:py-2 bg-emerald-500/20 rounded-md sm:rounded-lg text-emerald-200 text-xs sm:text-sm hover:bg-emerald-500/30 transition-colors flex items-center justify-center gap-1"
                 title="Voir le reçu de paiement"
               >
-                <Receipt className="w-4 h-4 mr-1.5" />
-                Reçu
-              </motion.button>
+                <Receipt className="w-3 h-3 sm:w-4 sm:h-4" />
+                <span className="hidden xs:inline">Reçu</span>
+              </button>
             </>
           )}
         </div>
 
         {/* Effet de brillance sur hover */}
         <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 pointer-events-none" />
-      </GlassCard>
+      </div>
     </motion.div>
   );
 };
 
-// Composant de loading skeleton
+// Composant de loading skeleton - style glassmorphe harmonisé
 export const FactureCardSkeleton = ({ delay = 0 }: { delay?: number }) => {
   return (
     <motion.div
@@ -235,29 +187,31 @@ export const FactureCardSkeleton = ({ delay = 0 }: { delay?: number }) => {
       transition={{ delay }}
     >
       <div className="
-        bg-white/90 backdrop-blur-xl rounded-2xl p-4 animate-pulse
-        border border-white/20 shadow-lg
+        bg-green-800/90 backdrop-blur-sm rounded-xl sm:rounded-2xl p-3 sm:p-4 animate-pulse
+        border border-green-700/50
       ">
-        <div className="flex justify-between mb-3">
+        <div className="flex justify-between mb-2 sm:mb-3">
           <div>
-            <div className="h-5 bg-gray-300 rounded w-32 mb-2"></div>
-            <div className="h-4 bg-gray-200 rounded w-24"></div>
+            <div className="h-4 sm:h-5 bg-white/20 rounded w-28 sm:w-32 mb-1 sm:mb-2"></div>
+            <div className="h-3 sm:h-4 bg-white/20 rounded w-20 sm:w-24"></div>
           </div>
-          <div className="h-6 bg-gray-300 rounded-full w-16"></div>
+          <div className="h-5 sm:h-6 bg-white/20 rounded-full w-12 sm:w-16"></div>
         </div>
 
-        <div className="mb-4">
-          <div className="h-4 bg-gray-200 rounded w-28 mb-1"></div>
-          <div className="h-4 bg-gray-200 rounded w-24"></div>
+        <div className="mb-3 sm:mb-4 space-y-1 sm:space-y-2">
+          <div className="h-3 sm:h-4 bg-white/20 rounded w-24 sm:w-28"></div>
+          <div className="h-3 sm:h-4 bg-white/20 rounded w-20 sm:w-24"></div>
         </div>
 
-        <div className="text-center mb-4">
-          <div className="h-8 bg-gray-300 rounded w-40 mx-auto"></div>
+        <div className="text-center mb-3 sm:mb-4">
+          <div className="h-6 sm:h-8 bg-white/20 rounded w-32 sm:w-40 mx-auto mb-1"></div>
+          <div className="h-3 sm:h-4 bg-white/20 rounded w-20 sm:w-24 mx-auto"></div>
         </div>
 
-        <div className="flex space-x-2">
-          <div className="flex-1 h-10 bg-gray-200 rounded-lg"></div>
-          <div className="flex-1 h-10 bg-gray-200 rounded-lg"></div>
+        <div className="flex gap-1 sm:gap-2">
+          <div className="flex-1 h-7 sm:h-8 bg-white/20 rounded-md sm:rounded-lg"></div>
+          <div className="flex-1 h-7 sm:h-8 bg-white/20 rounded-md sm:rounded-lg"></div>
+          <div className="flex-1 h-7 sm:h-8 bg-white/20 rounded-md sm:rounded-lg"></div>
         </div>
       </div>
     </motion.div>

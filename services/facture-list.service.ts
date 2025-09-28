@@ -6,16 +6,26 @@
 import { authService } from './auth.service';
 import DatabaseService from './database.service';
 import SecurityService from './security.service';
-import { 
+import {
   GetMyFactureResponse,
   FiltresFactures,
   StatsFactures,
-  FactureComplete 
+  FactureComplete
 } from '@/types/facture';
+
+// Types temporaires pour l'API (plus stricts que any mais compatibles avec Facture)
+interface ApiFactureItem {
+  facture?: Record<string, unknown>;
+  details?: Record<string, unknown>[];
+  resume?: Record<string, unknown>;
+}
+
+// Type compatible avec l'interface Facture tout en restant flexible
+type ApiFactureData = Record<string, unknown>;
 
 // Exception personnalisée pour la liste des factures
 export class FactureListApiException extends Error {
-  constructor(message: string, public statusCode: number = 500, public originalError?: any) {
+  constructor(message: string, public statusCode: number = 500, public originalError?: unknown) {
     super(message);
     this.name = 'FactureListApiException';
   }
@@ -68,7 +78,9 @@ class FactureListService {
             nombre_factures: 0,
             montant_total: 0,
             montant_paye: 0,
-            montant_impaye: 0
+            montant_impaye: 0,
+            nombre_payees: 0,
+            nombre_impayees: 0
           },
           total_factures: 0,
           montant_total: 0,
@@ -81,12 +93,14 @@ class FactureListService {
       const firstRow = result[0];
       console.log('🔍 [FACTURE-LIST] Première ligne:', firstRow);
 
-      // La fonction get_my_facture peut retourner le résultat de différentes façons
+      // Structure réelle: result[0].get_my_facture.factures
       let factureData = firstRow.get_my_facture || firstRow;
 
       console.log('📦 [FACTURE-LIST] Données facture extraites:', {
         type: typeof factureData,
-        keys: typeof factureData === 'object' ? Object.keys(factureData) : 'not-object'
+        keys: typeof factureData === 'object' ? Object.keys(factureData) : 'not-object',
+        hasFactures: factureData?.factures ? 'OUI' : 'NON',
+        facturesCount: Array.isArray(factureData?.factures) ? factureData.factures.length : 0
       });
 
       // Parse du JSON si c'est une chaîne
@@ -100,21 +114,52 @@ class FactureListService {
         }
       }
 
+      // Vérification de la structure et extraction des factures
+      console.log('🎯 [FACTURE-LIST] Structure factureData:', {
+        type: typeof factureData,
+        keys: Object.keys(factureData || {}),
+        factures: factureData?.factures ? 'EXISTE' : 'MANQUANT'
+      });
+
       // Vérifier et formater la structure de réponse
       // Normaliser les factures au format attendu
       let facturesFormatees: FactureComplete[] = [];
 
       if (Array.isArray(factureData.factures)) {
-        facturesFormatees = factureData.factures.map((f: any) => {
-          // Si la facture est déjà au format FactureComplete
-          if (f.facture && f.details && f.resume) {
-            return f;
+        console.log('🔄 [FACTURE-LIST] Traitement tableau de factures, count:', factureData.factures.length);
+
+        facturesFormatees = factureData.factures.map((f: unknown, index: number) => {
+          // Type guard pour vérifier que f est un objet avec les bonnes propriétés
+          const factureItem = f as ApiFactureItem;
+
+          console.log(`📋 [FACTURE-LIST] Facture ${index}:`, {
+            hasFacture: factureItem.facture ? 'OUI' : 'NON',
+            hasDetails: factureItem.details ? 'OUI' : 'NON',
+            hasResume: factureItem.resume ? 'OUI' : 'NON',
+            numFacture: (factureItem.facture as { num_facture?: string })?.num_facture || 'MANQUANT',
+            factureKeys: factureItem.facture ? Object.keys(factureItem.facture) : []
+          });
+
+          // La structure de l'API est { facture: {...}, details: [...], resume: {...} }
+          if (factureItem.facture) {
+            return {
+              facture: factureItem.facture as ApiFactureData,
+              details: (factureItem.details as Record<string, unknown>[]) || [],
+              resume: (factureItem.resume as Record<string, unknown>) || {
+                nombre_articles: 0,
+                quantite_totale: 0,
+                cout_total_revient: 0,
+                marge_totale: 0
+              }
+            };
           }
-          // Sinon, créer la structure FactureComplete
+
+          // Fallback si la structure est différente
+          console.warn('⚠️ [FACTURE-LIST] Structure inattendue pour facture:', f);
           return {
-            facture: f.facture || f,
-            details: f.details || [],
-            resume: f.resume || {
+            facture: f as ApiFactureData,
+            details: [],
+            resume: {
               nombre_articles: 0,
               quantite_totale: 0,
               cout_total_revient: 0,
@@ -124,8 +169,9 @@ class FactureListService {
         });
       } else if (Array.isArray(factureData)) {
         // Si factureData est directement un tableau de factures
-        facturesFormatees = factureData.map((f: any) => ({
-          facture: f,
+        console.log('🔄 [FACTURE-LIST] Traitement direct tableau de factures');
+        facturesFormatees = factureData.map((f: unknown) => ({
+          facture: f as ApiFactureData,
           details: [],
           resume: {
             nombre_articles: 0,
@@ -134,6 +180,8 @@ class FactureListService {
             marge_totale: 0
           }
         }));
+      } else {
+        console.error('❌ [FACTURE-LIST] Structure non reconnue:', factureData);
       }
 
       const response: GetMyFactureResponse = {
@@ -142,7 +190,9 @@ class FactureListService {
           nombre_factures: facturesFormatees.length,
           montant_total: 0,
           montant_paye: 0,
-          montant_impaye: 0
+          montant_impaye: 0,
+          nombre_payees: 0,
+          nombre_impayees: 0
         },
         // Ajouter les champs au niveau racine pour compatibilité
         total_factures: factureData.resume_global?.nombre_factures || factureData.total_factures || facturesFormatees.length,
@@ -151,15 +201,19 @@ class FactureListService {
         montant_impaye: factureData.resume_global?.montant_impaye || factureData.montant_impaye || 0
       };
 
-      console.log('📈 [FACTURE-LIST] Réponse formatée:', {
+      console.log('📈 [FACTURE-LIST] Réponse formatée FINALE:', {
         nombre_factures: response.factures.length,
         total_factures: response.total_factures,
         montant_total: response.montant_total,
         hasFactures: response.factures.length > 0,
         firstFacture: response.factures[0] ? {
-          num: response.factures[0].num_facture || response.factures[0].facture?.num_facture,
-          client: response.factures[0].nom_client || response.factures[0].facture?.nom_client
-        } : null
+          hasFactureProperty: response.factures[0].facture ? 'OUI' : 'NON',
+          num: response.factures[0].facture?.num_facture,
+          client: response.factures[0].facture?.nom_client,
+          montant: response.factures[0].facture?.montant,
+          statut: response.factures[0].facture?.libelle_etat
+        } : 'PAS_DE_FACTURES',
+        allFacturesValid: response.factures.every(f => f.facture && f.facture.num_facture)
       });
 
       return response;
@@ -251,7 +305,7 @@ class FactureListService {
     // Tri
     if (filtres.sortBy) {
       facturesFiltrees.sort((a, b) => {
-        let valeurA: any, valeurB: any;
+        let valeurA: string | number | Date, valeurB: string | number | Date;
         
         switch (filtres.sortBy) {
           case 'date':

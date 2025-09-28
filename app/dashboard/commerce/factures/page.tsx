@@ -16,7 +16,7 @@ import { FilterHeaderGlass } from '@/components/factures/FilterHeaderGlass';
 import { FacturesList } from '@/components/factures/FacturesList';
 import { FacturesOnglets } from '@/components/factures/FacturesOnglets';
 import { ListePaiements } from '@/components/factures/ListePaiements';
-import { GlassPagination, usePagination } from '@/components/ui/GlassPagination';
+import { GlassPagination } from '@/components/ui/GlassPagination';
 import { ModalPaiement } from '@/components/factures/ModalPaiement';
 import { ModalPartage } from '@/components/factures/ModalPartage';
 import { ModalFacturePrivee } from '@/components/facture/ModalFacturePrivee';
@@ -183,13 +183,11 @@ export default function FacturesGlassPage() {
 
   // Pagination
   const itemsPerPage = 10;
-  const {
-    currentItems: facturesPage,
-    totalPages,
-    nextPage,
-    prevPage,
-    goToPage
-  } = usePagination(facturesFiltreesEtTriees, itemsPerPage, currentPage);
+  const totalPages = Math.ceil(facturesFiltreesEtTriees.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const facturesPage = facturesFiltreesEtTriees.slice(startIndex, startIndex + itemsPerPage);
+
+  const goToPage = (page: number) => setCurrentPage(page);
 
   // Actions sur les factures
   const handleViewFacture = (facture: FactureComplete) => {
@@ -207,8 +205,8 @@ export default function FacturesGlassPage() {
   const handleDeleteFacture = (facture: FactureComplete) => {
     setModalConfirmation({
       isOpen: true,
-      message: `Êtes-vous sûr de vouloir supprimer la facture ${facture.num_facture} ?`,
-      onConfirm: () => executerSuppression(facture.id_facture)
+      message: `Êtes-vous sûr de vouloir supprimer la facture ${facture.facture.num_facture} ?`,
+      onConfirm: () => executerSuppression(facture.facture.id_facture)
     });
   };
 
@@ -240,7 +238,7 @@ export default function FacturesGlassPage() {
   const handleViewRecu = (paiement: any) => {
     // Ouvrir le modal de reçu avec les données du paiement
     const factureAssociee = facturesResponse?.factures.find(
-      f => f.id_facture === paiement.id_facture
+      f => f.facture.id_facture === paiement.id_facture
     );
 
     if (factureAssociee) {
@@ -279,10 +277,10 @@ export default function FacturesGlassPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-[#9c9125d9] via-[#203e2b] to-[#166534] flex items-center justify-center">
         <div className="text-center space-y-4">
-          <Loader className="animate-spin w-12 h-12 text-blue-500 mx-auto" />
-          <p className="text-gray-500">Chargement des factures...</p>
+          <Loader className="animate-spin w-12 h-12 text-white mx-auto" />
+          <p className="text-white/80">Chargement des factures...</p>
         </div>
       </div>
     );
@@ -294,6 +292,8 @@ export default function FacturesGlassPage() {
       {/* Statistiques */}
       {facturesResponse && (
         <StatsCardsFacturesGlass
+          factures={facturesResponse.factures}
+          resumeGlobal={facturesResponse.resume_global}
           totalFactures={facturesResponse.total_factures}
           montantTotal={facturesResponse.montant_total}
           montantPaye={facturesResponse.montant_paye}
@@ -308,6 +308,17 @@ export default function FacturesGlassPage() {
         isRefreshing={isRefreshing}
       />
 
+      {/* Pagination positionnée juste après les filtres */}
+      {totalPages > 1 && (
+        <GlassPagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={goToPage}
+          totalItems={facturesFiltreesEtTriees.length}
+          itemsPerPage={itemsPerPage}
+        />
+      )}
+
       {/* Liste des factures */}
       <FacturesList
         factures={facturesPage}
@@ -316,17 +327,6 @@ export default function FacturesGlassPage() {
         onPartager={handleShareFacture}
         onSupprimer={handleDeleteFacture}
       />
-
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <GlassPagination
-          currentPage={currentPage}
-          totalPages={totalPages}
-          onPageChange={goToPage}
-          onNext={nextPage}
-          onPrev={prevPage}
-        />
-      )}
     </>
   );
 
@@ -339,15 +339,16 @@ export default function FacturesGlassPage() {
   );
 
   return (
-    <>
-      {/* Header */}
-      <GlassHeader
-        title="Gestion des Factures"
-        subtitle="Gérez vos factures et paiements"
-        onBack={() => router.push('/dashboard/commerce')}
-        showBackButton={true}
-        backgroundGradient="bg-gradient-to-r from-green-400 to-orange-500"
-      />
+    <div className="min-h-screen bg-gradient-to-br from-[#9c9125d9] via-[#203e2b] to-[#166534]">
+      <div className="max-w-md mx-auto min-h-screen relative">
+        {/* Header */}
+        <GlassHeader
+          title="Gestion des Factures"
+          subtitle="Gérez vos factures et paiements"
+          onBack={() => router.push('/dashboard/commerce')}
+          showBackButton={true}
+          backgroundGradient="bg-gradient-to-r from-green-400 to-orange-500"
+        />
 
       {/* Message d'erreur global */}
       {error && (
@@ -365,20 +366,23 @@ export default function FacturesGlassPage() {
         </motion.div>
       )}
 
-      {/* Onglets Factures et Paiements */}
-      <FacturesOnglets
-        facturesContent={facturesContent}
-        paiementsContent={paiementsContent}
-        facturesCount={facturesResponse?.total_factures || 0}
-        paiementsCount={paiementsCount}
-      />
+        {/* Contenu avec padding */}
+        <div className="p-5 pb-24">
+          {/* Onglets Factures et Paiements */}
+          <FacturesOnglets
+            facturesContent={facturesContent}
+            paiementsContent={paiementsContent}
+            facturesCount={facturesResponse?.total_factures || 0}
+            paiementsCount={paiementsCount}
+          />
+        </div>
 
       {/* Modals */}
       {modalPaiement.facture && (
         <ModalPaiement
           isOpen={modalPaiement.isOpen}
           onClose={() => setModalPaiement({ isOpen: false, facture: null })}
-          facture={{ facture: modalPaiement.facture, details_articles: [] }}
+          facture={modalPaiement.facture}
           onSuccess={handleRefresh}
         />
       )}
@@ -395,15 +399,20 @@ export default function FacturesGlassPage() {
         <ModalFacturePrivee
           isOpen={modalFacturePrivee.isOpen}
           onClose={() => setModalFacturePrivee({ isOpen: false, facture: null })}
-          facture={modalFacturePrivee.facture}
+          factureId={modalFacturePrivee.facture.facture.id_facture}
         />
       )}
 
-      {modalRecuGenere.facture && (
+      {modalRecuGenere.facture && modalRecuGenere.paiement && (
         <ModalRecuGenere
           isOpen={modalRecuGenere.isOpen}
           onClose={() => setModalRecuGenere({ isOpen: false, facture: null, paiement: null })}
-          factureId={modalRecuGenere.facture.id_facture}
+          factureId={modalRecuGenere.facture.facture.id_facture}
+          walletUsed={modalRecuGenere.paiement.methode_paiement || 'OM'}
+          montantPaye={modalRecuGenere.paiement.montant_paye || modalRecuGenere.facture.facture.montant}
+          numeroRecu={modalRecuGenere.facture.facture.numrecu}
+          dateTimePaiement={modalRecuGenere.paiement.date_paiement}
+          referenceTransaction={modalRecuGenere.paiement.reference_transaction}
         />
       )}
 
@@ -415,14 +424,15 @@ export default function FacturesGlassPage() {
         type="danger"
       />
 
-      {/* Toast notifications */}
-      <Toast
-        isOpen={toast.isOpen}
-        onClose={() => setToast({ ...toast, isOpen: false })}
-        message={toast.message}
-        type={toast.type}
-        duration={5000}
-      />
-    </>
+        {/* Toast notifications */}
+        <Toast
+          isVisible={toast.isOpen}
+          onClose={() => setToast({ ...toast, isOpen: false })}
+          title={toast.message}
+          type={toast.type}
+          duration={5000}
+        />
+      </div>
+    </div>
   );
 }

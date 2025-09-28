@@ -95,9 +95,9 @@ export function GlassPagination({
         transition={{ duration: 0.3 }}
         className={cn("", className)}
       >
-        <div className="p-3 backdrop-blur-lg bg-emerald-500/80 border border-emerald-400/30 rounded-xl shadow-lg shadow-emerald-500/20">
+        <div className="p-3 backdrop-blur-sm bg-green-600/90 border border-green-500/50 rounded-xl shadow-lg">
           <div className="text-center">
-            <p className="text-emerald-100 text-sm font-medium">
+            <p className="text-white text-sm font-medium">
               Affichage de {totalItems} {itemLabel}
             </p>
           </div>
@@ -114,10 +114,10 @@ export function GlassPagination({
       className={cn("space-y-2", className)}
     >
       {/* Contrôles de pagination et informations combinés */}
-      <div className="p-3 space-y-3 backdrop-blur-lg bg-emerald-500/80 border border-emerald-400/30 rounded-xl shadow-lg shadow-emerald-500/20">
+      <div className="p-3 space-y-3 backdrop-blur-sm bg-green-600/90 border border-green-500/50 rounded-xl shadow-lg">
         {/* Informations de pagination */}
         <div className="text-center">
-          <p className="text-emerald-100 text-xs font-medium">
+          <p className="text-white text-xs font-medium">
             Affichage de {startItem} à {endItem} sur {totalItems} {itemLabel}
           </p>
         </div>
@@ -152,7 +152,7 @@ export function GlassPagination({
               >
                 {page === '...' ? (
                   <div className="px-2 py-1">
-                    <MoreHorizontal className="w-4 h-4 text-emerald-200" />
+                    <MoreHorizontal className="w-4 h-4 text-white/60" />
                   </div>
                 ) : (
                   <button
@@ -162,7 +162,7 @@ export function GlassPagination({
                       'border border-white/20',
                       page === currentPage
                         ? 'bg-white/30 text-white border-white/40 shadow-lg'
-                        : 'bg-white/10 text-emerald-100 hover:bg-white/20 hover:text-white hover:scale-105'
+                        : 'bg-white/10 text-white/80 hover:bg-white/20 hover:text-white hover:scale-105'
                     )}
                   >
                     {page}

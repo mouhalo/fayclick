@@ -68,6 +68,10 @@ export interface ResumeGlobal {
   montant_impaye: number;
   nombre_payees: number;
   nombre_impayees: number;
+  // Champs additionnels qui pourraient être dans l'API
+  nombre_clients?: number;
+  nombre_produits?: number;
+  marge_totale?: number;
 }
 
 // Interface pour la réponse complète de get_my_facture
