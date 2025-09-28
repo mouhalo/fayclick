@@ -132,16 +132,23 @@ export default function FacturesGlassPage() {
 
     // Filtrage par statut
     if (filtres.statut !== 'TOUS') {
-      resultat = resultat.filter(f => f.libelle_etat === filtres.statut);
+      resultat = resultat.filter(f => {
+        // Support des deux formats possibles
+        const statut = f.facture?.libelle_etat || (f as any).libelle_etat;
+        return statut === filtres.statut;
+      });
     }
 
     // Recherche
     if (filtres.recherche) {
       const recherche = filtres.recherche.toLowerCase();
-      resultat = resultat.filter(f =>
-        f.nom_client.toLowerCase().includes(recherche) ||
-        f.num_facture.toLowerCase().includes(recherche)
-      );
+      resultat = resultat.filter(f => {
+        // Support des deux formats possibles
+        const nomClient = f.facture?.nom_client || (f as any).nom_client || '';
+        const numFacture = f.facture?.num_facture || (f as any).num_facture || '';
+        return nomClient.toLowerCase().includes(recherche) ||
+               numFacture.toLowerCase().includes(recherche);
+      });
     }
 
     // Tri
@@ -150,13 +157,19 @@ export default function FacturesGlassPage() {
 
       switch (filtres.sortBy) {
         case 'date':
-          comparaison = new Date(b.date_facture).getTime() - new Date(a.date_facture).getTime();
+          const dateA = a.facture?.date_facture || (a as any).date_facture;
+          const dateB = b.facture?.date_facture || (b as any).date_facture;
+          comparaison = new Date(dateB).getTime() - new Date(dateA).getTime();
           break;
         case 'montant':
-          comparaison = b.montant - a.montant;
+          const montantA = a.facture?.montant || (a as any).montant || 0;
+          const montantB = b.facture?.montant || (b as any).montant || 0;
+          comparaison = montantB - montantA;
           break;
         case 'client':
-          comparaison = a.nom_client.localeCompare(b.nom_client);
+          const clientA = a.facture?.nom_client || (a as any).nom_client || '';
+          const clientB = b.facture?.nom_client || (b as any).nom_client || '';
+          comparaison = clientA.localeCompare(clientB);
           break;
         default:
           comparaison = 0;
