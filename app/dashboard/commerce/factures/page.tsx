@@ -140,8 +140,8 @@ export default function FacturesGlassPage() {
     }
 
     // Recherche
-    if (filtres.recherche) {
-      const recherche = filtres.recherche.toLowerCase();
+    if (filtres.searchTerm) {
+      const recherche = filtres.searchTerm.toLowerCase();
       resultat = resultat.filter(f => {
         // Support des deux formats possibles
         const nomClient = f.facture?.nom_client || (f as any).nom_client || '';
@@ -303,8 +303,7 @@ export default function FacturesGlassPage() {
 
       {/* Filtres */}
       <FilterHeaderGlass
-        filtres={filtres}
-        onFiltresChange={setFiltres}
+        onFiltersChange={setFiltres}
         onRefresh={handleRefresh}
         isRefreshing={isRefreshing}
       />
@@ -312,10 +311,10 @@ export default function FacturesGlassPage() {
       {/* Liste des factures */}
       <FacturesList
         factures={facturesPage}
-        onView={handleViewFacture}
-        onPay={handlePayFacture}
-        onShare={handleShareFacture}
-        onDelete={handleDeleteFacture}
+        onVoirDetailsModal={handleViewFacture}
+        onAjouterAcompte={handlePayFacture}
+        onPartager={handleShareFacture}
+        onSupprimer={handleDeleteFacture}
       />
 
       {/* Pagination */}
