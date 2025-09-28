@@ -122,13 +122,14 @@ export function ModalPaiement({
       errors.push('Le montant ne peut pas dépasser le restant à payer');
     }
 
-    if (useIntegratedPaymentSelection && !selectedPaymentMethod) {
+    // Pour l'ancien flow, vérifier la sélection de mode de paiement
+    if (!useIntegratedPaymentSelection && !selectedPaymentMethod) {
       errors.push('Veuillez sélectionner un mode de paiement');
     }
 
     return {
       isValid: errors.length === 0 && montants.montantSaisi > 0 &&
-        (!useIntegratedPaymentSelection || selectedPaymentMethod !== null),
+        (useIntegratedPaymentSelection || selectedPaymentMethod !== null),
       errors
     };
   }, [facture, montants, selectedPaymentMethod, useIntegratedPaymentSelection]);
@@ -179,25 +180,39 @@ export function ModalPaiement({
     return `CASH-${facture?.facture.id_structure}-${day}${month}${year}${hours}${minutes}`;
   };
 
-  // Traitement du paiement selon le mode (intégré ou ancien flow)
+  // Traitement direct du paiement selon le mode sélectionné (nouveau flow)
+  const handleMethodAction = async (method: PaymentMethod) => {
+    if (!facture || !montants) return;
+
+    // Vérifier que le montant est valide
+    if (montants.montantSaisi <= 0) {
+      setError('Le montant doit être supérieur à 0');
+      return;
+    }
+
+    if (montants.montantSaisi > montants.montantRestant) {
+      setError('Le montant ne peut pas dépasser le restant à payer');
+      return;
+    }
+
+    // Définir le mode de paiement et traiter
+    setSelectedPaymentMethod(method);
+
+    if (method === 'CASH') {
+      // Paiement cash - traitement direct
+      await processCashPayment();
+    } else {
+      // Paiement wallet - ouvrir le modal QR Code
+      setShowQRCode(true);
+    }
+  };
+
+  // Traitement du paiement selon le mode (ancien flow uniquement)
   const handleSubmit = async () => {
     if (!facture || !validation.isValid || !montants) return;
 
-    if (useIntegratedPaymentSelection) {
-      // Nouveau flow intégré
-      if (!selectedPaymentMethod) return;
-
-      if (selectedPaymentMethod === 'CASH') {
-        // Paiement cash - traitement direct
-        await processCashPayment();
-      } else {
-        // Paiement wallet - ouvrir le modal QR Code
-        setShowQRCode(true);
-      }
-    } else {
-      // Ancien flow avec modal de choix séparé
-      setShowChoixPaiement(true);
-    }
+    // Ancien flow avec modal de choix séparé
+    setShowChoixPaiement(true);
   };
 
   // Gérer la sélection du mode de paiement (gardé pour compatibilité avec l'ancien modal)
@@ -693,14 +708,14 @@ export function ModalPaiement({
                   ))}
                 </div>
 
-                {/* Sélection du mode de paiement (nouveau flow uniquement) */}
-                {useIntegratedPaymentSelection && (
+                {/* Actions de paiement directes (nouveau flow uniquement) */}
+                {useIntegratedPaymentSelection && montants && montants.montantSaisi > 0 && (
                   <PaymentMethodSelector
-                    selectedMethod={selectedPaymentMethod}
-                    onMethodSelect={setSelectedPaymentMethod}
+                    onMethodAction={handleMethodAction}
+                    onCancel={onClose}
                     size="md"
-                    layout="grid"
                     disabled={loading}
+                    montant={montants.montantSaisi}
                   />
                 )}
 
@@ -754,44 +769,55 @@ export function ModalPaiement({
                 </div>
               )}
 
-              {/* Actions */}
-              <div className="flex space-x-3">
-                <button
-                  onClick={onClose}
-                  className={`
-                    flex-1 bg-gray-100 text-gray-700 rounded-xl 
-                    hover:bg-gray-200 transition-colors font-medium
-                    ${styles.button}
-                  `}
-                  disabled={loading}
-                >
-                  Annuler
-                </button>
-                
-                <button
-                  onClick={handleSubmit}
-                  disabled={!validation.isValid || loading}
-                  className={`
-                    flex-1 bg-blue-500 text-white rounded-xl
-                    hover:bg-blue-600 transition-colors font-medium
-                    disabled:opacity-50 disabled:cursor-not-allowed
-                    flex items-center justify-center space-x-2
-                    ${styles.button}
-                  `}
-                >
-                  {loading ? (
-                    <>
-                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                      <span>Traitement...</span>
-                    </>
-                  ) : (
-                    <>
-                      {getButtonIcon()}
-                      <span>{getButtonText()}</span>
-                    </>
-                  )}
-                </button>
-              </div>
+              {/* Actions - Ancien flow uniquement */}
+              {!useIntegratedPaymentSelection && (
+                <div className="flex space-x-3">
+                  <button
+                    onClick={onClose}
+                    className={`
+                      flex-1 bg-gray-100 text-gray-700 rounded-xl
+                      hover:bg-gray-200 transition-colors font-medium
+                      ${styles.button}
+                    `}
+                    disabled={loading}
+                  >
+                    Annuler
+                  </button>
+
+                  <button
+                    onClick={handleSubmit}
+                    disabled={!validation.isValid || loading}
+                    className={`
+                      flex-1 bg-blue-500 text-white rounded-xl
+                      hover:bg-blue-600 transition-colors font-medium
+                      disabled:opacity-50 disabled:cursor-not-allowed
+                      flex items-center justify-center space-x-2
+                      ${styles.button}
+                    `}
+                  >
+                    {loading ? (
+                      <>
+                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                        <span>Traitement...</span>
+                      </>
+                    ) : (
+                      <>
+                        {getButtonIcon()}
+                        <span>{getButtonText()}</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              )}
+
+              {/* Message d'aide pour le nouveau flow */}
+              {useIntegratedPaymentSelection && (!montants || montants.montantSaisi <= 0) && (
+                <div className="text-center py-4">
+                  <p className="text-gray-600 text-sm">
+                    Saisissez un montant pour voir les options de paiement
+                  </p>
+                </div>
+              )}
             </>
           )}
         </motion.div>
