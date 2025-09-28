@@ -26,6 +26,9 @@ class PaymentWalletService {
     createdAt: number;
   } | null = null;
 
+  // 🚫 Mutex global pour bloquer les créations simultanées
+  private isCreatingPayment: boolean = false;
+
   /**
    * Vérifier si une session de paiement est active pour cette facture
    */
@@ -43,6 +46,14 @@ class PaymentWalletService {
    * Créer une session de paiement
    */
   private createPaymentSession(uuid: string, factureId: string): void {
+    // 🛡️ Vérifier si on écrase une session existante (problème architectural)
+    if (this.currentPaymentSession?.isActive) {
+      console.warn('⚠️ [SESSION] ÉCRASEMENT session existante!', {
+        ancienne: this.currentPaymentSession,
+        nouvelle: { uuid, factureId }
+      });
+    }
+
     console.log('🎯 [SESSION] Création session paiement:', { uuid, factureId });
     this.currentPaymentSession = {
       uuid,
@@ -76,21 +87,40 @@ class PaymentWalletService {
     method: Exclude<PaymentMethod, 'CASH'>,
     context: PaymentContext
   ): Promise<CreatePaymentResponse> {
+    // 🔒 MUTEX - Bloquer si création en cours
+    if (this.isCreatingPayment) {
+      console.error('🚫 [MUTEX] Création de paiement déjà en cours - REJET');
+      throw new Error('Une création de paiement est déjà en cours. Veuillez attendre.');
+    }
+
     try {
+      this.isCreatingPayment = true; // 🔒 Verrouiller
       const factureId = context.facture.id_facture.toString();
 
-      // 🛡️ Vérifier s'il y a déjà une session active pour cette facture
+      // 🛡️ PROTECTION RENFORCÉE - Vérifier s'il y a déjà une session active
       if (this.hasActivePaymentSession(factureId)) {
-        console.log('⚠️ [SESSION] Session déjà active pour facture', factureId);
-        console.log('📋 [SESSION] UUID existant:', this.currentPaymentSession!.uuid);
+        console.error('🚫 [SESSION] REJET - Session déjà active pour facture', factureId);
+        console.error('📋 [SESSION] UUID existant:', this.currentPaymentSession!.uuid);
+        console.error('🏗️ [SESSION] Problème architectural: Multiple instances de ModalPaiementQRCode');
 
-        // Retourner une réponse simulée avec l'UUID existant pour éviter la double création
+        // Récupérer les infos de la session existante pour debug
+        const existingSession = this.currentPaymentSession!;
+        const ageInSeconds = Math.floor((Date.now() - existingSession.createdAt) / 1000);
+
+        console.error('🕒 [SESSION] Session existante:', {
+          uuid: existingSession.uuid,
+          factureId: existingSession.factureId,
+          age: `${ageInSeconds}s`,
+          isActive: existingSession.isActive
+        });
+
+        // Retourner l'UUID existant pour continuer le polling sur la bonne session
         return {
-          uuid: this.currentPaymentSession!.uuid,
+          uuid: existingSession.uuid,
           telephone: context.facture.tel_client,
           status: 'PROCESSING',
           service: method,
-          qrCode: 'session-active', // Marqueur spécial
+          qrCode: 'session-active', // Marqueur pour modal QR
         };
       }
       const request: CreatePaymentRequest = {
@@ -138,6 +168,8 @@ class PaymentWalletService {
     } catch (error) {
       console.error('❌ Erreur création paiement:', error);
       throw new Error('Impossible de créer la demande de paiement');
+    } finally {
+      this.isCreatingPayment = false; // 🔓 Déverrouiller TOUJOURS
     }
   }
 
