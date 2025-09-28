@@ -114,6 +114,17 @@ export function ModalPaiementQRCode({
         paymentContext
       );
 
+      // 🛡️ Vérifier si c'est une session réutilisée
+      if (response.qrCode === 'session-active') {
+        console.log('🔄 [QR] Réutilisation session existante:', response.uuid);
+
+        // Pour une session réutilisée, on n'a pas de nouveau QR Code
+        // Mais on continue le polling sur l'UUID existant
+        setModalState('PROCESSING');
+        startPolling(response.uuid);
+        return;
+      }
+
       setQrCode(paymentWalletService.formatQRCode(response.qrCode));
       setPaymentUrl(paymentWalletService.extractPaymentUrl(response, paymentMethod));
       setModalState('SHOWING_QR');

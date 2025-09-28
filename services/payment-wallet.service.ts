@@ -18,14 +18,81 @@ class PaymentWalletService {
   private pollingInterval: NodeJS.Timeout | null = null;
   private pollingAbortController: AbortController | null = null;
 
+  // 🎯 Session de paiement - État global pour éviter la double initialisation
+  private currentPaymentSession: {
+    uuid: string;
+    factureId: string;
+    isActive: boolean;
+    createdAt: number;
+  } | null = null;
+
   /**
-   * Créer une demande de paiement
+   * Vérifier si une session de paiement est active pour cette facture
+   */
+  private hasActivePaymentSession(factureId: string): boolean {
+    if (!this.currentPaymentSession) return false;
+
+    const isForSameFacture = this.currentPaymentSession.factureId === factureId;
+    const isStillActive = this.currentPaymentSession.isActive;
+    const isRecent = (Date.now() - this.currentPaymentSession.createdAt) < 300000; // 5 minutes max
+
+    return isForSameFacture && isStillActive && isRecent;
+  }
+
+  /**
+   * Créer une session de paiement
+   */
+  private createPaymentSession(uuid: string, factureId: string): void {
+    console.log('🎯 [SESSION] Création session paiement:', { uuid, factureId });
+    this.currentPaymentSession = {
+      uuid,
+      factureId,
+      isActive: true,
+      createdAt: Date.now()
+    };
+  }
+
+  /**
+   * Terminer une session de paiement
+   */
+  private endPaymentSession(reason: 'SUCCESS' | 'FAILED' | 'TIMEOUT' | 'MANUAL'): void {
+    if (this.currentPaymentSession) {
+      console.log(`🏁 [SESSION] Fin session paiement: ${reason}`, this.currentPaymentSession.uuid);
+      this.currentPaymentSession = null;
+    }
+  }
+
+  /**
+   * Obtenir l'UUID de la session active
+   */
+  getActiveSessionUUID(): string | null {
+    return this.currentPaymentSession?.isActive ? this.currentPaymentSession.uuid : null;
+  }
+
+  /**
+   * Créer une demande de paiement avec protection anti-double initialisation
    */
   async createPayment(
     method: Exclude<PaymentMethod, 'CASH'>,
     context: PaymentContext
   ): Promise<CreatePaymentResponse> {
     try {
+      const factureId = context.facture.id_facture.toString();
+
+      // 🛡️ Vérifier s'il y a déjà une session active pour cette facture
+      if (this.hasActivePaymentSession(factureId)) {
+        console.log('⚠️ [SESSION] Session déjà active pour facture', factureId);
+        console.log('📋 [SESSION] UUID existant:', this.currentPaymentSession!.uuid);
+
+        // Retourner une réponse simulée avec l'UUID existant pour éviter la double création
+        return {
+          uuid: this.currentPaymentSession!.uuid,
+          telephone: context.facture.tel_client,
+          status: 'PROCESSING',
+          service: method,
+          qrCode: 'session-active', // Marqueur spécial
+        };
+      }
       const request: CreatePaymentRequest = {
         pAppName: 'FAYCLICK',
         pMethode: method,
@@ -63,6 +130,9 @@ class PaymentWalletService {
         status: data.status,
         hasQR: !!data.qrCode
       });
+
+      // 🎯 Créer une session de paiement pour cette facture
+      this.createPaymentSession(data.uuid, factureId);
 
       return data;
     } catch (error) {
@@ -125,6 +195,7 @@ class PaymentWalletService {
     const timeoutId = setTimeout(() => {
       console.log('⏱️ Timeout du polling atteint');
       this.stopPolling();
+      this.endPaymentSession('TIMEOUT'); // 🏁 Terminer la session
       onStatusUpdate('TIMEOUT');
     }, timeout);
 
@@ -159,6 +230,7 @@ class PaymentWalletService {
             console.log('❌ Paiement détecté comme ÉCHOUÉ (original_status: FAILED)');
             clearTimeout(timeoutId);
             this.stopPolling();
+            this.endPaymentSession('FAILED'); // 🏁 Terminer la session
             onStatusUpdate('FAILED', response);
             return;
           }
@@ -176,6 +248,7 @@ class PaymentWalletService {
             console.log('   - UUID:', response.data.uuid);
             clearTimeout(timeoutId);
             this.stopPolling();
+            this.endPaymentSession('SUCCESS'); // 🏁 Terminer la session
             onStatusUpdate('COMPLETED', response);
             return;
           }
@@ -185,14 +258,16 @@ class PaymentWalletService {
             console.log('✅ Paiement COMPLETED (ancien format)');
             clearTimeout(timeoutId);
             this.stopPolling();
+            this.endPaymentSession('SUCCESS'); // 🏁 Terminer la session
             onStatusUpdate('COMPLETED', response);
             return;
           }
-          
+
           if (response.data.statut === 'FAILED') {
             console.log('❌ Paiement FAILED (ancien format)');
             clearTimeout(timeoutId);
             this.stopPolling();
+            this.endPaymentSession('FAILED'); // 🏁 Terminer la session
             onStatusUpdate('FAILED', response);
             return;
           }
@@ -230,6 +305,13 @@ class PaymentWalletService {
     }
 
     console.log('⏹️ Polling arrêté');
+  }
+
+  /**
+   * Forcer la fin de session (pour reset manuel)
+   */
+  forceEndSession(): void {
+    this.endPaymentSession('MANUAL');
   }
 
   /**

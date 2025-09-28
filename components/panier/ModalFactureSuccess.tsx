@@ -22,6 +22,7 @@ import { PaymentMethodSelector } from '@/components/factures/PaymentMethodSelect
 import { ModalPaiementQRCode } from '@/components/factures/ModalPaiementQRCode';
 import { PaymentMethod, PaymentContext } from '@/types/payment-wallet';
 import { AjouterAcompteData } from '@/types/facture';
+import { paymentWalletService } from '@/services/payment-wallet.service';
 
 export function ModalFactureSuccess() {
   const { isOpen, factureId, closeModal } = useFactureSuccessStore();
@@ -83,6 +84,10 @@ export function ModalFactureSuccess() {
       // Reset initial complet seulement à la PREMIÈRE ouverture
       if (!hasInitialized) {
         console.log('🎯 [FACTURE-SUCCESS] Initialisation complète');
+
+        // 🏁 Reset session de paiement pour nouvelle facture
+        paymentWalletService.forceEndSession();
+
         setPaymentError('');
         setPaymentSuccess(false);
         setSelectedPaymentMethod(null);
