@@ -19,7 +19,6 @@ import {
 } from 'lucide-react';
 import { recuService } from '@/services/recu.service';
 import { useAuth } from '@/contexts/AuthContext';
-import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { FilterHeaderPaiementsGlass } from './FilterHeaderPaiementsGlass';
@@ -61,7 +60,6 @@ export function ListePaiements({
   onDownloadRecu
 }: ListePaiementsProps) {
   const { user } = useAuth();
-  const { isMobile, isTablet } = useBreakpoint();
 
   const [paiements, setPaiements] = useState<Paiement[]>([]);
   const [loading, setLoading] = useState(true);

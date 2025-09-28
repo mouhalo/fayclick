@@ -5,28 +5,21 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Receipt,
   User,
-  Calendar,
   Package,
-  DollarSign,
   AlertCircle,
   Loader,
   Eye,
   EyeOff,
   ChevronDown,
-  FileText,
   CheckCircle,
   CreditCard,
-  Phone,
-  Download,
   Share,
   Copy,
   Check
 } from 'lucide-react';
-import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { decodeFactureParams } from '@/lib/url-encoder';
 import { RecuDetails, WalletDisplayConfig } from '@/types/recu';
 import { recuService } from '@/services/recu.service';
-import Image from 'next/image';
 
 interface RecuPubliqueClientProps {
   token: string;
@@ -61,7 +54,7 @@ const walletDisplayConfig: WalletDisplayConfig = {
 };
 
 export default function RecuPubliqueClient({ token }: RecuPubliqueClientProps) {
-  const { isMobile, isMobileLarge } = useBreakpoint();
+
   const [recu, setRecu] = useState<RecuDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

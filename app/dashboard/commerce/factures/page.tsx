@@ -8,7 +8,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { Receipt, AlertCircle, Loader } from 'lucide-react';
+import { AlertCircle, Loader } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { GlassHeader } from '@/components/ui/GlassHeader';
 import { StatsCardsFacturesGlass } from '@/components/factures/StatsCardsFacturesGlass';
@@ -267,10 +267,12 @@ export default function FacturesGlassPage() {
         message: 'Téléchargement du reçu démarré'
       });
     } catch (err) {
+      console.error('❌ Erreur téléchargement reçu:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Erreur inconnue';
       setToast({
         isOpen: true,
         type: 'error',
-        message: 'Impossible de télécharger le reçu'
+        message: `Impossible de télécharger le reçu: ${errorMessage}`
       });
     }
   };

@@ -23,7 +23,7 @@ import { recuService } from '@/services/recu.service';
 import { ModalChoixPaiement } from './ModalChoixPaiement';
 import { ModalPaiementQRCode } from './ModalPaiementQRCode';
 import { ModalRecuGenere } from '@/components/recu';
-import { PaymentMethodSelector, PaymentMethodError } from './PaymentMethodSelector';
+import { PaymentMethodSelector } from './PaymentMethodSelector';
 import { ModalConfirmationPaiement } from './ModalConfirmationPaiement';
 import { PaymentMethod, PaymentContext } from '@/types/payment-wallet';
 
@@ -289,7 +289,7 @@ export function ModalPaiement({
           const recuResponse = await recuService.creerRecu({
             id_facture: facture.facture.id_facture,
             id_structure: facture.facture.id_structure,
-            methode_paiement: 'CASH', // Le service convertira vers free-money
+            methode_paiement: 'CASH', // Le service convertira vers espèces
             montant_paye: montants.montantSaisi, // Montant de l'acompte
             numero_recu: numeroRecu,
             reference_transaction: acompteData.transaction_id,
@@ -321,7 +321,7 @@ export function ModalPaiement({
             error: recuError,
             message: recuError instanceof Error ? recuError.message : 'Erreur inconnue',
             factureId: facture.facture.id_facture,
-            numeroRecu: numeroRecu
+            numeroRecu: facture.facture.numrecu
           });
           // Ne pas bloquer le flow principal, le reçu est optionnel
           // Mais informer l'utilisateur que le reçu n'a pas pu être généré
@@ -436,7 +436,7 @@ export function ModalPaiement({
             error: recuError,
             message: recuError instanceof Error ? recuError.message : 'Erreur inconnue',
             factureId: facture.facture.id_facture,
-            numeroRecu: numeroRecu
+            numeroRecu: facture.facture.numrecu
           });
           // Ne pas bloquer le flow principal, le reçu est optionnel
           console.warn('⚠️ [ACOMPTE] Le paiement a été enregistré mais le reçu n\'a pas pu être généré');
@@ -465,8 +465,7 @@ export function ModalPaiement({
       factureId: null,
       walletUsed: null,
       montantPaye: 0,
-      numeroRecu: null,
-      referenceTransaction: null,
+      referenceTransaction: undefined,
       typePaiement: undefined,
       montantFactureTotal: undefined
     });

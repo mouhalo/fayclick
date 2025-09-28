@@ -11,6 +11,8 @@ export default function DebugTokenPage() {
       { token: 'MTM5LTMxMA', expected: { id_structure: 139, id_facture: 310 } },
       { token: encodeFactureParams(139, 310), expected: { id_structure: 139, id_facture: 310 } },
       { token: encodeFactureParams(123, 456), expected: { id_structure: 123, id_facture: 456 } },
+      // Test du format legacy avec ":" encodé en Base64
+      { token: btoa('139:344'), expected: { id_structure: 139, id_facture: 344 } },
     ];
 
     const testResults = tests.map(test => {

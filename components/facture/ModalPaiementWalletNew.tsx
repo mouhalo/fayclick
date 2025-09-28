@@ -9,7 +9,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Phone, CheckCircle, ArrowRight, Loader2 } from 'lucide-react';
 
-export type WalletType = 'OM' | 'WAVE' | 'FREE';
+export type WalletType = 'OM' | 'WAVE' | 'FREE' | 'CASH';
 
 interface WalletOption {
   id: WalletType;
