@@ -24,6 +24,7 @@ import { ModalChoixPaiement } from './ModalChoixPaiement';
 import { ModalPaiementQRCode } from './ModalPaiementQRCode';
 import { ModalRecuGenere } from '@/components/recu';
 import { PaymentMethodSelector, PaymentMethodError } from './PaymentMethodSelector';
+import { ModalConfirmationPaiement } from './ModalConfirmationPaiement';
 import { PaymentMethod, PaymentContext } from '@/types/payment-wallet';
 
 interface ModalPaiementProps {
@@ -53,6 +54,8 @@ export function ModalPaiement({
   // États pour les nouveaux modals
   const [showChoixPaiement, setShowChoixPaiement] = useState(false);
   const [showQRCode, setShowQRCode] = useState(false);
+  const [showConfirmationPaiement, setShowConfirmationPaiement] = useState(false);
+  const [pendingPaymentMethod, setPendingPaymentMethod] = useState<PaymentMethod | null>(null);
 
   // État pour le modal de reçu d'acompte
   const [modalRecuAcompte, setModalRecuAcompte] = useState<{
@@ -86,6 +89,8 @@ export function ModalPaiement({
       setSuccess(false);
       setShowChoixPaiement(false);
       setShowQRCode(false);
+      setShowConfirmationPaiement(false);
+      setPendingPaymentMethod(null);
       setWalletPaymentData(null);
     }
   }, [isOpen, facture]);
@@ -180,7 +185,7 @@ export function ModalPaiement({
     return `CASH-${facture?.facture.id_structure}-${day}${month}${year}${hours}${minutes}`;
   };
 
-  // Traitement direct du paiement selon le mode sélectionné (nouveau flow)
+  // Afficher le modal de confirmation avant traitement (nouveau flow)
   const handleMethodAction = async (method: PaymentMethod) => {
     if (!facture || !montants) return;
 
@@ -195,16 +200,32 @@ export function ModalPaiement({
       return;
     }
 
-    // Définir le mode de paiement et traiter
+    // Stocker le mode de paiement sélectionné et afficher la confirmation
+    setPendingPaymentMethod(method);
     setSelectedPaymentMethod(method);
+    setShowConfirmationPaiement(true);
+  };
 
-    if (method === 'CASH') {
+  // Traitement du paiement après confirmation
+  const handleConfirmPayment = async () => {
+    if (!facture || !montants || !pendingPaymentMethod) return;
+
+    setShowConfirmationPaiement(false);
+
+    if (pendingPaymentMethod === 'CASH') {
       // Paiement cash - traitement direct
       await processCashPayment();
     } else {
       // Paiement wallet - ouvrir le modal QR Code
       setShowQRCode(true);
     }
+  };
+
+  // Fermer le modal de confirmation
+  const handleCancelConfirmation = () => {
+    setShowConfirmationPaiement(false);
+    setPendingPaymentMethod(null);
+    setSelectedPaymentMethod(null);
   };
 
   // Traitement du paiement selon le mode (ancien flow uniquement)
@@ -830,6 +851,19 @@ export function ModalPaiement({
             onSelectMethod={handleSelectPaymentMethod}
             montantAcompte={montants.montantSaisi}
             nomClient={facture.facture.nom_client}
+          />
+        )}
+
+        {/* Modal de confirmation de paiement */}
+        {facture && montants && pendingPaymentMethod && (
+          <ModalConfirmationPaiement
+            isOpen={showConfirmationPaiement}
+            onClose={handleCancelConfirmation}
+            onConfirm={handleConfirmPayment}
+            facture={facture}
+            montantAcompte={montants.montantSaisi}
+            paymentMethod={pendingPaymentMethod}
+            disabled={loading}
           />
         )}
 
