@@ -308,7 +308,7 @@ export function ModalAjoutProduitNew({
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+        className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[110] p-4"
         onClick={onClose}
       >
         <motion.div
@@ -316,24 +316,31 @@ export function ModalAjoutProduitNew({
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.9, opacity: 0 }}
           onClick={(e) => e.stopPropagation()}
-          className="bg-white rounded-xl w-full max-w-4xl max-h-[90vh] overflow-hidden shadow-2xl"
+          className="bg-gradient-to-br from-white/95 via-sky-50/95 to-blue-50/95 backdrop-blur-xl rounded-3xl w-full max-w-4xl max-h-[90vh] overflow-hidden shadow-2xl border border-white/50"
         >
-          {/* Header avec onglets */}
-          <div className="bg-sky-50/50 backdrop-blur-sm border-b border-sky-200/50 p-6">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-bold text-slate-900">
+          {/* Header avec onglets - Glassmorphisme */}
+          <div className="bg-gradient-to-r from-sky-400/90 to-blue-500/90 backdrop-blur-lg p-6 text-white relative overflow-hidden">
+            {/* Pattern décoratif */}
+            <div className="absolute inset-0 opacity-20">
+              <div className="absolute inset-0" style={{
+                backgroundImage: 'radial-gradient(circle at 20% 50%, white 1px, transparent 1px)',
+                backgroundSize: '20px 20px'
+              }} />
+            </div>
+            <div className="relative z-10 flex justify-between items-center mb-4">
+              <h3 className="text-xl font-bold text-white">
                 {produitToEdit ? 'Modifier le produit' : 'Ajouter un produit'}
               </h3>
               <button
                 onClick={onClose}
-                className="p-2 hover:bg-sky-100/50 rounded-lg transition-colors"
+                className="w-8 h-8 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-white/30 transition-colors"
               >
-                <X className="w-5 h-5 text-slate-500" />
+                <X className="w-5 h-5 text-white" />
               </button>
             </div>
 
             {/* Navigation onglets */}
-            <div className="flex space-x-1 bg-sky-100/30 backdrop-blur-sm rounded-lg p-1">
+            <div className="relative z-10 flex space-x-1 bg-white/10 backdrop-blur-sm rounded-xl p-1">
               {ongletsAffiches.map((onglet) => {
                 const shortLabels = {
                   'informations': 'Infos',
@@ -345,10 +352,10 @@ export function ModalAjoutProduitNew({
                   <button
                     key={onglet.id}
                     onClick={() => setOngletActif(onglet.id)}
-                    className={`flex-1 flex flex-col items-center justify-center gap-1 px-3 py-2.5 rounded-md text-xs font-medium transition-all ${
+                    className={`flex-1 flex flex-col items-center justify-center gap-1 px-3 py-2.5 rounded-lg text-xs font-medium transition-all ${
                       ongletActif === onglet.id
-                        ? 'bg-white shadow-sm text-sky-900'
-                        : 'text-sky-700 hover:text-sky-900 hover:bg-sky-50/50'
+                        ? 'bg-white/95 shadow-lg text-sky-600'
+                        : 'text-white/80 hover:text-white hover:bg-white/20'
                     }`}
                   >
                     <onglet.icon className="w-4 h-4" />
@@ -379,8 +386,8 @@ export function ModalAjoutProduitNew({
                       type="text"
                       value={formData.nom_produit}
                       onChange={(e) => handleInputChange('nom_produit', e.target.value)}
-                      className={`w-full px-3 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent backdrop-blur-sm ${
-                        errors.nom_produit ? 'border-red-500' : 'border-sky-300/50'
+                      className={`w-full px-4 py-3 border rounded-xl bg-white/60 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-transparent transition-all hover:bg-white/70 ${
+                        errors.nom_produit ? 'border-red-400 bg-red-50/60' : 'border-sky-200'
                       }`}
                       placeholder={`Ex: ${formData.est_service ? 'Consultation technique' : 'Samsung Galaxy A10'}`}
                     />
@@ -427,8 +434,8 @@ export function ModalAjoutProduitNew({
                         type="number"
                         value={formData.cout_revient}
                         onChange={(e) => handleInputChange('cout_revient', parseFloat(e.target.value) || 0)}
-                        className={`w-full px-3 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent ${
-                          errors.cout_revient ? 'border-red-500' : 'border-sky-300/50'
+                        className={`w-full px-4 py-3 border rounded-xl bg-white/60 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-transparent transition-all hover:bg-white/70 ${
+                          errors.cout_revient ? 'border-red-400 bg-red-50/60' : 'border-sky-200'
                         }`}
                         min="0"
                         step="0.01"
@@ -446,8 +453,8 @@ export function ModalAjoutProduitNew({
                         type="number"
                         value={formData.prix_vente}
                         onChange={(e) => handleInputChange('prix_vente', parseFloat(e.target.value) || 0)}
-                        className={`w-full px-3 py-2.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent ${
-                          errors.prix_vente ? 'border-red-500' : 'border-sky-300/50'
+                        className={`w-full px-4 py-3 border rounded-xl bg-white/60 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-transparent transition-all hover:bg-white/70 ${
+                          errors.prix_vente ? 'border-red-400 bg-red-50/60' : 'border-sky-200'
                         }`}
                         min="0"
                         step="0.01"
@@ -460,7 +467,7 @@ export function ModalAjoutProduitNew({
 
                   {/* Calcul de la marge */}
                   {formData.cout_revient > 0 && formData.prix_vente > 0 && (
-                    <div className="bg-sky-50/50 backdrop-blur-sm p-4 rounded-lg border border-sky-200/50">
+                    <div className="bg-gradient-to-r from-emerald-50/60 to-green-50/60 backdrop-blur-sm p-4 rounded-xl border border-emerald-200/50 shadow-sm">
                       <div className="flex items-center justify-between text-sm">
                         <span className="text-slate-600">Marge bénéficiaire:</span>
                         <div className="text-right">
@@ -484,7 +491,7 @@ export function ModalAjoutProduitNew({
                     <select
                       value={formData.nom_categorie}
                       onChange={(e) => handleInputChange('nom_categorie', e.target.value)}
-                      className="w-full px-3 py-2.5 border border-sky-300/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                      className="w-full px-4 py-3 border border-sky-200 rounded-xl bg-white/60 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-transparent transition-all hover:bg-white/70"
                     >
                       <option value="">Sélectionner une catégorie</option>
                       {categories.map(cat => (
@@ -503,7 +510,7 @@ export function ModalAjoutProduitNew({
                       value={formData.description}
                       onChange={(e) => handleInputChange('description', e.target.value)}
                       rows={3}
-                      className="w-full px-3 py-2.5 border border-sky-300/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                      className="w-full px-4 py-3 border border-sky-200 rounded-xl bg-white/60 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-transparent transition-all hover:bg-white/70 resize-none"
                       placeholder={`Décrivez votre ${formData.est_service ? 'service' : 'produit'}...`}
                     />
                   </div>
@@ -513,14 +520,14 @@ export function ModalAjoutProduitNew({
                     <button
                       type="button"
                       onClick={onClose}
-                      className="flex-1 px-4 py-2.5 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors font-medium"
+                      className="flex-1 px-4 py-3 bg-white/60 backdrop-blur-sm border-2 border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50/60 hover:border-gray-300 transition-all font-medium"
                     >
                       Annuler
                     </button>
                     <button
                       type="submit"
                       disabled={isLoading}
-                      className="flex-1 px-4 py-2.5 bg-sky-600 text-white rounded-lg hover:bg-sky-700 transition-colors font-medium flex items-center justify-center gap-2 disabled:opacity-50"
+                      className="flex-1 px-4 py-3 bg-gradient-to-r from-sky-500 to-blue-600 text-white rounded-xl hover:from-sky-600 hover:to-blue-700 transition-all font-medium flex items-center justify-center gap-2 disabled:opacity-50 shadow-lg hover:shadow-xl"
                     >
                       {isLoading ? (
                         <Loader2 className="w-4 h-4 animate-spin" />
@@ -546,7 +553,7 @@ export function ModalAjoutProduitNew({
                 animate={{ opacity: 1, x: 0 }}
                 className="space-y-6"
               >
-                <div className="bg-gradient-to-r from-sky-50 to-blue-50 backdrop-blur-sm p-4 rounded-lg border border-sky-200/50">
+                <div className="bg-gradient-to-r from-sky-50/70 to-blue-50/70 backdrop-blur-sm p-5 rounded-xl border border-sky-200/50 shadow-sm">
                   <h4 className="font-semibold text-slate-900 mb-2">Produit: {produitToEdit?.nom_produit}</h4>
                   <p className="text-sm text-slate-600">Stock actuel: <span className="font-medium">{produitToEdit?.niveau_stock || produitToEdit?.stock_actuel || 0} unités</span></p>
                 </div>
@@ -593,7 +600,7 @@ export function ModalAjoutProduitNew({
                         type="number"
                         value={stockForm.quantite}
                         onChange={(e) => setStockForm(prev => ({ ...prev, quantite: parseInt(e.target.value) || 0 }))}
-                        className="w-full px-3 py-2.5 border border-sky-300/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                        className="w-full px-4 py-3 border border-sky-200 rounded-xl bg-white/60 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-transparent transition-all hover:bg-white/70"
                         min="1"
                         required
                       />
@@ -606,7 +613,7 @@ export function ModalAjoutProduitNew({
                         type="number"
                         value={stockForm.prix_unitaire}
                         onChange={(e) => setStockForm(prev => ({ ...prev, prix_unitaire: parseFloat(e.target.value) || 0 }))}
-                        className="w-full px-3 py-2.5 border border-sky-300/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                        className="w-full px-4 py-3 border border-sky-200 rounded-xl bg-white/60 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-transparent transition-all hover:bg-white/70"
                         min="0"
                         step="0.01"
                         required
@@ -630,7 +637,7 @@ export function ModalAjoutProduitNew({
 
                   {/* Total calculé */}
                   {stockForm.quantite > 0 && stockForm.prix_unitaire > 0 && (
-                    <div className="bg-orange-50/50 backdrop-blur-sm p-4 rounded-lg border border-orange-200/50">
+                    <div className="bg-gradient-to-r from-amber-50/60 to-orange-50/60 backdrop-blur-sm p-4 rounded-xl border border-orange-200/50 shadow-sm">
                       <div className="flex items-center justify-between">
                         <span className="text-sm text-slate-600">Total {stockForm.type_mouvement.toLowerCase()}:</span>
                         <div className="text-lg font-semibold text-orange-900">
@@ -644,7 +651,7 @@ export function ModalAjoutProduitNew({
                   <button
                     type="submit"
                     disabled={isLoadingStock || stockForm.quantite <= 0 || stockForm.prix_unitaire <= 0}
-                    className="w-full px-4 py-3 bg-sky-600 text-white rounded-lg hover:bg-sky-700 transition-colors font-medium flex items-center justify-center gap-2 disabled:opacity-50"
+                    className="w-full px-4 py-3 bg-gradient-to-r from-sky-500 to-blue-600 text-white rounded-xl hover:from-sky-600 hover:to-blue-700 transition-all font-medium flex items-center justify-center gap-2 disabled:opacity-50 shadow-lg hover:shadow-xl"
                   >
                     {isLoadingStock ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
@@ -672,7 +679,7 @@ export function ModalAjoutProduitNew({
                   <>
                     {/* Statistiques */}
                     <div className="grid grid-cols-2 gap-4">
-                      <div className="bg-gradient-to-r from-green-50/80 to-green-100/80 backdrop-blur-sm p-4 rounded-lg border border-green-200/50">
+                      <div className="bg-gradient-to-r from-emerald-50/70 to-green-50/70 backdrop-blur-sm p-5 rounded-xl border border-emerald-200/50 shadow-sm">
                         <div className="flex items-center gap-2 mb-2">
                           <TrendingUp className="w-5 h-5 text-green-600" />
                           <span className="font-medium text-green-800">Total Entrées</span>
@@ -680,7 +687,7 @@ export function ModalAjoutProduitNew({
                         <div className="text-lg font-bold text-green-900">{historique.totalEntrees} unités</div>
                         <div className="text-sm text-green-700">{formatMontant(historique.totalEntriesMontant)}</div>
                       </div>
-                      <div className="bg-gradient-to-r from-red-50/80 to-red-100/80 backdrop-blur-sm p-4 rounded-lg border border-red-200/50">
+                      <div className="bg-gradient-to-r from-rose-50/70 to-red-50/70 backdrop-blur-sm p-5 rounded-xl border border-rose-200/50 shadow-sm">
                         <div className="flex items-center gap-2 mb-2">
                           <TrendingDown className="w-5 h-5 text-red-600" />
                           <span className="font-medium text-red-800">Total Sorties</span>
@@ -695,7 +702,7 @@ export function ModalAjoutProduitNew({
                       <div className="overflow-x-auto">
                         <table className="w-full border-collapse">
                           <thead>
-                            <tr className="bg-sky-50/50 backdrop-blur-sm border-b border-sky-200/50">
+                            <tr className="bg-gradient-to-r from-sky-50/70 to-blue-50/70 backdrop-blur-sm border-b border-sky-200/50">
                               <th className="text-left p-3 text-sm font-medium text-slate-700 min-w-[100px]">Date</th>
                               <th className="text-left p-3 text-sm font-medium text-slate-700 min-w-[80px]">Type</th>
                               <th className="text-left p-3 text-sm font-medium text-slate-700 min-w-[80px]">Quantité</th>
@@ -705,7 +712,7 @@ export function ModalAjoutProduitNew({
                           </thead>
                           <tbody>
                             {historique.mouvements.map((mouvement, index) => (
-                              <tr key={index} className="border-b border-slate-100 hover:bg-slate-50/30">
+                              <tr key={index} className="border-b border-sky-100 hover:bg-sky-50/30 transition-colors">
                                 <td className="p-3 text-sm text-slate-600">
                                   {new Date(mouvement.tms_create).toLocaleDateString('fr-FR')}
                                 </td>
@@ -758,18 +765,18 @@ export function ModalAjoutProduitNew({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4"
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[120] p-4"
           onClick={() => setShowStockSuccessModal(false)}
         >
           <motion.div
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.9, opacity: 0 }}
-            className="bg-white rounded-xl p-6 max-w-md w-full shadow-2xl"
+            className="bg-gradient-to-br from-white/95 via-emerald-50/95 to-green-50/95 backdrop-blur-xl rounded-3xl p-8 max-w-md w-full shadow-2xl border border-white/50"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="text-center">
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <div className="w-20 h-20 bg-gradient-to-br from-emerald-100/80 to-green-100/80 backdrop-blur-sm rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg border border-emerald-200/50">
                 {lastStockMovement.type_mouvement === 'ENTREE' ? (
                   <TrendingUp className="w-8 h-8 text-green-600" />
                 ) : (
@@ -795,7 +802,7 @@ export function ModalAjoutProduitNew({
               </div>
               <button
                 onClick={() => setShowStockSuccessModal(false)}
-                className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+                className="w-full px-6 py-3 bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-600 hover:to-blue-700 text-white rounded-xl font-medium transition-all shadow-lg hover:shadow-xl"
               >
                 Continuer
               </button>
