@@ -97,11 +97,16 @@ export function decodeFactureParams(encoded: string): { id_structure: number; id
       }
     }
     
-    // Parser le format simple "structure-facture"
-    const parts = decoded.split('-');
+    // Parser le format "structure-facture" ou "structure:facture" (legacy)
+    let parts = decoded.split('-');
     if (parts.length !== 2) {
-      console.warn('⚠️ Format décodé invalide:', decoded);
-      return null;
+      // Essayer avec le format legacy utilisant ":"
+      parts = decoded.split(':');
+      if (parts.length !== 2) {
+        console.warn('⚠️ Format décodé invalide:', decoded);
+        return null;
+      }
+      console.log('📅 Format legacy détecté (avec :):', decoded);
     }
     
     // Valider et convertir les IDs

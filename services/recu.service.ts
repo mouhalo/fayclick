@@ -20,7 +20,7 @@ function convertWalletType(wallet: string): string {
     'free-money': 'free-money'
   };
 
-  return walletMap[wallet] || 'free-money';
+  return walletMap[wallet] || 'espèces';
 }
 
 // Interface pour les données de création de reçu
