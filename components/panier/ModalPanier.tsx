@@ -383,7 +383,7 @@ export function ModalPanier() {
                   ) : (
                     <>
                       <CreditCard className="w-5 h-5" />
-                      Commander - {montants.montant_net.toLocaleString('fr-FR')} FCFA
+                      Créer - {montants.montant_net.toLocaleString('fr-FR')} FCFA
                     </>
                   )}
                 </motion.button>
