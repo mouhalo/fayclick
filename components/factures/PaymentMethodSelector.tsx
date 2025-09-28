@@ -12,9 +12,8 @@ import { PaymentMethod } from '@/types/payment-wallet';
 import Image from 'next/image';
 
 interface PaymentMethodSelectorProps {
-  selectedMethod?: PaymentMethod | null; // Optionnel maintenant car on a un défaut
-  onMethodAction: (method: PaymentMethod) => void; // Renommé pour refléter l'action directe
-  onCancel: () => void; // Nouvelle prop pour le bouton annuler
+  onMethodAction: (method: PaymentMethod) => void; // Action directe pour chaque méthode
+  onCancel: () => void; // Bouton annuler
   availableMethods?: PaymentMethod[];
   size?: 'sm' | 'md' | 'lg';
   disabled?: boolean;
@@ -33,7 +32,6 @@ interface PaymentMethodConfig {
 }
 
 export function PaymentMethodSelector({
-  selectedMethod = 'CASH', // Cash par défaut
   onMethodAction,
   onCancel,
   availableMethods = ['CASH', 'OM', 'WAVE', 'FREE'],
@@ -151,8 +149,11 @@ export function PaymentMethodSelector({
           : `${method.borderColor} hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1`
         }
         ${isMainAction ? 'ring-2 ring-green-300 border-green-400' : ''}
-        flex flex-col items-center text-center justify-center
-        group min-h-[100px]
+        ${isMainAction
+          ? 'flex items-center justify-center space-x-3 min-h-[60px]'
+          : 'flex flex-col items-center text-center justify-center min-h-[100px]'
+        }
+        group
       `}
       aria-label={`Payer ${formatMontant(montant)} avec ${method.name}`}
     >
@@ -165,39 +166,79 @@ export function PaymentMethodSelector({
         </div>
       )}
 
-      {/* Icône ou logo */}
-      <div className={`mb-3 ${method.color} group-hover:scale-110 transition-transform`}>
-        {method.logo ? (
-          <div className={`${sizeStyles.logo} relative bg-white rounded-lg p-1 shadow-sm`}>
-            <Image
-              src={method.logo}
-              alt={method.name}
-              fill
-              className="object-contain p-0.5"
-              sizes="40px"
-            />
+      {/* Layout pour bouton principal (horizontal) */}
+      {isMainAction ? (
+        <>
+          {/* Icône ou logo - taille réduite pour layout horizontal */}
+          <div className={`${method.color} group-hover:scale-110 transition-transform`}>
+            {method.logo ? (
+              <div className="w-8 h-8 relative bg-white rounded-lg p-1 shadow-sm">
+                <Image
+                  src={method.logo}
+                  alt={method.name}
+                  fill
+                  className="object-contain p-0.5"
+                  sizes="32px"
+                />
+              </div>
+            ) : (
+              <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center shadow-sm">
+                {method.icon}
+              </div>
+            )}
           </div>
-        ) : (
-          <div className={`${sizeStyles.logo} bg-white rounded-lg flex items-center justify-center shadow-sm`}>
-            {method.icon}
-          </div>
-        )}
-      </div>
 
-      {/* Nom et action */}
-      <div className="space-y-1">
-        <p className={`${sizeStyles.title} font-bold text-gray-900 leading-tight`}>
-          {method.name}
-        </p>
-        {montant > 0 && (
-          <p className={`${sizeStyles.text} text-gray-600 leading-tight`}>
-            {formatMontant(montant)}
-          </p>
-        )}
-        <p className="text-xs text-gray-500 leading-tight">
-          {method.id === 'CASH' ? 'Paiement immédiat' : 'Générer QR code'}
-        </p>
-      </div>
+          {/* Texte horizontal */}
+          <div className="flex-1 text-left">
+            <p className={`${sizeStyles.title} font-bold text-gray-900 leading-tight`}>
+              {method.name}
+            </p>
+            {montant > 0 && (
+              <p className={`${sizeStyles.text} text-gray-600 leading-tight`}>
+                {formatMontant(montant)}
+              </p>
+            )}
+            <p className="text-xs text-gray-500 leading-tight">
+              Paiement immédiat
+            </p>
+          </div>
+        </>
+      ) : (
+        <>
+          {/* Layout pour boutons secondaires (vertical) */}
+          <div className={`mb-3 ${method.color} group-hover:scale-110 transition-transform`}>
+            {method.logo ? (
+              <div className={`${sizeStyles.logo} relative bg-white rounded-lg p-1 shadow-sm`}>
+                <Image
+                  src={method.logo}
+                  alt={method.name}
+                  fill
+                  className="object-contain p-0.5"
+                  sizes="40px"
+                />
+              </div>
+            ) : (
+              <div className={`${sizeStyles.logo} bg-white rounded-lg flex items-center justify-center shadow-sm`}>
+                {method.icon}
+              </div>
+            )}
+          </div>
+
+          <div className="space-y-1">
+            <p className={`${sizeStyles.title} font-bold text-gray-900 leading-tight`}>
+              {method.name}
+            </p>
+            {montant > 0 && (
+              <p className={`${sizeStyles.text} text-gray-600 leading-tight`}>
+                {formatMontant(montant)}
+              </p>
+            )}
+            <p className="text-xs text-gray-500 leading-tight">
+              Générer QR code
+            </p>
+          </div>
+        </>
+      )}
     </motion.button>
   );
 
