@@ -23,6 +23,7 @@ import { recuService } from '@/services/recu.service';
 import { ModalChoixPaiement } from './ModalChoixPaiement';
 import { ModalPaiementQRCode } from './ModalPaiementQRCode';
 import { ModalRecuGenere } from '@/components/recu';
+import { PaymentMethodSelector, PaymentMethodError } from './PaymentMethodSelector';
 import { PaymentMethod, PaymentContext } from '@/types/payment-wallet';
 
 interface ModalPaiementProps {
@@ -30,13 +31,21 @@ interface ModalPaiementProps {
   onClose: () => void;
   facture: FactureComplete | null;
   onSuccess?: (nouvelleFacture: unknown) => void;
+  useIntegratedPaymentSelection?: boolean; // Nouveau prop pour activer/désactiver la sélection intégrée
 }
 
-export function ModalPaiement({ isOpen, onClose, facture, onSuccess }: ModalPaiementProps) {
+export function ModalPaiement({
+  isOpen,
+  onClose,
+  facture,
+  onSuccess,
+  useIntegratedPaymentSelection = true
+}: ModalPaiementProps) {
   const { isMobile, isMobileLarge } = useBreakpoint();
 
   // États principaux
   const [montantAcompte, setMontantAcompte] = useState<string>('');
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethod | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>('');
   const [success, setSuccess] = useState(false);
@@ -44,7 +53,6 @@ export function ModalPaiement({ isOpen, onClose, facture, onSuccess }: ModalPaie
   // États pour les nouveaux modals
   const [showChoixPaiement, setShowChoixPaiement] = useState(false);
   const [showQRCode, setShowQRCode] = useState(false);
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethod | null>(null);
 
   // État pour le modal de reçu d'acompte
   const [modalRecuAcompte, setModalRecuAcompte] = useState<{
@@ -73,11 +81,11 @@ export function ModalPaiement({ isOpen, onClose, facture, onSuccess }: ModalPaie
   useEffect(() => {
     if (isOpen && facture) {
       setMontantAcompte('');
+      setSelectedPaymentMethod(null);
       setError('');
       setSuccess(false);
       setShowChoixPaiement(false);
       setShowQRCode(false);
-      setSelectedPaymentMethod(null);
       setWalletPaymentData(null);
     }
   }, [isOpen, facture]);
@@ -103,22 +111,27 @@ export function ModalPaiement({ isOpen, onClose, facture, onSuccess }: ModalPaie
   // Validation
   const validation = useMemo(() => {
     if (!facture || !montants) return { isValid: false, errors: [] };
-    
+
     const errors: string[] = [];
-    
+
     if (montants.montantSaisi <= 0) {
       errors.push('Le montant doit être supérieur à 0');
     }
-    
+
     if (montants.montantSaisi > montants.montantRestant) {
       errors.push('Le montant ne peut pas dépasser le restant à payer');
     }
-    
+
+    if (useIntegratedPaymentSelection && !selectedPaymentMethod) {
+      errors.push('Veuillez sélectionner un mode de paiement');
+    }
+
     return {
-      isValid: errors.length === 0 && montants.montantSaisi > 0,
+      isValid: errors.length === 0 && montants.montantSaisi > 0 &&
+        (!useIntegratedPaymentSelection || selectedPaymentMethod !== null),
       errors
     };
-  }, [facture, montants]);
+  }, [facture, montants, selectedPaymentMethod, useIntegratedPaymentSelection]);
 
   // Styles responsives
   const getModalStyles = () => {
@@ -166,21 +179,34 @@ export function ModalPaiement({ isOpen, onClose, facture, onSuccess }: ModalPaie
     return `CASH-${facture?.facture.id_structure}-${day}${month}${year}${hours}${minutes}`;
   };
 
-  // Ouvrir le modal de choix de paiement
+  // Traitement du paiement selon le mode (intégré ou ancien flow)
   const handleSubmit = async () => {
     if (!facture || !validation.isValid || !montants) return;
 
-    // Ouvrir le modal de choix de paiement
-    setShowChoixPaiement(true);
+    if (useIntegratedPaymentSelection) {
+      // Nouveau flow intégré
+      if (!selectedPaymentMethod) return;
+
+      if (selectedPaymentMethod === 'CASH') {
+        // Paiement cash - traitement direct
+        await processCashPayment();
+      } else {
+        // Paiement wallet - ouvrir le modal QR Code
+        setShowQRCode(true);
+      }
+    } else {
+      // Ancien flow avec modal de choix séparé
+      setShowChoixPaiement(true);
+    }
   };
 
-  // Gérer la sélection du mode de paiement
+  // Gérer la sélection du mode de paiement (gardé pour compatibilité avec l'ancien modal)
   const handleSelectPaymentMethod = async (method: PaymentMethod) => {
     setSelectedPaymentMethod(method);
     setShowChoixPaiement(false);
 
     if (method === 'CASH') {
-      // Paiement cash - utiliser l'ancien système avec les nouvelles données
+      // Paiement cash - traitement direct
       await processCashPayment();
     } else {
       // Paiement wallet - ouvrir le modal QR Code
@@ -455,6 +481,49 @@ export function ModalPaiement({ isOpen, onClose, facture, onSuccess }: ModalPaie
     return raccourcis;
   };
 
+  // Générer le texte dynamique du bouton selon le mode de paiement
+  const getButtonText = () => {
+    if (!useIntegratedPaymentSelection) {
+      // Ancien flow : texte générique
+      return montants?.estSoldee ? 'Solder la facture' : 'Ajouter l\'acompte';
+    }
+
+    if (!selectedPaymentMethod || !montants) return 'Sélectionner un mode de paiement';
+
+    const action = montants.estSoldee ? 'Solder' : 'Payer';
+    const montant = montants.montantSaisi.toLocaleString('fr-FR');
+
+    switch (selectedPaymentMethod) {
+      case 'CASH':
+        return `${action} ${montant} FCFA en espèces`;
+      case 'OM':
+        return `${action} ${montant} FCFA avec Orange Money`;
+      case 'WAVE':
+        return `${action} ${montant} FCFA avec Wave`;
+      case 'FREE':
+        return `${action} ${montant} FCFA avec Free Money`;
+      default:
+        return `${action} ${montant} FCFA`;
+    }
+  };
+
+  // Obtenir l'icône selon le mode de paiement
+  const getButtonIcon = () => {
+    if (!useIntegratedPaymentSelection) {
+      // Ancien flow : icône générique
+      return <CreditCard className={styles.icon} />;
+    }
+
+    if (!selectedPaymentMethod) return <CreditCard className={styles.icon} />;
+
+    switch (selectedPaymentMethod) {
+      case 'CASH':
+        return <DollarSign className={styles.icon} />;
+      default:
+        return <CreditCard className={styles.icon} />;
+    }
+  };
+
   if (!isOpen || !facture) return null;
 
   return (
@@ -624,6 +693,17 @@ export function ModalPaiement({ isOpen, onClose, facture, onSuccess }: ModalPaie
                   ))}
                 </div>
 
+                {/* Sélection du mode de paiement (nouveau flow uniquement) */}
+                {useIntegratedPaymentSelection && (
+                  <PaymentMethodSelector
+                    selectedMethod={selectedPaymentMethod}
+                    onMethodSelect={setSelectedPaymentMethod}
+                    size="md"
+                    layout="grid"
+                    disabled={loading}
+                  />
+                )}
+
                 {/* Aperçu des calculs */}
                 {montants && montants.montantSaisi > 0 && (
                   <div className="bg-emerald-50/50 rounded-xl p-4">
@@ -706,10 +786,8 @@ export function ModalPaiement({ isOpen, onClose, facture, onSuccess }: ModalPaie
                     </>
                   ) : (
                     <>
-                      <CreditCard className={styles.icon} />
-                      <span>
-                        {montants?.estSoldee ? 'Solder la facture' : 'Ajouter l&apos;acompte'}
-                      </span>
+                      {getButtonIcon()}
+                      <span>{getButtonText()}</span>
                     </>
                   )}
                 </button>
