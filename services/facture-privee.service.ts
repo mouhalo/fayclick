@@ -278,6 +278,17 @@ class FacturePriveeService {
   }
 
   /**
+   * Alias pour supprimerFacture - pour compatibilité avec l'interface
+   */
+  async deleteFacturePrivee(idFacture: number): Promise<SupprimerFactureResponse> {
+    const user = this.authService.getUser();
+    if (!user?.id_structure) {
+      throw new Error('Utilisateur non authentifié ou sans structure');
+    }
+    return this.supprimerFacture(idFacture, user.id_structure);
+  }
+
+  /**
    * Génère l'URL de partage pour une facture privée
    */
   generateUrlPartage(idStructure: number, idFacture: number): string {

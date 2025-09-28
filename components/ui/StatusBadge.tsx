@@ -14,15 +14,15 @@ interface StatusBadgeProps {
 export const StatusBadge = ({ status, className, size = 'md' }: StatusBadgeProps) => {
   const statusConfig = {
     PAYEE: {
-      bg: 'bg-emerald-500/90',
-      borderColor: 'border-emerald-400/50',
+      bg: 'bg-emerald-500',
+      borderColor: 'border-emerald-400',
       text: 'PAYÉE',
       icon: '✓',
       shadowColor: 'shadow-emerald-500/20',
     },
     IMPAYEE: {
-      bg: 'bg-orange-500/90',
-      borderColor: 'border-orange-400/50', 
+      bg: 'bg-orange-500',
+      borderColor: 'border-orange-400',
       text: 'IMPAYÉE',
       icon: '⏳',
       shadowColor: 'shadow-orange-500/20',

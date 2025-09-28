@@ -33,7 +33,7 @@ export function FacturesOnglets({
   paiementsCount = 0
 }: FacturesOngletsProps) {
   const [activeTab, setActiveTab] = useState<'factures' | 'paiements'>('factures');
-  const { isMobile, isTablet } = useBreakpoint();
+  const { isMobile } = useBreakpoint();
 
   const tabs: TabData[] = [
     {

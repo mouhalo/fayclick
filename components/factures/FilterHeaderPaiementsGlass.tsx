@@ -1,6 +1,6 @@
 /**
- * Composant de filtres compact pour intégration dans le header glassmorphism
- * Version compacte sans wrapper GlassCard
+ * Composant de filtres pour les paiements (reçus)
+ * Adapté du FilterHeaderGlass avec des filtres spécifiques aux paiements
  */
 
 'use client';
@@ -8,49 +8,58 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Search, Filter, X, ChevronDown, RefreshCw } from 'lucide-react';
-import { FiltresFactures } from '@/types/facture';
 
-interface FilterHeaderGlassProps {
-  onFiltersChange: (filtres: FiltresFactures) => void;
+interface FiltresPaiements {
+  searchTerm?: string;
+  periode?: { debut: string; fin: string };
+  nom_client?: string;
+  tel_client?: string;
+  methode_paiement?: string;
+  sortBy?: 'date' | 'montant' | 'client' | 'methode';
+  sortOrder?: 'asc' | 'desc';
+}
+
+interface FilterHeaderPaiementsGlassProps {
+  onFiltersChange: (filtres: FiltresPaiements) => void;
   onRefresh: () => void;
   isRefreshing?: boolean;
 }
 
-export function FilterHeaderGlass({ 
-  onFiltersChange, 
+export function FilterHeaderPaiementsGlass({
+  onFiltersChange,
   onRefresh,
-  isRefreshing = false 
-}: FilterHeaderGlassProps) {
+  isRefreshing = false
+}: FilterHeaderPaiementsGlassProps) {
   // États des filtres
   const [searchTerm, setSearchTerm] = useState('');
   const [periode, setPeriode] = useState({ debut: '', fin: '' });
   const [nomClient, setNomClient] = useState('');
   const [telClient, setTelClient] = useState('');
-  const [statut, setStatut] = useState<'PAYEE' | 'IMPAYEE' | 'TOUS'>('TOUS');
-  const [sortBy, setSortBy] = useState<'date' | 'montant' | 'client' | 'statut'>('date');
+  const [methodePaiement, setMethodePaiement] = useState<string>('TOUS');
+  const [sortBy, setSortBy] = useState<'date' | 'montant' | 'client' | 'methode'>('date');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
-  
+
   // État d'affichage des filtres avancés
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
 
   // Effet pour déclencher la recherche avec debounce
   useEffect(() => {
     const timer = setTimeout(() => {
-      const filtres: FiltresFactures = {
+      const filtres: FiltresPaiements = {
         searchTerm: searchTerm || undefined,
         periode: periode.debut && periode.fin ? periode : undefined,
         nom_client: nomClient || undefined,
         tel_client: telClient || undefined,
-        statut: statut,
+        methode_paiement: methodePaiement !== 'TOUS' ? methodePaiement : undefined,
         sortBy,
         sortOrder
       };
-      
+
       onFiltersChange(filtres);
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [searchTerm, periode, nomClient, telClient, statut, sortBy, sortOrder, onFiltersChange]);
+  }, [searchTerm, periode, nomClient, telClient, methodePaiement, sortBy, sortOrder, onFiltersChange]);
 
   // Reset des filtres
   const resetFilters = () => {
@@ -58,13 +67,13 @@ export function FilterHeaderGlass({
     setPeriode({ debut: '', fin: '' });
     setNomClient('');
     setTelClient('');
-    setStatut('TOUS');
+    setMethodePaiement('TOUS');
     setSortBy('date');
     setSortOrder('desc');
     setShowAdvancedFilters(false);
   };
 
-  const hasActiveFilters = searchTerm || periode.debut || nomClient || telClient || statut !== 'TOUS';
+  const hasActiveFilters = searchTerm || periode.debut || nomClient || telClient || methodePaiement !== 'TOUS';
 
   return (
     <div className="space-y-3">
@@ -74,7 +83,7 @@ export function FilterHeaderGlass({
           <Search className="absolute left-2.5 sm:left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-3.5 h-3.5 sm:w-4 sm:h-4" />
           <input
             type="text"
-            placeholder="Rechercher facture..."
+            placeholder="Rechercher reçu, client..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="
@@ -149,7 +158,7 @@ export function FilterHeaderGlass({
       {/* Filtres avancés */}
       <motion.div
         initial={{ height: 0, opacity: 0 }}
-        animate={{ 
+        animate={{
           height: showAdvancedFilters ? 'auto' : 0,
           opacity: showAdvancedFilters ? 1 : 0
         }}
@@ -225,14 +234,14 @@ export function FilterHeaderGlass({
             </div>
           </div>
 
-          {/* Statut et Tri */}
+          {/* Méthode de paiement et Tri */}
           <div className="grid grid-cols-2 gap-2 sm:gap-4">
-            {/* Statut */}
+            {/* Méthode de paiement */}
             <div className="space-y-1.5 sm:space-y-2">
-              <label className="block text-xs font-medium text-white">Statut</label>
+              <label className="block text-xs font-medium text-white">Méthode</label>
               <select
-                value={statut}
-                onChange={(e) => setStatut(e.target.value as any)}
+                value={methodePaiement}
+                onChange={(e) => setMethodePaiement(e.target.value)}
                 className="
                   w-full py-1.5 sm:py-2 px-2 sm:px-3 text-xs sm:text-sm rounded-md sm:rounded-lg
                   bg-white/80 border border-gray-200 text-gray-800
@@ -240,9 +249,11 @@ export function FilterHeaderGlass({
                   transition-all duration-200
                 "
               >
-                <option value="TOUS">Tous</option>
-                <option value="PAYEE">Payées</option>
-                <option value="IMPAYEE">Impayées</option>
+                <option value="TOUS">Toutes</option>
+                <option value="orange-money">OM</option>
+                <option value="wave">Wave</option>
+                <option value="free-money">Free</option>
+                <option value="CASH">Cash</option>
               </select>
             </div>
 
@@ -269,6 +280,8 @@ export function FilterHeaderGlass({
                 <option value="montant-asc">Montant ↑</option>
                 <option value="client-asc">Client A-Z</option>
                 <option value="client-desc">Client Z-A</option>
+                <option value="methode-asc">Méthode A-Z</option>
+                <option value="methode-desc">Méthode Z-A</option>
               </select>
             </div>
           </div>
