@@ -156,6 +156,7 @@ export function PaymentMethodSelector({
         group
       `}
       aria-label={`Payer ${formatMontant(montant)} avec ${method.name}`}
+      style={isMainAction ? { width: '-webkit-fill-available' } : undefined}
     >
       {/* Badge "Par défaut" pour le mode cash */}
       {isMainAction && (
