@@ -1,6 +1,6 @@
 /**
- * Page de gestion des factures avec design glassmorphism
- * Interface mobile-first avec effet de verre et animations
+ * Page de gestion des factures et paiements avec onglets
+ * Interface mobile-first avec design glassmorphism
  */
 
 'use client';
@@ -14,6 +14,8 @@ import { GlassHeader } from '@/components/ui/GlassHeader';
 import { StatsCardsFacturesGlass } from '@/components/factures/StatsCardsFacturesGlass';
 import { FilterHeaderGlass } from '@/components/factures/FilterHeaderGlass';
 import { FacturesList } from '@/components/factures/FacturesList';
+import { FacturesOnglets } from '@/components/factures/FacturesOnglets';
+import { ListePaiements } from '@/components/factures/ListePaiements';
 import { GlassPagination, usePagination } from '@/components/ui/GlassPagination';
 import { ModalPaiement } from '@/components/factures/ModalPaiement';
 import { ModalPartage } from '@/components/factures/ModalPartage';
@@ -23,7 +25,8 @@ import { ModalConfirmation } from '@/components/ui/ModalConfirmation';
 import { Toast } from '@/components/ui/Toast';
 import { factureListService } from '@/services/facture-list.service';
 import { facturePriveeService } from '@/services/facture-privee.service';
-import { 
+import { recuService } from '@/services/recu.service';
+import {
   GetMyFactureResponse,
   FactureComplete,
   FiltresFactures
@@ -43,6 +46,7 @@ export default function FacturesGlassPage() {
     sortOrder: 'desc',
     statut: 'TOUS'
   });
+  const [paiementsCount, setPaiementsCount] = useState(0);
 
   // États de pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -66,7 +70,8 @@ export default function FacturesGlassPage() {
   const [modalRecuGenere, setModalRecuGenere] = useState<{
     isOpen: boolean;
     facture: FactureComplete | null;
-  }>({ isOpen: false, facture: null });
+    paiement?: any;
+  }>({ isOpen: false, facture: null, paiement: null });
 
   const [modalConfirmation, setModalConfirmation] = useState<{
     isOpen: boolean;
@@ -81,17 +86,24 @@ export default function FacturesGlassPage() {
     message: string;
   }>({ isOpen: false, type: 'info', message: '' });
 
-  // Chargement initial des factures
+  // Chargement initial des factures et paiements
   const loadFactures = useCallback(async () => {
     if (!user) return;
 
     try {
       setLoading(true);
       setError('');
-      
+
       const response = await factureListService.getMyFactures();
       setFacturesResponse(response);
-      
+
+      // Charger aussi le nombre de paiements
+      const paiements = await recuService.getHistoriqueRecus({
+        id_structure: user.id_structure!,
+        limite: 100
+      });
+      setPaiementsCount(paiements.length);
+
     } catch (err: unknown) {
       console.error('Erreur chargement factures:', err);
       const errorMessage = err instanceof Error ? err.message : 'Impossible de charger les factures';
@@ -101,371 +113,304 @@ export default function FacturesGlassPage() {
     }
   }, [user]);
 
-  // Chargement initial
+  // Rafraîchir les données
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await loadFactures();
+    setTimeout(() => setIsRefreshing(false), 500);
+  };
+
   useEffect(() => {
     loadFactures();
   }, [loadFactures]);
 
-  // Filtrage et tri des factures
-  const facturesFiltrees = useMemo(() => {
+  // Filtrer et trier les factures
+  const facturesFiltreesEtTriees = useMemo(() => {
     if (!facturesResponse?.factures) return [];
-    
-    return factureListService.filterFactures(facturesResponse.factures, filtres);
-  }, [facturesResponse?.factures, filtres]);
 
-  // Pagination des factures filtrées
-  const { getPaginatedItems: getPaginatedFactures, totalPages: paginationTotalPages } = usePagination(facturesFiltrees.length, 10);
-  const facturesPaginees = useMemo(() => {
-    return getPaginatedFactures(facturesFiltrees, currentPage);
-  }, [facturesFiltrees, currentPage, getPaginatedFactures]);
+    let resultat = [...facturesResponse.factures];
 
-  // Gestionnaires d'événements
-  const handleRetour = () => {
-    router.push('/dashboard/commerce');
+    // Filtrage par statut
+    if (filtres.statut !== 'TOUS') {
+      resultat = resultat.filter(f => f.libelle_etat === filtres.statut);
+    }
+
+    // Recherche
+    if (filtres.recherche) {
+      const recherche = filtres.recherche.toLowerCase();
+      resultat = resultat.filter(f =>
+        f.nom_client.toLowerCase().includes(recherche) ||
+        f.num_facture.toLowerCase().includes(recherche)
+      );
+    }
+
+    // Tri
+    resultat.sort((a, b) => {
+      let comparaison = 0;
+
+      switch (filtres.sortBy) {
+        case 'date':
+          comparaison = new Date(b.date_facture).getTime() - new Date(a.date_facture).getTime();
+          break;
+        case 'montant':
+          comparaison = b.montant - a.montant;
+          break;
+        case 'client':
+          comparaison = a.nom_client.localeCompare(b.nom_client);
+          break;
+        default:
+          comparaison = 0;
+      }
+
+      return filtres.sortOrder === 'asc' ? -comparaison : comparaison;
+    });
+
+    return resultat;
+  }, [facturesResponse, filtres]);
+
+  // Pagination
+  const itemsPerPage = 10;
+  const {
+    currentItems: facturesPage,
+    totalPages,
+    nextPage,
+    prevPage,
+    goToPage
+  } = usePagination(facturesFiltreesEtTriees, itemsPerPage, currentPage);
+
+  // Actions sur les factures
+  const handleViewFacture = (facture: FactureComplete) => {
+    setModalFacturePrivee({ isOpen: true, facture });
   };
 
-  const handleFiltersChange = useCallback((newFiltres: FiltresFactures) => {
-    setFiltres(newFiltres);
-    setCurrentPage(1); // Remettre à la première page quand on filtre
-  }, []);
-
-  const handlePageChange = useCallback((page: number) => {
-    setCurrentPage(page);
-  }, []);
-
-  const handleAjouterAcompte = useCallback((facture: FactureComplete) => {
+  const handlePayFacture = (facture: FactureComplete) => {
     setModalPaiement({ isOpen: true, facture });
-  }, []);
+  };
 
-  const handlePartager = useCallback((facture: FactureComplete) => {
+  const handleShareFacture = (facture: FactureComplete) => {
     setModalPartage({ isOpen: true, facture });
-  }, []);
+  };
 
-  const handleVoirDetailsModal = useCallback((facture: FactureComplete) => {
-    console.log('Ouverture modal facture:', facture.facture.id_facture);
-    setModalFacturePrivee({ isOpen: true, facture });
-  }, []);
-
-  const handleVoirRecu = useCallback((facture: FactureComplete) => {
-    // Vérifier que la facture est payée avant d'afficher le reçu
-    if (facture.facture.libelle_etat === 'PAYEE') {
-      console.log('Ouverture modal reçu pour facture:', facture.facture.id_facture);
-      setModalRecuGenere({ isOpen: true, facture });
-    } else {
-      console.warn('Tentative d\'affichage de reçu pour facture non payée:', facture.facture.id_facture);
-    }
-  }, []);
-
-  const handleSupprimer = useCallback((facture: FactureComplete) => {
-    console.log('Demande de suppression facture:', facture.facture.num_facture);
-
+  const handleDeleteFacture = (facture: FactureComplete) => {
     setModalConfirmation({
       isOpen: true,
-      message: `Êtes-vous sûr de vouloir supprimer la facture ${facture.facture.num_facture} ?\n\nCette action est irréversible.`,
-      onConfirm: () => executerSuppression(facture)
+      message: `Êtes-vous sûr de vouloir supprimer la facture ${facture.num_facture} ?`,
+      onConfirm: () => executerSuppression(facture.id_facture)
     });
-  }, []);
+  };
 
-  const executerSuppression = useCallback(async (facture: FactureComplete) => {
+  const executerSuppression = async (idFacture: number) => {
     try {
-      console.log('🗑️ Exécution suppression facture:', facture.facture.num_facture);
+      await facturePriveeService.deleteFacturePrivee(idFacture);
 
-      const result = await facturePriveeService.supprimerFacture(
-        facture.facture.id_facture,
-        facture.facture.id_structure
-      );
-
-      if (result.success) {
-        // Fermer le modal de confirmation
-        setModalConfirmation({ isOpen: false, message: '', onConfirm: () => {} });
-
-        // Afficher toast de succès
-        setToast({
-          isOpen: true,
-          type: 'success',
-          message: `Facture ${facture.facture.num_facture} supprimée avec succès`
-        });
-
-        // Recharger la liste des factures
-        loadFactures();
-      } else {
-        throw new Error(result.message || 'Erreur lors de la suppression');
-      }
-    } catch (error) {
-      console.error('❌ Erreur suppression facture:', error);
-
-      // Fermer le modal de confirmation
-      setModalConfirmation({ isOpen: false, message: '', onConfirm: () => {} });
-
-      // Afficher toast d'erreur
-      setToast({
-        isOpen: true,
-        type: 'error',
-        message: error instanceof Error ? error.message : 'Erreur lors de la suppression'
-      });
-    }
-  }, [loadFactures]);
-
-  // Succès de paiement
-  const handlePaiementSuccess = useCallback((response: unknown) => {
-    const typedResponse = response as { message?: string };
-    setToast({
-      isOpen: true,
-      type: 'success',
-      message: typedResponse.message || 'Paiement enregistré avec succès'
-    });
-
-    // Recharger les factures
-    loadFactures();
-  }, [loadFactures]);
-
-  // Fermeture des modals
-  const closeModalPaiement = useCallback(() => {
-    setModalPaiement({ isOpen: false, facture: null });
-  }, []);
-
-  const closeModalPartage = useCallback(() => {
-    setModalPartage({ isOpen: false, facture: null });
-  }, []);
-
-  const closeModalFacturePrivee = useCallback(() => {
-    setModalFacturePrivee({ isOpen: false, facture: null });
-  }, []);
-
-  const closeModalRecuGenere = useCallback(() => {
-    setModalRecuGenere({ isOpen: false, facture: null });
-  }, []);
-
-  const closeToast = useCallback(() => {
-    setToast({ isOpen: false, type: 'info', message: '' });
-  }, []);
-
-  // Fonction d'actualisation
-  const handleRefresh = useCallback(async () => {
-    setIsRefreshing(true);
-    try {
-      await loadFactures();
       setToast({
         isOpen: true,
         type: 'success',
-        message: 'Factures actualisées avec succès'
+        message: 'Facture supprimée avec succès'
       });
-    } catch {
+
+      // Recharger les factures
+      await loadFactures();
+    } catch (err) {
+      console.error('Erreur suppression facture:', err);
       setToast({
         isOpen: true,
         type: 'error',
-        message: 'Erreur lors de l\'actualisation'
+        message: 'Impossible de supprimer la facture'
       });
-    } finally {
-      setIsRefreshing(false);
     }
-  }, [loadFactures]);
 
+    setModalConfirmation({ isOpen: false, message: '', onConfirm: () => {} });
+  };
 
-  // Interface d'erreur
-  if (error && !loading) {
+  // Actions sur les paiements
+  const handleViewRecu = (paiement: any) => {
+    // Ouvrir le modal de reçu avec les données du paiement
+    const factureAssociee = facturesResponse?.factures.find(
+      f => f.id_facture === paiement.id_facture
+    );
+
+    if (factureAssociee) {
+      setModalRecuGenere({
+        isOpen: true,
+        facture: factureAssociee,
+        paiement
+      });
+    }
+  };
+
+  const handleDownloadRecu = async (paiement: any) => {
+    try {
+      // Générer l'URL de téléchargement
+      const url = recuService.generateUrlPartage(
+        user?.id_structure!,
+        paiement.id_facture
+      );
+
+      // Ouvrir dans un nouvel onglet pour téléchargement
+      window.open(url, '_blank');
+
+      setToast({
+        isOpen: true,
+        type: 'success',
+        message: 'Téléchargement du reçu démarré'
+      });
+    } catch (err) {
+      setToast({
+        isOpen: true,
+        type: 'error',
+        message: 'Impossible de télécharger le reçu'
+      });
+    }
+  };
+
+  if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4" style={{background: 'linear-gradient(to bottom right, #163707, #047857)'}}>
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="text-center max-w-md"
-        >
-          <div className="w-20 h-20 bg-red-500/20 backdrop-blur-lg rounded-2xl flex items-center justify-center mx-auto mb-6 border border-red-400/30">
-            <AlertCircle className="w-10 h-10 text-red-300" />
-          </div>
-          <h3 className="text-xl font-semibold text-white mb-2">
-            Erreur de chargement
-          </h3>
-          <p className="text-emerald-100 mb-6">{error}</p>
-          <motion.button
-            whileTap={{ scale: 0.95 }}
-            onClick={loadFactures}
-            className="bg-white/20 backdrop-blur-lg text-white px-6 py-3 rounded-xl hover:bg-white/30 transition-colors border border-white/30"
-          >
-            Réessayer
-          </motion.button>
-        </motion.div>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <Loader className="animate-spin w-12 h-12 text-blue-500 mx-auto" />
+          <p className="text-gray-500">Chargement des factures...</p>
+        </div>
       </div>
     );
   }
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br" style={{background: 'linear-gradient(to bottom right, #163707, #047857)'}}>
-      {/* Container mobile-first fixe */}
-      <div className="mx-auto max-w-md shadow-2xl min-h-screen" style={{background: 'linear-gradient(to bottom right, #163707, #047857)'}}>
-        
-        {/* Header glassmorphism */}
-        <GlassHeader
-          title="Liste des Factures"
-          onBack={handleRetour}
-          showBackButton={true}
-          rightContent={
-            loading && (
-              <div className="flex items-center space-x-2 text-white">
-                <Loader className="w-4 h-4 animate-spin" />
-              </div>
-            )
-          }
-          filterContent={
-            <FilterHeaderGlass
-              onFiltersChange={handleFiltersChange}
-              onRefresh={handleRefresh}
-              isRefreshing={isRefreshing}
-            />
-          }
-        />
-
-        {/* Contenu scrollable */}
-        <div className="px-5 py-6">
-          
-          {/* Stats Cards */}
-          <StatsCardsFacturesGlass
-            factures={facturesFiltrees}
-            loading={loading}
-          />
-
-
-          {/* Pagination */}
-          {!loading && facturesFiltrees.length > 0 && (
-            <GlassPagination
-              currentPage={currentPage}
-              totalPages={paginationTotalPages}
-              totalItems={facturesFiltrees.length}
-              onPageChange={handlePageChange}
-              className="mb-4"
-            />
-          )}
-          
-          {/* Liste des factures paginées */}
-          <FacturesList
-            factures={facturesPaginees}
-            loading={loading}
-            onVoirDetailsModal={handleVoirDetailsModal}
-            onAjouterAcompte={handleAjouterAcompte}
-            onPartager={handlePartager}
-            onVoirRecu={handleVoirRecu}
-            onSupprimer={handleSupprimer}
-          />
-
-          {/* Message si aucune facture */}
-          {!loading && facturesResponse && facturesResponse.factures.length === 0 && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.4, delay: 0.4 }}
-              className="text-center py-12"
-            >
-              <div className="w-24 h-24 bg-white/10 backdrop-blur-lg rounded-2xl flex items-center justify-center mx-auto mb-6 border border-white/20">
-                <Receipt className="w-12 h-12 text-white/60" />
-              </div>
-              <h3 className="text-xl font-semibold text-white/80 mb-2">
-                Aucune facture créée
-              </h3>
-              <p className="text-emerald-100/70 text-sm mb-6">
-                Commencez par créer votre première facture depuis la gestion des produits.
-              </p>
-              <motion.button
-                whileTap={{ scale: 0.95 }}
-                onClick={() => router.push('/dashboard/commerce/produits')}
-                className="bg-white/20 backdrop-blur-lg text-white px-6 py-3 rounded-xl hover:bg-white/30 transition-colors border border-white/30"
-              >
-                Gérer les produits
-              </motion.button>
-            </motion.div>
-          )}
-
-          {/* Message si aucun résultat de filtre */}
-          {!loading && facturesFiltrees.length === 0 && facturesResponse && facturesResponse.factures.length > 0 && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.4 }}
-              className="text-center py-8"
-            >
-              <div className="w-16 h-16 bg-white/10 backdrop-blur-lg rounded-2xl flex items-center justify-center mx-auto mb-4 border border-white/20">
-                <Receipt className="w-8 h-8 text-white/60" />
-              </div>
-              <h3 className="text-lg font-semibold text-white/80 mb-2">
-                Aucun résultat
-              </h3>
-              <p className="text-emerald-100/70 text-sm">
-                Aucune facture ne correspond à vos critères de recherche.
-              </p>
-            </motion.div>
-          )}
-        </div>
-      </div>
-
-      {/* Modals */}
-      <ModalPaiement
-        isOpen={modalPaiement.isOpen}
-        onClose={closeModalPaiement}
-        facture={modalPaiement.facture}
-        onSuccess={handlePaiementSuccess}
-      />
-
-      <ModalPartage
-        isOpen={modalPartage.isOpen}
-        onClose={closeModalPartage}
-        facture={modalPartage.facture}
-      />
-
-      <ModalFacturePrivee
-        isOpen={modalFacturePrivee.isOpen}
-        onClose={closeModalFacturePrivee}
-        factureId={modalFacturePrivee.facture?.facture.id_facture}
-        onFactureDeleted={() => {
-          // Recharger les factures après suppression
-          loadFactures();
-          setToast({
-            isOpen: true,
-            type: 'success',
-            message: 'Facture supprimée avec succès'
-          });
-        }}
-        onPaymentComplete={() => {
-          // Recharger les factures après paiement
-          loadFactures();
-          setToast({
-            isOpen: true,
-            type: 'success',
-            message: 'Paiement confirmé avec succès'
-          });
-        }}
-      />
-
-      {/* Modal de reçu généré */}
-      {modalRecuGenere.facture && (
-        <ModalRecuGenere
-          isOpen={modalRecuGenere.isOpen}
-          onClose={closeModalRecuGenere}
-          factureId={modalRecuGenere.facture.facture.id_facture}
-          walletUsed={'orange-money'} // Valeur par défaut, sera récupérée du service
-          montantPaye={modalRecuGenere.facture.facture.montant}
+  // Contenu de l'onglet Factures
+  const facturesContent = (
+    <>
+      {/* Statistiques */}
+      {facturesResponse && (
+        <StatsCardsFacturesGlass
+          totalFactures={facturesResponse.total_factures}
+          montantTotal={facturesResponse.montant_total}
+          montantPaye={facturesResponse.montant_paye}
+          montantImpaye={facturesResponse.montant_impaye}
         />
       )}
 
-      {/* Modal de confirmation de suppression */}
+      {/* Filtres */}
+      <FilterHeaderGlass
+        filtres={filtres}
+        onFiltresChange={setFiltres}
+        onRefresh={handleRefresh}
+        isRefreshing={isRefreshing}
+      />
+
+      {/* Liste des factures */}
+      <FacturesList
+        factures={facturesPage}
+        onView={handleViewFacture}
+        onPay={handlePayFacture}
+        onShare={handleShareFacture}
+        onDelete={handleDeleteFacture}
+      />
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <GlassPagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={goToPage}
+          onNext={nextPage}
+          onPrev={prevPage}
+        />
+      )}
+    </>
+  );
+
+  // Contenu de l'onglet Paiements
+  const paiementsContent = (
+    <ListePaiements
+      onViewRecu={handleViewRecu}
+      onDownloadRecu={handleDownloadRecu}
+    />
+  );
+
+  return (
+    <>
+      {/* Header */}
+      <GlassHeader
+        title="Gestion des Factures"
+        subtitle="Gérez vos factures et paiements"
+        icon={<Receipt className="w-8 h-8" />}
+        gradientFrom="from-blue-500"
+        gradientTo="to-purple-500"
+      />
+
+      {/* Message d'erreur global */}
+      {error && (
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-6"
+        >
+          <div className="bg-red-50 border border-red-200 rounded-xl p-4">
+            <div className="flex items-center gap-3 text-red-700">
+              <AlertCircle className="w-5 h-5" />
+              <p>{error}</p>
+            </div>
+          </div>
+        </motion.div>
+      )}
+
+      {/* Onglets Factures et Paiements */}
+      <FacturesOnglets
+        facturesContent={facturesContent}
+        paiementsContent={paiementsContent}
+        facturesCount={facturesResponse?.total_factures || 0}
+        paiementsCount={paiementsCount}
+      />
+
+      {/* Modals */}
+      {modalPaiement.facture && (
+        <ModalPaiement
+          isOpen={modalPaiement.isOpen}
+          onClose={() => setModalPaiement({ isOpen: false, facture: null })}
+          facture={{ facture: modalPaiement.facture, details_articles: [] }}
+          onSuccess={handleRefresh}
+        />
+      )}
+
+      {modalPartage.facture && (
+        <ModalPartage
+          isOpen={modalPartage.isOpen}
+          onClose={() => setModalPartage({ isOpen: false, facture: null })}
+          facture={modalPartage.facture}
+        />
+      )}
+
+      {modalFacturePrivee.facture && (
+        <ModalFacturePrivee
+          isOpen={modalFacturePrivee.isOpen}
+          onClose={() => setModalFacturePrivee({ isOpen: false, facture: null })}
+          facture={modalFacturePrivee.facture}
+        />
+      )}
+
+      {modalRecuGenere.facture && (
+        <ModalRecuGenere
+          isOpen={modalRecuGenere.isOpen}
+          onClose={() => setModalRecuGenere({ isOpen: false, facture: null, paiement: null })}
+          factureId={modalRecuGenere.facture.id_facture}
+        />
+      )}
+
       <ModalConfirmation
         isOpen={modalConfirmation.isOpen}
         onClose={() => setModalConfirmation({ isOpen: false, message: '', onConfirm: () => {} })}
         onConfirm={modalConfirmation.onConfirm}
-        title="Supprimer la facture"
         message={modalConfirmation.message}
-        confirmText="Supprimer"
-        cancelText="Annuler"
         type="danger"
       />
 
       {/* Toast notifications */}
       <Toast
-        isVisible={toast.isOpen}
+        isOpen={toast.isOpen}
+        onClose={() => setToast({ ...toast, isOpen: false })}
+        message={toast.message}
         type={toast.type}
-        title={toast.message}
-        onClose={closeToast}
-        duration={4000}
+        duration={5000}
       />
-    </div>
+    </>
   );
 }
