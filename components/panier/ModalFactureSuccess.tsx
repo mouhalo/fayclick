@@ -41,6 +41,7 @@ export function ModalFactureSuccess() {
 
   // États pour les modals de paiement
   const [showQRCodeModal, setShowQRCodeModal] = useState(false);
+  const [hasInitialized, setHasInitialized] = useState(false);
 
   // Générer les URLs seulement quand les données sont disponibles
   const urls = useMemo(() => {
@@ -79,17 +80,26 @@ export function ModalFactureSuccess() {
 
   useEffect(() => {
     if (isOpen && factureId) {
-      // Reset des états de paiement lors de l'ouverture
-      setPaymentError('');
-      setPaymentSuccess(false);
-      setSelectedPaymentMethod(null);
-      setShowPaymentSection(true);
-      setShowQRCodeModal(false);
-      setPaymentLoading(false);
+      // Reset initial complet seulement à la PREMIÈRE ouverture
+      if (!hasInitialized) {
+        console.log('🎯 [FACTURE-SUCCESS] Initialisation complète');
+        setPaymentError('');
+        setPaymentSuccess(false);
+        setSelectedPaymentMethod(null);
+        setShowPaymentSection(true);
+        setShowQRCodeModal(false); // Reset initial uniquement
+        setPaymentLoading(false);
+        setHasInitialized(true);
+      } else {
+        console.log('🔄 [FACTURE-SUCCESS] Rechargement - préservation états QR');
+      }
 
       loadFactureDetails();
+    } else if (!isOpen) {
+      // Reset pour la prochaine ouverture
+      setHasInitialized(false);
     }
-  }, [isOpen, factureId]);
+  }, [isOpen, factureId, hasInitialized]);
 
   const loadFactureDetails = async () => {
     if (!factureId) return;
