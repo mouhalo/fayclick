@@ -125,7 +125,7 @@ export function StatsCardsFacturesGlass({
     }
   }, [resumeGlobal, factures]);
   
-  // Configuration des 4 cards avec données dynamiques - Style vert comme le design
+  // Configuration des 4 cards avec données dynamiques - Affichage complet sans formatage K/M
   const statsCards = useMemo(() => [
     {
       id: 'total-ventes',
@@ -140,8 +140,7 @@ export function StatsCardsFacturesGlass({
     {
       id: 'montant-total',
       title: 'Montant Total',
-      value: stats ? `${(stats.montantTotal / 1000).toFixed(0)}K` : '0K',
-      fullValue: stats ? `${stats.montantTotal.toLocaleString('fr-FR')} FCFA` : '0 FCFA',
+      value: stats ? `${stats.montantTotal.toLocaleString('fr-FR')}` : '0',
       subtitle: stats ? `${stats.totalProduitsDifferents} produits` : '0 produits',
       icon: DollarSign,
       iconColor: 'text-white',
@@ -151,8 +150,7 @@ export function StatsCardsFacturesGlass({
     {
       id: 'montant-paye',
       title: 'Montant Payé',
-      value: stats ? `${(stats.montantPaye / 1000).toFixed(0)}K` : '0K',
-      fullValue: stats ? `${stats.montantPaye.toLocaleString('fr-FR')} FCFA` : '0 FCFA',
+      value: stats ? `${stats.montantPaye.toLocaleString('fr-FR')}` : '0',
       subtitle: stats ? `${((stats.montantPaye / (stats.montantTotal || 1)) * 100).toFixed(0)}%` : '0%',
       icon: CreditCard,
       iconColor: 'text-white',
@@ -162,9 +160,8 @@ export function StatsCardsFacturesGlass({
     {
       id: 'restant-payer',
       title: 'Restant à Payer',
-      value: stats ? `${(stats.restantPayer / 1000).toFixed(0)}K` : '0K',
-      fullValue: stats ? `${stats.restantPayer.toLocaleString('fr-FR')} FCFA` : '0 FCFA',
-      subtitle: stats ? `${(stats.margeTotale / 1000).toFixed(0)}K marge` : '0K marge',
+      value: stats ? `${stats.restantPayer.toLocaleString('fr-FR')}` : '0',
+      subtitle: stats ? `${stats.margeTotale.toLocaleString('fr-FR')} marge` : '0 marge',
       icon: TrendingUp,
       iconColor: 'text-white',
       iconBg: 'bg-orange-500',
@@ -191,32 +188,33 @@ export function StatsCardsFacturesGlass({
           }}
           whileHover={{ scale: 1.02 }}
         >
-          <div className="bg-green-800/90 backdrop-blur-sm rounded-2xl p-4 border border-green-700/50 hover:scale-[1.02] transition-transform duration-200">
-            <div className="flex items-start justify-between">
-              <div className="flex-1 min-w-0">
+          <div className="bg-green-800/90 backdrop-blur-sm rounded-2xl p-3 border border-green-700/50 hover:scale-[1.02] transition-transform duration-200">
+            <div className="space-y-2">
+              {/* Icône en haut */}
+              <div className={`
+                w-8 h-8 ${card.iconBg}
+                rounded-lg flex items-center justify-center
+                shadow-lg
+              `}>
+                <card.icon className={`w-4 h-4 ${card.iconColor}`} />
+              </div>
+
+              {/* Contenu textuel */}
+              <div className="space-y-1">
                 {/* Titre */}
-                <p className="text-white text-xs font-medium mb-1 leading-tight truncate">
+                <p className="text-white text-[10px] font-medium leading-tight">
                   {card.title}
                 </p>
 
                 {/* Valeur principale */}
-                <p className="text-white text-lg font-bold mb-1 leading-tight" title={card.fullValue}>
+                <p className="text-white text-sm font-bold leading-tight break-words">
                   {card.value}
                 </p>
 
                 {/* Sous-titre */}
-                <p className="text-white/80 text-xs leading-tight truncate">
+                <p className="text-white/70 text-[9px] leading-tight">
                   {card.subtitle}
                 </p>
-              </div>
-
-              {/* Icône colorée comme dans le design */}
-              <div className={`
-                w-10 h-10 ${card.iconBg}
-                rounded-xl flex items-center justify-center flex-shrink-0
-                shadow-lg ml-2
-              `}>
-                <card.icon className={`w-5 h-5 ${card.iconColor}`} />
               </div>
             </div>
           </div>

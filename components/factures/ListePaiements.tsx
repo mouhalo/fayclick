@@ -5,24 +5,21 @@
 
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
   CreditCard,
-  Calendar,
   Download,
-  Search,
-  Filter,
   FileText,
   TrendingUp,
   CheckCircle,
-  Clock,
   AlertCircle,
   Smartphone,
   DollarSign
 } from 'lucide-react';
 import { recuService } from '@/services/recu.service';
 import { useAuth } from '@/contexts/AuthContext';
+import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { FilterHeaderPaiementsGlass } from './FilterHeaderPaiementsGlass';
@@ -64,6 +61,7 @@ export function ListePaiements({
   onDownloadRecu
 }: ListePaiementsProps) {
   const { user } = useAuth();
+  const { isMobile, isTablet } = useBreakpoint();
 
   const [paiements, setPaiements] = useState<Paiement[]>([]);
   const [loading, setLoading] = useState(true);
@@ -83,7 +81,11 @@ export function ListePaiements({
   };
 
   // Charger les paiements
-  const loadPaiements = useCallback(async () => {
+  useEffect(() => {
+    loadPaiements();
+  }, [user]);
+
+  const loadPaiements = async () => {
     if (!user?.id_structure) return;
 
     try {
@@ -97,18 +99,7 @@ export function ListePaiements({
       });
 
       // Transformer les données pour l'affichage
-      const paiementsFormats = historique.map((recu: {
-        id_recu: number;
-        numero_recu: string;
-        id_facture: number;
-        num_facture: string;
-        nom_client: string;
-        tel_client: string;
-        montant_paye: number;
-        methode_paiement: string;
-        reference_transaction: string;
-        date_paiement: string;
-      }) => ({
+      const paiementsFormats = historique.map((recu: any) => ({
         id_recu: recu.id_recu,
         numero_recu: recu.numero_recu,
         id_facture: recu.id_facture,
@@ -129,11 +120,7 @@ export function ListePaiements({
     } finally {
       setLoading(false);
     }
-  }, [user]);
-
-  useEffect(() => {
-    loadPaiements();
-  }, [loadPaiements]);
+  };
 
   // Gestionnaire de refresh
   const handleRefresh = async () => {
@@ -199,8 +186,7 @@ export function ListePaiements({
 
   // Fonctions de pagination
   const goToPage = (page: number) => setCurrentPage(page);
-  const nextPage = () => setCurrentPage(prev => Math.min(prev + 1, totalPages));
-  const prevPage = () => setCurrentPage(prev => Math.max(prev - 1, 1));
+
 
   // Reset page on filter change
   useEffect(() => {
@@ -258,7 +244,7 @@ export function ListePaiements({
 
   return (
     <div className="w-full overflow-hidden">
-      {/* Statistiques - Exactement comme l'onglet Factures */}
+      {/* Statistiques - Design harmonisé avec l'onglet Factures */}
       <div className="grid grid-cols-2 gap-3 mb-6">
         <motion.div
           initial={{ opacity: 0, y: 20, scale: 0.9 }}
@@ -266,21 +252,29 @@ export function ListePaiements({
           transition={{ delay: 0, duration: 0.5, type: 'spring', stiffness: 100 }}
           whileHover={{ scale: 1.02 }}
         >
-          <div className="bg-green-800/90 backdrop-blur-sm rounded-2xl p-4 border border-green-700/50 hover:scale-[1.02] transition-transform duration-200">
-            <div className="flex items-start justify-between">
-              <div className="flex-1 min-w-0">
-                <p className="text-white text-xs font-medium mb-1 leading-tight truncate">
+          <div className="bg-green-800/90 backdrop-blur-sm rounded-2xl p-3 border border-green-700/50 hover:scale-[1.02] transition-transform duration-200">
+            <div className="space-y-2">
+              {/* Icône en haut */}
+              <div className="w-8 h-8 bg-emerald-500 rounded-lg flex items-center justify-center shadow-lg">
+                <CheckCircle className="w-4 h-4 text-white" />
+              </div>
+
+              {/* Contenu textuel */}
+              <div className="space-y-1">
+                {/* Titre */}
+                <p className="text-white text-[10px] font-medium leading-tight">
                   Total Paiements
                 </p>
-                <p className="text-white text-lg font-bold mb-1 leading-tight">
+
+                {/* Valeur principale */}
+                <p className="text-white text-sm font-bold leading-tight break-words">
                   {stats.total}
                 </p>
-                <p className="text-white/50 text-xs leading-tight truncate">
+
+                {/* Sous-titre */}
+                <p className="text-white/70 text-[9px] leading-tight">
                   reçus générés
                 </p>
-              </div>
-              <div className="w-10 h-10 bg-emerald-500 rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg ml-2">
-                <CheckCircle className="w-5 h-5 text-white" />
               </div>
             </div>
           </div>
@@ -292,21 +286,29 @@ export function ListePaiements({
           transition={{ delay: 0.1, duration: 0.5, type: 'spring', stiffness: 100 }}
           whileHover={{ scale: 1.02 }}
         >
-          <div className="bg-green-800/90 backdrop-blur-sm rounded-2xl p-4 border border-green-700/50 hover:scale-[1.02] transition-transform duration-200">
-            <div className="flex items-start justify-between">
-              <div className="flex-1 min-w-0">
-                <p className="text-white text-xs font-medium mb-1 leading-tight truncate">
+          <div className="bg-green-800/90 backdrop-blur-sm rounded-2xl p-3 border border-green-700/50 hover:scale-[1.02] transition-transform duration-200">
+            <div className="space-y-2">
+              {/* Icône en haut */}
+              <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center shadow-lg">
+                <TrendingUp className="w-4 h-4 text-white" />
+              </div>
+
+              {/* Contenu textuel */}
+              <div className="space-y-1">
+                {/* Titre */}
+                <p className="text-white text-[10px] font-medium leading-tight">
                   Montant Total
                 </p>
-                <p className="text-white text-lg font-bold mb-1 leading-tight">
-                  {(stats.montantTotal / 1000)}
+
+                {/* Valeur principale */}
+                <p className="text-white text-sm font-bold leading-tight break-words">
+                  {stats.montantTotal.toLocaleString('fr-FR')} FCFA
                 </p>
-                <p className="text-white/50 text-xs leading-tight truncate">
-                  FCFA encaissés
+
+                {/* Sous-titre */}
+                <p className="text-white/70 text-[9px] leading-tight">
+                  encaissés
                 </p>
-              </div>
-              <div className="w-10 h-10 bg-blue-500 rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg ml-2">
-                <TrendingUp className="w-5 h-5 text-white" />
               </div>
             </div>
           </div>
@@ -338,7 +340,7 @@ export function ListePaiements({
       {/* Liste des paiements */}
       {paiementsFiltres.length === 0 ? (
         <EmptyState
-          icon={CreditCard}
+          icon={<CreditCard className="w-12 h-12" />}
           title="Aucun paiement trouvé"
           description="Aucun paiement ne correspond à vos critères de recherche"
         />
