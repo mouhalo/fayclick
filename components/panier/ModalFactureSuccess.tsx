@@ -9,7 +9,7 @@ import { useEffect, useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   X, CheckCircle, QrCode as QrIcon, MessageCircle, 
-  Link, Copy, ExternalLink, Download, ChevronDown, ChevronUp 
+  Copy, ExternalLink, Download, ChevronDown 
 } from 'lucide-react';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import QRCode from 'react-qr-code';
@@ -21,7 +21,7 @@ import { useFactureSuccessStore } from '@/hooks/useFactureSuccess';
 
 export function ModalFactureSuccess() {
   const { isOpen, factureId, closeModal } = useFactureSuccessStore();
-  const { isMobile, isMobileLarge, isTablet, isDesktop } = useBreakpoint();
+  const { isMobile, isMobileLarge,  isDesktop } = useBreakpoint();
   const [factureDetails, setFactureDetails] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
