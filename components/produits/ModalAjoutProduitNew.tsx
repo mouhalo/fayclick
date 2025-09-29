@@ -15,18 +15,14 @@ import {
   Save,
   Loader2,
   AlertCircle,
-  Plus,
-  Minus,
   History,
   TrendingUp,
   TrendingDown,
   Info,
   Warehouse,
   Activity,
-  Calendar,
-  DollarSign
 } from 'lucide-react';
-import { Produit, ProduitFormDataNew, AddEditProduitResponse, MouvementStockForm, HistoriqueMouvements, MouvementStock } from '@/types/produit';
+import { Produit, ProduitFormDataNew, AddEditProduitResponse, MouvementStockForm, HistoriqueMouvements } from '@/types/produit';
 import { produitsService } from '@/services/produits.service';
 
 interface ModalAjoutProduitNewProps {
@@ -428,7 +424,7 @@ export function ModalAjoutProduitNew({
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-slate-700 mb-2">
-                        Prix d'achat (FCFA) *
+                        Prix d&diapos;achat (FCFA) *
                       </label>
                       <input
                         type="number"
@@ -750,7 +746,7 @@ export function ModalAjoutProduitNew({
                 ) : (
                   <div className="text-center py-8">
                     <AlertCircle className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-                    <p className="text-slate-500">Erreur lors du chargement de l'historique</p>
+                    <p className="text-slate-500">Erreur lors du chargement de l&iapos;historique</p>
                   </div>
                 )}
               </motion.div>

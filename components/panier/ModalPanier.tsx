@@ -15,7 +15,6 @@ import {
 import { usePanierStore } from '@/stores/panierStore';
 import { factureService } from '@/services/facture.service';
 import { useToast } from '@/components/ui/Toast';
-import { produitsService } from '@/services/produits.service';
 import { useFactureSuccessStore } from '@/hooks/useFactureSuccess';
 
 export function ModalPanier() {
