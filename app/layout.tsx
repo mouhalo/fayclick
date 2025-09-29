@@ -1,22 +1,19 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, Montserrat } from "next/font/google";
+// import { Inter, Montserrat } from "next/font/google";
 import "./globals.css";
 import ConditionalAuthProvider from '@/components/providers/ConditionalAuthProvider';
 import { VersionProvider } from '@/contexts/VersionContext';
 import { PWAInstallProvider } from '@/components/pwa/PWAInstallProvider';
 import { Toaster } from 'sonner';
 
-const inter = Inter({
+// Temporary fallback to system fonts for deployment
+const inter = {
   variable: "--font-inter",
-  subsets: ["latin"],
-  display: "swap",
-});
+};
 
-const montserrat = Montserrat({
+const montserrat = {
   variable: "--font-montserrat",
-  subsets: ["latin"],
-  display: "swap",
-});
+};
 
 export const metadata: Metadata = {
   title: "FayClick - La Super App du Sénégal",

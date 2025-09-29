@@ -1,103 +1,102 @@
 /**
- * API Route pour l'upload de logo FTP
- * Gère l'upload réel des logos vers le serveur FTP
+ * API Route Proxy pour l'upload de logo
+ * Redirige vers l'API backend pour l'upload réel
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import * as ftp from 'basic-ftp';
-import { Readable } from 'stream';
-
-// Configuration FTP
-const FTP_CONFIG = {
-  host: "node260-eu.n0c.com",
-  user: "upload@fayclick.net",
-  password: "Y@L@tif129*",
-  secure: true,
-  secureOptions: { rejectUnauthorized: false }
-};
-
-const FTP_REMOTE_DIR = '/';
-const BASE_URL = 'https://fayclick.net';
+import { getApiBaseUrl } from '@/lib/api-config';
 
 export async function POST(request: NextRequest) {
-  const client = new ftp.Client();
-  client.ftp.verbose = false;
-  
   try {
-    console.log('🚀 [API-UPLOAD] Début upload logo');
-    
-    // 1. Récupérer le fichier depuis la requête
+    console.log('🚀 [API-PROXY] Redirection upload logo vers backend');
+
+    // 1. Récupérer le FormData de la requête
     const formData = await request.formData();
-    const file = formData.get('file') as File;
-    const filename = formData.get('filename') as string;
-    
-    if (!file || !filename) {
-      return NextResponse.json(
-        { error: 'Fichier manquant' },
-        { status: 400 }
-      );
-    }
 
-    // 2. Validation basique
-    const maxSize = 5 * 1024 * 1024; // 5MB
-    if (file.size > maxSize) {
-      return NextResponse.json(
-        { error: 'Fichier trop volumineux (max 5MB)' },
-        { status: 400 }
-      );
-    }
+    // 2. Obtenir l'URL de l'API backend
+    const apiUrl = getApiBaseUrl();
+    const uploadUrl = `${apiUrl}/upload/logo`;
 
-    // 3. Convertir le fichier en buffer
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
-    
-    console.log(`📤 [API-UPLOAD] Upload de ${filename} (${buffer.length} bytes)`);
+    console.log(`📤 [API-PROXY] Proxy vers: ${uploadUrl}`);
 
-    // 4. Connexion FTP
-    await client.access(FTP_CONFIG);
-    console.log('✅ [API-UPLOAD] Connexion FTP établie');
-    
-    // 5. Créer le répertoire si nécessaire
-    try {
-      await client.ensureDir(FTP_REMOTE_DIR);
-    } catch (dirError) {
-      console.log('📁 [API-UPLOAD] Dossier existe déjà ou création:', dirError);
-    }
-    
-    // 6. Upload du fichier
-    const stream = Readable.from(buffer);
-    const remotePath = `${FTP_REMOTE_DIR}${filename}`;
-    
-    await client.uploadFrom(stream, remotePath);
-    console.log(`✅ [API-UPLOAD] Fichier uploadé: ${remotePath}`);
-    
-    // 7. Construire l'URL finale
-    const fileUrl = `${BASE_URL}${'/uploads/'}${filename}`;
-    
-    // 8. Fermer la connexion FTP
-    client.close();
-    
-    return NextResponse.json({
-      success: true,
-      url: fileUrl,
-      filename: filename,
-      size: buffer.length
+    // 3. Transférer la requête vers le backend
+    const response = await fetch(uploadUrl, {
+      method: 'POST',
+      body: formData,
+      // Le FormData définit automatiquement le bon Content-Type avec boundary
     });
-    
+
+    // 4. Obtenir le content-type de la réponse
+    const contentType = response.headers.get('content-type');
+
+    // 5. Si erreur, gérer proprement
+    if (!response.ok) {
+      console.error(`❌ [API-PROXY] Erreur backend: ${response.status}`);
+
+      // Essayer de parser selon le type de contenu
+      if (contentType && contentType.includes('application/json')) {
+        const error = await response.json();
+        return NextResponse.json(
+          {
+            error: error.error || error.message || 'Erreur upload',
+            success: false
+          },
+          { status: response.status }
+        );
+      } else {
+        // Si HTML ou autre, retourner une erreur générique JSON
+        return NextResponse.json(
+          {
+            error: `Erreur serveur ${response.status}. L'upload n'est pas disponible pour le moment.`,
+            success: false
+          },
+          { status: response.status }
+        );
+      }
+    }
+
+    // 6. Parser et retourner la réponse du backend
+    if (contentType && contentType.includes('application/json')) {
+      const result = await response.json();
+      console.log('✅ [API-PROXY] Upload réussi via backend');
+      return NextResponse.json(result);
+    } else {
+      // Si la réponse n'est pas du JSON alors que le statut est OK
+      console.error('❌ [API-PROXY] Réponse non-JSON du backend');
+      return NextResponse.json(
+        {
+          error: 'Réponse invalide du serveur',
+          success: false
+        },
+        { status: 500 }
+      );
+    }
+
   } catch (error) {
-    console.error('❌ [API-UPLOAD] Erreur:', error);
-    client.close();
-    
+    console.error('❌ [API-PROXY] Erreur proxy:', error);
+
+    // Gérer les erreurs de connexion
+    if (error instanceof Error && (error.message.includes('Failed to fetch') || error.message.includes('ECONNREFUSED'))) {
+      return NextResponse.json(
+        {
+          error: 'Impossible de contacter le serveur d\'upload. Veuillez réessayer plus tard.',
+          success: false
+        },
+        { status: 503 }
+      );
+    }
+
     return NextResponse.json(
-      { 
+      {
         error: 'Erreur lors de l\'upload',
-        details: error instanceof Error ? error.message : 'Erreur inconnue'
+        details: error instanceof Error ? error.message : 'Erreur inconnue',
+        success: false
       },
       { status: 500 }
     );
   }
 }
 
-// Configurer la taille maximale du body
-export const runtime = 'nodejs';
+// Utiliser Edge Runtime pour éviter les problèmes de compatibilité
+export const runtime = 'edge';
 export const maxDuration = 30; // 30 secondes timeout

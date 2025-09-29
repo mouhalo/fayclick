@@ -4,16 +4,17 @@
  */
 
 import imageCompression from 'browser-image-compression';
-import { 
-  UploadResult, 
-  UploadProgress, 
-  FileValidationResult, 
+import {
+  UploadResult,
+  UploadProgress,
+  FileValidationResult,
   UploadError,
   UPLOAD_CONSTANTS,
   FTP_CONSTANTS,
   CompressionOptions,
-  ILogoUploadService 
+  ILogoUploadService
 } from '@/types/upload.types';
+import { getApiBaseUrl } from '@/lib/api-config';
 
 class LogoUploadService implements ILogoUploadService {
   private static instance: LogoUploadService;
@@ -176,11 +177,11 @@ class LogoUploadService implements ILogoUploadService {
   }
 
   /**
-   * Upload réel vers le serveur FTP via l'API route
+   * Upload réel vers le serveur via l'API backend
    */
   private async uploadToServer(
-    file: File, 
-    filename: string, 
+    file: File,
+    filename: string,
     onProgress?: (progress: UploadProgress) => void
   ): Promise<string> {
     try {
@@ -188,41 +189,104 @@ class LogoUploadService implements ILogoUploadService {
       const formData = new FormData();
       formData.append('file', file);
       formData.append('filename', filename);
-      
+
       this.updateProgress(onProgress, 'uploading', 70, 'Envoi vers le serveur...');
-      
-      // Appel de l'API route pour l'upload FTP
-      const response = await fetch('/api/upload-logo', {
+
+      // Déterminer quelle route utiliser selon l'environnement
+      const apiUrl = getApiBaseUrl();
+      let uploadUrl: string;
+
+      // En production, utiliser directement l'API backend
+      // En dev, utiliser la route proxy Next.js qui gère mieux CORS
+      if (typeof window !== 'undefined' && window.location.hostname === 'v2.fayclick.net') {
+        // Production : API backend directe
+        uploadUrl = `${apiUrl}/upload/logo`;
+      } else {
+        // Développement : Route proxy Next.js
+        uploadUrl = '/api/upload-logo';
+      }
+
+      console.log('📤 [LOGO-UPLOAD] Upload vers:', uploadUrl);
+
+      const response = await fetch(uploadUrl, {
         method: 'POST',
-        body: formData
+        body: formData,
+        // Pas de Content-Type, le browser le définit automatiquement avec boundary
       });
-      
+
       this.updateProgress(onProgress, 'uploading', 90, 'Finalisation...');
-      
+
+      // Gestion améliorée des erreurs - vérifier le content-type
+      const contentType = response.headers.get('content-type');
+
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || `Erreur HTTP: ${response.status}`);
+        let errorMessage = `Erreur HTTP: ${response.status}`;
+
+        // Essayer de parser la réponse selon le type
+        if (contentType && contentType.includes('application/json')) {
+          try {
+            const error = await response.json();
+            errorMessage = error.error || error.message || errorMessage;
+          } catch (parseError) {
+            console.error('❌ [LOGO-UPLOAD] Erreur parsing JSON:', parseError);
+          }
+        } else if (contentType && contentType.includes('text/html')) {
+          // Si on reçoit du HTML (page d'erreur), on ne le parse pas
+          errorMessage = `Erreur serveur ${response.status}. L'upload n'est pas disponible pour le moment.`;
+        } else {
+          // Essayer de lire comme texte
+          try {
+            const textError = await response.text();
+            if (textError && textError.length < 200) {
+              errorMessage = textError;
+            }
+          } catch (textError) {
+            console.error('❌ [LOGO-UPLOAD] Erreur lecture texte:', textError);
+          }
+        }
+
+        throw new Error(errorMessage);
       }
-      
-      const result = await response.json();
-      
+
+      // Parser la réponse JSON
+      let result;
+      try {
+        // Vérifier que c'est bien du JSON
+        if (!contentType || !contentType.includes('application/json')) {
+          throw new Error('Réponse non-JSON reçue du serveur');
+        }
+        result = await response.json();
+      } catch (parseError) {
+        console.error('❌ [LOGO-UPLOAD] Erreur parsing réponse:', parseError);
+        throw new Error('Réponse invalide du serveur');
+      }
+
       if (!result.success || !result.url) {
-        throw new Error(result.error || 'Upload échoué');
+        throw new Error(result.error || result.message || 'Upload échoué');
       }
-      
+
       this.updateProgress(onProgress, 'uploading', 100, 'Upload terminé!');
-      
-      console.log('✅ [LOGO-UPLOAD] Upload réel réussi:', {
+
+      console.log('✅ [LOGO-UPLOAD] Upload réussi:', {
         url: result.url,
-        filename: result.filename,
-        size: result.size
+        filename: result.filename || filename,
+        size: result.size || file.size
       });
-      
+
       return result.url;
-      
+
     } catch (error) {
       console.error('❌ [LOGO-UPLOAD] Erreur upload serveur:', error);
-      throw error;
+
+      // Message d'erreur plus convivial
+      if (error instanceof Error) {
+        if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+          throw new Error('Connexion au serveur impossible. Vérifiez votre connexion internet.');
+        }
+        throw error;
+      }
+
+      throw new Error('Erreur inattendue lors de l\'upload');
     }
   }
 
