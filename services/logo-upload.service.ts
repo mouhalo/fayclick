@@ -192,20 +192,8 @@ class LogoUploadService implements ILogoUploadService {
 
       this.updateProgress(onProgress, 'uploading', 70, 'Envoi vers le serveur...');
 
-      // Déterminer quelle route utiliser selon l'environnement
-      const apiUrl = getApiBaseUrl();
-      let uploadUrl: string;
-
-      // En production, utiliser directement l'API backend
-      // En dev, utiliser la route proxy Next.js qui gère mieux CORS
-      if (typeof window !== 'undefined' && window.location.hostname === 'v2.fayclick.net') {
-        // Production : API backend directe
-        uploadUrl = `${apiUrl}/upload/logo`;
-      } else {
-        // Développement : Route proxy Next.js
-        uploadUrl = '/api/upload-logo';
-      }
-
+      // Toujours utiliser la route API Next.js qui gère tous les cas
+      const uploadUrl = '/api/upload-logo';
       console.log('📤 [LOGO-UPLOAD] Upload vers:', uploadUrl);
 
       const response = await fetch(uploadUrl, {
