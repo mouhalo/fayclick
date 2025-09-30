@@ -1,14 +1,17 @@
 /**
  * Composant carte produit pour le catalogue public
  * Design inspiré des cartes de facture publique
+ * Avec modal carrousel premium au clic
  */
 
 'use client';
 
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Package } from 'lucide-react';
 import { ProduitPublic } from '@/types/catalogue';
 import Image from 'next/image';
+import ModalCarrouselProduit from './ModalCarrouselProduit';
 
 interface CarteProduitProps {
   produit: ProduitPublic;
@@ -16,6 +19,7 @@ interface CarteProduitProps {
 }
 
 export default function CarteProduit({ produit, index }: CarteProduitProps) {
+  const [showModal, setShowModal] = useState(false);
   // Récupérer la première photo ou utiliser un placeholder
   const photoUrl = produit.photos && produit.photos.length > 0
     ? produit.photos[0].url_photo
@@ -37,14 +41,16 @@ export default function CarteProduit({ produit, index }: CarteProduitProps) {
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.05 }}
-      className="bg-white/95 backdrop-blur-xl rounded-xl shadow-lg border border-white/30 overflow-hidden hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 group"
-    >
-      {/* Photo du produit */}
-      <div className="relative w-full h-48 bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden">
+    <>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: index * 0.05 }}
+        onClick={() => setShowModal(true)}
+        className="bg-white/95 backdrop-blur-xl rounded-xl shadow-lg border border-white/30 overflow-hidden hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 group cursor-pointer"
+      >
+        {/* Photo du produit */}
+        <div className="relative w-full h-48 bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden">
         {photoUrl ? (
           <Image
             src={photoUrl}
@@ -109,5 +115,13 @@ export default function CarteProduit({ produit, index }: CarteProduitProps) {
         )}
       </div>
     </motion.div>
+
+    {/* Modal Carrousel Premium */}
+    <ModalCarrouselProduit
+      produit={produit}
+      isOpen={showModal}
+      onClose={() => setShowModal(false)}
+    />
+    </>
   );
 }
