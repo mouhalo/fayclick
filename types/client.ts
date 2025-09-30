@@ -223,3 +223,19 @@ export function getStatutFactureBadgeColor(statut: FactureClient['statut_paiemen
       return 'bg-gray-500/20 text-gray-200 border-gray-400/30';
   }
 }
+
+// 🆕 Types pour la recherche de clients dans le panier
+export interface ClientSearchResponse {
+  success: boolean;
+  message: string;
+  id_structure: number;
+  total_clients: number;
+  filtre_telephone?: string;
+  data: Client[];
+}
+
+export interface ClientSearchResult {
+  found: boolean;
+  client?: Client;
+  message: string;
+}

@@ -8,6 +8,7 @@ import { ArticlePanier } from './produit';
 export type { ArticlePanier };
 
 export interface InfosClient {
+  id_client?: number; // 🆕 ID du client si existant (pour éviter les doublons en DB)
   nom_client_payeur?: string;
   tel_client?: string;
   description?: string;

@@ -651,6 +651,30 @@ class DatabaseService {
   }
 
   /**
+   * 🆕 Récupération de la liste des clients d'une structure
+   * Appelle la fonction PostgreSQL get_list_clients(pid_structure, ptel_client)
+   *
+   * @param id_structure - ID de la structure
+   * @param tel_client - Téléphone du client (optionnel, '' pour tous les clients)
+   * @returns Liste des clients avec leurs informations
+   */
+  async getListClients(id_structure: number, tel_client: string = ''): Promise<unknown[]> {
+    // Échapper les quotes dans le téléphone
+    const escapedTel = tel_client.replace(/'/g, "''");
+
+    // Construction de la requête avec les paramètres typés
+    const query = `SELECT * FROM get_list_clients(${id_structure}, '${escapedTel}');`;
+
+    console.log('👥 [DATABASE] Récupération liste clients:', {
+      id_structure,
+      tel_client: tel_client || '(tous)',
+      query
+    });
+
+    return this.query(query);
+  }
+
+  /**
    * Test de connectivité de l'API
    */
   async testConnection(): Promise<boolean> {

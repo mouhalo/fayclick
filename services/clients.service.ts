@@ -449,11 +449,121 @@ export class ClientsService {
   }
 
   /**
+   * 🆕 Recherche un client par numéro de téléphone (pour le panier)
+   * Utilise la fonction PostgreSQL get_list_clients avec filtre téléphone
+   *
+   * @param telephone - Numéro de téléphone du client (9 chiffres minimum)
+   * @returns Résultat de la recherche avec le client si trouvé
+   */
+  async searchClientByPhone(telephone: string): Promise<{
+    found: boolean;
+    client?: Client;
+    message: string;
+  }> {
+    try {
+      const user = authService.getUser();
+      if (!user) {
+        throw new ClientsApiException('Utilisateur non authentifié', 401);
+      }
+
+      console.log('🔍 [CLIENTS] Recherche client par téléphone:', {
+        id_structure: user.id_structure,
+        telephone: telephone.substring(0, 3) + '***'
+      });
+
+      // Validation basique
+      if (!telephone || telephone.length < 9) {
+        return {
+          found: false,
+          message: 'Numéro de téléphone trop court (minimum 9 chiffres)'
+        };
+      }
+
+      // Nettoyer le téléphone (supprimer espaces, tirets, etc.)
+      const cleanedPhone = telephone.replace(/\D/g, '');
+
+      // Appel de la fonction PostgreSQL get_list_clients avec filtre
+      const results = await database.getListClients(user.id_structure, cleanedPhone);
+
+      console.log('📊 [CLIENTS] Résultats recherche téléphone:', {
+        hasResults: results && results.length > 0,
+        resultCount: results?.length || 0
+      });
+
+      if (!results || results.length === 0) {
+        return {
+          found: false,
+          message: 'Aucun client trouvé avec ce numéro'
+        };
+      }
+
+      // Parser la réponse (même logique que getListeClients)
+      const rawData = results[0] as Record<string, unknown>;
+      let data;
+
+      try {
+        if (rawData.get_list_clients) {
+          const clientData = rawData.get_list_clients;
+          data = typeof clientData === 'string'
+            ? JSON.parse(clientData)
+            : clientData;
+        } else if (typeof rawData === 'string') {
+          data = JSON.parse(rawData);
+        } else {
+          data = rawData;
+        }
+      } catch (parseError) {
+        console.error('❌ [CLIENTS] Erreur parsing recherche téléphone:', parseError);
+        return {
+          found: false,
+          message: 'Erreur lors du traitement des données'
+        };
+      }
+
+      console.log('✅ [CLIENTS] Données parsées recherche:', {
+        success: data.success,
+        total_clients: data.total_clients,
+        hasData: !!data.data
+      });
+
+      // Vérifier si un client a été trouvé
+      if (data.success && data.data && data.data.length > 0) {
+        const client = data.data[0] as Client;
+
+        console.log('🎯 [CLIENTS] Client trouvé:', {
+          id_client: client.id_client,
+          nom_client: client.nom_client,
+          tel_client: client.tel_client
+        });
+
+        return {
+          found: true,
+          client,
+          message: 'Client trouvé avec succès'
+        };
+      }
+
+      return {
+        found: false,
+        message: data.message || 'Aucun client trouvé'
+      };
+
+    } catch (error) {
+      console.error('❌ [CLIENTS] Erreur recherche client par téléphone:', error);
+
+      return {
+        found: false,
+        message: error instanceof Error ? error.message : 'Erreur lors de la recherche'
+      };
+    }
+  }
+
+  /**
    * Mise à jour hybride : client spécifique + statistiques globales
    * Solution optimale pour la synchronisation après paiement
    */
   async updateClientAndStats(
-    clientId: number, 
+    clientId: number,
     currentClients: ClientWithStats[]
   ): Promise<{ clients: ClientWithStats[], stats: StatistiquesGlobales | null }> {
     try {
