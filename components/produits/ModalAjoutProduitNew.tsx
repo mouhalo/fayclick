@@ -891,6 +891,7 @@ export function ModalAjoutProduitNew({
                           ) : (
                             <LogoUpload
                               forceRemoteUpload={true}
+                              uploadType="photo"
                               label={`Photo ${photoNumber}`}
                               className="aspect-square"
                               onUploadComplete={async (result: UploadResult) => {

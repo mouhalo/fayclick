@@ -12,7 +12,8 @@ export default function LogoUpload({
   className = '',
   disabled = false,
   forceRemoteUpload = false,
-  label
+  label,
+  uploadType = 'logo'
 }: LogoUploadProps) {
   const [logoState, setLogoState] = useState<LogoState>({
     preview: initialPreview,
@@ -36,7 +37,7 @@ export default function LogoUpload({
     };
 
     try {
-      const result = await logoUploadService.uploadLogo(file, progressCallback, forceRemoteUpload);
+      const result = await logoUploadService.uploadLogo(file, progressCallback, forceRemoteUpload, uploadType);
 
       if (result.success) {
         setLogoState(prev => ({ 
