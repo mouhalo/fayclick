@@ -1,5 +1,6 @@
 // Service Worker FayClick V2 - PWA Complète
 // Version: 2.1.0 - 2025-09-30
+// Build: 2025-09-30T21:50:49.444Z - Force upload fix for ftp-deploy size comparison bug
 
 const CACHE_NAME = 'fayclick-v2-cache-v2-20250930';
 const DYNAMIC_CACHE_NAME = 'fayclick-v2-dynamic-v2-20250930';
