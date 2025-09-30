@@ -65,6 +65,8 @@ export interface LogoUploadProps {
   initialPreview?: string;
   className?: string;
   disabled?: boolean;
+  forceRemoteUpload?: boolean; // Si true, upload FTP obligatoire même en DEV
+  label?: string; // Label personnalisé pour l'upload
 }
 
 // Interface pour l'état du logo dans le formulaire
