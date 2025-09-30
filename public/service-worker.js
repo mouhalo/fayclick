@@ -1,14 +1,14 @@
 // Service Worker FayClick V2 - PWA Complète
-// Version: 2.1.0 - 2025-09-30
-// Build: 2025-09-30T21:50:49.444Z - Force upload fix for ftp-deploy size comparison bug
+// Version: 2.2.0 - 2025-09-30
+// Build: 2025-09-30T22:07:51.151Z - Force upload fix for ftp-deploy size comparison bug
 
-const CACHE_NAME = 'fayclick-v2-cache-v2-20250930';
-const DYNAMIC_CACHE_NAME = 'fayclick-v2-dynamic-v2-20250930';
+const CACHE_NAME = 'fayclick-v2-cache-v2.2-20250930';
+const DYNAMIC_CACHE_NAME = 'fayclick-v2-dynamic-v2.2-20250930';
 const OFFLINE_PAGE_URL = '/offline';
 
 // Assets essentiels à mettre en cache lors de l'installation
+// Note: On ne met pas '/' car il sera caché dynamiquement (évite erreurs lors de l'install)
 const STATIC_ASSETS = [
-  '/',
   '/offline',
   '/manifest.json',
   '/favicon.ico',
@@ -37,13 +37,22 @@ self.addEventListener('install', (event) => {
   console.log('[Service Worker] Installation...');
 
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
+    caches.open(CACHE_NAME).then(async (cache) => {
       console.log('[Service Worker] Mise en cache des assets essentiels');
-      return cache.addAll(STATIC_ASSETS).catch((error) => {
-        console.error('[Service Worker] Erreur lors de la mise en cache:', error);
-        // Continue même si certains assets échouent
-        return Promise.resolve();
+
+      // Cacher chaque asset individuellement pour éviter que l'échec d'un seul bloque tout
+      const cachePromises = STATIC_ASSETS.map(async (url) => {
+        try {
+          await cache.add(url);
+          console.log(`[Service Worker] ✓ Cached: ${url}`);
+        } catch (error) {
+          console.warn(`[Service Worker] ✗ Failed to cache ${url}:`, error.message);
+          // Continue même si cet asset échoue
+        }
       });
+
+      await Promise.allSettled(cachePromises);
+      console.log('[Service Worker] Installation terminée');
     })
   );
 
