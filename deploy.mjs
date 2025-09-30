@@ -172,13 +172,17 @@ ${colors.green}✨ Développé avec expertise pour FayClick V2${colors.reset}
   async buildNextjs() {
     Logger.step('🏗️', 'Build Next.js en cours...');
     
-    // Nettoyer les anciens builds
+    // Nettoyer les anciens builds avec gestion des erreurs Windows
     const cleanDirs = ['.next', 'out'];
     cleanDirs.forEach(dir => {
       const dirPath = join(__dirname, dir);
       if (existsSync(dirPath)) {
         Logger.info(`Nettoyage du dossier: ${dir}`);
-        rmSync(dirPath, { recursive: true, force: true });
+        try {
+          rmSync(dirPath, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 });
+        } catch (error) {
+          Logger.warning(`Impossible de supprimer ${dir} (fichiers verrouillés), le build continuera...`);
+        }
       }
     });
 

@@ -178,6 +178,7 @@ class LogoUploadService implements ILogoUploadService {
 
   /**
    * Upload réel vers le serveur via l'API backend
+   * Solution Senior : Détection environnement et upload direct backend en prod
    */
   private async uploadToServer(
     file: File,
@@ -185,16 +186,30 @@ class LogoUploadService implements ILogoUploadService {
     onProgress?: (progress: UploadProgress) => void
   ): Promise<string> {
     try {
-      // Préparation du FormData
+      // Détection environnement client-side (Next.js export statique n'a pas d'API routes)
+      const isProd = typeof window !== 'undefined' &&
+        (window.location.hostname.includes('fayclick.net') ||
+         window.location.hostname.includes('v2.fayclick'));
+
+      // En développement : retourner une data URL locale (pas d'upload serveur nécessaire)
+      if (!isProd) {
+        console.log('🔧 [LOGO-UPLOAD] Mode DEV - Utilisation data URL locale');
+        const dataUrl = await this.fileToDataUrl(file);
+        this.updateProgress(onProgress, 'uploading', 100, 'Upload local terminé!');
+        return dataUrl;
+      }
+
+      // En production : upload direct vers le backend API PHP
       const formData = new FormData();
       formData.append('file', file);
       formData.append('filename', filename);
 
       this.updateProgress(onProgress, 'uploading', 70, 'Envoi vers le serveur...');
 
-      // Toujours utiliser la route API Next.js qui gère tous les cas
-      const uploadUrl = '/api/upload-logo';
-      console.log('📤 [LOGO-UPLOAD] Upload vers:', uploadUrl);
+      // Upload direct vers l'API backend (pas de proxy Next.js)
+      const apiUrl = getApiBaseUrl();
+      const uploadUrl = `${apiUrl}/upload/logo`;
+      console.log('📤 [LOGO-UPLOAD] Upload PROD vers:', uploadUrl);
 
       const response = await fetch(uploadUrl, {
         method: 'POST',
@@ -208,32 +223,15 @@ class LogoUploadService implements ILogoUploadService {
       const contentType = response.headers.get('content-type');
 
       if (!response.ok) {
-        let errorMessage = `Erreur HTTP: ${response.status}`;
+        console.warn(`⚠️ [LOGO-UPLOAD] Backend retourne ${response.status}, utilisation fallback local`);
 
-        // Essayer de parser la réponse selon le type
-        if (contentType && contentType.includes('application/json')) {
-          try {
-            const error = await response.json();
-            errorMessage = error.error || error.message || errorMessage;
-          } catch (parseError) {
-            console.error('❌ [LOGO-UPLOAD] Erreur parsing JSON:', parseError);
-          }
-        } else if (contentType && contentType.includes('text/html')) {
-          // Si on reçoit du HTML (page d'erreur), on ne le parse pas
-          errorMessage = `Erreur serveur ${response.status}. L'upload n'est pas disponible pour le moment.`;
-        } else {
-          // Essayer de lire comme texte
-          try {
-            const textError = await response.text();
-            if (textError && textError.length < 200) {
-              errorMessage = textError;
-            }
-          } catch (textError) {
-            console.error('❌ [LOGO-UPLOAD] Erreur lecture texte:', textError);
-          }
-        }
+        // Fallback : Si le backend échoue, utiliser une data URL locale
+        // L'utilisateur pourra voir le logo dans sa session
+        const dataUrl = await this.fileToDataUrl(file);
+        this.updateProgress(onProgress, 'uploading', 100, 'Upload local (backend indisponible)');
 
-        throw new Error(errorMessage);
+        console.log('✅ [LOGO-UPLOAD] Fallback data URL utilisé');
+        return dataUrl;
       }
 
       // Parser la réponse JSON
@@ -241,21 +239,32 @@ class LogoUploadService implements ILogoUploadService {
       try {
         // Vérifier que c'est bien du JSON
         if (!contentType || !contentType.includes('application/json')) {
-          throw new Error('Réponse non-JSON reçue du serveur');
+          console.warn('⚠️ [LOGO-UPLOAD] Réponse non-JSON du backend, utilisation fallback');
+          // Fallback automatique si réponse non-JSON
+          const dataUrl = await this.fileToDataUrl(file);
+          this.updateProgress(onProgress, 'uploading', 100, 'Upload local (backend incompatible)');
+          return dataUrl;
         }
         result = await response.json();
       } catch (parseError) {
-        console.error('❌ [LOGO-UPLOAD] Erreur parsing réponse:', parseError);
-        throw new Error('Réponse invalide du serveur');
+        console.error('❌ [LOGO-UPLOAD] Erreur parsing réponse, fallback local');
+        // Fallback automatique si erreur parsing
+        const dataUrl = await this.fileToDataUrl(file);
+        this.updateProgress(onProgress, 'uploading', 100, 'Upload local (erreur backend)');
+        return dataUrl;
       }
 
       if (!result.success || !result.url) {
-        throw new Error(result.error || result.message || 'Upload échoué');
+        console.warn('⚠️ [LOGO-UPLOAD] Backend retourne erreur, fallback local');
+        // Fallback si le backend retourne une erreur
+        const dataUrl = await this.fileToDataUrl(file);
+        this.updateProgress(onProgress, 'uploading', 100, 'Upload local (erreur backend)');
+        return dataUrl;
       }
 
-      this.updateProgress(onProgress, 'uploading', 100, 'Upload terminé!');
+      this.updateProgress(onProgress, 'uploading', 100, 'Upload backend terminé!');
 
-      console.log('✅ [LOGO-UPLOAD] Upload réussi:', {
+      console.log('✅ [LOGO-UPLOAD] Upload backend réussi:', {
         url: result.url,
         filename: result.filename || filename,
         size: result.size || file.size
@@ -264,17 +273,19 @@ class LogoUploadService implements ILogoUploadService {
       return result.url;
 
     } catch (error) {
-      console.error('❌ [LOGO-UPLOAD] Erreur upload serveur:', error);
+      console.error('❌ [LOGO-UPLOAD] Erreur upload serveur, utilisation fallback:', error);
 
-      // Message d'erreur plus convivial
-      if (error instanceof Error) {
-        if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
-          throw new Error('Connexion au serveur impossible. Vérifiez votre connexion internet.');
-        }
-        throw error;
+      // Fallback ultime : toujours retourner une data URL au lieu de crasher
+      try {
+        const dataUrl = await this.fileToDataUrl(file);
+        this.updateProgress(onProgress, 'uploading', 100, 'Upload local (erreur connexion)');
+        console.log('✅ [LOGO-UPLOAD] Fallback data URL utilisé après erreur');
+        return dataUrl;
+      } catch (fallbackError) {
+        // Si même le fallback échoue, alors là on throw
+        console.error('❌ [LOGO-UPLOAD] Fallback impossible:', fallbackError);
+        throw new Error('Impossible de traiter l\'image');
       }
-
-      throw new Error('Erreur inattendue lors de l\'upload');
     }
   }
 

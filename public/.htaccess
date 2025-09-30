@@ -1,6 +1,9 @@
 # Configuration Apache pour FayClick V2
 # Gestion des routes Next.js avec export statique
 
+# SÉCURITÉ : Désactiver les listings de répertoire
+Options -Indexes
+
 # Activer le moteur de réécriture
 RewriteEngine On
 
@@ -33,10 +36,33 @@ RewriteCond %{REQUEST_URI} !^/_next/
 RewriteCond %{REQUEST_URI} !\.(css|js|png|jpg|ico|svg|json)$
 RewriteRule ^([^/]+)/?$ /$1.html [L]
 
-# Support pour dossiers avec index.html
+# Support pour dossiers avec index.html (2 niveaux)
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_URI} !^/api/
+RewriteCond %{REQUEST_URI} !^/_next/
 RewriteRule ^([^/]+)/([^/]+)/?$ /$1/$2.html [L]
+
+# Support pour routes à 3 niveaux (/dashboard/commerce/)
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_URI} !^/api/
+RewriteCond %{REQUEST_URI} !^/_next/
+RewriteRule ^([^/]+)/([^/]+)/([^/]+)/?$ /$1/$2/$3.html [L]
+
+# Support pour routes à 4 niveaux et plus
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_URI} !^/api/
+RewriteCond %{REQUEST_URI} !^/_next/
+RewriteRule ^(.+)/?$ /$1.html [L]
+
+# Fallback : Si aucune route ne match, rediriger vers index.html (SPA fallback)
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_URI} !^/_next/
+RewriteCond %{REQUEST_URI} !\.(css|js|png|jpg|ico|svg|json|woff|woff2|ttf|eot)$
+RewriteRule ^.*$ /index.html [L]
 
 # Page 404 personnalisée
 ErrorDocument 404 /404.html
