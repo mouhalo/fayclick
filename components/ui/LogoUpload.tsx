@@ -4,13 +4,15 @@ import { useState, useRef, useCallback } from 'react';
 import { LogoUploadProps, UploadProgress, LogoState } from '@/types/upload.types';
 import logoUploadService from '@/services/logo-upload.service';
 
-export default function LogoUpload({ 
-  onUploadComplete, 
+export default function LogoUpload({
+  onUploadComplete,
   onUploadProgress,
   onFileSelect,
-  initialPreview, 
+  initialPreview,
   className = '',
-  disabled = false 
+  disabled = false,
+  forceRemoteUpload = false,
+  label
 }: LogoUploadProps) {
   const [logoState, setLogoState] = useState<LogoState>({
     preview: initialPreview,
@@ -34,8 +36,8 @@ export default function LogoUpload({
     };
 
     try {
-      const result = await logoUploadService.uploadLogo(file, progressCallback);
-      
+      const result = await logoUploadService.uploadLogo(file, progressCallback, forceRemoteUpload);
+
       if (result.success) {
         setLogoState(prev => ({ 
           ...prev, 
@@ -177,7 +179,7 @@ export default function LogoUpload({
           <span className="text-pink-500 text-base md:text-lg">🎨</span>
         </div>
         <h3 className="text-base md:text-lg font-semibold text-gray-800">
-          Logo de votre business
+          {label || 'Logo de votre business'}
         </h3>
         {logoState.url && (
           <span className="ml-2 text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">

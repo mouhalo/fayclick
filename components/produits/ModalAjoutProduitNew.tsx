@@ -890,8 +890,11 @@ export function ModalAjoutProduitNew({
                             </div>
                           ) : (
                             <LogoUpload
+                              forceRemoteUpload={true}
+                              label={`Photo ${photoNumber}`}
+                              className="aspect-square"
                               onUploadComplete={async (result: UploadResult) => {
-                                console.log('🎯 [MODAL-PHOTOS] onUploadSuccess callback déclenché:', {
+                                console.log('🎯 [MODAL-PHOTOS] onUploadComplete callback déclenché:', {
                                   success: result.success,
                                   url: result.url,
                                   filename: result.filename,
@@ -932,8 +935,6 @@ export function ModalAjoutProduitNew({
                                   });
                                 }
                               }}
-                              label={`Photo ${photoNumber}`}
-                              className="aspect-square"
                             />
                           )}
                         </div>

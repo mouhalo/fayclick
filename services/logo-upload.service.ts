@@ -41,7 +41,7 @@ class LogoUploadService implements ILogoUploadService {
   /**
    * Upload principal avec gestion complète
    */
-  async uploadLogo(file: File, onProgress?: (progress: UploadProgress) => void): Promise<UploadResult> {
+  async uploadLogo(file: File, onProgress?: (progress: UploadProgress) => void, forceRemote: boolean = false): Promise<UploadResult> {
     try {
       console.log('🖼️ [LOGO-UPLOAD] Début upload:', file.name);
 
@@ -66,7 +66,7 @@ class LogoUploadService implements ILogoUploadService {
       
       // 4. Upload FTP réel via l'API route
       this.updateProgress(onProgress, 'uploading', 60, 'Upload vers le serveur...');
-      const finalUrl = await this.uploadToServer(compressedFile, filename, onProgress);
+      const finalUrl = await this.uploadToServer(compressedFile, filename, onProgress, forceRemote);
       
       this.updateProgress(onProgress, 'success', 100, 'Upload terminé avec succès!');
       
@@ -183,7 +183,8 @@ class LogoUploadService implements ILogoUploadService {
   private async uploadToServer(
     file: File,
     filename: string,
-    onProgress?: (progress: UploadProgress) => void
+    onProgress?: (progress: UploadProgress) => void,
+    forceRemote: boolean = false
   ): Promise<string> {
     try {
       // Détection environnement client-side (Next.js export statique n'a pas d'API routes)
@@ -191,12 +192,17 @@ class LogoUploadService implements ILogoUploadService {
         (window.location.hostname.includes('fayclick.net') ||
          window.location.hostname.includes('v2.fayclick'));
 
-      // En développement : retourner une data URL locale (pas d'upload serveur nécessaire)
-      if (!isProd) {
+      // En développement : retourner une data URL locale (SAUF si forceRemote = true)
+      if (!isProd && !forceRemote) {
         console.log('🔧 [LOGO-UPLOAD] Mode DEV - Utilisation data URL locale');
         const dataUrl = await this.fileToDataUrl(file);
         this.updateProgress(onProgress, 'uploading', 100, 'Upload local terminé!');
         return dataUrl;
+      }
+
+      // Si forceRemote en DEV
+      if (!isProd && forceRemote) {
+        console.log('🚀 [LOGO-UPLOAD] Mode DEV avec forceRemote - Upload FTP obligatoire');
       }
 
       // En production : upload direct vers le backend API PHP
