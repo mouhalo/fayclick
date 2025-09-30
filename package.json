@@ -9,10 +9,12 @@
     "export": "next build",
     "start": "next start",
     "lint": "next lint",
+    "clean:server": "node scripts/clean-server.mjs",
     "deploy": "node deploy.mjs",
     "deploy:force": "node deploy.mjs --force",
     "deploy:build": "node deploy.mjs --build --force",
-    "deploy:verbose": "node deploy.mjs --verbose --build"
+    "deploy:verbose": "node deploy.mjs --verbose --build",
+    "deploy:fresh": "npm run clean:server && npm run deploy:build"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.1",
