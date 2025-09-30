@@ -906,11 +906,19 @@ export class ProduitsService {
    * Utilise la fonction SQL add_edit_photo()
    */
   async addEditPhoto(params: AddEditPhotoParams): Promise<AddEditPhotoResponse> {
+    console.log('📸 [PRODUITS SERVICE] addEditPhoto appelé:', params);
+
     try {
       const user = authService.getUser();
       if (!user) {
+        console.error('❌ [PRODUITS SERVICE] Utilisateur non authentifié');
         throw new ProduitsApiException('Utilisateur non authentifié', 401);
       }
+
+      console.log('✅ [PRODUITS SERVICE] Utilisateur authentifié:', {
+        id_utilisateur: user.id_utilisateur,
+        id_structure: user.id_structure
+      });
 
       SecurityService.secureLog('log', 'Add/Edit photo produit', {
         id_produit: params.id_produit,
@@ -930,18 +938,25 @@ export class ProduitsService {
       }
 
       const query = `SELECT add_edit_photo(${sqlParams.join(', ')})`;
+      console.log('📝 [PRODUITS SERVICE] Requête SQL:', query);
 
       const results = await database.query(query);
+      console.log('📦 [PRODUITS SERVICE] Résultats bruts DB:', results);
 
       if (!results || results.length === 0) {
+        console.error('❌ [PRODUITS SERVICE] Aucune réponse de la base de données');
         throw new ProduitsApiException('Aucune réponse de la base de données');
       }
 
       // Parser la réponse JSON
       const response = results[0].add_edit_photo;
+      console.log('🔍 [PRODUITS SERVICE] Réponse add_edit_photo:', response);
+
       const parsedResponse: AddEditPhotoResponse = typeof response === 'string'
         ? JSON.parse(response)
         : response;
+
+      console.log('✅ [PRODUITS SERVICE] Réponse parsée:', parsedResponse);
 
       SecurityService.secureLog('log', 'Photo produit sauvegardée', {
         success: parsedResponse.success,
@@ -969,35 +984,54 @@ export class ProduitsService {
    * Récupérer toutes les photos d'un produit via get_mes_produits
    */
   async getPhotos(id_produit: number): Promise<PhotoProduit[]> {
+    console.log('📸 [PRODUITS SERVICE] getPhotos appelé:', { id_produit });
+
     try {
       const user = authService.getUser();
       if (!user) {
+        console.error('❌ [PRODUITS SERVICE] Utilisateur non authentifié');
         throw new ProduitsApiException('Utilisateur non authentifié', 401);
       }
+
+      console.log('✅ [PRODUITS SERVICE] Utilisateur authentifié:', {
+        id_utilisateur: user.id_utilisateur,
+        id_structure: user.id_structure
+      });
 
       SecurityService.secureLog('log', 'Récupération photos produit', { id_produit });
 
       // Utiliser la fonction get_mes_produits qui retourne les photos
       const query = `SELECT * FROM get_mes_produits(${user.id_structure}, ${id_produit})`;
+      console.log('📝 [PRODUITS SERVICE] Requête SQL getPhotos:', query);
 
       const results = await database.query(query);
+      console.log('📦 [PRODUITS SERVICE] Résultats bruts DB:', results);
 
       if (!results || results.length === 0) {
+        console.warn('⚠️ [PRODUITS SERVICE] Aucun résultat de la DB');
         return [];
       }
 
       // Parser la réponse JSON
       const response = results[0].get_mes_produits;
+      console.log('🔍 [PRODUITS SERVICE] Réponse get_mes_produits:', response);
+
       const parsedResponse = typeof response === 'string'
         ? JSON.parse(response)
         : response;
 
+      console.log('✅ [PRODUITS SERVICE] Réponse parsée:', parsedResponse);
+
       // Vérifier le succès et extraire les photos
       if (!parsedResponse.success || !parsedResponse.data || parsedResponse.data.length === 0) {
+        console.warn('⚠️ [PRODUITS SERVICE] Pas de produit trouvé ou pas de données');
         return [];
       }
 
       const produit = parsedResponse.data[0];
+      console.log('📦 [PRODUITS SERVICE] Produit extrait:', produit);
+      console.log('📸 [PRODUITS SERVICE] Photos brutes du produit:', produit.photos);
+
       const photos: PhotoProduit[] = (produit.photos || []).map((photo: any) => ({
         id_photo: photo.id_photo,
         id_produit: id_produit,
@@ -1006,6 +1040,8 @@ export class ProduitsService {
         created_at: photo.date_upload,
         updated_at: photo.date_maj
       }));
+
+      console.log('✅ [PRODUITS SERVICE] Photos mappées:', photos);
 
       SecurityService.secureLog('log', 'Photos récupérées', {
         id_produit,
