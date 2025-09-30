@@ -443,21 +443,6 @@ export default function ModalCarrouselProduit({
                     </div>
                   </div>
                 )}
-
-                {/* Description */}
-                {produit.description && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.4 }}
-                    className="mt-6 p-4 bg-white/10 backdrop-blur-sm rounded-xl border border-white/20"
-                  >
-                    <h3 className="text-white font-semibold mb-2">Description</h3>
-                    <p className="text-white/80 text-sm leading-relaxed">
-                      {produit.description}
-                    </p>
-                  </motion.div>
-                )}
               </div>
             </div>
           </motion.div>
