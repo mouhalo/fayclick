@@ -28,6 +28,7 @@ import {
 import { Produit, ProduitFormDataNew, AddEditProduitResponse, MouvementStockForm, HistoriqueMouvements, PhotoProduit } from '@/types/produit';
 import { produitsService } from '@/services/produits.service';
 import LogoUpload from '@/components/ui/LogoUpload';
+import PopMessage from '@/components/ui/PopMessage';
 import { UploadResult, UploadProgress } from '@/types/upload.types';
 
 interface ModalAjoutProduitNewProps {
@@ -82,6 +83,16 @@ export function ModalAjoutProduitNew({
     type_mouvement: string;
     produit: string;
   } | null>(null);
+  const [popMessage, setPopMessage] = useState<{
+    show: boolean;
+    type: 'success' | 'error' | 'warning' | 'info';
+    title?: string;
+    message: string;
+  }>({
+    show: false,
+    type: 'info',
+    message: ''
+  });
 
   // Liste des catégories prédéfinies selon le type de structure
   const categories = typeStructure === 'PRESTATAIRE DE SERVICES'
@@ -142,6 +153,8 @@ export function ModalAjoutProduitNew({
       });
       // Charger les photos du produit
       loadPhotos(produitToEdit.id_produit);
+      // En édition: utiliser defaultTab pour flexibilité
+      setOngletActif(defaultTab);
     } else if (isOpen) {
       // Reset pour nouveau produit
       setFormData({
@@ -160,9 +173,10 @@ export function ModalAjoutProduitNew({
         description: ''
       });
       setPhotos([]);
+      // Nouveau produit: toujours commencer par "Infos générales"
+      setOngletActif('informations');
     }
     setErrors({});
-    setOngletActif(defaultTab);
     setHistorique(null);
     // Reset modal de confirmation de stock
     setShowStockSuccessModal(false);
@@ -235,9 +249,14 @@ export function ModalAjoutProduitNew({
 
   // Calcul de la marge
   const marge = formData.prix_vente - formData.cout_revient;
-  const margePercentage = formData.cout_revient > 0 
+  const margePercentage = formData.cout_revient > 0
     ? ((marge / formData.cout_revient) * 100).toFixed(1)
     : '0';
+
+  // Fonction pour afficher les messages de notification
+  const showMessage = (type: 'success' | 'error' | 'warning' | 'info', message: string, title?: string) => {
+    setPopMessage({ show: true, type, title, message });
+  };
 
   // Gestion de la soumission du formulaire principal
   const handleSubmit = async (e: React.FormEvent) => {
@@ -254,21 +273,25 @@ export function ModalAjoutProduitNew({
         // Modification d'un produit existant - comportement normal
         result = await produitsService.updateProduitNew(produitToEdit.id_produit, formData);
         onSuccess(result);
-        onClose();
+        showMessage('success', 'Mise à jour effectuée avec succès', 'Sauvegarde réussie');
+        // Fermer après 1.5s pour laisser voir le message
+        setTimeout(() => onClose(), 1500);
       } else {
         // Création d'un nouveau produit
         result = await produitsService.createProduitNew(formData);
         onSuccess(result);
+        showMessage('success', `${formData.est_service ? 'Service' : 'Produit'} créé avec succès`, 'Sauvegarde réussie');
 
         // Si c'est un produit (pas un service) ET qu'on a le callback, proposer l'ajout de stock
         if (!formData.est_service && onRequestStockAddition) {
-          onRequestStockAddition(result);
+          setTimeout(() => onRequestStockAddition(result), 1500);
         } else {
-          onClose();
+          setTimeout(() => onClose(), 1500);
         }
       }
     } catch (error) {
       console.error('Erreur lors de la sauvegarde:', error);
+      showMessage('error', 'Une erreur est survenue lors de la sauvegarde', 'Erreur');
     } finally {
       setIsLoading(false);
     }
@@ -312,10 +335,18 @@ export function ModalAjoutProduitNew({
       // Afficher la modal de confirmation
       setShowStockSuccessModal(true);
 
+      // Afficher notification de succès
+      showMessage(
+        'success',
+        `Stock mis à jour : ${stockForm.type_mouvement === 'ENTREE' ? '+' : '-'}${stockForm.quantite} unités`,
+        'Mouvement de stock enregistré'
+      );
+
       console.log('Mouvement ajouté avec succès');
-      
+
     } catch (error) {
       console.error('Erreur mouvement stock:', error);
+      showMessage('error', 'Impossible d\'enregistrer le mouvement de stock', 'Erreur');
     } finally {
       setIsLoadingStock(false);
     }
@@ -1009,6 +1040,15 @@ export function ModalAjoutProduitNew({
           </motion.div>
         </motion.div>
       )}
+
+      {/* Notification PopMessage */}
+      <PopMessage
+        show={popMessage.show}
+        type={popMessage.type}
+        title={popMessage.title}
+        message={popMessage.message}
+        onClose={() => setPopMessage({ ...popMessage, show: false })}
+      />
     </AnimatePresence>
   );
 }

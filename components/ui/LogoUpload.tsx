@@ -1,3 +1,4 @@
+//components\ui\LogoUpload.tsx
 'use client';
 
 import { useState, useRef, useCallback } from 'react';
@@ -11,7 +12,6 @@ export default function LogoUpload({
   initialPreview,
   className = '',
   disabled = false,
-  forceRemoteUpload = false,
   label,
   uploadType = 'logo'
 }: LogoUploadProps) {
@@ -37,36 +37,36 @@ export default function LogoUpload({
     };
 
     try {
-      const result = await logoUploadService.uploadLogo(file, progressCallback, forceRemoteUpload, uploadType);
+      const result = await logoUploadService.uploadLogo(file, progressCallback);
 
       if (result.success) {
-        setLogoState(prev => ({ 
-          ...prev, 
+        setLogoState(prev => ({
+          ...prev,
           url: result.url,
           uploading: false,
           progress: 100
         }));
-        
+
         console.log('✅ [LOGO-UPLOAD] Upload automatique réussi:', result.url);
-        
+
         if (onUploadComplete) {
           onUploadComplete(result);
         }
       } else {
-        setLogoState(prev => ({ 
-          ...prev, 
-          uploading: false, 
-          progress: 0, 
-          error: result.error 
+        setLogoState(prev => ({
+          ...prev,
+          uploading: false,
+          progress: 0,
+          error: result.error
         }));
       }
     } catch (error) {
       console.error('❌ [LOGO-UPLOAD] Erreur upload automatique:', error);
-      setLogoState(prev => ({ 
-        ...prev, 
-        uploading: false, 
-        progress: 0, 
-        error: error instanceof Error ? error.message : 'Upload échoué' 
+      setLogoState(prev => ({
+        ...prev,
+        uploading: false,
+        progress: 0,
+        error: error instanceof Error ? error.message : 'Upload échoué'
       }));
     }
   }, [logoState.uploading, onUploadComplete, onUploadProgress]);
@@ -109,9 +109,9 @@ export default function LogoUpload({
 
     } catch (error) {
       console.error('❌ [LOGO-UPLOAD] Erreur preview:', error);
-      setLogoState(prev => ({ 
-        ...prev, 
-        error: 'Impossible de prévisualiser l\'image' 
+      setLogoState(prev => ({
+        ...prev,
+        error: 'Impossible de prévisualiser l\'image'
       }));
     }
   }, [disabled, logoState.uploading, onFileSelect, handleUploadAuto]);
@@ -149,9 +149,9 @@ export default function LogoUpload({
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragOver(false);
-    
+
     if (disabled || logoState.uploading) return;
-    
+
     const file = e.dataTransfer.files?.[0];
     if (file) {
       handleFileSelect(file);
@@ -161,12 +161,12 @@ export default function LogoUpload({
   // Handler pour supprimer/remplacer
   const handleRemove = () => {
     if (logoState.uploading) return;
-    
+
     setLogoState({
       uploading: false,
       progress: 0
     });
-    
+
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -177,7 +177,9 @@ export default function LogoUpload({
       {/* Header avec icône */}
       <div className="flex items-center mb-3 md:mb-4">
         <div className="w-7 h-7 md:w-8 md:h-8 bg-pink-100 rounded-lg flex items-center justify-center mr-2 md:mr-3">
-          <span className="text-pink-500 text-base md:text-lg">🎨</span>
+          <span className="text-pink-500 text-base md:text-lg">
+            {uploadType === 'photo' ? '📷' : '🎨'}
+          </span>
         </div>
         <h3 className="text-base md:text-lg font-semibold text-gray-800">
           {label || 'Logo de votre business'}
@@ -191,7 +193,10 @@ export default function LogoUpload({
 
       {/* Sous-titre */}
       <p className="text-gray-600 text-xs md:text-sm mb-4 md:mb-6">
-        Photo/Logo du commerce (optionnel)
+        {uploadType === 'photo'
+          ? 'Image du produit (optionnel)'
+          : 'Photo/Logo du commerce (optionnel)'
+        }
       </p>
 
       {/* Zone d'upload/preview */}
@@ -203,8 +208,8 @@ export default function LogoUpload({
         className={`
           relative w-full h-40 md:h-48 border-2 border-dashed rounded-xl cursor-pointer
           transition-all duration-200 bg-gray-50/50
-          ${isDragOver 
-            ? 'border-primary-400 bg-primary-50/50 scale-[1.02]' 
+          ${isDragOver
+            ? 'border-primary-400 bg-primary-50/50 scale-[1.02]'
             : 'border-gray-300 hover:border-primary-300 hover:bg-primary-50/30'
           }
           ${logoState.error ? 'border-red-300 bg-red-50/30' : ''}
@@ -219,7 +224,7 @@ export default function LogoUpload({
               alt="Preview logo"
               className="max-w-full max-h-full object-contain rounded-lg"
             />
-            
+
             {/* Overlay avec contrôles */}
             <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-200 rounded-lg flex items-center justify-center">
               <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex gap-2">
@@ -249,7 +254,7 @@ export default function LogoUpload({
                 )}
               </div>
             </div>
-            
+
             {/* Progress bar d'upload automatique */}
             {logoState.uploading && (
               <div className="absolute bottom-2 left-2 right-2">
@@ -259,7 +264,7 @@ export default function LogoUpload({
                     <span className="font-bold">{logoState.progress}%</span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div 
+                    <div
                       className="bg-gradient-to-r from-blue-500 to-primary-500 h-2 rounded-full transition-all duration-300 animate-pulse"
                       style={{ width: `${logoState.progress}%` }}
                     />
@@ -267,7 +272,7 @@ export default function LogoUpload({
                 </div>
               </div>
             )}
-            
+
             {/* Badge de succès après upload */}
             {!logoState.uploading && logoState.url && (
               <div className="absolute top-2 right-2">
@@ -305,7 +310,7 @@ export default function LogoUpload({
 
             {/* Texte principal */}
             <h4 className="text-base md:text-lg font-medium text-gray-700 mb-2">
-              Ajouter un logo
+              {uploadType === 'photo' ? 'Ajouter une photo' : 'Ajouter un logo'}
             </h4>
 
             {/* Formats acceptés */}
@@ -355,13 +360,16 @@ export default function LogoUpload({
           <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
           </svg>
-          Logo uploadé avec succès !
+          {uploadType === 'photo' ? 'Photo uploadée avec succès !' : 'Logo uploadé avec succès !'}
         </div>
       )}
 
       {/* Note informative */}
       <div className="mt-3 md:mt-4 text-xs text-gray-500 italic text-center">
-        💡 Optionnel : Ajoutez le logo de votre commerce pour personnaliser vos factures
+        {uploadType === 'photo'
+          ? '💡 Optionnel : Ajoutez des photos pour présenter vos produits'
+          : '💡 Optionnel : Ajoutez le logo de votre commerce pour personnaliser vos factures'
+        }
       </div>
     </div>
   );
