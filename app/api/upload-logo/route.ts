@@ -1,21 +1,49 @@
 /**
- * API Route pour l'upload de logo
- * Solution hybride : upload local simulé ou proxy vers backend
+ * API Route pour l'upload de logo avec FTP Direct
+ * Solution conforme au guide LOGO_UPLOAD_GUIDE.md
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getApiBaseUrl } from '@/lib/api-config';
+import * as ftp from 'basic-ftp';
+import { Readable } from 'stream';
+
+// Configuration FTP (credentials depuis env ou constants)
+const FTP_CONFIG = {
+  host: process.env.FTP_HOST || "node260-eu.n0c.com",
+  user: process.env.FTP_USER || "upload@fayclick.net",
+  password: process.env.FTP_PASSWORD || "Y@L@tif129*",
+  secure: true,
+  secureOptions: { rejectUnauthorized: false }
+};
+
+const FTP_REMOTE_DIR = '/';
+const BASE_URL = process.env.SITE_UPLOAD_URL || 'https://fayclick.net';
+
+// Configuration Next.js
+export const runtime = 'nodejs';      // Runtime Node.js (requis pour basic-ftp)
+export const maxDuration = 30;        // 30 secondes timeout
 
 export async function POST(request: NextRequest) {
-  try {
-    console.log('🚀 [API-UPLOAD] Début upload logo');
+  const client = new ftp.Client();
+  client.ftp.verbose = true;  // ✅ ACTIVER LES LOGS FTP DÉTAILLÉS
 
-    // 1. Récupérer le FormData de la requête
+  try {
+    console.log('🚀 [API-UPLOAD] ========== DÉBUT UPLOAD LOGO ==========');
+
+    // 1. Récupérer le fichier depuis FormData
     const formData = await request.formData();
     const file = formData.get('file') as File;
     const filename = formData.get('filename') as string;
 
+    console.log('📋 [API-UPLOAD] Configuration FTP:', {
+      host: FTP_CONFIG.host,
+      user: FTP_CONFIG.user,
+      secure: FTP_CONFIG.secure,
+      remoteDir: FTP_REMOTE_DIR
+    });
+
     if (!file || !filename) {
+      console.error('❌ [API-UPLOAD] Fichier ou nom de fichier manquant');
       return NextResponse.json(
         {
           error: 'Fichier manquant',
@@ -25,9 +53,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 2. Validation basique
+    console.log(`📤 [API-UPLOAD] Fichier reçu:`, {
+      filename,
+      size: file.size,
+      type: file.type
+    });
+
+    // 2. Validation serveur
     const maxSize = 5 * 1024 * 1024; // 5MB
     if (file.size > maxSize) {
+      console.error(`❌ [API-UPLOAD] Fichier trop volumineux: ${file.size} bytes (max: ${maxSize})`);
       return NextResponse.json(
         {
           error: 'Fichier trop volumineux (max 5MB)',
@@ -37,102 +72,108 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 3. En développement : simuler un upload réussi
-    // En production : essayer de proxy vers le backend
-    const isDevelopment = process.env.NODE_ENV !== 'production';
+    // 3. Convertir File → Buffer
+    console.log('🔄 [API-UPLOAD] Conversion File → Buffer...');
+    const bytes = await file.arrayBuffer();
+    const buffer = Buffer.from(bytes);
+    console.log(`✅ [API-UPLOAD] Buffer créé: ${buffer.length} bytes`);
 
-    if (isDevelopment) {
-      console.log(`📤 [API-UPLOAD] Mode développement - Upload simulé de ${filename}`);
+    // 4. Connexion FTP
+    console.log(`🔌 [API-UPLOAD] Tentative de connexion FTP...`);
+    console.log(`   → Host: ${FTP_CONFIG.host}`);
+    console.log(`   → User: ${FTP_CONFIG.user}`);
+    console.log(`   → Secure: ${FTP_CONFIG.secure}`);
 
-      // Créer une URL temporaire pour le preview (en dev seulement)
-      const bytes = await file.arrayBuffer();
-      const buffer = Buffer.from(bytes);
-      const base64 = buffer.toString('base64');
-      const mimeType = file.type || 'image/png';
-      const dataUrl = `data:${mimeType};base64,${base64}`;
+    await client.access(FTP_CONFIG);
+    console.log('✅ [API-UPLOAD] ✓✓✓ CONNEXION FTP ÉTABLIE ✓✓✓');
 
-      // Retourner une réponse simulée
-      return NextResponse.json({
-        success: true,
-        url: dataUrl, // En dev, on utilise une data URL
-        filename: filename,
-        size: file.size,
-        message: 'Upload simulé en mode développement'
-      });
+    // Lister le répertoire courant
+    console.log('📂 [API-UPLOAD] Vérification du répertoire courant...');
+    const currentDir = await client.pwd();
+    console.log(`📍 [API-UPLOAD] Répertoire actuel: ${currentDir}`);
 
-    } else {
-      // En production : essayer de proxy vers le backend
-      try {
-        console.log('📤 [API-UPLOAD] Mode production - Proxy vers backend');
-
-        const apiUrl = getApiBaseUrl();
-        const uploadUrl = `${apiUrl}/upload/logo`;
-
-        console.log(`📤 [API-UPLOAD] Tentative upload vers: ${uploadUrl}`);
-
-        const response = await fetch(uploadUrl, {
-          method: 'POST',
-          body: formData,
-        });
-
-        const contentType = response.headers.get('content-type');
-
-        if (!response.ok) {
-          // En cas d'erreur backend, retourner une data URL comme fallback
-          console.warn(`⚠️ [API-UPLOAD] Backend indisponible (${response.status}), utilisation fallback`);
-
-          const bytes = await file.arrayBuffer();
-          const buffer = Buffer.from(bytes);
-          const base64 = buffer.toString('base64');
-          const mimeType = file.type || 'image/png';
-          const dataUrl = `data:${mimeType};base64,${base64}`;
-
-          return NextResponse.json({
-            success: true,
-            url: dataUrl,
-            filename: filename,
-            size: file.size,
-            message: 'Upload local (backend temporairement indisponible)',
-            warning: 'Le logo sera visible uniquement dans cette session'
-          });
-        }
-
-        // Parser et retourner la réponse du backend
-        if (contentType && contentType.includes('application/json')) {
-          const result = await response.json();
-          console.log('✅ [API-UPLOAD] Upload backend réussi');
-          return NextResponse.json(result);
-        } else {
-          throw new Error('Réponse non-JSON du backend');
-        }
-
-      } catch (backendError) {
-        // Si le backend échoue, utiliser le fallback data URL
-        console.error('❌ [API-UPLOAD] Erreur backend:', backendError);
-
-        const bytes = await file.arrayBuffer();
-        const buffer = Buffer.from(bytes);
-        const base64 = buffer.toString('base64');
-        const mimeType = file.type || 'image/png';
-        const dataUrl = `data:${mimeType};base64,${base64}`;
-
-        return NextResponse.json({
-          success: true,
-          url: dataUrl,
-          filename: filename,
-          size: file.size,
-          message: 'Upload local (connexion backend impossible)',
-          warning: 'Le logo sera visible uniquement dans cette session'
-        });
-      }
+    // 5. Créer/Vérifier le répertoire distant
+    console.log(`📁 [API-UPLOAD] Vérification du répertoire distant: ${FTP_REMOTE_DIR}`);
+    try {
+      await client.ensureDir(FTP_REMOTE_DIR);
+      console.log(`✅ [API-UPLOAD] Répertoire ${FTP_REMOTE_DIR} OK`);
+    } catch (dirError) {
+      console.log(`⚠️ [API-UPLOAD] Répertoire existe déjà ou créé:`, dirError);
     }
 
+    // Vérifier à nouveau le répertoire après ensureDir
+    const afterDir = await client.pwd();
+    console.log(`📍 [API-UPLOAD] Répertoire après ensureDir: ${afterDir}`);
+
+    // 6. Upload du fichier
+    const stream = Readable.from(buffer);
+    const remotePath = `${FTP_REMOTE_DIR}${filename}`;
+
+    console.log('⬆️ [API-UPLOAD] ========== UPLOAD EN COURS ==========');
+    console.log(`   → Chemin distant complet: ${remotePath}`);
+    console.log(`   → Taille du buffer: ${buffer.length} bytes`);
+    console.log(`   → Type MIME: ${file.type}`);
+
+    await client.uploadFrom(stream, remotePath);
+
+    console.log('✅ [API-UPLOAD] ✓✓✓ FICHIER UPLOADÉ AVEC SUCCÈS ✓✓✓');
+
+    // Vérifier que le fichier existe sur le serveur
+    console.log('🔍 [API-UPLOAD] Vérification de l\'existence du fichier...');
+    try {
+      const fileList = await client.list(FTP_REMOTE_DIR);
+      console.log('📋 [API-UPLOAD] Fichiers dans le répertoire distant:');
+      fileList.forEach(item => {
+        console.log(`   - ${item.name} (${item.size} bytes) [${item.type === 1 ? 'FILE' : 'DIR'}]`);
+      });
+
+      const uploadedFile = fileList.find(item => item.name === filename);
+      if (uploadedFile) {
+        console.log('✅ [API-UPLOAD] ✓ Fichier trouvé sur le serveur:', {
+          name: uploadedFile.name,
+          size: uploadedFile.size,
+          date: uploadedFile.modifiedAt
+        });
+      } else {
+        console.warn('⚠️ [API-UPLOAD] Fichier NON trouvé dans la liste du répertoire distant!');
+      }
+    } catch (listError) {
+      console.error('❌ [API-UPLOAD] Erreur lors de la vérification du fichier:', listError);
+    }
+
+    // 7. Construire l'URL finale
+    const fileUrl = `${BASE_URL}/uploads/${filename}`;
+    console.log('🌐 [API-UPLOAD] ========== URL PUBLIQUE ==========');
+    console.log(`   → URL complète: ${fileUrl}`);
+    console.log(`   → Base URL: ${BASE_URL}`);
+    console.log(`   → Chemin: /uploads/${filename}`);
+
+    // 8. Fermer la connexion
+    console.log('🔌 [API-UPLOAD] Fermeture de la connexion FTP...');
+    client.close();
+    console.log('✅ [API-UPLOAD] Connexion fermée');
+
+    console.log('🎉 [API-UPLOAD] ========== UPLOAD TERMINÉ ==========');
+
+    // 9. Retourner le succès
+    return NextResponse.json({
+      success: true,
+      url: fileUrl,
+      filename: filename,
+      size: buffer.length
+    });
+
   } catch (error) {
-    console.error('❌ [API-UPLOAD] Erreur générale:', error);
+    console.error('❌ [API-UPLOAD] ========== ERREUR CRITIQUE ==========');
+    console.error('❌ [API-UPLOAD] Type:', error instanceof Error ? error.constructor.name : typeof error);
+    console.error('❌ [API-UPLOAD] Message:', error instanceof Error ? error.message : String(error));
+    console.error('❌ [API-UPLOAD] Stack:', error instanceof Error ? error.stack : 'N/A');
+
+    client.close();
 
     return NextResponse.json(
       {
-        error: 'Erreur lors de l\'upload',
+        error: 'Erreur lors de l\'upload FTP',
         details: error instanceof Error ? error.message : 'Erreur inconnue',
         success: false
       },
@@ -140,6 +181,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-
-// Ne pas utiliser edge runtime pour avoir accès à Buffer
-export const maxDuration = 30;
