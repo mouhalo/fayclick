@@ -631,6 +631,26 @@ class DatabaseService {
   }
 
   /**
+   * 🆕 Récupération des droits utilisateur depuis get_mes_droits()
+   * Appelle la fonction PostgreSQL get_mes_droits(pid_structure, pid_profil)
+   *
+   * @param id_structure - ID de la structure
+   * @param id_profil - ID du profil utilisateur
+   * @returns Données brutes JSON depuis PostgreSQL
+   */
+  async getUserRights(id_structure: number, id_profil: number): Promise<unknown[]> {
+    const query = `SELECT * FROM get_mes_droits(${id_structure}, ${id_profil});`;
+
+    console.log('🔑 [DATABASE] Récupération droits utilisateur:', {
+      id_structure,
+      id_profil,
+      query
+    });
+
+    return this.query(query);
+  }
+
+  /**
    * Test de connectivité de l'API
    */
   async testConnection(): Promise<boolean> {
