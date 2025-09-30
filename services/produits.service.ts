@@ -605,6 +605,7 @@ export class ProduitsService {
           ${produitData.est_service ? 'true' : 'false'},
           ${produitData.nom_categorie ? `'${produitData.nom_categorie.replace(/'/g, "''")}'` : `'produit_service'`},
           ${produitData.description ? `'${produitData.description.replace(/'/g, "''")}'` : `'RAS'`},
+          ${produitData.presente_au_public !== undefined ? (produitData.presente_au_public ? 'true' : 'false') : 'NULL'},
           0
         )
       `;
@@ -689,6 +690,7 @@ export class ProduitsService {
           ${produitData.est_service ? 'true' : 'false'},
           ${produitData.nom_categorie ? `'${produitData.nom_categorie.replace(/'/g, "''")}'` : `'produit_service'`},
           ${produitData.description ? `'${produitData.description.replace(/'/g, "''")}'` : `'RAS'`},
+          ${produitData.presente_au_public !== undefined ? (produitData.presente_au_public ? 'true' : 'false') : 'NULL'},
           ${id_produit}
         )
       `;
@@ -929,7 +931,7 @@ export class ProduitsService {
 
       const query = `SELECT add_edit_photo(${sqlParams.join(', ')})`;
 
-      const results = await database.executeQuery(query);
+      const results = await database.query(query);
 
       if (!results || results.length === 0) {
         throw new ProduitsApiException('Aucune réponse de la base de données');
@@ -978,7 +980,7 @@ export class ProduitsService {
       // Utiliser la fonction get_mes_produits qui retourne les photos
       const query = `SELECT * FROM get_mes_produits(${user.id_structure}, ${id_produit})`;
 
-      const results = await database.executeQuery(query);
+      const results = await database.query(query);
 
       if (!results || results.length === 0) {
         return [];
@@ -1038,7 +1040,7 @@ export class ProduitsService {
           AND id_structure = ${user.id_structure}
       `;
 
-      await database.executeQuery(query);
+      await database.query(query);
 
       SecurityService.secureLog('log', 'Photo supprimée', { id_photo });
       return true;
@@ -1073,7 +1075,7 @@ export class ProduitsService {
           AND id_structure = ${user.id_structure}
       `;
 
-      await database.executeQuery(query);
+      await database.query(query);
 
       SecurityService.secureLog('log', 'Présentation publique mise à jour', {
         id_produit,
@@ -1115,7 +1117,7 @@ export class ProduitsService {
         ORDER BY p.nom_produit ASC
       `;
 
-      const produits = await database.executeQuery(query);
+      const produits = await database.query(query);
 
       // Pour chaque produit, récupérer ses photos
       const cataloguePromises = produits.map(async (produit: any) => {
@@ -1133,7 +1135,7 @@ export class ProduitsService {
           LIMIT 6
         `;
 
-        const photos = await database.executeQuery(queryPhotos);
+        const photos = await database.query(queryPhotos);
 
         return {
           ...produit,
