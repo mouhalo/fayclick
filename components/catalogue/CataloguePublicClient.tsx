@@ -15,7 +15,9 @@ import {
   Loader,
   ChevronLeft,
   ChevronRight,
-  Package
+  Package,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { cataloguePublicService } from '@/services/catalogue-public.service';
@@ -39,6 +41,9 @@ export default function CataloguePublicClient({ nomStructure }: CataloguePublicC
     searchTerm: '',
     categorie: ''
   });
+
+  // État du panneau de filtres
+  const [isFilterExpanded, setIsFilterExpanded] = useState(false);
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -199,15 +204,15 @@ export default function CataloguePublicClient({ nomStructure }: CataloguePublicC
 
   return (
     <div className={`min-h-screen relative overflow-hidden ${styles.container}`}>
-      {/* Background premium avec effet de morphing */}
+      {/* Background premium avec gradient vert/orange/blanc FayClick */}
       <div className="fixed inset-0 -z-10">
         <motion.div
           animate={{
             background: [
-              'radial-gradient(circle at 20% 30%, rgba(16, 185, 129, 0.15) 0%, transparent 50%), radial-gradient(circle at 80% 70%, rgba(59, 130, 246, 0.15) 0%, transparent 50%)',
-              'radial-gradient(circle at 80% 30%, rgba(59, 130, 246, 0.15) 0%, transparent 50%), radial-gradient(circle at 20% 70%, rgba(147, 51, 234, 0.15) 0%, transparent 50%)',
-              'radial-gradient(circle at 50% 50%, rgba(147, 51, 234, 0.15) 0%, transparent 50%), radial-gradient(circle at 50% 80%, rgba(16, 185, 129, 0.15) 0%, transparent 50%)',
-              'radial-gradient(circle at 20% 30%, rgba(16, 185, 129, 0.15) 0%, transparent 50%), radial-gradient(circle at 80% 70%, rgba(59, 130, 246, 0.15) 0%, transparent 50%)'
+              'radial-gradient(circle at 20% 30%, rgba(16, 185, 129, 0.2) 0%, transparent 50%), radial-gradient(circle at 80% 70%, rgba(251, 146, 60, 0.15) 0%, transparent 50%)',
+              'radial-gradient(circle at 80% 30%, rgba(251, 146, 60, 0.15) 0%, transparent 50%), radial-gradient(circle at 20% 70%, rgba(16, 185, 129, 0.2) 0%, transparent 50%)',
+              'radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.3) 0%, transparent 50%), radial-gradient(circle at 50% 80%, rgba(16, 185, 129, 0.15) 0%, transparent 50%)',
+              'radial-gradient(circle at 20% 30%, rgba(16, 185, 129, 0.2) 0%, transparent 50%), radial-gradient(circle at 80% 70%, rgba(251, 146, 60, 0.15) 0%, transparent 50%)'
             ]
           }}
           transition={{
@@ -215,7 +220,7 @@ export default function CataloguePublicClient({ nomStructure }: CataloguePublicC
             repeat: Infinity,
             ease: "linear"
           }}
-          className="absolute inset-0 bg-gradient-to-br from-emerald-50/80 via-blue-50/80 to-purple-50/80"
+          className="absolute inset-0 bg-gradient-to-br from-emerald-50 via-orange-50/50 to-white"
         />
       </div>
 
@@ -224,13 +229,16 @@ export default function CataloguePublicClient({ nomStructure }: CataloguePublicC
         animate={{ opacity: 1, y: 0 }}
         className="max-w-7xl mx-auto relative z-10"
       >
-        {/* Header avec nom de la structure */}
+        {/* Header avec nom de la structure et gradient FayClick */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className={`bg-white/95 backdrop-blur-xl rounded-xl shadow-2xl border border-white/30 ${styles.card} mb-6`}
+          className={`relative overflow-hidden rounded-xl shadow-2xl ${styles.card} mb-6`}
         >
-          <div className="text-center">
+          {/* Background gradient vert/orange/blanc */}
+          <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 via-orange-500/5 to-white/50" />
+
+          <div className="text-center relative z-10">
             <div className="inline-flex items-center justify-center w-16 h-16 bg-emerald-100 rounded-full mb-4">
               <Store className="w-8 h-8 text-emerald-600" />
             </div>
@@ -243,58 +251,121 @@ export default function CataloguePublicClient({ nomStructure }: CataloguePublicC
           </div>
         </motion.div>
 
-        {/* Zone de recherche et filtres */}
+        {/* Zone de recherche et filtres dépliable */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className={`bg-white/95 backdrop-blur-xl rounded-xl shadow-lg border border-white/30 ${styles.card} mb-6`}
+          className={`relative overflow-hidden bg-white/95 backdrop-blur-xl rounded-xl shadow-lg border border-white/30 ${styles.card} mb-6`}
         >
-          <div className="space-y-4">
-            {/* Recherche */}
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Rechercher un produit..."
-                value={filtres.searchTerm}
-                onChange={(e) => handleSearchChange(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
-              />
-            </div>
+          {/* Background gradient vert/orange/blanc */}
+          <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 via-orange-500/3 to-white/30" />
 
-            {/* Filtre catégorie */}
-            <div className="flex flex-col sm:flex-row gap-3">
-              <div className="relative flex-1">
-                <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <select
-                  value={filtres.categorie}
-                  onChange={(e) => handleCategorieChange(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all appearance-none bg-white"
-                >
-                  <option value="">Toutes les catégories</option>
-                  {categories.map(cat => (
-                    <option key={cat} value={cat}>{cat}</option>
-                  ))}
-                </select>
+          <div className="relative z-10 space-y-4">
+            {/* Header avec bouton toggle */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="flex items-center justify-center w-10 h-10 bg-emerald-100 rounded-lg">
+                  <Search className="w-5 h-5 text-emerald-600" />
+                </div>
+                <div>
+                  <h2 className="font-semibold text-gray-900 text-sm">Recherche & Filtres</h2>
+                  <p className="text-xs text-gray-600">
+                    {produitsFiltres.length} résultat{produitsFiltres.length > 1 ? 's' : ''}
+                    {(filtres.searchTerm || filtres.categorie) && ` sur ${catalogue.total_produits}`}
+                  </p>
+                </div>
               </div>
 
-              {/* Bouton reset */}
-              {(filtres.searchTerm || filtres.categorie) && (
-                <button
-                  onClick={resetFiltres}
-                  className="px-4 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors font-medium"
-                >
-                  Réinitialiser
-                </button>
-              )}
+              {/* Bouton toggle */}
+              <motion.button
+                onClick={() => setIsFilterExpanded(!isFilterExpanded)}
+                className="flex items-center justify-center w-10 h-10 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <AnimatePresence mode="wait">
+                  {isFilterExpanded ? (
+                    <motion.div
+                      key="up"
+                      initial={{ rotate: 180, opacity: 0 }}
+                      animate={{ rotate: 0, opacity: 1 }}
+                      exit={{ rotate: -180, opacity: 0 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <ChevronUp className="w-5 h-5 text-gray-600" />
+                    </motion.div>
+                  ) : (
+                    <motion.div
+                      key="down"
+                      initial={{ rotate: -180, opacity: 0 }}
+                      animate={{ rotate: 0, opacity: 1 }}
+                      exit={{ rotate: 180, opacity: 0 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <ChevronDown className="w-5 h-5 text-gray-600" />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </motion.button>
             </div>
 
-            {/* Compteur de résultats */}
-            <div className="text-sm text-gray-600">
-              {produitsFiltres.length} résultat{produitsFiltres.length > 1 ? 's' : ''}
-              {(filtres.searchTerm || filtres.categorie) && ` sur ${catalogue.total_produits}`}
-            </div>
+            {/* Zone de filtres dépliable */}
+            <AnimatePresence>
+              {isFilterExpanded && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.3, ease: 'easeInOut' }}
+                  className="overflow-hidden"
+                >
+                  <div className="pt-4 border-t border-gray-200 space-y-4">
+                    {/* Recherche */}
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                      <input
+                        type="text"
+                        placeholder="Rechercher un produit..."
+                        value={filtres.searchTerm}
+                        onChange={(e) => handleSearchChange(e.target.value)}
+                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all bg-white"
+                      />
+                    </div>
+
+                    {/* Filtre catégorie */}
+                    <div className="flex flex-col sm:flex-row gap-3">
+                      <div className="relative flex-1">
+                        <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                        <select
+                          value={filtres.categorie}
+                          onChange={(e) => handleCategorieChange(e.target.value)}
+                          className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all appearance-none bg-white"
+                        >
+                          <option value="">Toutes les catégories</option>
+                          {categories.map(cat => (
+                            <option key={cat} value={cat}>{cat}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {/* Bouton reset */}
+                      {(filtres.searchTerm || filtres.categorie) && (
+                        <motion.button
+                          initial={{ scale: 0, opacity: 0 }}
+                          animate={{ scale: 1, opacity: 1 }}
+                          exit={{ scale: 0, opacity: 0 }}
+                          onClick={resetFiltres}
+                          className="px-4 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors font-medium whitespace-nowrap"
+                        >
+                          Réinitialiser
+                        </motion.button>
+                      )}
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </motion.div>
 
