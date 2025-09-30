@@ -178,12 +178,17 @@ export function ModalAjoutProduitNew({
 
   // Charger les photos du produit
   const loadPhotos = async (id_produit: number) => {
+    console.log('📸 [MODAL-PHOTOS] loadPhotos appelé:', { id_produit });
     setIsLoadingPhotos(true);
     try {
       const data = await produitsService.getPhotos(id_produit);
+      console.log('✅ [MODAL-PHOTOS] Photos récupérées:', {
+        nombre: data.length,
+        photos: data
+      });
       setPhotos(data);
     } catch (error) {
-      console.error('Erreur chargement photos:', error);
+      console.error('❌ [MODAL-PHOTOS] Erreur chargement photos:', error);
     } finally {
       setIsLoadingPhotos(false);
     }
@@ -887,21 +892,45 @@ export function ModalAjoutProduitNew({
                             <LogoUpload
                               currentLogo={undefined}
                               onUploadSuccess={async (result: UploadResult) => {
+                                console.log('🎯 [MODAL-PHOTOS] onUploadSuccess callback déclenché:', {
+                                  success: result.success,
+                                  url: result.url,
+                                  filename: result.filename,
+                                  hasError: !!result.error
+                                });
+
                                 if (result.success && result.url && produitToEdit) {
+                                  console.log('✅ [MODAL-PHOTOS] Conditions validées, appel add_edit_photo...', {
+                                    id_structure: produitToEdit.id_structure,
+                                    id_produit: produitToEdit.id_produit,
+                                    url_photo: result.url
+                                  });
+
                                   try {
                                     // Appeler add_edit_photo
-                                    await produitsService.addEditPhoto({
+                                    const response = await produitsService.addEditPhoto({
                                       id_structure: produitToEdit.id_structure,
                                       id_produit: produitToEdit.id_produit,
                                       url_photo: result.url,
                                     });
 
+                                    console.log('✅ [MODAL-PHOTOS] add_edit_photo réussi:', response);
+
                                     // Recharger les photos
+                                    console.log('🔄 [MODAL-PHOTOS] Rechargement des photos...');
                                     await loadPhotos(produitToEdit.id_produit);
+                                    console.log('✅ [MODAL-PHOTOS] Photos rechargées avec succès');
                                   } catch (error) {
-                                    console.error('Erreur ajout photo:', error);
+                                    console.error('❌ [MODAL-PHOTOS] Erreur ajout photo:', error);
                                     alert('Impossible d\'ajouter la photo');
                                   }
+                                } else {
+                                  console.warn('⚠️ [MODAL-PHOTOS] Conditions non remplies:', {
+                                    success: result.success,
+                                    hasUrl: !!result.url,
+                                    hasProduit: !!produitToEdit,
+                                    result
+                                  });
                                 }
                               }}
                               label={`Photo ${photoNumber}`}
