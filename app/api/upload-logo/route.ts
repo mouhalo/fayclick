@@ -7,16 +7,17 @@ import { NextRequest, NextResponse } from 'next/server';
 import * as ftp from 'basic-ftp';
 import { Readable } from 'stream';
 
-// Configuration FTP (credentials depuis env ou constants)
+// Configuration FTP pour UPLOAD de logos/photos (utilise FTP_UPLOAD_*)
 const FTP_CONFIG = {
-  host: process.env.FTP_HOST || "node260-eu.n0c.com",
-  user: process.env.FTP_USER || "upload@fayclick.net",
-  password: process.env.FTP_PASSWORD || "Y@L@tif129*",
-  secure: true,
+  host: process.env.FTP_UPLOAD_HOST || "node260-eu.n0c.com",
+  user: process.env.FTP_UPLOAD_USER || "uploadv2@fayclick.net",
+  password: process.env.FTP_UPLOAD_PASSWORD,
+  port: parseInt(process.env.FTP_UPLOAD_PORT || '21'),
+  secure: process.env.FTP_UPLOAD_SECURE === 'true',
   secureOptions: { rejectUnauthorized: false }
 };
 
-const FTP_REMOTE_DIR = '/';
+const FTP_REMOTE_DIR = process.env.FTP_UPLOAD_PATH || '/uploads/';
 const BASE_URL = process.env.SITE_UPLOAD_URL || 'https://fayclick.net';
 
 // Configuration Next.js

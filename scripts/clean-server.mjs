@@ -78,20 +78,22 @@ async function cleanServer() {
     console.log(colors.cyan + colors.bright + ' 🧹 Nettoyage Complet du Serveur FTP' + colors.reset);
     console.log(colors.cyan + '═'.repeat(60) + colors.reset + '\n');
 
-    // Configuration FTP depuis .env
+    // Configuration FTP pour NETTOYAGE du SITE (utilise FTP_* = userv2)
+    // ⚠️  Nettoie uniquement v2.fayclick.net (PAS fayclick.net/uploads)
     const ftpConfig = {
       host: process.env.FTP_HOST || 'node260-eu.n0c.com',
-      user: process.env.FTP_USER || 'uploadv2@fayclick.net',
+      user: process.env.FTP_USER || 'userv2@fayclick.net',  // userv2 (site)
       password: process.env.FTP_PASSWORD,
       port: parseInt(process.env.FTP_PORT || '21'),
       secure: false,
     };
 
     logWarning('ATTENTION: Ce script va supprimer TOUS les fichiers du serveur !');
+    logWarning('Cible: Site v2.fayclick.net (PAS les uploads sur fayclick.net)');
     logInfo('Configuration FTP:');
     logInfo(`  Host: ${ftpConfig.host}:${ftpConfig.port}`);
     logInfo(`  User: ${ftpConfig.user}`);
-    logInfo(`  Remote: ${process.env.FTP_REMOTE_ROOT || '/'}`);
+    logInfo(`  Remote: ${process.env.FTP_SITE_PATH || '/'}`);
 
     console.log('');
     logInfo('Connexion au serveur FTP...');
@@ -100,8 +102,8 @@ async function cleanServer() {
     await client.access(ftpConfig);
     logSuccess('Connecté au serveur FTP');
 
-    // Changer vers le dossier remote root
-    const remoteRoot = process.env.FTP_REMOTE_ROOT || '/';
+    // Changer vers le dossier remote root (site v2.fayclick.net)
+    const remoteRoot = process.env.FTP_SITE_PATH || '/';
     if (remoteRoot !== '/') {
       await client.cd(remoteRoot);
       logInfo(`Dossier actif: ${remoteRoot}`);
