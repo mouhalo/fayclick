@@ -101,6 +101,7 @@ export interface ProduitFormDataNew {
   est_service: boolean;
   description?: string;
   nom_categorie?: string;
+  presente_au_public?: boolean;
 }
 
 // Données formulaire mouvement de stock

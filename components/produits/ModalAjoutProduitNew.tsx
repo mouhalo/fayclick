@@ -7,10 +7,10 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  X, 
-  Package, 
-  Tag, 
+import {
+  X,
+  Package,
+  Tag,
   FileText,
   Save,
   Loader2,
@@ -21,9 +21,14 @@ import {
   Info,
   Warehouse,
   Activity,
+  Camera,
+  Trash2,
+  Globe,
 } from 'lucide-react';
-import { Produit, ProduitFormDataNew, AddEditProduitResponse, MouvementStockForm, HistoriqueMouvements } from '@/types/produit';
+import { Produit, ProduitFormDataNew, AddEditProduitResponse, MouvementStockForm, HistoriqueMouvements, PhotoProduit } from '@/types/produit';
 import { produitsService } from '@/services/produits.service';
+import LogoUpload from '@/components/ui/LogoUpload';
+import { UploadResult, UploadProgress } from '@/types/upload.types';
 
 interface ModalAjoutProduitNewProps {
   isOpen: boolean;
@@ -36,7 +41,7 @@ interface ModalAjoutProduitNewProps {
   defaultTab?: 'informations' | 'gestion-stock' | 'historique';
 }
 
-type OngletType = 'informations' | 'gestion-stock' | 'historique';
+type OngletType = 'informations' | 'photos' | 'gestion-stock' | 'historique';
 
 export function ModalAjoutProduitNew({
   isOpen,
@@ -55,8 +60,11 @@ export function ModalAjoutProduitNew({
     prix_vente: 0,
     est_service: false,
     nom_categorie: '',
-    description: ''
+    description: '',
+    presente_au_public: false
   });
+  const [photos, setPhotos] = useState<PhotoProduit[]>([]);
+  const [isLoadingPhotos, setIsLoadingPhotos] = useState(false);
   const [stockForm, setStockForm] = useState<MouvementStockForm>({
     quantite: 0,
     prix_unitaire: 0,
@@ -89,6 +97,12 @@ export function ModalAjoutProduitNew({
       alwaysVisible: true
     },
     {
+      id: 'photos' as OngletType,
+      label: 'Photos',
+      icon: Camera,
+      alwaysVisible: false // Visible uniquement en édition
+    },
+    {
       id: 'gestion-stock' as OngletType,
       label: 'Gestion du stock',
       icon: Warehouse,
@@ -117,7 +131,8 @@ export function ModalAjoutProduitNew({
         prix_vente: produitToEdit.prix_vente || 0,
         est_service: produitToEdit.est_service || false,
         nom_categorie: produitToEdit.nom_categorie || '',
-        description: produitToEdit.description || ''
+        description: produitToEdit.description || '',
+        presente_au_public: produitToEdit.presente_au_public || false
       });
       setStockForm({
         quantite: 0,
@@ -125,6 +140,8 @@ export function ModalAjoutProduitNew({
         type_mouvement: 'ENTREE',
         description: ''
       });
+      // Charger les photos du produit
+      loadPhotos(produitToEdit.id_produit);
     } else if (isOpen) {
       // Reset pour nouveau produit
       setFormData({
@@ -133,7 +150,8 @@ export function ModalAjoutProduitNew({
         prix_vente: 0,
         est_service: typeStructure === 'PRESTATAIRE DE SERVICES',
         nom_categorie: '',
-        description: ''
+        description: '',
+        presente_au_public: false
       });
       setStockForm({
         quantite: 0,
@@ -141,6 +159,7 @@ export function ModalAjoutProduitNew({
         type_mouvement: 'ENTREE',
         description: ''
       });
+      setPhotos([]);
     }
     setErrors({});
     setOngletActif(defaultTab);
@@ -156,6 +175,19 @@ export function ModalAjoutProduitNew({
       loadHistorique();
     }
   }, [ongletActif, produitToEdit]);
+
+  // Charger les photos du produit
+  const loadPhotos = async (id_produit: number) => {
+    setIsLoadingPhotos(true);
+    try {
+      const data = await produitsService.getPhotos(id_produit);
+      setPhotos(data);
+    } catch (error) {
+      console.error('Erreur chargement photos:', error);
+    } finally {
+      setIsLoadingPhotos(false);
+    }
+  };
 
   // Charger l'historique des mouvements
   const loadHistorique = async () => {
@@ -338,8 +370,9 @@ export function ModalAjoutProduitNew({
             {/* Navigation onglets */}
             <div className="relative z-10 flex space-x-1 bg-white/10 backdrop-blur-sm rounded-xl p-1">
               {ongletsAffiches.map((onglet) => {
-                const shortLabels = {
+                const shortLabels: Record<OngletType, string> = {
                   'informations': 'Infos',
+                  'photos': 'Photos',
                   'gestion-stock': 'Stocks',
                   'historique': 'Historique'
                 };
@@ -509,6 +542,27 @@ export function ModalAjoutProduitNew({
                       className="w-full px-4 py-3 border border-sky-200 rounded-xl bg-white/60 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-transparent transition-all hover:bg-white/70 resize-none"
                       placeholder={`Décrivez votre ${formData.est_service ? 'service' : 'produit'}...`}
                     />
+                  </div>
+
+                  {/* Présenter au public */}
+                  <div className="bg-gradient-to-r from-amber-50/70 to-orange-50/70 backdrop-blur-sm p-4 rounded-xl border border-amber-200/50">
+                    <label className="flex items-center gap-3 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={formData.presente_au_public || false}
+                        onChange={(e) => handleInputChange('presente_au_public', e.target.checked)}
+                        className="w-5 h-5 text-amber-600 border-amber-300 rounded focus:ring-amber-500 focus:ring-offset-0 cursor-pointer"
+                      />
+                      <div className="flex-1">
+                        <span className="text-sm font-medium text-slate-800 flex items-center gap-2">
+                          <Globe className="w-4 h-4 text-amber-600" />
+                          Présenter au public
+                        </span>
+                        <p className="text-xs text-slate-600 mt-0.5">
+                          Ce {formData.est_service ? 'service' : 'produit'} sera visible dans votre catalogue public
+                        </p>
+                      </div>
+                    </label>
                   </div>
 
                   {/* Boutons d'action */}
@@ -749,6 +803,125 @@ export function ModalAjoutProduitNew({
                     <p className="text-slate-500">Erreur lors du chargement de l&iapos;historique</p>
                   </div>
                 )}
+              </motion.div>
+            )}
+
+            {/* Onglet Photos */}
+            {ongletActif === 'photos' && produitToEdit && (
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                className="space-y-6"
+              >
+                {/* Header explicatif */}
+                <div className="bg-gradient-to-r from-purple-50/70 to-pink-50/70 backdrop-blur-sm p-5 rounded-xl border border-purple-200/50 shadow-sm">
+                  <div className="flex items-start gap-3">
+                    <Camera className="w-5 h-5 text-purple-600 mt-0.5" />
+                    <div>
+                      <h4 className="font-semibold text-slate-900 mb-1">Photos du produit</h4>
+                      <p className="text-sm text-slate-600">
+                        Ajoutez jusqu&diapos;à <strong>6 photos</strong> pour présenter votre produit.
+                        Les photos seront visibles dans votre catalogue public si vous avez activé &diapos;Présenter au public&diapos;.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Grille de photos (2x3) */}
+                {isLoadingPhotos ? (
+                  <div className="flex items-center justify-center py-12">
+                    <Loader2 className="w-8 h-8 animate-spin text-purple-600" />
+                    <span className="ml-3 text-slate-600">Chargement des photos...</span>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    {[...Array(6)].map((_, index) => {
+                      const photo = photos[index];
+                      const photoNumber = index + 1;
+
+                      return (
+                        <div key={index} className="relative">
+                          {/* Label du numéro de photo */}
+                          <div className="absolute -top-2 -left-2 z-10 bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center shadow-lg">
+                            {photoNumber}
+                          </div>
+
+                          {/* Zone d'upload ou photo existante */}
+                          {photo ? (
+                            <div className="relative group">
+                              {/* Photo existante */}
+                              <div className="aspect-square rounded-xl overflow-hidden border-2 border-purple-200 shadow-md">
+                                <img
+                                  src={photo.url_photo}
+                                  alt={`Photo ${photoNumber}`}
+                                  className="w-full h-full object-cover"
+                                />
+                              </div>
+
+                              {/* Bouton de suppression (overlay) */}
+                              <button
+                                type="button"
+                                onClick={async () => {
+                                  if (photo.id_photo && confirm('Supprimer cette photo ?')) {
+                                    try {
+                                      await produitsService.deletePhoto(photo.id_photo);
+                                      // Recharger les photos
+                                      if (produitToEdit) {
+                                        await loadPhotos(produitToEdit.id_produit);
+                                      }
+                                    } catch (error) {
+                                      console.error('Erreur suppression photo:', error);
+                                      alert('Impossible de supprimer la photo');
+                                    }
+                                  }
+                                }}
+                                className="absolute inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200"
+                              >
+                                <div className="flex flex-col items-center gap-2 text-white">
+                                  <Trash2 className="w-6 h-6" />
+                                  <span className="text-xs font-medium">Supprimer</span>
+                                </div>
+                              </button>
+                            </div>
+                          ) : (
+                            <LogoUpload
+                              currentLogo={undefined}
+                              onUploadSuccess={async (result: UploadResult) => {
+                                if (result.success && result.url && produitToEdit) {
+                                  try {
+                                    // Appeler add_edit_photo
+                                    await produitsService.addEditPhoto({
+                                      id_structure: produitToEdit.id_structure,
+                                      id_produit: produitToEdit.id_produit,
+                                      url_photo: result.url,
+                                    });
+
+                                    // Recharger les photos
+                                    await loadPhotos(produitToEdit.id_produit);
+                                  } catch (error) {
+                                    console.error('Erreur ajout photo:', error);
+                                    alert('Impossible d\'ajouter la photo');
+                                  }
+                                }
+                              }}
+                              label={`Photo ${photoNumber}`}
+                              className="aspect-square"
+                            />
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* Note en bas */}
+                <div className="flex items-start gap-2 p-4 bg-amber-50/60 backdrop-blur-sm rounded-lg border border-amber-200/50">
+                  <Info className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                  <div className="text-sm text-amber-900">
+                    <strong>Astuce :</strong> Utilisez des photos de haute qualité pour mettre en valeur votre produit.
+                    Les images seront automatiquement optimisées pour le web.
+                  </div>
+                </div>
               </motion.div>
             )}
           </div>
