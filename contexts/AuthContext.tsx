@@ -2,16 +2,18 @@
 
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
-import { 
-  User, 
-  StructureDetails, 
-  UserPermissions, 
-  AuthState, 
-  LoginCredentials, 
-  CompleteAuthData 
+import {
+  User,
+  StructureDetails,
+  UserPermissions,
+  UserRights,
+  AuthState,
+  LoginCredentials,
+  CompleteAuthData
 } from '@/types/auth';
 import { authService, ApiException } from '@/services/auth.service';
 import { getUserRedirectRoute } from '@/types/auth';
+import { hasRight, hasAllRights, hasAnyRight } from '@/utils/permissions';
 
 // Interface pour les méthodes du contexte
 interface AuthContextType extends AuthState {
@@ -19,15 +21,20 @@ interface AuthContextType extends AuthState {
   login: (credentials: LoginCredentials) => Promise<void>;
   logout: () => void;
   refreshAuth: () => Promise<void>;
-  
+
   // Actions de mise à jour
   updateUser: (userData: Partial<User>) => void;
   updateStructure: (structureData: Partial<StructureDetails>) => void;
-  
+
   // Utilitaires
   clearError: () => void;
   hasPermission: (permission: string) => boolean;
   canAccessRoute: (route: string) => boolean;
+
+  // 🆕 Gestion des droits PostgreSQL
+  hasRight: (functionalityName: string) => boolean;
+  hasAllRights: (functionalityNames: string[]) => boolean;
+  hasAnyRight: (functionalityNames: string[]) => boolean;
 }
 
 // Création du contexte
@@ -53,6 +60,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     user: null,
     structure: null,
     permissions: null,
+    rights: null, // 🆕
     isAuthenticated: false,
     isLoading: true,
     isHydrated: false,
@@ -72,13 +80,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
           console.log('✅ [AUTH CONTEXT] Données complètes trouvées:', {
             user: completeData.user.login,
             structure: completeData.structure.nom_structure,
-            permissions: completeData.permissions.permissions.length
+            permissions: completeData.permissions.permissions.length,
+            droits_profil: completeData.rights.profil,
+            nb_fonctionnalites: completeData.rights.fonctionnalites.length
           });
-          
+
           setAuthState({
             user: completeData.user,
             structure: completeData.structure,
             permissions: completeData.permissions,
+            rights: completeData.rights, // 🆕
             isAuthenticated: true,
             isLoading: false,
             isHydrated: true,
@@ -94,27 +105,30 @@ export function AuthProvider({ children }: AuthProviderProps) {
               // Essayer de récupérer les données manquantes
               const structure = await authService.fetchStructureDetails(user.id_structure);
               const permissions = authService.getUserPermissions(user, structure);
-              
+              const rights = await authService.fetchUserRights(user.id_structure, user.id_profil); // 🆕
+
               // Sauvegarder le nouveau format
               const completeData: CompleteAuthData = {
                 user,
                 structure,
                 permissions,
+                rights, // 🆕
                 token: authService.getToken() || ''
               };
-              
+
               authService.saveCompleteAuthData(completeData);
-              
+
               setAuthState({
                 user,
                 structure,
                 permissions,
+                rights, // 🆕
                 isAuthenticated: true,
                 isLoading: false,
                 isHydrated: true,
                 error: null
               });
-              
+
               console.log('✅ [AUTH CONTEXT] Migration vers nouveau format réussie');
               
             } catch (error) {
@@ -161,17 +175,18 @@ export function AuthProvider({ children }: AuthProviderProps) {
     try {
       console.log('🔐 [AUTH CONTEXT] Connexion en cours...');
       
-      // Connexion complète avec structure et permissions
+      // Connexion complète avec structure, permissions et droits
       const completeData = await authService.completeLogin(credentials);
-      
+
       // Sauvegarder toutes les données
       authService.saveCompleteAuthData(completeData);
-      
+
       // Mettre à jour l'état
       setAuthState({
         user: completeData.user,
         structure: completeData.structure,
         permissions: completeData.permissions,
+        rights: completeData.rights, // 🆕
         isAuthenticated: true,
         isLoading: false,
         isHydrated: true,
@@ -203,13 +218,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
   // Fonction de déconnexion
   const logout = useCallback(() => {
     console.log('🔓 [AUTH CONTEXT] Déconnexion...');
-    
+
     authService.clearSession();
-    
+
     setAuthState({
       user: null,
       structure: null,
       permissions: null,
+      rights: null, // 🆕
       isAuthenticated: false,
       isLoading: false,
       isHydrated: true,
@@ -225,15 +241,17 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
     try {
       setAuthState(prev => ({ ...prev, isLoading: true }));
-      
+
       // Récupérer les données à jour
       const structure = await authService.fetchStructureDetails(authState.user.id_structure);
       const permissions = authService.getUserPermissions(authState.user, structure);
-      
+      const rights = await authService.fetchUserRights(authState.user.id_structure, authState.user.id_profil); // 🆕
+
       setAuthState(prev => ({
         ...prev,
         structure,
         permissions,
+        rights, // 🆕
         isLoading: false
       }));
 
@@ -286,13 +304,28 @@ export function AuthProvider({ children }: AuthProviderProps) {
   // Vérifier l'accès à une route
   const canAccessRoute = useCallback((route: string) => {
     if (!authState.permissions) return false;
-    
+
     // Logique simplifiée - peut être étendue
     if (authState.permissions.hasAdminAccess) return true;
     if (route.startsWith('/dashboard') && authState.permissions.canViewDashboard) return true;
-    
+
     return false;
   }, [authState.permissions]);
+
+  // 🆕 Vérifier un droit PostgreSQL
+  const hasRightCallback = useCallback((functionalityName: string) => {
+    return hasRight(authState.rights, functionalityName);
+  }, [authState.rights]);
+
+  // 🆕 Vérifier plusieurs droits (ET logique)
+  const hasAllRightsCallback = useCallback((functionalityNames: string[]) => {
+    return hasAllRights(authState.rights, functionalityNames);
+  }, [authState.rights]);
+
+  // 🆕 Vérifier au moins un droit (OU logique)
+  const hasAnyRightCallback = useCallback((functionalityNames: string[]) => {
+    return hasAnyRight(authState.rights, functionalityNames);
+  }, [authState.rights]);
 
   // Valeurs du contexte
   const contextValue: AuthContextType = {
@@ -304,7 +337,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
     updateStructure,
     clearError,
     hasPermission,
-    canAccessRoute
+    canAccessRoute,
+    hasRight: hasRightCallback, // 🆕
+    hasAllRights: hasAllRightsCallback, // 🆕
+    hasAnyRight: hasAnyRightCallback // 🆕
   };
 
   return (
