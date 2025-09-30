@@ -890,8 +890,7 @@ export function ModalAjoutProduitNew({
                             </div>
                           ) : (
                             <LogoUpload
-                              currentLogo={undefined}
-                              onUploadSuccess={async (result: UploadResult) => {
+                              onUploadComplete={async (result: UploadResult) => {
                                 console.log('🎯 [MODAL-PHOTOS] onUploadSuccess callback déclenché:', {
                                   success: result.success,
                                   url: result.url,
