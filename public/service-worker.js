@@ -1,8 +1,8 @@
 // Service Worker FayClick V2 - PWA Complète
-// Version: 2.0.0
+// Version: 2.1.0 - 2025-09-30
 
-const CACHE_NAME = 'fayclick-v2-cache-v1';
-const DYNAMIC_CACHE_NAME = 'fayclick-v2-dynamic-v1';
+const CACHE_NAME = 'fayclick-v2-cache-v2-20250930';
+const DYNAMIC_CACHE_NAME = 'fayclick-v2-dynamic-v2-20250930';
 const OFFLINE_PAGE_URL = '/offline';
 
 // Assets essentiels à mettre en cache lors de l'installation
