@@ -198,11 +198,31 @@ export default function CataloguePublicClient({ nomStructure }: CataloguePublicC
   if (!catalogue) return null;
 
   return (
-    <div className={`min-h-screen bg-gradient-to-br from-emerald-50 via-blue-50 to-purple-50 ${styles.container}`}>
+    <div className={`min-h-screen relative overflow-hidden ${styles.container}`}>
+      {/* Background premium avec effet de morphing */}
+      <div className="fixed inset-0 -z-10">
+        <motion.div
+          animate={{
+            background: [
+              'radial-gradient(circle at 20% 30%, rgba(16, 185, 129, 0.15) 0%, transparent 50%), radial-gradient(circle at 80% 70%, rgba(59, 130, 246, 0.15) 0%, transparent 50%)',
+              'radial-gradient(circle at 80% 30%, rgba(59, 130, 246, 0.15) 0%, transparent 50%), radial-gradient(circle at 20% 70%, rgba(147, 51, 234, 0.15) 0%, transparent 50%)',
+              'radial-gradient(circle at 50% 50%, rgba(147, 51, 234, 0.15) 0%, transparent 50%), radial-gradient(circle at 50% 80%, rgba(16, 185, 129, 0.15) 0%, transparent 50%)',
+              'radial-gradient(circle at 20% 30%, rgba(16, 185, 129, 0.15) 0%, transparent 50%), radial-gradient(circle at 80% 70%, rgba(59, 130, 246, 0.15) 0%, transparent 50%)'
+            ]
+          }}
+          transition={{
+            duration: 15,
+            repeat: Infinity,
+            ease: "linear"
+          }}
+          className="absolute inset-0 bg-gradient-to-br from-emerald-50/80 via-blue-50/80 to-purple-50/80"
+        />
+      </div>
+
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="max-w-7xl mx-auto"
+        className="max-w-7xl mx-auto relative z-10"
       >
         {/* Header avec nom de la structure */}
         <motion.div
