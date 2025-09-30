@@ -24,6 +24,10 @@ export interface Produit {
   unite_mesure?: string;
   code_produit?: string;
   image_url?: string;
+  // Catalogue public
+  presente_au_public?: boolean;
+  photo_disponible?: boolean;
+  photos?: PhotoProduit[];
 }
 
 // Interface pour les mouvements de stock
@@ -210,6 +214,47 @@ export interface ConfigurationAffichage {
   afficherStock: boolean;
   afficherCategories: boolean;
   afficherCoutRevient: boolean;
+}
+
+// Interface pour les photos de produits
+export interface PhotoProduit {
+  id_photo?: number;
+  id_produit: number;
+  id_structure: number;
+  url_photo: string;
+  ordre?: number;
+  created_at?: string;
+  updated_at?: string;
+}
+
+// Paramètres pour add_edit_photo
+export interface AddEditPhotoParams {
+  id_structure: number;
+  id_produit: number;
+  url_photo: string;
+  id_photo?: number;  // Pour update
+}
+
+// Réponse API add_edit_photo
+export interface AddEditPhotoResponse {
+  success: boolean;
+  message: string;
+  code_erreur?: string;
+  data: {
+    id_photo: number;
+    id_produit?: number;
+    url_photo?: string;
+    operation?: 'INSERT' | 'UPDATE';
+  };
+}
+
+// Produit pour catalogue public
+export interface ProduitCatalogue extends Produit {
+  photos: PhotoProduit[];
+  nom_structure: string;
+  adresse?: string;
+  mobile_om?: string;
+  mobile_wave?: string;
 }
 
 // Export groupé pour faciliter les imports

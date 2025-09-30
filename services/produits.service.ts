@@ -17,7 +17,11 @@ import {
   ProduitApiResponse,
   FiltreProduits,
   MouvementStock,
-  StatsStructureProduits
+  StatsStructureProduits,
+  PhotoProduit,
+  AddEditPhotoParams,
+  AddEditPhotoResponse,
+  ProduitCatalogue
 } from '@/types/produit';
 
 // Exception personnalisée pour les erreurs API produits
@@ -889,6 +893,245 @@ export class ProduitsService {
       
       throw new ProduitsApiException(
         'Impossible de récupérer l\'historique des mouvements',
+        500,
+        error
+      );
+    }
+  }
+
+  /**
+   * Ajouter ou modifier une photo de produit
+   * Utilise la fonction SQL add_edit_photo()
+   */
+  async addEditPhoto(params: AddEditPhotoParams): Promise<AddEditPhotoResponse> {
+    try {
+      const user = authService.getUser();
+      if (!user) {
+        throw new ProduitsApiException('Utilisateur non authentifié', 401);
+      }
+
+      SecurityService.secureLog('log', 'Add/Edit photo produit', {
+        id_produit: params.id_produit,
+        id_photo: params.id_photo,
+        operation: params.id_photo ? 'UPDATE' : 'INSERT'
+      });
+
+      // Construction de la requête SQL
+      const sqlParams = [
+        `p_id_structure := ${params.id_structure}`,
+        `p_id_produit := ${params.id_produit}`,
+        `p_url_photo := '${params.url_photo.replace(/'/g, "''")}'`
+      ];
+
+      if (params.id_photo) {
+        sqlParams.push(`p_id_photo := ${params.id_photo}`);
+      }
+
+      const query = `SELECT add_edit_photo(${sqlParams.join(', ')})`;
+
+      const results = await database.executeQuery(query);
+
+      if (!results || results.length === 0) {
+        throw new ProduitsApiException('Aucune réponse de la base de données');
+      }
+
+      // Parser la réponse JSON
+      const response = results[0].add_edit_photo;
+      const parsedResponse: AddEditPhotoResponse = typeof response === 'string'
+        ? JSON.parse(response)
+        : response;
+
+      SecurityService.secureLog('log', 'Photo produit sauvegardée', {
+        success: parsedResponse.success,
+        id_photo: parsedResponse.data.id_photo
+      });
+
+      return parsedResponse;
+
+    } catch (error) {
+      SecurityService.secureLog('error', 'Erreur add_edit_photo', { error });
+
+      if (error instanceof ProduitsApiException) {
+        throw error;
+      }
+
+      throw new ProduitsApiException(
+        'Impossible de sauvegarder la photo',
+        500,
+        error
+      );
+    }
+  }
+
+  /**
+   * Récupérer toutes les photos d'un produit
+   */
+  async getPhotos(id_produit: number): Promise<PhotoProduit[]> {
+    try {
+      const user = authService.getUser();
+      if (!user) {
+        throw new ProduitsApiException('Utilisateur non authentifié', 401);
+      }
+
+      const query = `
+        SELECT
+          id_photo,
+          id_produit,
+          id_structure,
+          url_photo,
+          ordre,
+          created_at,
+          updated_at
+        FROM photos_produits
+        WHERE id_produit = ${id_produit}
+          AND id_structure = ${user.id_structure}
+        ORDER BY ordre ASC, created_at ASC
+      `;
+
+      const results = await database.executeQuery(query);
+      return results as PhotoProduit[];
+
+    } catch (error) {
+      SecurityService.secureLog('error', 'Erreur getPhotos', { error });
+      throw new ProduitsApiException(
+        'Impossible de récupérer les photos',
+        500,
+        error
+      );
+    }
+  }
+
+  /**
+   * Supprimer une photo de produit
+   */
+  async deletePhoto(id_photo: number): Promise<boolean> {
+    try {
+      const user = authService.getUser();
+      if (!user) {
+        throw new ProduitsApiException('Utilisateur non authentifié', 401);
+      }
+
+      const query = `
+        DELETE FROM photos_produits
+        WHERE id_photo = ${id_photo}
+          AND id_structure = ${user.id_structure}
+      `;
+
+      await database.executeQuery(query);
+
+      SecurityService.secureLog('log', 'Photo supprimée', { id_photo });
+      return true;
+
+    } catch (error) {
+      SecurityService.secureLog('error', 'Erreur deletePhoto', { error });
+      throw new ProduitsApiException(
+        'Impossible de supprimer la photo',
+        500,
+        error
+      );
+    }
+  }
+
+  /**
+   * Mettre à jour le statut de présentation publique d'un produit
+   */
+  async updatePresentationPublique(
+    id_produit: number,
+    presente_au_public: boolean
+  ): Promise<boolean> {
+    try {
+      const user = authService.getUser();
+      if (!user) {
+        throw new ProduitsApiException('Utilisateur non authentifié', 401);
+      }
+
+      const query = `
+        UPDATE produits
+        SET presente_au_public = ${presente_au_public}
+        WHERE id_produit = ${id_produit}
+          AND id_structure = ${user.id_structure}
+      `;
+
+      await database.executeQuery(query);
+
+      SecurityService.secureLog('log', 'Présentation publique mise à jour', {
+        id_produit,
+        presente_au_public
+      });
+
+      return true;
+
+    } catch (error) {
+      SecurityService.secureLog('error', 'Erreur updatePresentationPublique', { error });
+      throw new ProduitsApiException(
+        'Impossible de mettre à jour la présentation publique',
+        500,
+        error
+      );
+    }
+  }
+
+  /**
+   * Récupérer les produits du catalogue public d'une structure
+   * Accessible sans authentification
+   */
+  async getCataloguePublic(nom_structure: string): Promise<ProduitCatalogue[]> {
+    try {
+      SecurityService.secureLog('log', 'Récupération catalogue public', { nom_structure });
+
+      // Récupérer les produits publics avec infos structure
+      const query = `
+        SELECT
+          p.*,
+          s.nom_structure,
+          s.adresse,
+          s.mobile_om,
+          s.mobile_wave
+        FROM vw_produits p
+        INNER JOIN list_structures s ON p.id_structure = s.id_structure
+        WHERE s.nom_structure = '${nom_structure.replace(/'/g, "''")}'
+          AND p.presente_au_public = true
+        ORDER BY p.nom_produit ASC
+      `;
+
+      const produits = await database.executeQuery(query);
+
+      // Pour chaque produit, récupérer ses photos
+      const cataloguePromises = produits.map(async (produit: any) => {
+        const queryPhotos = `
+          SELECT
+            id_photo,
+            id_produit,
+            id_structure,
+            url_photo,
+            ordre,
+            created_at
+          FROM photos_produits
+          WHERE id_produit = ${produit.id_produit}
+          ORDER BY ordre ASC, created_at ASC
+          LIMIT 6
+        `;
+
+        const photos = await database.executeQuery(queryPhotos);
+
+        return {
+          ...produit,
+          photos: photos as PhotoProduit[]
+        } as ProduitCatalogue;
+      });
+
+      const catalogue = await Promise.all(cataloguePromises);
+
+      SecurityService.secureLog('log', 'Catalogue public récupéré', {
+        nombre_produits: catalogue.length
+      });
+
+      return catalogue;
+
+    } catch (error) {
+      SecurityService.secureLog('error', 'Erreur getCataloguePublic', { error });
+      throw new ProduitsApiException(
+        'Impossible de récupérer le catalogue public',
         500,
         error
       );
