@@ -132,7 +132,8 @@ async function cacheFirst(request) {
 
   try {
     const networkResponse = await fetch(request);
-    if (networkResponse.ok) {
+    // Ne cacher que les requêtes GET réussies (POST/PUT/DELETE ne peuvent pas être cachés)
+    if (networkResponse.ok && request.method === 'GET') {
       const cache = await caches.open(DYNAMIC_CACHE_NAME);
       cache.put(request, networkResponse.clone());
     }
@@ -147,7 +148,8 @@ async function cacheFirst(request) {
 async function networkFirst(request) {
   try {
     const networkResponse = await fetch(request);
-    if (networkResponse.ok) {
+    // Ne cacher que les requêtes GET réussies (POST/PUT/DELETE ne peuvent pas être cachés)
+    if (networkResponse.ok && request.method === 'GET') {
       const cache = await caches.open(DYNAMIC_CACHE_NAME);
       cache.put(request, networkResponse.clone());
     }
