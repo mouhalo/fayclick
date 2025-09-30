@@ -964,7 +964,7 @@ export class ProduitsService {
   }
 
   /**
-   * Récupérer toutes les photos d'un produit
+   * Récupérer toutes les photos d'un produit via get_mes_produits
    */
   async getPhotos(id_produit: number): Promise<PhotoProduit[]> {
     try {
@@ -973,23 +973,44 @@ export class ProduitsService {
         throw new ProduitsApiException('Utilisateur non authentifié', 401);
       }
 
-      const query = `
-        SELECT
-          id_photo,
-          id_produit,
-          id_structure,
-          url_photo,
-          ordre,
-          created_at,
-          updated_at
-        FROM photos_produits
-        WHERE id_produit = ${id_produit}
-          AND id_structure = ${user.id_structure}
-        ORDER BY ordre ASC, created_at ASC
-      `;
+      SecurityService.secureLog('log', 'Récupération photos produit', { id_produit });
+
+      // Utiliser la fonction get_mes_produits qui retourne les photos
+      const query = `SELECT * FROM get_mes_produits(${user.id_structure}, ${id_produit})`;
 
       const results = await database.executeQuery(query);
-      return results as PhotoProduit[];
+
+      if (!results || results.length === 0) {
+        return [];
+      }
+
+      // Parser la réponse JSON
+      const response = results[0].get_mes_produits;
+      const parsedResponse = typeof response === 'string'
+        ? JSON.parse(response)
+        : response;
+
+      // Vérifier le succès et extraire les photos
+      if (!parsedResponse.success || !parsedResponse.data || parsedResponse.data.length === 0) {
+        return [];
+      }
+
+      const produit = parsedResponse.data[0];
+      const photos: PhotoProduit[] = (produit.photos || []).map((photo: any) => ({
+        id_photo: photo.id_photo,
+        id_produit: id_produit,
+        id_structure: user.id_structure,
+        url_photo: photo.url_photo,
+        created_at: photo.date_upload,
+        updated_at: photo.date_maj
+      }));
+
+      SecurityService.secureLog('log', 'Photos récupérées', {
+        id_produit,
+        nombre_photos: photos.length
+      });
+
+      return photos;
 
     } catch (error) {
       SecurityService.secureLog('error', 'Erreur getPhotos', { error });

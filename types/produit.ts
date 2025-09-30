@@ -223,8 +223,10 @@ export interface PhotoProduit {
   id_structure: number;
   url_photo: string;
   ordre?: number;
-  created_at?: string;
-  updated_at?: string;
+  created_at?: string;  // Aussi mappé depuis date_upload
+  updated_at?: string;  // Aussi mappé depuis date_maj
+  date_upload?: string; // Champ original de la BDD
+  date_maj?: string;    // Champ original de la BDD
 }
 
 // Paramètres pour add_edit_photo
