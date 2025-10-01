@@ -28,9 +28,13 @@ import { UploadResult, UploadProgress } from '@/types/upload.types';
 import registrationService from '@/services/registration.service';
 import SuccessModal from '@/components/ui/SuccessModal';
 import LogoUpload from '@/components/ui/LogoUpload';
+import { LanguageSwitcher } from '@/components/LanguageSwitcher';
+import { useTranslations } from '@/hooks/useTranslations';
 
 export default function RegisterPage() {
   const router = useRouter();
+  const t = useTranslations('register');
+  const tCommon = useTranslations('common');
   const [step, setStep] = useState(1);
   const [structureTypes, setStructureTypes] = useState<StructureType[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -135,25 +139,25 @@ export default function RegisterPage() {
     if (length < VALIDATION_RULES.BUSINESS_NAME_MIN_LENGTH) {
       return {
         isValid: false,
-        message: `Minimum ${VALIDATION_RULES.BUSINESS_NAME_MIN_LENGTH} caractères`,
+        message: t('step1.tooShort', { min: VALIDATION_RULES.BUSINESS_NAME_MIN_LENGTH }),
         status: 'too-short'
       };
     }
     if (length > VALIDATION_RULES.BUSINESS_NAME_MAX_LENGTH) {
       return {
         isValid: false,
-        message: `Maximum ${VALIDATION_RULES.BUSINESS_NAME_MAX_LENGTH} caractères`,
+        message: t('step1.tooLong', { max: VALIDATION_RULES.BUSINESS_NAME_MAX_LENGTH }),
         status: 'too-long'
       };
     }
     if (nameCheckState.exists === true) {
       return {
         isValid: false,
-        message: 'Ce nom de structure est déjà pris',
+        message: t('step1.alreadyTaken'),
         status: 'duplicate'
       };
     }
-    return { isValid: true, message: 'Disponible ✓', status: 'valid' };
+    return { isValid: true, message: t('step1.available'), status: 'valid' };
   };
 
   const businessNameValidation = validateBusinessName(formData.businessName);
@@ -395,17 +399,17 @@ export default function RegisterPage() {
                 🎉
               </motion.div>
               <h2 className="text-2xl md:text-3xl font-bold text-gray-800">
-                Bienvenue sur FayClick !
+                {t('step1.title')}
               </h2>
               <p className="text-gray-600 max-w-md mx-auto">
-                Commençons par le nom de votre structure. Choisissez un nom unique et mémorable.
+                {t('step1.subtitle')}
               </p>
             </div>
 
             {/* Business Name Input */}
             <div className="space-y-3">
               <label className="block text-gray-700 font-semibold text-lg">
-                Nom de votre structure <span className="text-red-500">*</span>
+                {t('step1.businessNameLabel')} <span className="text-red-500">*</span>
               </label>
 
               <div className="relative">
@@ -424,7 +428,7 @@ export default function RegisterPage() {
                       ? 'border-red-500 focus:ring-red-100 bg-red-50/30'
                       : 'border-orange-400 focus:ring-orange-100 bg-orange-50/30'
                   }`}
-                  placeholder="NOM DE VOTRE COMMERCE"
+                  placeholder={t('step1.businessNamePlaceholder')}
                   maxLength={VALIDATION_RULES.BUSINESS_NAME_MAX_LENGTH}
                   required
                 />
@@ -476,7 +480,7 @@ export default function RegisterPage() {
 
               {/* Character Counter */}
               <div className="flex justify-between text-sm text-gray-500">
-                <span>Entre {VALIDATION_RULES.BUSINESS_NAME_MIN_LENGTH} et {VALIDATION_RULES.BUSINESS_NAME_MAX_LENGTH} caractères</span>
+                <span>{t('step1.characterCount', { min: VALIDATION_RULES.BUSINESS_NAME_MIN_LENGTH, max: VALIDATION_RULES.BUSINESS_NAME_MAX_LENGTH })}</span>
                 <span className={formData.businessName.length > VALIDATION_RULES.BUSINESS_NAME_MAX_LENGTH * 0.8 ? 'text-orange-600 font-semibold' : ''}>
                   {formData.businessName.length}/{VALIDATION_RULES.BUSINESS_NAME_MAX_LENGTH}
                 </span>
@@ -486,10 +490,10 @@ export default function RegisterPage() {
             {/* Benefits Grid */}
             <div className="grid grid-cols-2 gap-3 pt-4">
               {[
-                { icon: '🚀', text: 'Inscription gratuite' },
-                { icon: '💰', text: 'Paiement instantané' },
-                { icon: '🔒', text: 'Sécurisé et fiable' },
-                { icon: '📱', text: 'QR Code personnel' }
+                { icon: '🚀', text: t('step1.benefits.free') },
+                { icon: '💰', text: t('step1.benefits.instant') },
+                { icon: '🔒', text: t('step1.benefits.secure') },
+                { icon: '📱', text: t('step1.benefits.qrcode') }
               ].map((benefit, index) => (
                 <motion.div
                   key={index}
@@ -520,10 +524,10 @@ export default function RegisterPage() {
             {/* Step Title */}
             <div className="text-center space-y-2">
               <h2 className="text-2xl md:text-3xl font-bold text-gray-800">
-                Configuration
+                {t('step2.title')}
               </h2>
               <p className="text-gray-600">
-                Informations sur votre structure et contact
+                {t('step2.subtitle')}
               </p>
             </div>
 
@@ -531,7 +535,7 @@ export default function RegisterPage() {
             <div className="space-y-2">
               <label className="flex items-center gap-2 text-gray-700 font-semibold">
                 <Building2 className="w-5 h-5 text-emerald-500" />
-                Type de structure <span className="text-red-500">*</span>
+                {t('step2.structureType')} <span className="text-red-500">*</span>
               </label>
               <select
                 ref={structureTypeRef}
@@ -541,7 +545,7 @@ export default function RegisterPage() {
                 className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-4 focus:ring-blue-100 focus:border-blue-400 transition-all"
                 required
               >
-                <option value={0}>Sélectionnez un type de structure</option>
+                <option value={0}>{t('step2.structureTypePlaceholder')}</option>
                 {structureTypes.map((type) => (
                   <option key={type.id_type} value={type.id_type}>
                     {type.nom_type}
@@ -553,7 +557,7 @@ export default function RegisterPage() {
             {/* Service Type Selector */}
             <div className="space-y-2">
               <label className="block text-gray-700 font-semibold">
-                Type de service <span className="text-gray-400 text-sm">(optionnel)</span>
+                {t('step2.serviceType')} <span className="text-gray-400 text-sm">({tCommon('optional')})</span>
               </label>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                 {(['SERVICES', 'PRODUITS', 'MIXTE', 'AUTRE'] as ServiceType[]).map((service) => (
@@ -578,13 +582,13 @@ export default function RegisterPage() {
             <div className="space-y-4 p-4 bg-white/40 backdrop-blur-md rounded-xl border border-white/30 shadow-lg">
               <h3 className="font-semibold text-gray-800 flex items-center gap-2">
                 <Phone className="w-5 h-5 text-emerald-500" />
-                Contact
+                {t('step2.contact')}
               </h3>
 
               {/* Phone OM */}
               <div className="space-y-2">
                 <label className="block text-sm font-medium text-gray-700">
-                  Téléphone Orange Money <span className="text-red-500">*</span>
+                  {t('step2.phoneOM')} <span className="text-red-500">*</span>
                 </label>
                 <div className="flex">
                   <span className="inline-flex items-center px-3 text-gray-500 bg-gray-100 border border-r-0 border-gray-300 rounded-l-xl">
@@ -596,7 +600,7 @@ export default function RegisterPage() {
                     value={formData.phoneOM}
                     onChange={handleChange}
                     className="flex-1 px-4 py-3 border border-gray-300 rounded-r-xl focus:outline-none focus:ring-2 focus:ring-blue-400"
-                    placeholder="77 123 45 67"
+                    placeholder={t('step2.phoneOMPlaceholder')}
                     maxLength={9}
                     required
                   />
@@ -606,7 +610,7 @@ export default function RegisterPage() {
               {/* Phone Wave */}
               <div className="space-y-2">
                 <label className="block text-sm font-medium text-gray-700">
-                  Téléphone Wave <span className="text-gray-400 text-xs">(optionnel)</span>
+                  {t('step2.phoneWave')} <span className="text-gray-400 text-xs">({tCommon('optional')})</span>
                 </label>
                 <div className="flex">
                   <span className="inline-flex items-center px-3 text-gray-500 bg-gray-100 border border-r-0 border-gray-300 rounded-l-xl">
@@ -618,7 +622,7 @@ export default function RegisterPage() {
                     value={formData.phoneWave || ''}
                     onChange={handleChange}
                     className="flex-1 px-4 py-3 border border-gray-300 rounded-r-xl focus:outline-none focus:ring-2 focus:ring-blue-400"
-                    placeholder="70 XXX XX XX"
+                    placeholder={t('step2.phoneWavePlaceholder')}
                     maxLength={9}
                   />
                 </div>
@@ -628,14 +632,14 @@ export default function RegisterPage() {
               <div className="space-y-2">
                 <label className="block text-sm font-medium text-gray-700 flex items-center gap-2">
                   <MapPin className="w-4 h-4 text-emerald-500" />
-                  Adresse complète <span className="text-red-500">*</span>
+                  {t('step2.address')} <span className="text-red-500">*</span>
                 </label>
                 <textarea
                   name="address"
                   value={formData.address}
                   onChange={handleChange}
                   className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400 resize-none"
-                  placeholder="Adresse complète de votre structure"
+                  placeholder={t('step2.addressPlaceholder')}
                   rows={3}
                   maxLength={VALIDATION_RULES.ADDRESS_MAX_LENGTH}
                   required
@@ -650,7 +654,7 @@ export default function RegisterPage() {
             <div className="space-y-2">
               <label className="block text-gray-700 font-semibold flex items-center gap-2">
                 <Upload className="w-5 h-5 text-emerald-500" />
-                Logo <span className="text-gray-400 text-sm">(optionnel)</span>
+                {t('step2.logo')} <span className="text-gray-400 text-sm">({tCommon('optional')})</span>
               </label>
               <LogoUpload
                 onUploadComplete={handleLogoUploadComplete}
@@ -683,10 +687,10 @@ export default function RegisterPage() {
                 ✓
               </motion.div>
               <h2 className="text-2xl md:text-3xl font-bold text-gray-800">
-                Récapitulatif
+                {t('step3.title')}
               </h2>
               <p className="text-gray-600">
-                Vérifiez vos informations avant de créer votre structure
+                {t('step3.subtitle')}
               </p>
             </div>
 
@@ -695,13 +699,13 @@ export default function RegisterPage() {
               {/* Business Info */}
               <div className="p-4 bg-gradient-to-br from-emerald-100/50 to-teal-100/50 backdrop-blur-lg rounded-xl border-2 border-emerald-200/50 shadow-lg">
                 <div className="flex justify-between items-start mb-3">
-                  <span className="text-sm font-medium text-emerald-700">Structure</span>
+                  <span className="text-sm font-medium text-emerald-700">{t('step3.structure')}</span>
                   <button
                     type="button"
                     onClick={() => setStep(1)}
                     className="text-xs text-emerald-600 hover:text-emerald-700 font-medium"
                   >
-                    Modifier
+                    {tCommon('edit')}
                   </button>
                 </div>
                 <p className="text-2xl font-bold text-gray-800 mb-1">{formData.businessName}</p>
@@ -713,25 +717,25 @@ export default function RegisterPage() {
               {/* Contact Info */}
               <div className="p-4 bg-white/60 backdrop-blur-lg rounded-xl border-2 border-white/40 shadow-lg">
                 <div className="flex justify-between items-start mb-3">
-                  <span className="text-sm font-medium text-gray-700">Contact</span>
+                  <span className="text-sm font-medium text-gray-700">{t('step3.contact')}</span>
                   <button
                     type="button"
                     onClick={() => setStep(2)}
                     className="text-xs text-blue-600 hover:text-blue-700 font-medium"
                   >
-                    Modifier
+                    {tCommon('edit')}
                   </button>
                 </div>
                 <div className="space-y-2 text-sm">
                   <div className="flex items-center gap-2">
                     <Phone className="w-4 h-4 text-emerald-500" />
-                    <span className="font-medium">Orange Money:</span>
+                    <span className="font-medium">{t('step3.orangeMoney')}:</span>
                     <span className="text-gray-600">+221 {formData.phoneOM}</span>
                   </div>
                   {formData.phoneWave && (
                     <div className="flex items-center gap-2">
                       <Phone className="w-4 h-4 text-blue-500" />
-                      <span className="font-medium">Wave:</span>
+                      <span className="font-medium">{t('step3.wave')}:</span>
                       <span className="text-gray-600">+221 {formData.phoneWave}</span>
                     </div>
                   )}
@@ -745,7 +749,7 @@ export default function RegisterPage() {
               {/* Logo Preview */}
               {logoUploadState.isUploaded && formData.logoUrl && (
                 <div className="p-4 bg-white/60 backdrop-blur-lg rounded-xl border-2 border-white/40 shadow-lg">
-                  <span className="text-sm font-medium text-gray-700 block mb-2">Logo</span>
+                  <span className="text-sm font-medium text-gray-700 block mb-2">{t('step3.logo')}</span>
                   <div className="flex items-center gap-3">
                     <img
                       src={formData.logoUrl}
@@ -773,11 +777,11 @@ export default function RegisterPage() {
                 <span className="text-sm text-gray-700 leading-relaxed group-hover:text-gray-900">
                   J&apos;accepte les{' '}
                   <a href="/terms" target="_blank" className="text-emerald-600 hover:text-emerald-700 font-semibold underline">
-                    conditions générales d&apos;utilisation
+                    {t('step3.termsLink')}
                   </a>{' '}
                   et les{' '}
                   <a href="/privacy" target="_blank" className="text-emerald-600 hover:text-emerald-700 font-semibold underline">
-                    termes de service
+                    {t('step3.privacyLink')}
                   </a>{' '}
                   de FayClick.
                 </span>
@@ -879,29 +883,34 @@ export default function RegisterPage() {
               </button>
               <LogoFayclick className="w-10 h-10" />
               <div className="hidden sm:block">
-                <h1 className="text-lg font-bold text-gray-800">Inscription</h1>
-                <p className="text-xs text-gray-500">Créez votre structure</p>
+                <h1 className="text-lg font-bold text-gray-800">{t('title')}</h1>
+                <p className="text-xs text-gray-500">{t('subtitle')}</p>
               </div>
             </div>
 
-            {/* Progress Indicator */}
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-gray-600 hidden sm:block">
-                Étape {step}/3
-              </span>
-              <div className="flex gap-1.5">
-                {[1, 2, 3].map((s) => (
-                  <motion.div
-                    key={s}
-                    initial={{ scale: 0.8 }}
-                    animate={{
-                      scale: s === step ? 1 : 0.8,
-                      backgroundColor: s <= step ? '#10b981' : '#e5e7eb'
-                    }}
-                    className="w-2 h-2 rounded-full"
-                  />
-                ))}
+            {/* Progress Indicator & Language Switcher */}
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-gray-600 hidden sm:block">
+                  {t('step', { current: step, total: 3 })}
+                </span>
+                <div className="flex gap-1.5">
+                  {[1, 2, 3].map((s) => (
+                    <motion.div
+                      key={s}
+                      initial={{ scale: 0.8 }}
+                      animate={{
+                        scale: s === step ? 1 : 0.8,
+                        backgroundColor: s <= step ? '#10b981' : '#e5e7eb'
+                      }}
+                      className="w-2 h-2 rounded-full"
+                    />
+                  ))}
+                </div>
               </div>
+
+              {/* Language Switcher */}
+              <LanguageSwitcher variant="compact" />
             </div>
           </div>
 
@@ -962,7 +971,7 @@ export default function RegisterPage() {
                   className="flex-1 px-6 py-4 bg-white border-2 border-gray-300 rounded-xl font-semibold text-gray-700 hover:bg-gray-50 transition-all flex items-center justify-center gap-2 shadow-sm"
                 >
                   <ChevronLeft className="w-5 h-5" />
-                  Précédent
+                  {tCommon('previous')}
                 </motion.button>
               )}
 
@@ -983,17 +992,17 @@ export default function RegisterPage() {
                   isLoading ? (
                     <>
                       <Loader2 className="w-5 h-5 animate-spin" />
-                      Création...
+                      {t('step3.creating')}
                     </>
                   ) : (
                     <>
                       <Sparkles className="w-5 h-5" />
-                      Créer ma structure
+                      {t('step3.createButton')}
                     </>
                   )
                 ) : (
                   <>
-                    Suivant
+                    {tCommon('next')}
                     <ChevronRight className="w-5 h-5" />
                   </>
                 )}
