@@ -240,6 +240,19 @@ export function ListePaiements({
     );
   }
 
+  // État vide - Aucun paiement dans la base
+  if (paiements.length === 0 && !loading) {
+    return (
+      <div className="w-full">
+        <EmptyState
+          icon={<CreditCard className="w-16 h-16" />}
+          title="Aucun paiement enregistré"
+          description="Les paiements effectués apparaîtront ici. Commencez par encaisser une facture pour voir l'historique."
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="w-full overflow-hidden">
       {/* Statistiques - Design harmonisé avec l'onglet Factures */}
