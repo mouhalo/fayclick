@@ -44,6 +44,19 @@ SELECT * FROM get_mes_droits(139, 1)
 3. **Stockage** → localStorage avec signature de sécurité
 4. **Utilisation** → Hooks React partout dans l'app
 
+### ⭐ Règle Spéciale ADMIN
+
+**Si `id_profil === 1`, l'utilisateur a TOUS les droits automatiquement.**
+
+Cette vérification est effectuée en amont dans toutes les fonctions de contrôle :
+- `hasRight()` → retourne `true` pour tout
+- `hasAllRights()` → retourne `true` pour tout
+- `hasAnyRight()` → retourne `true` pour tout
+- `getAllowedFunctionalities()` → retourne toutes les fonctionnalités
+- `getDeniedFunctionalities()` → retourne un tableau vide
+
+**Avantage :** L'admin a un accès complet sans dépendre de la configuration PostgreSQL.
+
 ---
 
 ## 🏗️ Architecture

@@ -1,7 +1,7 @@
 /**
  * Page publique du catalogue de produits
  * Route : /catalogue?structure=SYLVIACOM
- * Inspiré de app/facture/page.tsx (utilise query params au lieu de dynamic routes)
+ * Utilise query params comme /facture pour compatibilité output: export
  */
 
 'use client';

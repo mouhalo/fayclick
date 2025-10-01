@@ -226,6 +226,11 @@ export function hasRight(rights: UserRights | null, functionalityName: string): 
     return false;
   }
 
+  // ⭐ ADMIN (id_profil = 1) a TOUS les droits automatiquement
+  if (rights.id_profil === 1) {
+    return true;
+  }
+
   // Utiliser l'index pour performance O(1)
   if (rights._index) {
     return rights._index[functionalityName] === true;
@@ -248,6 +253,11 @@ export function hasAllRights(rights: UserRights | null, functionalityNames: stri
     return false;
   }
 
+  // ⭐ ADMIN (id_profil = 1) a TOUS les droits automatiquement
+  if (rights.id_profil === 1) {
+    return true;
+  }
+
   return functionalityNames.every(name => hasRight(rights, name));
 }
 
@@ -261,6 +271,11 @@ export function hasAllRights(rights: UserRights | null, functionalityNames: stri
 export function hasAnyRight(rights: UserRights | null, functionalityNames: string[]): boolean {
   if (!rights || !functionalityNames || functionalityNames.length === 0) {
     return false;
+  }
+
+  // ⭐ ADMIN (id_profil = 1) a TOUS les droits automatiquement
+  if (rights.id_profil === 1) {
+    return true;
   }
 
   return functionalityNames.some(name => hasRight(rights, name));
@@ -278,6 +293,11 @@ export function getAllowedFunctionalities(rights: UserRights | null): string[] {
     return [];
   }
 
+  // ⭐ ADMIN (id_profil = 1) a TOUTES les fonctionnalités autorisées
+  if (rights.id_profil === 1) {
+    return rights.fonctionnalites.map(f => f.name);
+  }
+
   return rights.fonctionnalites
     .filter(f => f.allowed)
     .map(f => f.name);
@@ -292,6 +312,11 @@ export function getAllowedFunctionalities(rights: UserRights | null): string[] {
  */
 export function getDeniedFunctionalities(rights: UserRights | null): string[] {
   if (!rights) {
+    return [];
+  }
+
+  // ⭐ ADMIN (id_profil = 1) n'a AUCUNE fonctionnalité refusée
+  if (rights.id_profil === 1) {
     return [];
   }
 

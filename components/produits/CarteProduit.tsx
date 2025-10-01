@@ -273,7 +273,7 @@ interface CarteProduitSkeletonProps {
   compactMode?: boolean;
 }
 
-export function CarteProduitSkeleton({ compactMode }: CarteProduitSkeletonProps) {
+export function CarteProduitSkeleton({  }: CarteProduitSkeletonProps) {
   return (
     <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 animate-pulse">
       {/* Header */}

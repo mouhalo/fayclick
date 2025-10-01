@@ -675,6 +675,39 @@ class DatabaseService {
   }
 
   /**
+   * 🆕 Vérification si un nom de structure existe déjà
+   * @param nom_structure - Nom de la structure à vérifier
+   * @returns true si le nom existe déjà, false sinon
+   */
+  async checkStructureNameExists(nom_structure: string): Promise<boolean> {
+    try {
+      // Échapper les quotes et mettre en majuscules (comme lors de l'insertion)
+      const escapedName = nom_structure.toUpperCase().trim().replace(/'/g, "''");
+
+      const query = `SELECT 1 FROM structures WHERE UPPER(nom_structure) = '${escapedName}' LIMIT 1;`;
+
+      console.log('🔍 [DATABASE] Vérification nom structure:', {
+        nom_recherche: nom_structure,
+        query
+      });
+
+      const result = await this.query(query);
+
+      // Si on a un résultat, le nom existe déjà
+      const exists = Array.isArray(result) && result.length > 0;
+
+      console.log(exists ? '⚠️ [DATABASE] Nom de structure déjà pris' : '✅ [DATABASE] Nom de structure disponible');
+
+      return exists;
+    } catch (error) {
+      SecurityService.secureLog('error', 'Erreur vérification nom structure', error);
+      // En cas d'erreur, on considère que le nom n'est pas pris
+      // pour ne pas bloquer l'utilisateur
+      return false;
+    }
+  }
+
+  /**
    * Test de connectivité de l'API
    */
   async testConnection(): Promise<boolean> {
