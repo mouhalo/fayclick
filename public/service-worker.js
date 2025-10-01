@@ -1,9 +1,9 @@
 // Service Worker FayClick V2 - PWA Complète
-// Version: 2.2.0 - 2025-09-30
-// Build: 2025-09-30T22:07:51.151Z - Force upload fix for ftp-deploy size comparison bug
+// Version: 2.3.0 - 2025-10-01
+// Build: 2025-10-01T18:19:13.573Z - Force upload fix for ftp-deploy size comparison bug
 
-const CACHE_NAME = 'fayclick-v2-cache-v2.2-20250930';
-const DYNAMIC_CACHE_NAME = 'fayclick-v2-dynamic-v2.2-20250930';
+const CACHE_NAME = 'fayclick-v2-cache-v2.3-20251001';
+const DYNAMIC_CACHE_NAME = 'fayclick-v2-dynamic-v2.3-20251001';
 const OFFLINE_PAGE_URL = '/offline';
 
 // Assets essentiels à mettre en cache lors de l'installation
@@ -85,10 +85,24 @@ self.addEventListener('activate', (event) => {
 // Stratégie de cache pour les requêtes
 self.addEventListener('fetch', (event) => {
   const { request } = event;
-  const url = new URL(request.url);
+
+  // Protection: Ignorer si request.url n'est pas défini (crash mobile)
+  if (!request || !request.url) {
+    console.warn('[Service Worker] Request invalide ignoré');
+    return;
+  }
 
   // Ignorer les requêtes non-HTTP(S)
   if (!request.url.startsWith('http')) {
+    return;
+  }
+
+  // Protection: Ignorer les requêtes avec URL invalide
+  let url;
+  try {
+    url = new URL(request.url);
+  } catch (error) {
+    console.warn('[Service Worker] URL invalide:', request.url);
     return;
   }
 
@@ -135,17 +149,24 @@ self.addEventListener('fetch', (event) => {
 
 // Stratégie Cache-First
 async function cacheFirst(request) {
-  const cachedResponse = await caches.match(request);
-  if (cachedResponse) {
-    return cachedResponse;
-  }
-
   try {
+    const cachedResponse = await caches.match(request);
+    if (cachedResponse) {
+      return cachedResponse;
+    }
+
     const networkResponse = await fetch(request);
     // Ne cacher que les requêtes GET réussies (POST/PUT/DELETE ne peuvent pas être cachés)
     if (networkResponse.ok && request.method === 'GET') {
-      const cache = await caches.open(DYNAMIC_CACHE_NAME);
-      cache.put(request, networkResponse.clone());
+      try {
+        const cache = await caches.open(DYNAMIC_CACHE_NAME);
+        // Protection: Vérifier que la réponse peut être clonée (crash mobile)
+        const responseToCache = networkResponse.clone();
+        await cache.put(request, responseToCache);
+      } catch (cacheError) {
+        console.warn('[Service Worker] Erreur mise en cache:', cacheError.message);
+        // Continue même si la mise en cache échoue
+      }
     }
     return networkResponse;
   } catch (error) {
@@ -160,14 +181,25 @@ async function networkFirst(request) {
     const networkResponse = await fetch(request);
     // Ne cacher que les requêtes GET réussies (POST/PUT/DELETE ne peuvent pas être cachés)
     if (networkResponse.ok && request.method === 'GET') {
-      const cache = await caches.open(DYNAMIC_CACHE_NAME);
-      cache.put(request, networkResponse.clone());
+      try {
+        const cache = await caches.open(DYNAMIC_CACHE_NAME);
+        // Protection: Vérifier que la réponse peut être clonée (crash mobile)
+        const responseToCache = networkResponse.clone();
+        await cache.put(request, responseToCache);
+      } catch (cacheError) {
+        console.warn('[Service Worker] Erreur mise en cache:', cacheError.message);
+        // Continue même si la mise en cache échoue
+      }
     }
     return networkResponse;
   } catch (error) {
-    const cachedResponse = await caches.match(request);
-    if (cachedResponse) {
-      return cachedResponse;
+    try {
+      const cachedResponse = await caches.match(request);
+      if (cachedResponse) {
+        return cachedResponse;
+      }
+    } catch (cacheMatchError) {
+      console.warn('[Service Worker] Erreur lecture cache:', cacheMatchError.message);
     }
     throw error;
   }

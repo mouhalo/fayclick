@@ -1,3 +1,4 @@
+//app\register\page.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -10,9 +11,9 @@ import AdvantageCard from '@/components/ui/AdvantageCard';
 import LogoUpload from '@/components/ui/LogoUpload';
 import ServiceCarousel from '@/components/ui/ServiceCarousel';
 import SuccessModal from '@/components/ui/SuccessModal';
-import {
-  StructureType,
-  RegistrationFormData,
+import { 
+  StructureType, 
+  RegistrationFormData, 
   VALIDATION_RULES,
   AdvantageItem,
   ServiceType,
@@ -45,39 +46,22 @@ export default function RegisterPage() {
     acceptTerms: false,
   });
 
-  // État pour vérification du nom de structure
-  const [nameCheckState, setNameCheckState] = useState<{
-    checking: boolean;
-    exists: boolean | null;
-  }>({
-    checking: false,
-    exists: null
-  });
-
   // Validation temps réel du nom de structure
   const validateBusinessName = (name: string) => {
     const length = name.trim().length;
     if (length === 0) return { isValid: false, message: '', status: 'empty' };
     if (length < VALIDATION_RULES.BUSINESS_NAME_MIN_LENGTH) {
-      return {
-        isValid: false,
-        message: `Minimum ${VALIDATION_RULES.BUSINESS_NAME_MIN_LENGTH} caractères`,
-        status: 'too-short'
+      return { 
+        isValid: false, 
+        message: `Minimum ${VALIDATION_RULES.BUSINESS_NAME_MIN_LENGTH} caractères`, 
+        status: 'too-short' 
       };
     }
     if (length > VALIDATION_RULES.BUSINESS_NAME_MAX_LENGTH) {
-      return {
-        isValid: false,
-        message: `Maximum ${VALIDATION_RULES.BUSINESS_NAME_MAX_LENGTH} caractères`,
-        status: 'too-long'
-      };
-    }
-    // Si le nom existe déjà dans la DB
-    if (nameCheckState.exists === true) {
-      return {
-        isValid: false,
-        message: 'Ce nom de structure est déjà pris',
-        status: 'duplicate'
+      return { 
+        isValid: false, 
+        message: `Maximum ${VALIDATION_RULES.BUSINESS_NAME_MAX_LENGTH} caractères`, 
+        status: 'too-long' 
       };
     }
     return { isValid: true, message: 'Parfait ! ✓', status: 'valid' };
@@ -85,38 +69,6 @@ export default function RegisterPage() {
 
   // État pour la validation temps réel
   const businessNameValidation = validateBusinessName(formData.businessName);
-
-  // Vérification du nom de structure avec debouncing
-  useEffect(() => {
-    const checkStructureName = async () => {
-      const trimmedName = formData.businessName.trim();
-
-      // Ne vérifier que si le nom respecte les critères de longueur
-      if (
-        trimmedName.length < VALIDATION_RULES.BUSINESS_NAME_MIN_LENGTH ||
-        trimmedName.length > VALIDATION_RULES.BUSINESS_NAME_MAX_LENGTH
-      ) {
-        setNameCheckState({ checking: false, exists: null });
-        return;
-      }
-
-      setNameCheckState({ checking: true, exists: null });
-
-      try {
-        const exists = await registrationService.checkStructureNameExists(trimmedName);
-        setNameCheckState({ checking: false, exists });
-      } catch (error) {
-        console.error('Erreur vérification nom structure:', error);
-        // En cas d'erreur, ne pas bloquer l'utilisateur
-        setNameCheckState({ checking: false, exists: null });
-      }
-    };
-
-    // Debouncing de 800ms
-    const timeoutId = setTimeout(checkStructureName, 800);
-
-    return () => clearTimeout(timeoutId);
-  }, [formData.businessName]);
   
   // État pour l'upload de logo
   const [logoUploadState, setLogoUploadState] = useState({
@@ -231,20 +183,6 @@ export default function RegisterPage() {
   // Callbacks pour l'upload de logo
   const handleLogoUploadComplete = (result: UploadResult) => {
     if (result.success && result.url) {
-      // Vérifier que l'URL n'est PAS une data URL
-      if (result.url.startsWith('data:')) {
-        console.error('❌ [REGISTER] URL est une data URL (upload serveur a échoué)');
-        alert('Erreur: L\'upload vers le serveur a échoué. Veuillez réessayer.');
-        return;
-      }
-
-      // Vérifier que l'URL est bien une URL HTTP(S)
-      if (!result.url.startsWith('http://') && !result.url.startsWith('https://')) {
-        console.error('❌ [REGISTER] URL invalide:', result.url);
-        alert('Erreur: URL de l\'image invalide. Veuillez réessayer.');
-        return;
-      }
-
       setFormData(prev => ({ ...prev, logoUrl: result.url! }));
       setLogoUploadState({
         isUploaded: true,
@@ -407,12 +345,10 @@ export default function RegisterPage() {
                       value={formData.businessName}
                       onChange={handleChange}
                       className={`w-full px-2.5 md:px-3 py-2 md:py-2.5 border rounded-lg focus:outline-none focus:ring-2 text-sm md:text-base font-semibold uppercase bg-gray-50 transition-all ${
-                        businessNameValidation.status === 'valid'
-                          ? 'border-green-400 focus:ring-green-400 bg-green-50/50'
+                        businessNameValidation.status === 'valid' 
+                          ? 'border-green-400 focus:ring-green-400 bg-green-50/50' 
                           : businessNameValidation.status === 'empty'
                           ? 'border-gray-300 focus:ring-primary-500'
-                          : businessNameValidation.status === 'duplicate'
-                          ? 'border-red-500 focus:ring-red-500 bg-red-50/70'
                           : 'border-red-400 focus:ring-red-400 bg-red-50/50'
                       }`}
                       placeholder="NOM DE VOTRE COMMERCE"
@@ -422,17 +358,10 @@ export default function RegisterPage() {
                     
                     {/* Indicateur visuel de validation */}
                     {formData.businessName && (
-                      <div className="absolute right-2.5 top-1/2 -translate-y-1/2">
-                        {nameCheckState.checking ? (
-                          <svg className="animate-spin h-5 w-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                          </svg>
-                        ) : (
-                          <span className={businessNameValidation.isValid ? 'text-green-500' : 'text-red-500'}>
-                            {businessNameValidation.isValid ? '✓' : '⚠'}
-                          </span>
-                        )}
+                      <div className={`absolute right-2.5 top-1/2 -translate-y-1/2 ${
+                        businessNameValidation.isValid ? 'text-green-500' : 'text-red-500'
+                      }`}>
+                        {businessNameValidation.isValid ? '✓' : '⚠'}
                       </div>
                     )}
                   </div>
@@ -511,7 +440,6 @@ export default function RegisterPage() {
                     onChange={handleChange}
                     className="w-full px-2.5 md:px-3 py-2 md:py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm transition-all bg-white"
                     required
-                    autoFocus
                   >
                     <option value={0}>Sélectionnez un type de structure</option>
                     {structureTypes.map((type) => (
@@ -833,7 +761,7 @@ export default function RegisterPage() {
 
             {/* Panel Droit - Contenu pour Desktop */}
             <div className="flex-1 lg:flex-shrink lg:min-w-0">
-              <main className="max-w-sm md:max-w-2xl lg:max-w-4xl xl:max-w-5xl mx-auto px-3 md:px-4 lg:px-6 xl:px-8 pt-2 pb-4 md:pt-3 md:pb-6 lg:pt-4 lg:pb-8">
+              <main className="max-w-sm md:max-w-2xl lg:max-w-4xl xl:max-w-5xl mx-auto px-3 md:px-4 lg:px-6 xl:px-8 py-4 md:py-6 lg:py-8">
                 
                 {/* Formulaire */}
                 <form onSubmit={step === 3 ? handleSubmit : (e) => { e.preventDefault(); nextStep(); }}>
@@ -868,9 +796,9 @@ export default function RegisterPage() {
                             variant={step === 3 ? "gradient" : "primary"}
                             size="lg"
                             loading={step === 3 && isLoading}
-                            disabled={step === 1 && (!businessNameValidation.isValid || nameCheckState.checking)}
+                            disabled={step === 1 && !businessNameValidation.isValid}
                             className={`${step === 1 ? 'w-full' : 'flex-1'} py-2.5 text-sm font-semibold transition-all duration-300 rounded-lg ${
-                              step === 1 && (!businessNameValidation.isValid || nameCheckState.checking)
+                              step === 1 && !businessNameValidation.isValid
                                 ? 'bg-gray-400 cursor-not-allowed opacity-60 text-white'
                                 : 'bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white shadow-xl'
                             }`}
@@ -949,7 +877,6 @@ export default function RegisterPage() {
                       variant={step === 3 ? "gradient" : "primary"}
                       size="lg"
                       loading={step === 3 && isLoading}
-                      disabled={step === 1 && (!businessNameValidation.isValid || nameCheckState.checking)}
                       className={`${step === 1 ? 'w-full' : 'flex-1'} shadow-lg py-2.5 text-sm`}
                     >
                       {step === 3 

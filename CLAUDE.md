@@ -171,15 +171,16 @@ const { structure, isSchool } = useStructure();
 ### Current Development Status
 The project is in Phase 2 development with:
 - ✅ Complete responsive design system
-- ✅ Authentication pages (login/register) 
+- ✅ Authentication pages (login/register)
 - ✅ Landing page with business segments
 - ✅ **Production deployment system** with automated build/FTP
 - ✅ **Multi-dashboard architecture** (Commerce, Scolaire, Immobilier, Admin)
 - ✅ **API integration** with dynamic environment switching (DEV/PROD)
 - ✅ **Type-safe data layer** with structure-specific financial calculations
 - ✅ **Advanced Authentication System** with React Context + permissions
-- 🔄 Working on Fayclick responsive design adaptation
-- 📋 PWA features planned but not yet implemented
+- ✅ **PWA complète** avec Service Worker et installation intelligente
+- ✅ **Système de panier** avec recherche client intelligente
+- ✅ **Gestion des clients** avec fonction PostgreSQL get_list_clients()
 
 ### Production Environment
 - **Live URL**: https://v2.fayclick.net
@@ -190,4 +191,162 @@ The project is in Phase 2 development with:
 Target market: Senegal
 User base: Small businesses across 4 sectors
 Key features: Mobile money integration, offline capabilities, multi-language support (French primary)
-- ne jamais lancer la commande npm run dev aprés des modifications
+
+## État Management & Services
+
+### Zustand Stores
+- **`panierStore`** (`stores/panierStore.ts`) : Gestion panier avec persistence localStorage
+  - Articles, quantités, client, remise, acompte
+  - Auto-réinitialisation du client quand panier vidé
+  - Validation stock disponible
+
+### Services Architecture
+Tous les services suivent un pattern singleton avec gestion d'erreurs centralisée :
+
+- **`database.service.ts`** : Requêtes PostgreSQL directes
+  - `query()` : Exécution requêtes brutes
+  - `getListClients(id_structure, tel_client?)` : Récupération clients avec filtre optionnel
+  - `getUserRights(id_structure, id_profil)` : Système de droits
+
+- **`auth.service.ts`** : Authentification complète
+  - `completeLogin()` : Login + structure + permissions + droits
+  - Token JWT + localStorage sécurisé
+  - Auto-logout si session expirée
+
+- **`clients.service.ts`** : Gestion clients
+  - `searchClientByPhone(telephone)` : Recherche intelligente avec 9 chiffres
+  - `getListeClients()` : Liste complète avec statistiques
+  - Cache 5 minutes pour optimisation
+
+- **`produits.service.ts`** : Gestion produits/articles
+- **`facture.service.ts`** : Création/gestion factures
+- **`dashboard.service.ts`** : Statistiques par type de structure
+
+### PostgreSQL Functions Used
+```sql
+-- Clients
+SELECT * FROM get_list_clients(pid_structure, ptel_client);
+
+-- Droits utilisateur
+SELECT * FROM get_mes_droits(pid_structure, pid_profil);
+
+-- Structures
+SELECT * FROM list_structures WHERE id_structure = ?;
+```
+
+## Composants Clés
+
+### Panier & Vente
+- **`ModalPanier.tsx`** : Modal panier avec section client redesignée
+  - Label client avec bouton éditer
+  - Bouton Annuler (rouge) + Commander (bleu) en grille 2×1
+  - Réinitialisation auto si articles supprimés
+
+- **`ModalRechercheClient.tsx`** : Recherche intelligente client
+  - Auto-recherche à 9 chiffres saisis
+  - Badge vert (client trouvé) / bleu (nouveau)
+  - Nom verrouillé si client existant
+  - Formatage téléphone : 77 123 45 67
+
+- **`CarteProduit.tsx`** : Carte produit cliquable
+  - Clic sur carte → ouvre modal édition
+  - Boutons avec `e.stopPropagation()` pour actions spécifiques
+  - Contrôles quantité + stock disponible
+
+### Système PWA
+- **Service Worker** (`public/service-worker.js`)
+  - Version actuelle : **v2.1.0 (2025-09-30)**
+  - Cache : `fayclick-v2-cache-v2-20250930`
+  - **IMPORTANT** : Mettre à jour la version cache lors de changements majeurs
+  - Routes publiques exclues : `/facture`, `/fay`, `/login`, `/register`
+
+- **Installation PWA** (`components/pwa/PWAInstallProvider.tsx`)
+  - Prompt intelligent après 2s sur pages privées
+  - Badge permanent après 5s si non installé
+  - Max 3 fermetures, délai 7 jours entre prompts
+  - Exclusion automatique des pages publiques
+
+## Gestion du Cache & Déploiement
+
+### Forcer mise à jour PWA
+Quand les utilisateurs ne voient pas les changements après déploiement :
+
+1. **Mettre à jour Service Worker version** :
+```javascript
+// public/service-worker.js
+const CACHE_NAME = 'fayclick-v2-cache-v2-YYYYMMDD';
+```
+
+2. **Rebuild + déploiement** :
+```bash
+rm -rf .next && npm run deploy:build
+```
+
+3. **Côté utilisateur** :
+   - DevTools (F12) → Application → Service Workers → Update
+   - Ou désinstaller PWA + Clear site data + réinstaller
+
+### Workflow Déploiement Standard
+```bash
+# 1. Nettoyage cache local
+rm -rf .next
+
+# 2. Build + déploiement complet
+npm run deploy:build
+
+# 3. Vérifier sur https://v2.fayclick.net
+# 4. Hard refresh : Ctrl + Shift + R
+```
+
+## Patterns de Développement
+
+### Gestion des Événements (stopPropagation)
+Quand un élément parent est cliquable, utiliser `stopPropagation()` sur les enfants :
+```typescript
+<div onClick={() => handleParentClick()}>
+  <button onClick={(e) => {
+    e.stopPropagation();
+    handleChildClick();
+  }}>
+    Action spécifique
+  </button>
+</div>
+```
+
+### Réinitialisation d'État
+Toujours réinitialiser les états liés quand une action critique survient :
+```typescript
+// Exemple : Vider panier doit aussi vider le client
+clearPanier() {
+  set({
+    articles: [],
+    infosClient: {
+      id_client: undefined,  // ← Important !
+      nom_client_payeur: 'CLIENT_ANONYME',
+      tel_client: '771234567'
+    },
+    remise: 0,
+    acompte: 0
+  });
+}
+```
+
+### Formatage des Données
+- **Téléphones** : Format sénégalais 9 chiffres commençant par 7 (ex: 771234567)
+- **Montants** : `toLocaleString('fr-FR')` + ' FCFA'
+- **Dates** : `toLocaleDateString('fr-FR')` avec format DD/MM/YYYY
+
+## Notes Importantes
+
+### À NE PAS FAIRE
+- ❌ Ne jamais lancer `npm run dev` après des modifications sans raison (mentionne dans fichier)
+- ❌ Ne pas oublier `stopPropagation()` sur boutons dans éléments cliquables
+- ❌ Ne pas oublier de mettre à jour la version du Service Worker lors de changements majeurs
+- ❌ Ne pas commit sans tester le déploiement en production
+
+### À TOUJOURS FAIRE
+- ✅ Mettre à jour `CACHE_NAME` dans Service Worker si changements UI majeurs
+- ✅ Vérifier que le panier se réinitialise correctement (articles + client)
+- ✅ Tester en navigation privée après déploiement
+- ✅ Utiliser `rm -rf .next` avant `npm run deploy:build` si cache suspect
+- ✅ Commit avec messages descriptifs suivant format emoji (✨, 🔧, 🐛, etc.)

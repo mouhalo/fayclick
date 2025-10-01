@@ -1,6 +1,6 @@
 /**
  * API Route pour l'upload de logo avec FTP Direct
- * Solution conforme au guide LOGO_UPLOAD_GUIDE.md
+ * Solution compatible avec output: 'standalone'
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -26,7 +26,7 @@ export const maxDuration = 30;        // 30 secondes timeout
 
 export async function POST(request: NextRequest) {
   const client = new ftp.Client();
-  client.ftp.verbose = true;  // ✅ ACTIVER LES LOGS FTP DÉTAILLÉS
+  client.ftp.verbose = false;
 
   try {
     console.log('🚀 [API-UPLOAD] ========== DÉBUT UPLOAD LOGO ==========');
@@ -35,13 +35,6 @@ export async function POST(request: NextRequest) {
     const formData = await request.formData();
     const file = formData.get('file') as File;
     const filename = formData.get('filename') as string;
-
-    console.log('📋 [API-UPLOAD] Configuration FTP:', {
-      host: FTP_CONFIG.host,
-      user: FTP_CONFIG.user,
-      secure: FTP_CONFIG.secure,
-      remoteDir: FTP_REMOTE_DIR
-    });
 
     if (!file || !filename) {
       console.error('❌ [API-UPLOAD] Fichier ou nom de fichier manquant');
@@ -63,7 +56,7 @@ export async function POST(request: NextRequest) {
     // 2. Validation serveur
     const maxSize = 5 * 1024 * 1024; // 5MB
     if (file.size > maxSize) {
-      console.error(`❌ [API-UPLOAD] Fichier trop volumineux: ${file.size} bytes (max: ${maxSize})`);
+      console.error(`❌ [API-UPLOAD] Fichier trop volumineux: ${file.size} bytes`);
       return NextResponse.json(
         {
           error: 'Fichier trop volumineux (max 5MB)',
@@ -80,80 +73,35 @@ export async function POST(request: NextRequest) {
     console.log(`✅ [API-UPLOAD] Buffer créé: ${buffer.length} bytes`);
 
     // 4. Connexion FTP
-    console.log(`🔌 [API-UPLOAD] Tentative de connexion FTP...`);
-    console.log(`   → Host: ${FTP_CONFIG.host}`);
-    console.log(`   → User: ${FTP_CONFIG.user}`);
-    console.log(`   → Secure: ${FTP_CONFIG.secure}`);
-
+    console.log(`🔌 [API-UPLOAD] Connexion FTP à ${FTP_CONFIG.host}...`);
     await client.access(FTP_CONFIG);
-    console.log('✅ [API-UPLOAD] ✓✓✓ CONNEXION FTP ÉTABLIE ✓✓✓');
-
-    // Lister le répertoire courant
-    console.log('📂 [API-UPLOAD] Vérification du répertoire courant...');
-    const currentDir = await client.pwd();
-    console.log(`📍 [API-UPLOAD] Répertoire actuel: ${currentDir}`);
+    console.log('✅ [API-UPLOAD] Connexion FTP établie');
 
     // 5. Créer/Vérifier le répertoire distant
-    console.log(`📁 [API-UPLOAD] Vérification du répertoire distant: ${FTP_REMOTE_DIR}`);
+    console.log(`📁 [API-UPLOAD] Vérification du répertoire: ${FTP_REMOTE_DIR}`);
     try {
       await client.ensureDir(FTP_REMOTE_DIR);
       console.log(`✅ [API-UPLOAD] Répertoire ${FTP_REMOTE_DIR} OK`);
     } catch (dirError) {
-      console.log(`⚠️ [API-UPLOAD] Répertoire existe déjà ou créé:`, dirError);
+      console.log(`⚠️ [API-UPLOAD] Répertoire existe déjà`);
     }
-
-    // Vérifier à nouveau le répertoire après ensureDir
-    const afterDir = await client.pwd();
-    console.log(`📍 [API-UPLOAD] Répertoire après ensureDir: ${afterDir}`);
 
     // 6. Upload du fichier
     const stream = Readable.from(buffer);
     const remotePath = `${FTP_REMOTE_DIR}${filename}`;
 
-    console.log('⬆️ [API-UPLOAD] ========== UPLOAD EN COURS ==========');
-    console.log(`   → Chemin distant complet: ${remotePath}`);
-    console.log(`   → Taille du buffer: ${buffer.length} bytes`);
-    console.log(`   → Type MIME: ${file.type}`);
+    console.log('⬆️ [API-UPLOAD] Upload en cours...');
+    console.log(`   → Chemin distant: ${remotePath}`);
 
     await client.uploadFrom(stream, remotePath);
-
-    console.log('✅ [API-UPLOAD] ✓✓✓ FICHIER UPLOADÉ AVEC SUCCÈS ✓✓✓');
-
-    // Vérifier que le fichier existe sur le serveur
-    console.log('🔍 [API-UPLOAD] Vérification de l\'existence du fichier...');
-    try {
-      const fileList = await client.list(FTP_REMOTE_DIR);
-      console.log('📋 [API-UPLOAD] Fichiers dans le répertoire distant:');
-      fileList.forEach(item => {
-        console.log(`   - ${item.name} (${item.size} bytes) [${item.type === 1 ? 'FILE' : 'DIR'}]`);
-      });
-
-      const uploadedFile = fileList.find(item => item.name === filename);
-      if (uploadedFile) {
-        console.log('✅ [API-UPLOAD] ✓ Fichier trouvé sur le serveur:', {
-          name: uploadedFile.name,
-          size: uploadedFile.size,
-          date: uploadedFile.modifiedAt
-        });
-      } else {
-        console.warn('⚠️ [API-UPLOAD] Fichier NON trouvé dans la liste du répertoire distant!');
-      }
-    } catch (listError) {
-      console.error('❌ [API-UPLOAD] Erreur lors de la vérification du fichier:', listError);
-    }
+    console.log('✅ [API-UPLOAD] Fichier uploadé avec succès');
 
     // 7. Construire l'URL finale
     const fileUrl = `${BASE_URL}/uploads/${filename}`;
-    console.log('🌐 [API-UPLOAD] ========== URL PUBLIQUE ==========');
-    console.log(`   → URL complète: ${fileUrl}`);
-    console.log(`   → Base URL: ${BASE_URL}`);
-    console.log(`   → Chemin: /uploads/${filename}`);
+    console.log(`🌐 [API-UPLOAD] URL publique: ${fileUrl}`);
 
     // 8. Fermer la connexion
-    console.log('🔌 [API-UPLOAD] Fermeture de la connexion FTP...');
     client.close();
-    console.log('✅ [API-UPLOAD] Connexion fermée');
-
     console.log('🎉 [API-UPLOAD] ========== UPLOAD TERMINÉ ==========');
 
     // 9. Retourner le succès
@@ -166,9 +114,7 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('❌ [API-UPLOAD] ========== ERREUR CRITIQUE ==========');
-    console.error('❌ [API-UPLOAD] Type:', error instanceof Error ? error.constructor.name : typeof error);
     console.error('❌ [API-UPLOAD] Message:', error instanceof Error ? error.message : String(error));
-    console.error('❌ [API-UPLOAD] Stack:', error instanceof Error ? error.stack : 'N/A');
 
     client.close();
 

@@ -19,7 +19,8 @@ import {
   HistoriqueProduitClient,
   StatsHistoriqueProduits,
   ClientsApiException,
-  calculateAnciennete
+  calculateAnciennete,
+  CheckOneClientResponse
 } from '@/types/client';
 
 /**
@@ -92,14 +93,15 @@ export class ClientsService {
 
       // Nettoyer le cache expiré
       this.cleanExpiredCache();
-
       SecurityService.secureLog('log', '📋 [CLIENTS] Récupération liste clients (depuis API)', {
         id_structure: user.id_structure,
         timestamp: new Date().toISOString()
       });
 
       // Utilisation de la fonction PostgreSQL get_list_clients
-      const query = `SELECT * FROM get_list_clients(${user.id_structure})`;
+      // ⚠️ IMPORTANT: La fonction attend 2 paramètres (id_structure, tel_client)
+      // Si on ne cherche pas un client spécifique, on passe une chaîne vide
+      const query = `SELECT * FROM get_list_clients(${user.id_structure}, '')`;
       
       console.log('🔍 [CLIENTS] Requête SQL générée:', query);
       console.log('🔍 [CLIENTS] Utilisateur:', {
@@ -166,6 +168,7 @@ export class ClientsService {
         throw new ClientsApiException('Erreur lors de la récupération des clients', 500);
       }
       
+      // ⚠️ IMPORTANT: La fonction PostgreSQL retourne {clients: [...]} selon la structure SQL
       // Vérification que les clients existent
       if (!data.clients || !Array.isArray(data.clients)) {
         console.error('❌ [CLIENTS] Tableau clients invalide:', data.clients);
@@ -176,17 +179,27 @@ export class ClientsService {
       
       SecurityService.secureLog('log', '✅ [CLIENTS] Clients récupérés avec succès', {
         nombre_clients: data.clients?.length || 0,
-        structure_id: data.structure_id,
-        timestamp_generation: data.timestamp_generation
+        structure_id: data.structure_id
       });
+
+      // ✅ La fonction PostgreSQL retourne EXACTEMENT le bon format maintenant
+      // Structure: { success, structure_id, clients: [...], statistiques_globales, filtre_telephone, timestamp_generation }
+      const transformedData: ClientsApiResponse = {
+        success: data.success,
+        structure_id: data.structure_id,
+        clients: data.clients || [], // Déjà au bon format ClientWithStats[]
+        statistiques_globales: data.statistiques_globales || null,
+        filtre_telephone: data.filtre_telephone || null,
+        timestamp_generation: data.timestamp_generation || new Date().toISOString()
+      };
 
       // Mettre les données en cache
       this.cache.set(cacheKey, {
-        data: data as ClientsApiResponse,
+        data: transformedData,
         timestamp: Date.now()
       });
       
-      return data as ClientsApiResponse;
+      return transformedData;
 
     } catch (error) {
       SecurityService.secureLog('error', '❌ [CLIENTS] Erreur récupération clients', error);
@@ -290,7 +303,8 @@ export class ClientsService {
 
       // Utilisation de la même fonction PostgreSQL get_list_clients
       // mais on filtrera le client spécifique côté JavaScript
-      const query = `SELECT * FROM get_list_clients(${user.id_structure})`;
+      // ⚠️ IMPORTANT: La fonction attend 2 paramètres (id_structure, tel_client)
+      const query = `SELECT * FROM get_list_clients(${user.id_structure}, '')`;
       
       console.log('🔍 [CLIENTS] Requête pour client spécifique:', query);
       
@@ -406,13 +420,13 @@ export class ClientsService {
       if (!user) {
         throw new ClientsApiException('Utilisateur non authentifié', 401);
       }
-
       SecurityService.secureLog('log', '📊 [CLIENTS] Récupération statistiques globales uniquement', {
         id_structure: user.id_structure
       });
 
       // Utiliser get_list_clients mais extraire seulement les stats
-      const query = `SELECT * FROM get_list_clients(${user.id_structure})`;
+      // ⚠️ IMPORTANT: La fonction attend 2 paramètres (id_structure, tel_client)
+      const query = `SELECT * FROM get_list_clients(${user.id_structure}, '')`;
       const results = await database.query(query);
       const rawData = Array.isArray(results) && results.length > 0 ? results[0] : null;
       
@@ -603,10 +617,21 @@ export class ClientsService {
    */
   async createOrUpdateClient(clientData: ClientFormData): Promise<AddEditClientResponse> {
     try {
+      console.log('🚀 [CLIENTS SERVICE] Début createOrUpdateClient');
+      console.log('📋 [CLIENTS SERVICE] Données reçues:', {
+        nom_client: clientData.nom_client,
+        tel_client: clientData.tel_client,
+        adresse: clientData.adresse,
+        id_client: clientData.id_client
+      });
+
       const user = authService.getUser();
       if (!user) {
+        console.error('❌ [CLIENTS SERVICE] Utilisateur non authentifié');
         throw new ClientsApiException('Utilisateur non authentifié', 401);
       }
+
+      console.log('✅ [CLIENTS SERVICE] Utilisateur:', { id: user.id, structure: user.id_structure });
 
       // Validation des données
       if (!clientData.nom_client?.trim()) {
@@ -641,11 +666,31 @@ export class ClientsService {
         )
       `;
 
+      console.log('🔍 [CLIENTS SERVICE] Requête SQL générée:', query);
+
       const results = await database.query(query);
+
+      console.log('🔍 [CLIENTS SERVICE] Résultats bruts:', results);
+      console.log('🔍 [CLIENTS SERVICE] Nombre de résultats:', Array.isArray(results) ? results.length : 'non-array');
+
       const result = Array.isArray(results) && results.length > 0 ? results[0] : null;
+
+      console.log('🔍 [CLIENTS SERVICE] Premier résultat:', result);
+      console.log('🔍 [CLIENTS SERVICE] Type de résultat:', typeof result);
+      console.log('🔍 [CLIENTS SERVICE] Clés du résultat:', result ? Object.keys(result) : 'null');
 
       if (!result) {
         throw new ClientsApiException('Erreur lors de l\'enregistrement du client', 500);
+      }
+
+      // Vérifier que tous les champs requis sont présents
+      if (!result.result_id_client || !result.result_nom_client) {
+        console.error('❌ [CLIENTS SERVICE] Champs manquants dans la réponse:', {
+          result_id_client: result.result_id_client,
+          result_nom_client: result.result_nom_client,
+          result_complet: result
+        });
+        throw new ClientsApiException('Réponse incomplète de la base de données', 500);
       }
 
       SecurityService.secureLog('log', '✅ [CLIENTS] Client enregistré avec succès', {
@@ -798,6 +843,104 @@ export class ClientsService {
       });
     } catch {
       return dateString;
+    }
+  }
+
+  /**
+   * Recherche rapide d'un client par téléphone (optimisée pour le panier)
+   * Utilise la fonction PostgreSQL check_one_client qui retourne uniquement les infos essentielles
+   * @param telephone - Numéro de téléphone du client (9 chiffres)
+   * @returns Informations du client (nom, tél, adresse) + stats simplifiées
+   */
+  async checkOneClient(telephone: string): Promise<CheckOneClientResponse> {
+    try {
+      const user = authService.getUser();
+      if (!user) {
+        throw new ClientsApiException('Utilisateur non authentifié', 401);
+      }
+
+      // Nettoyer le numéro de téléphone (enlever espaces, tirets, etc.)
+      const cleanTel = telephone.replace(/[\s-]/g, '').trim();
+
+      // Validation du format (9 chiffres commençant par 7)
+      if (!/^7\d{8}$/.test(cleanTel)) {
+        throw new ClientsApiException('Format de téléphone invalide (9 chiffres commençant par 7)', 400);
+      }
+
+      SecurityService.secureLog('log', '🔍 [CLIENTS] Recherche rapide client', {
+        telephone: cleanTel,
+        id_structure: user.id_structure
+      });
+
+      // Appel à la fonction PostgreSQL check_one_client
+      const query = `SELECT * FROM check_one_client(${user.id_structure}, '${cleanTel}')`;
+
+      console.log('🔍 [CLIENTS] Requête check_one_client:', query);
+
+      const results = await database.query(query);
+
+      console.log('🔍 [CLIENTS] Résultats bruts:', results);
+
+      // Parser la réponse JSON
+      const rawData = Array.isArray(results) && results.length > 0 ? results[0] : null;
+
+      if (!rawData) {
+        throw new ClientsApiException('Aucune donnée retournée par l\'API', 500);
+      }
+
+      // La fonction PostgreSQL retourne un objet avec propriété check_one_client
+      let data: CheckOneClientResponse;
+
+      try {
+        if (rawData.check_one_client) {
+          const clientData = rawData.check_one_client;
+
+          if (typeof clientData === 'string') {
+            data = JSON.parse(clientData);
+          } else {
+            data = clientData;
+          }
+        } else if (typeof rawData === 'string') {
+          data = JSON.parse(rawData);
+        } else {
+          data = rawData;
+        }
+      } catch (parseError) {
+        console.error('❌ [CLIENTS] Erreur parsing:', parseError);
+        throw new ClientsApiException('Erreur de format des données client', 500);
+      }
+
+      console.log('🔍 [CLIENTS] Données parsées:', data);
+
+      if (!data.success) {
+        if (data.client_found === false) {
+          SecurityService.secureLog('log', '❌ [CLIENTS] Client non trouvé', {
+            telephone: cleanTel
+          });
+        } else {
+          console.error('❌ [CLIENTS] Erreur:', data.error);
+          throw new ClientsApiException(data.error || 'Erreur lors de la recherche du client', 500);
+        }
+      } else {
+        SecurityService.secureLog('log', '✅ [CLIENTS] Client trouvé', {
+          nom: data.client?.nom_client,
+          telephone: cleanTel
+        });
+      }
+
+      return data;
+
+    } catch (error) {
+      SecurityService.secureLog('error', '❌ [CLIENTS] Erreur recherche rapide client', error);
+
+      if (error instanceof ClientsApiException) {
+        throw error;
+      }
+
+      throw new ClientsApiException(
+        error instanceof Error ? error.message : 'Erreur lors de la recherche du client',
+        500
+      );
     }
   }
 

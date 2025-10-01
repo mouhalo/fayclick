@@ -4,15 +4,15 @@
  */
 
 import imageCompression from 'browser-image-compression';
-import {
-  UploadResult,
-  UploadProgress,
-  FileValidationResult,
+import { 
+  UploadResult, 
+  UploadProgress, 
+  FileValidationResult, 
   UploadError,
   UPLOAD_CONSTANTS,
   FTP_CONSTANTS,
   CompressionOptions,
-  ILogoUploadService
+  ILogoUploadService 
 } from '@/types/upload.types';
 
 class LogoUploadService implements ILogoUploadService {
@@ -62,15 +62,15 @@ class LogoUploadService implements ILogoUploadService {
 
       // 3. Génération nom de fichier unique
       const filename = this.generateFilename(file.name);
-
+      
       // 4. Upload FTP réel via l'API route
       this.updateProgress(onProgress, 'uploading', 60, 'Upload vers le serveur...');
       const finalUrl = await this.uploadToServer(compressedFile, filename, onProgress);
-
+      
       this.updateProgress(onProgress, 'success', 100, 'Upload terminé avec succès!');
-
+      
       console.log('🎉 [LOGO-UPLOAD] Upload réussi:', finalUrl);
-
+      
       return {
         success: true,
         url: finalUrl,
@@ -80,7 +80,7 @@ class LogoUploadService implements ILogoUploadService {
     } catch (error) {
       console.error('❌ [LOGO-UPLOAD] Erreur upload:', error);
       this.updateProgress(onProgress, 'error', 0, `Erreur: ${error instanceof Error ? error.message : 'Upload échoué'}`);
-
+      
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Erreur inconnue'
@@ -147,13 +147,13 @@ class LogoUploadService implements ILogoUploadService {
 
     try {
       const compressedFile = await imageCompression(file, options);
-
+      
       // Si la compression n'est pas assez efficace, on réessaie avec une qualité réduite
       if (compressedFile.size > UPLOAD_CONSTANTS.MAX_FILE_SIZE) {
         const aggressiveOptions = { ...options, quality: 0.6, maxSizeMB: 0.3 };
         return await imageCompression(file, aggressiveOptions);
       }
-
+      
       return compressedFile;
     } catch (error) {
       console.error('❌ [LOGO-UPLOAD] Erreur compression:', error);
@@ -168,92 +168,58 @@ class LogoUploadService implements ILogoUploadService {
     const timestamp = Date.now();
     const randomHash = Math.random().toString(36).substring(2, 10);
     const extension = originalName.split('.').pop()?.toLowerCase() || 'png';
-
+    
     // Nettoyage et sécurisation du nom
     const cleanExtension = ['png', 'jpg', 'jpeg', 'gif'].includes(extension) ? extension : 'png';
-
+    
     return `logo-${timestamp}-${randomHash}.${cleanExtension}`;
   }
 
   /**
-   * Upload réel vers le serveur via l'API backend
-   * Solution Senior : Détection environnement et upload direct backend en prod
+   * Upload réel vers le serveur FTP via l'API route
    */
   private async uploadToServer(
-    file: File,
-    filename: string,
+    file: File, 
+    filename: string, 
     onProgress?: (progress: UploadProgress) => void
   ): Promise<string> {
     try {
-      // Détection environnement client-side (Next.js export statique n'a pas d'API routes)
-      const isProd = typeof window !== 'undefined' &&
-        (window.location.hostname.includes('fayclick.net') ||
-         window.location.hostname.includes('v2.fayclick'));
-
-      // En développement : retourner une data URL locale (pas d'upload serveur nécessaire)
-      if (!isProd) {
-        console.log('🔧 [LOGO-UPLOAD] Mode DEV - Utilisation data URL locale');
-        const dataUrl = await this.fileToDataUrl(file);
-        this.updateProgress(onProgress, 'uploading', 100, 'Upload local terminé!');
-        return dataUrl;
-      }
-
-      // En production : upload via l'API Route Next.js
+      // Préparation du FormData
       const formData = new FormData();
       formData.append('file', file);
       formData.append('filename', filename);
-
+      
       this.updateProgress(onProgress, 'uploading', 70, 'Envoi vers le serveur...');
-
-      // Upload via l'API Route Next.js locale (fonctionne avec output: 'standalone')
-      const uploadUrl = '/api/upload-logo';
-      console.log('📤 [LOGO-UPLOAD] Upload via API Route:', uploadUrl);
-
-      const response = await fetch(uploadUrl, {
+      
+      // Appel de l'API route pour l'upload FTP
+      const response = await fetch('/api/upload-logo', {
         method: 'POST',
-        body: formData,
-        // Pas de Content-Type, le browser le définit automatiquement avec boundary
+        body: formData
       });
-
+      
       this.updateProgress(onProgress, 'uploading', 90, 'Finalisation...');
-
-      // Gestion améliorée des erreurs - vérifier le content-type
-      const contentType = response.headers.get('content-type');
-
+      
       if (!response.ok) {
-        console.error(`❌ [LOGO-UPLOAD] Backend retourne ${response.status}`);
-        throw new Error(`Erreur serveur: ${response.status}. Veuillez réessayer.`);
+        const error = await response.json();
+        throw new Error(error.error || `Erreur HTTP: ${response.status}`);
       }
-
-      // Parser la réponse JSON
-      let result;
-      try {
-        // Vérifier que c'est bien du JSON
-        if (!contentType || !contentType.includes('application/json')) {
-          console.error('❌ [LOGO-UPLOAD] Réponse non-JSON du backend');
-          throw new Error('Le serveur a retourné une réponse invalide. Veuillez réessayer.');
-        }
-        result = await response.json();
-      } catch (parseError) {
-        console.error('❌ [LOGO-UPLOAD] Erreur parsing réponse');
-        throw new Error('Impossible de lire la réponse du serveur. Veuillez réessayer.');
-      }
-
+      
+      const result = await response.json();
+      
       if (!result.success || !result.url) {
-        console.error('❌ [LOGO-UPLOAD] Backend retourne erreur:', result.error);
-        throw new Error(result.error || 'Upload échoué. Veuillez réessayer.');
+        throw new Error(result.error || 'Upload échoué');
       }
-
-      this.updateProgress(onProgress, 'uploading', 100, 'Upload backend terminé!');
-
-      console.log('✅ [LOGO-UPLOAD] Upload backend réussi:', {
+      
+      this.updateProgress(onProgress, 'uploading', 100, 'Upload terminé!');
+      
+      console.log('✅ [LOGO-UPLOAD] Upload réel réussi:', {
         url: result.url,
-        filename: result.filename || filename,
-        size: result.size || file.size
+        filename: result.filename,
+        size: result.size
       });
-
+      
       return result.url;
-
+      
     } catch (error) {
       console.error('❌ [LOGO-UPLOAD] Erreur upload serveur:', error);
       throw error;
@@ -267,17 +233,17 @@ class LogoUploadService implements ILogoUploadService {
     return new Promise((resolve, reject) => {
       const img = new Image();
       const url = URL.createObjectURL(file);
-
+      
       img.onload = () => {
         URL.revokeObjectURL(url);
         resolve({ width: img.width, height: img.height });
       };
-
+      
       img.onerror = () => {
         URL.revokeObjectURL(url);
         reject(new Error('Impossible de charger l\'image'));
       };
-
+      
       img.src = url;
     });
   }
@@ -315,11 +281,11 @@ class LogoUploadService implements ILogoUploadService {
     if (!UPLOAD_CONSTANTS.ALLOWED_MIME_TYPES.includes(file.type)) {
       return { isValid: false, error: 'Format de fichier non supporté' };
     }
-
+    
     if (file.size > UPLOAD_CONSTANTS.MAX_FILE_SIZE * 10) { // 5MB max avant compression
       return { isValid: false, error: 'Fichier trop volumineux' };
     }
-
+    
     return { isValid: true };
   }
 }
