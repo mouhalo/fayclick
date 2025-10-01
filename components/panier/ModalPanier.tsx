@@ -1,7 +1,8 @@
 /**
  * Modal Panier - Interface complète de gestion du panier
- * Sections: Articles, Client, Remise/Acompte, Validation
+ * Sections: Articles, Client, Remise, Validation
  * Intégration avec facture.service.ts
+ * Note: Acompte = 0 par défaut pour nouvelle vente
  */
 
 'use client';
@@ -21,10 +22,10 @@ import { Client } from '@/types/client';
 
 export function ModalPanier() {
   const {
-    articles, infosClient, remise, acompte,
+    articles, infosClient, remise,
     isModalOpen, setModalOpen,
     updateQuantity, removeArticle, clearPanier,
-    updateInfosClient, updateRemise, updateAcompte,
+    updateInfosClient, updateRemise,
     getMontantsFacture
   } = usePanierStore();
 
@@ -87,11 +88,11 @@ export function ModalPanier() {
         return;
       }
 
-      // Création de la facture
+      // Création de la facture (acompte = 0 par défaut pour nouvelle vente)
       const result = await factureService.createFacture(
         articles,
         infosClient,
-        { remise, acompte },
+        { remise, acompte: 0 },
         false // avec_frais
       );
 
@@ -306,7 +307,7 @@ export function ModalPanier() {
                   </AnimatePresence>
                 </div>
 
-                {/* Section Remise et Acompte */}
+                {/* Section Remise uniquement */}
                 <div className="px-6 pb-6">
                   <div className="bg-gray-50 rounded-xl p-4 space-y-4">
                     <div className="flex items-center gap-2 mb-3">
@@ -314,41 +315,22 @@ export function ModalPanier() {
                       <span className="font-semibold text-gray-900">Calculs</span>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Remise (FCFA)
-                        </label>
-                        <input
-                          type="number"
-                          value={remise}
-                          onChange={(e) => updateRemise(Number(e.target.value))}
-                          min="0"
-                          max={montants.sous_total}
-                          className="
-                            w-full px-3 py-2 rounded-lg border border-gray-300
-                            focus:ring-2 focus:ring-blue-500 focus:border-transparent
-                            text-sm
-                          "
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Acompte (FCFA)
-                        </label>
-                        <input
-                          type="number"
-                          value={acompte}
-                          onChange={(e) => updateAcompte(Number(e.target.value))}
-                          min="0"
-                          max={montants.montant_net}
-                          className="
-                            w-full px-3 py-2 rounded-lg border border-gray-300
-                            focus:ring-2 focus:ring-blue-500 focus:border-transparent
-                            text-sm
-                          "
-                        />
-                      </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Remise (FCFA)
+                      </label>
+                      <input
+                        type="number"
+                        value={remise}
+                        onChange={(e) => updateRemise(Number(e.target.value))}
+                        min="0"
+                        max={montants.sous_total}
+                        className="
+                          w-full px-3 py-2 rounded-lg border border-gray-300
+                          focus:ring-2 focus:ring-blue-500 focus:border-transparent
+                          text-sm
+                        "
+                      />
                     </div>
 
                     {/* Récapitulatif des montants */}
@@ -367,18 +349,6 @@ export function ModalPanier() {
                         <span>Total:</span>
                         <span>{montants.montant_net.toLocaleString('fr-FR')} FCFA</span>
                       </div>
-                      {montants.acompte > 0 && (
-                        <div className="flex justify-between text-sm text-blue-600">
-                          <span>Acompte:</span>
-                          <span>-{montants.acompte.toLocaleString('fr-FR')} FCFA</span>
-                        </div>
-                      )}
-                      {montants.reste_a_payer !== montants.montant_net && (
-                        <div className="flex justify-between font-semibold text-orange-600">
-                          <span>Reste à payer:</span>
-                          <span>{montants.reste_a_payer.toLocaleString('fr-FR')} FCFA</span>
-                        </div>
-                      )}
                     </div>
                   </div>
                 </div>
@@ -424,7 +394,7 @@ export function ModalPanier() {
                   ) : (
                     <>
                       <CreditCard className="w-5 h-5" />
-                      Creer - {montants.montant_net.toLocaleString('fr-FR')} FCFA
+                      Commander
                     </>
                   )}
                 </motion.button>
