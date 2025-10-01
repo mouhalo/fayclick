@@ -13,7 +13,6 @@ const LanguageContext = createContext<LanguageContextType | undefined>(undefined
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
   const [locale, setLocaleState] = useState<Locale>('fr');
-  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     // Récupérer la langue depuis localStorage ou détecter depuis le navigateur
@@ -21,15 +20,15 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
 
     if (savedLocale && (savedLocale === 'fr' || savedLocale === 'en')) {
       setLocaleState(savedLocale);
+      document.documentElement.lang = savedLocale;
     } else {
       // Détecter la langue du navigateur
       const browserLang = navigator.language.toLowerCase();
       const detectedLocale = browserLang.startsWith('fr') ? 'fr' : 'en';
       setLocaleState(detectedLocale);
       localStorage.setItem('fayclick-locale', detectedLocale);
+      document.documentElement.lang = detectedLocale;
     }
-
-    setMounted(true);
   }, []);
 
   const setLocale = (newLocale: Locale) => {
@@ -37,11 +36,6 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     localStorage.setItem('fayclick-locale', newLocale);
     document.documentElement.lang = newLocale;
   };
-
-  // Éviter le flash de contenu non traduit
-  if (!mounted) {
-    return null;
-  }
 
   return (
     <LanguageContext.Provider value={{ locale, setLocale }}>

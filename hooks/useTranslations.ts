@@ -19,16 +19,27 @@ export function useTranslations<N extends Namespace>(namespace: N) {
       return key as string;
     }
 
-    let translation = namespaceMessages[key];
+    // Support pour les clés imbriquées comme "step1.title"
+    const keys = (key as string).split('.');
+    let translation: any = namespaceMessages;
 
-    if (!translation) {
+    for (const k of keys) {
+      if (translation && typeof translation === 'object') {
+        translation = translation[k];
+      } else {
+        translation = undefined;
+        break;
+      }
+    }
+
+    if (!translation || typeof translation !== 'string') {
       console.warn(`Translation key "${String(key)}" not found in namespace "${namespace}"`);
       return key as string;
     }
 
     // Support pour les paramètres comme {name}, {count}
-    if (params && typeof translation === 'string') {
-      translation = translation.replace(/\{(\w+)\}/g, (match, param) => {
+    if (params) {
+      translation = translation.replace(/\{(\w+)\}/g, (match: string, param: string) => {
         return params[param] !== undefined ? String(params[param]) : match;
       });
     }
