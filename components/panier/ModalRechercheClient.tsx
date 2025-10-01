@@ -7,7 +7,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Phone, User, Search, CheckCircle, UserPlus, Loader2 } from 'lucide-react';
+import { X, Phone, User, Search, CheckCircle, UserPlus, Loader2, ShoppingCart, AlertCircle, Banknote } from 'lucide-react';
 import { clientsService } from '@/services/clients.service';
 import { Client } from '@/types/client';
 
@@ -32,6 +32,12 @@ export function ModalRechercheClient({
   const [clientTrouve, setClientTrouve] = useState(false);
   const [searchMessage, setSearchMessage] = useState('');
   const [clientData, setClientData] = useState<Client | null>(null);
+  const [clientStats, setClientStats] = useState<{
+    montant_restant: number;
+    nombre_total_ventes: number;
+    montant_total_achats: number;
+    nombre_factures_impayees: number;
+  } | null>(null);
 
   // Auto-recherche quand le telephone atteint 9 caracteres
   useEffect(() => {
@@ -55,30 +61,52 @@ export function ModalRechercheClient({
       setIsSearching(true);
       setSearchMessage('');
 
-      console.log('[MODAL] Recherche client pour:', phone);
+      console.log('[MODAL] Recherche rapide client pour:', phone);
 
-      const result = await clientsService.searchClientByPhone(phone);
+      // Utilisation de la nouvelle méthode optimisée checkOneClient
+      const response = await clientsService.checkOneClient(phone);
 
-      if (result.found && result.client) {
-        console.log('[MODAL] Client trouve:', result.client);
+      // Vérifier si client trouvé : success=true ET client présent
+      if (response.success && response.client) {
+        console.log('[MODAL] ✅ Client trouvé:', response.client.nom_client);
 
         setClientTrouve(true);
-        setClientData(result.client);
-        setNomClient(result.client.nom_client);
-        setSearchMessage('Client trouve dans la base');
+        // Mapper CheckOneClientInfo vers Client
+        setClientData({
+          id_client: 0, // Ne sera pas utilisé dans le panier
+          nom_client: response.client.nom_client,
+          tel_client: response.client.tel_client,
+          adresse: response.client.adresse,
+          date_creation: response.client.date_creation,
+          date_modification: response.client.date_modification
+        });
+        setNomClient(response.client.nom_client);
+
+        // Stocker les statistiques
+        if (response.statistiques) {
+          setClientStats({
+            montant_restant: response.statistiques.montant_restant || 0,
+            nombre_total_ventes: response.statistiques.nombre_total_ventes || 0,
+            montant_total_achats: response.statistiques.montant_total_achats || 0,
+            nombre_factures_impayees: response.statistiques.nombre_factures_impayees || 0
+          });
+        }
+
+        setSearchMessage('Client trouvé dans la base');
       } else {
-        console.log('[MODAL] Client non trouve, nouveau client');
+        console.log('[MODAL] ℹ️ Client non trouvé, nouveau client');
 
         setClientTrouve(false);
         setClientData(null);
+        setClientStats(null);
         setSearchMessage('Nouveau client - Saisissez le nom');
-        // Ne pas effacer le nom si deja rempli
+        // Ne pas effacer le nom si déjà rempli
         if (!nomClient) {
           setNomClient('');
         }
       }
     } catch (error) {
-      console.error('[MODAL] Erreur recherche:', error);
+      console.error('[MODAL] ❌ Erreur recherche:', error);
       setSearchMessage('Erreur lors de la recherche');
       setClientTrouve(false);
       setClientData(null);
@@ -122,6 +150,7 @@ export function ModalRechercheClient({
     setClientTrouve(false);
     setSearchMessage('');
     setClientData(null);
+    setClientStats(null);
     onClose();
   };
 
@@ -164,32 +193,32 @@ export function ModalRechercheClient({
               overflow-hidden
             "
           >
-            {/* Header */}
-            <div className="flex items-center justify-between p-6 border-b border-gray-200/50 bg-gradient-to-r from-blue-50 to-blue-100/50">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center">
-                  <Search className="w-5 h-5 text-white" />
+            {/* Header Compact */}
+            <div className="flex items-center justify-between p-4 border-b border-gray-200/50 bg-gradient-to-r from-blue-50 to-blue-100/50">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
+                  <Search className="w-4 h-4 text-white" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold text-gray-900">Rechercher un client</h2>
-                  <p className="text-sm text-gray-600">Par numero de telephone</p>
+                  <h2 className="text-lg font-bold text-gray-900">Rechercher un client</h2>
+                  <p className="text-xs text-gray-600">Par numero de telephone</p>
                 </div>
               </div>
               <button
                 onClick={handleCancel}
-                className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center hover:bg-gray-200 transition-colors"
+                className="w-7 h-7 bg-gray-100 rounded-full flex items-center justify-center hover:bg-gray-200 transition-colors"
               >
-                <X className="w-4 h-4" />
+                <X className="w-3.5 h-3.5" />
               </button>
             </div>
 
             {/* Body */}
-            <div className="p-6 space-y-5">
+            <div className="p-4 space-y-4">
               {/* Input Telephone */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                  <Phone className="w-4 h-4 text-blue-600" />
-                  Telephone du client
+                <label className="block text-sm font-medium text-gray-700 mb-1.5 flex items-center gap-1.5">
+                  <Phone className="w-3.5 h-3.5 text-blue-600" />
+                  <span>Telephone du client ({telephone.replace(/\D/g, '').length}/9)</span>
                 </label>
                 <div className="relative">
                   <input
@@ -199,21 +228,18 @@ export function ModalRechercheClient({
                     placeholder="77 123 45 67"
                     autoFocus
                     className="
-                      w-full px-4 py-3 rounded-xl border-2 border-gray-300
+                      w-full px-3 py-2.5 rounded-lg border-2 border-gray-300
                       focus:ring-2 focus:ring-blue-500 focus:border-transparent
-                      transition-all text-lg font-medium
+                      transition-all text-base font-medium
                       placeholder:text-gray-400
                     "
                   />
                   {isSearching && (
                     <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                      <Loader2 className="w-5 h-5 text-blue-600 animate-spin" />
+                      <Loader2 className="w-4 h-4 text-blue-600 animate-spin" />
                     </div>
                   )}
                 </div>
-                <p className="text-xs text-gray-500 mt-1">
-                  {telephone.replace(/\D/g, '').length}/9 chiffres
-                </p>
               </div>
 
               {/* Message de recherche */}
@@ -222,7 +248,7 @@ export function ModalRechercheClient({
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
                   className={`
-                    p-3 rounded-xl flex items-center gap-2 text-sm font-medium
+                    p-2 rounded-lg flex items-center gap-1.5 text-xs font-medium
                     ${clientTrouve
                       ? 'bg-green-50 text-green-700 border border-green-200'
                       : 'bg-blue-50 text-blue-700 border border-blue-200'
@@ -230,9 +256,9 @@ export function ModalRechercheClient({
                   `}
                 >
                   {clientTrouve ? (
-                    <CheckCircle className="w-4 h-4" />
+                    <CheckCircle className="w-3.5 h-3.5" />
                   ) : (
-                    <UserPlus className="w-4 h-4" />
+                    <UserPlus className="w-3.5 h-3.5" />
                   )}
                   {searchMessage}
                 </motion.div>
@@ -240,10 +266,18 @@ export function ModalRechercheClient({
 
               {/* Input Nom Client */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                  <User className="w-4 h-4 text-blue-600" />
-                  Nom du client
-                </label>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-sm font-medium text-gray-700 flex items-center gap-1.5">
+                    <User className="w-3.5 h-3.5 text-blue-600" />
+                    Nom du client
+                  </label>
+                  {clientTrouve && (
+                    <span className="text-xs text-green-600 flex items-center gap-1 bg-green-50 px-2 py-0.5 rounded-full">
+                      <CheckCircle className="w-3 h-3" />
+                      Client existant
+                    </span>
+                  )}
+                </div>
                 <div className="relative">
                   <input
                     type="text"
@@ -252,40 +286,87 @@ export function ModalRechercheClient({
                     placeholder="Abdou Diallo"
                     readOnly={clientTrouve}
                     className={`
-                      w-full px-4 py-3 rounded-xl border-2
+                      w-full px-3 py-2.5 rounded-lg border-2
                       ${clientTrouve
                         ? 'border-green-300 bg-green-50 text-green-900'
                         : 'border-gray-300 bg-white'
                       }
                       focus:ring-2 focus:ring-blue-500 focus:border-transparent
-                      transition-all
+                      transition-all text-base
                       placeholder:text-gray-400
                       ${clientTrouve ? 'cursor-not-allowed' : ''}
                     `}
                   />
                   {clientTrouve && (
                     <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                      <CheckCircle className="w-5 h-5 text-green-600" />
+                      <CheckCircle className="w-4 h-4 text-green-600" />
                     </div>
                   )}
                 </div>
-                {clientTrouve && (
-                  <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
-                    <CheckCircle className="w-3 h-3" />
-                    Client existant - Nom verrouille
-                  </p>
-                )}
               </div>
+
+              {/* Statistiques Client (2x2 Grid) */}
+              {clientTrouve && clientStats && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="grid grid-cols-2 gap-2"
+                >
+                  {/* Montant Restant */}
+                  <div className="bg-gradient-to-br from-red-50 to-red-100/50 p-2.5 rounded-lg border border-red-200/50">
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <AlertCircle className="w-3.5 h-3.5 text-red-600" />
+                      <p className="text-xs font-medium text-red-700">Impayé</p>
+                    </div>
+                    <p className="text-sm font-bold text-red-900">
+                      {clientStats.montant_restant.toLocaleString('fr-FR')} FCFA
+                    </p>
+                  </div>
+
+                  {/* Nombre de Ventes */}
+                  <div className="bg-gradient-to-br from-blue-50 to-blue-100/50 p-2.5 rounded-lg border border-blue-200/50">
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <ShoppingCart className="w-3.5 h-3.5 text-blue-600" />
+                      <p className="text-xs font-medium text-blue-700">Ventes</p>
+                    </div>
+                    <p className="text-sm font-bold text-blue-900">
+                      {clientStats.nombre_total_ventes}
+                    </p>
+                  </div>
+
+                  {/* Total Achats */}
+                  <div className="bg-gradient-to-br from-green-50 to-green-100/50 p-2.5 rounded-lg border border-green-200/50">
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <Banknote className="w-3.5 h-3.5 text-green-600" />
+                      <p className="text-xs font-medium text-green-700">Achats</p>
+                    </div>
+                    <p className="text-sm font-bold text-green-900">
+                      {clientStats.montant_total_achats.toLocaleString('fr-FR')} FCFA
+                    </p>
+                  </div>
+
+                  {/* Factures Impayées */}
+                  <div className="bg-gradient-to-br from-orange-50 to-orange-100/50 p-2.5 rounded-lg border border-orange-200/50">
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <AlertCircle className="w-3.5 h-3.5 text-orange-600" />
+                      <p className="text-xs font-medium text-orange-700">Impayées</p>
+                    </div>
+                    <p className="text-sm font-bold text-orange-900">
+                      {clientStats.nombre_factures_impayees} {clientStats.nombre_factures_impayees > 1 ? 'factures' : 'facture'}
+                    </p>
+                  </div>
+                </motion.div>
+              )}
             </div>
 
             {/* Footer - Boutons */}
-            <div className="p-6 border-t border-gray-200/50 flex gap-3">
+            <div className="p-4 border-t border-gray-200/50 flex gap-2">
               <button
                 onClick={handleCancel}
                 className="
-                  flex-1 py-3 px-4 rounded-xl
+                  flex-1 py-2.5 px-3 rounded-lg
                   bg-gray-100 hover:bg-gray-200
-                  text-gray-700 font-semibold
+                  text-gray-700 font-semibold text-sm
                   transition-colors
                 "
               >
@@ -295,17 +376,17 @@ export function ModalRechercheClient({
                 onClick={handleConfirm}
                 disabled={telephone.replace(/\D/g, '').length !== 9 || !nomClient.trim()}
                 className="
-                  flex-1 py-3 px-4 rounded-xl
+                  flex-1 py-2.5 px-3 rounded-lg
                   bg-gradient-to-r from-blue-600 to-blue-700
                   hover:from-blue-700 hover:to-blue-800
-                  text-white font-semibold
+                  text-white font-semibold text-sm
                   shadow-lg hover:shadow-xl
                   transition-all
                   disabled:opacity-50 disabled:cursor-not-allowed
-                  flex items-center justify-center gap-2
+                  flex items-center justify-center gap-1.5
                 "
               >
-                <CheckCircle className="w-5 h-5" />
+                <CheckCircle className="w-4 h-4" />
                 Confirmer
               </button>
             </div>
