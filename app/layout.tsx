@@ -4,6 +4,7 @@ import "./globals.css";
 import ConditionalAuthProvider from '@/components/providers/ConditionalAuthProvider';
 import { VersionProvider } from '@/contexts/VersionContext';
 import { PWAInstallProvider } from '@/components/pwa/PWAInstallProvider';
+import { LanguageProvider } from '@/contexts/LanguageContext';
 import { Toaster } from 'sonner';
 
 // Temporary fallback to system fonts for deployment
@@ -63,24 +64,26 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
       </head>
       <body className="font-inter antialiased min-h-screen">
-        <ConditionalAuthProvider>
-          <VersionProvider autoCheck={true}>
-            <PWAInstallProvider>
-              <div className="safe-area-container">
-                {children}
-              </div>
-              <Toaster
-                position="top-center"
-                richColors
-                closeButton
-                toastOptions={{
-                  className: 'glassmorphism-toast',
-                  duration: 4000,
-                }}
-              />
-            </PWAInstallProvider>
-          </VersionProvider>
-        </ConditionalAuthProvider>
+        <LanguageProvider>
+          <ConditionalAuthProvider>
+            <VersionProvider autoCheck={true}>
+              <PWAInstallProvider>
+                <div className="safe-area-container">
+                  {children}
+                </div>
+                <Toaster
+                  position="top-center"
+                  richColors
+                  closeButton
+                  toastOptions={{
+                    className: 'glassmorphism-toast',
+                    duration: 4000,
+                  }}
+                />
+              </PWAInstallProvider>
+            </VersionProvider>
+          </ConditionalAuthProvider>
+        </LanguageProvider>
       </body>
     </html>
   );

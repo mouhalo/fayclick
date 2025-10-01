@@ -1,0 +1,117 @@
+{
+  "common": {
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
+    "loading": "Loading...",
+    "submit": "Submit",
+    "cancel": "Cancel",
+    "save": "Save",
+    "edit": "Edit",
+    "delete": "Delete",
+    "required": "Required",
+    "optional": "Optional"
+  },
+  "register": {
+    "title": "Merchant Registration",
+    "subtitle": "Create your structure",
+    "step": "Step {current}/{total}",
+    "step1": {
+      "title": "Welcome to FayClick!",
+      "subtitle": "Let's start with your structure's name. Choose a unique and memorable name.",
+      "businessNameLabel": "Your structure name",
+      "businessNamePlaceholder": "YOUR BUSINESS NAME",
+      "available": "Available ✓",
+      "checking": "Checking...",
+      "alreadyTaken": "This structure name is already taken",
+      "tooShort": "Minimum {min} characters",
+      "tooLong": "Maximum {max} characters",
+      "characterCount": "Between {min} and {max} characters",
+      "benefits": {
+        "free": "Free registration",
+        "instant": "Instant payment",
+        "secure": "Secure and reliable",
+        "qrcode": "Personal QR Code"
+      }
+    },
+    "step2": {
+      "title": "Configuration",
+      "subtitle": "Structure and contact information",
+      "structureType": "Structure type",
+      "structureTypePlaceholder": "Select a structure type",
+      "serviceType": "Service type",
+      "contact": "Contact",
+      "phoneOM": "Orange Money Phone",
+      "phoneOMPlaceholder": "77 123 45 67",
+      "phoneWave": "Wave Phone",
+      "phoneWavePlaceholder": "70 XXX XX XX",
+      "address": "Full address",
+      "addressPlaceholder": "Your structure's full address",
+      "logo": "Logo"
+    },
+    "step3": {
+      "title": "Summary",
+      "subtitle": "Review your information before creating your structure",
+      "structure": "Structure",
+      "contact": "Contact",
+      "orangeMoney": "Orange Money",
+      "wave": "Wave",
+      "logo": "Logo",
+      "terms": "I accept the {termsLink} and {privacyLink} of FayClick.",
+      "termsLink": "terms and conditions",
+      "privacyLink": "privacy policy",
+      "createButton": "Create my structure",
+      "creating": "Creating..."
+    },
+    "errors": {
+      "businessNameRequired": "Business name required (minimum {min} characters)",
+      "businessNameTaken": "This structure name is already taken",
+      "structureTypeRequired": "Please select a structure type",
+      "phoneOMInvalid": "Invalid Orange Money phone (9 digits, prefixes: 77, 78, 70, 76, 75)",
+      "addressRequired": "Address required",
+      "addressTooLong": "Address too long (maximum {max} characters)",
+      "termsRequired": "Please accept the terms and conditions",
+      "loadingTypes": "Unable to load structure types"
+    }
+  },
+  "landing": {
+    "hero": {
+      "title": "The Super App for Senegalese Merchants",
+      "subtitle": "Manage your business, receive payments and grow your activity with FayClick",
+      "ctaRegister": "Create account",
+      "ctaLogin": "Sign in"
+    },
+    "features": {
+      "title": "Everything you need",
+      "subtitle": "A complete solution to manage your activity",
+      "payments": {
+        "title": "Instant Payments",
+        "description": "Receive Orange Money and Wave payments in real-time"
+      },
+      "invoicing": {
+        "title": "Simplified Invoicing",
+        "description": "Create and send professional invoices in a few clicks"
+      },
+      "inventory": {
+        "title": "Inventory Management",
+        "description": "Track your products and services in real-time"
+      },
+      "analytics": {
+        "title": "Detailed Analytics",
+        "description": "Analyze your performance with comprehensive reports"
+      }
+    },
+    "segments": {
+      "title": "For all sectors",
+      "commerce": "Commerce",
+      "school": "Education",
+      "services": "Services",
+      "realestate": "Real Estate"
+    },
+    "cta": {
+      "title": "Ready to start?",
+      "subtitle": "Join thousands of merchants using FayClick",
+      "button": "Get started for free"
+    }
+  }
+}
