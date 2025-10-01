@@ -75,6 +75,36 @@
     }
   },
   "landing": {
+    "desktop": {
+      "login": "Sign In",
+      "title": "The Digital Commerce Super App",
+      "subtitle": "Manage your business, accept Orange Money and Wave payments, and grow your activity with Senegal's first Super App",
+      "ctaButton": "Get Started Free",
+      "slides": {
+        "dashboard": "Intuitive dashboard",
+        "inventory": "Simplified inventory management",
+        "payments": "Instant payments",
+        "reports": "Detailed reports"
+      },
+      "footer": {
+        "copyright": "© 2025 FayClick - All rights reserved",
+        "developedBy": "Developed by"
+      }
+    },
+    "mobile": {
+      "title": "FayClick",
+      "subtitle": "Digital Commerce Senegal",
+      "tagline": "Revolutionize your business with an all-in-one",
+      "taglineHighlight": "ultra-modern",
+      "createAccount": "Create Account",
+      "login": "Sign In",
+      "features": {
+        "mobilePayments": "Mobile\nPayments",
+        "analytics": "Analytics\nPro",
+        "qrcode": "QR Code\nInstant"
+      },
+      "footer": "© 2025 Developed by"
+    },
     "hero": {
       "title": "The Super App for Senegalese Merchants",
       "subtitle": "Manage your business, receive payments and grow your activity with FayClick",

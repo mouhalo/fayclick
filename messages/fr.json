@@ -75,6 +75,36 @@
     }
   },
   "landing": {
+    "desktop": {
+      "login": "Se Connecter",
+      "title": "La Super App du Commerce Digital",
+      "subtitle": "Gérez votre business, acceptez les paiements Orange Money et Wave, et développez votre activité avec la première Super App du Sénégal",
+      "ctaButton": "Commencer Gratuitement",
+      "slides": {
+        "dashboard": "Tableau de bord intuitif",
+        "inventory": "Gestion des stocks simplifiée",
+        "payments": "Paiements instantanés",
+        "reports": "Rapports détaillés"
+      },
+      "footer": {
+        "copyright": "© 2025 FayClick - Tous droits réservés",
+        "developedBy": "Développé par"
+      }
+    },
+    "mobile": {
+      "title": "FayClick",
+      "subtitle": "Commerce Digital Sénégal",
+      "tagline": "Révolutionnez votre business avec une plateforme tout-en-un",
+      "taglineHighlight": "ultra-moderne",
+      "createAccount": "Créer un Compte",
+      "login": "Se Connecter",
+      "features": {
+        "mobilePayments": "Mobile\nPayments",
+        "analytics": "Analytics\nPro",
+        "qrcode": "QR Code\nInstant"
+      },
+      "footer": "© 2025 Développé par"
+    },
     "hero": {
       "title": "La Super App des Marchands Sénégalais",
       "subtitle": "Gérez votre business, recevez des paiements et développez votre activité avec FayClick",

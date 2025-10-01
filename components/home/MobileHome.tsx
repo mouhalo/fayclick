@@ -6,22 +6,25 @@ import { motion, useScroll, useTransform } from 'framer-motion';
 import { ReactElement } from 'react';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import LogoFayclick from '@/components/ui/LogoFayclick';
-import { 
-  Smartphone, 
-  QrCode, 
-  CreditCard,  
+import { LanguageSwitcher } from '@/components/LanguageSwitcher';
+import { useTranslations } from '@/hooks/useTranslations';
+import {
+  Smartphone,
+  QrCode,
+  CreditCard,
   BarChart3,
   Sparkles,
   ArrowRight
 } from 'lucide-react';
 
 export default function MobileHome() {
+  const t = useTranslations('landing');
   const { isMobile, isMobileLarge } = useBreakpoint();
   const [particles, setParticles] = useState<ReactElement[]>([]);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const { scrollY } = useScroll();
-  
+
   const logoY = useTransform(scrollY, [0, 300], [0, -50]);
   const featuresY = useTransform(scrollY, [0, 300], [0, -100]);
 
@@ -135,7 +138,12 @@ export default function MobileHome() {
 
       {/* Contenu principal */}
       <div className={`relative z-10 ${styles.containerPadding} flex flex-col items-center justify-center min-h-screen`}>
-        
+
+        {/* LanguageSwitcher en haut à droite */}
+        <div className="absolute top-4 right-4 z-50">
+          <LanguageSwitcher variant="compact" />
+        </div>
+
         {/* Logo animé premium avec effets spectaculaires */}
         <motion.div
           style={{ y: logoY }}
@@ -277,7 +285,7 @@ export default function MobileHome() {
               WebkitBackgroundClip: 'text',
             }}
           >
-            Commerce Digital Sénégal
+            {t('mobile.subtitle')}
           </motion.span>
         </motion.p>
 
@@ -288,8 +296,8 @@ export default function MobileHome() {
           transition={{ delay: 1.4, duration: 1 }}
           className="text-base text-emerald-100/90 mb-12 text-center max-w-sm leading-relaxed font-medium"
         >
-          Révolutionnez votre business avec une plateforme tout-en-un 
-          <span className="text-emerald-300 font-semibold"> ultra-moderne</span>
+          {t('mobile.tagline')}{' '}
+          <span className="text-emerald-300 font-semibold">{t('mobile.taglineHighlight')}</span>
         </motion.p>
 
         {/* Boutons glassmorphisme premium */}
@@ -334,7 +342,7 @@ export default function MobileHome() {
               {/* Contenu du bouton */}
               <div className="relative z-10 flex items-center justify-center gap-3">
                 <Sparkles className="w-5 h-5" />
-                <span>Créer un Compte</span>
+                <span>{t('mobile.createAccount')}</span>
                 <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
               </div>
             </motion.button>
@@ -343,7 +351,7 @@ export default function MobileHome() {
           {/* Bouton Se Connecter - Glass Transparent */}
           <Link href="/login" className="block">
             <motion.button
-              whileHover={{ 
+              whileHover={{
                 scale: 1.02,
                 borderColor: "rgba(16, 185, 129, 0.6)"
               }}
@@ -361,10 +369,10 @@ export default function MobileHome() {
                   background: 'radial-gradient(circle at center, rgba(16, 185, 129, 0.1) 0%, transparent 70%)'
                 }}
               />
-              
+
               <div className="relative z-10 flex items-center justify-center gap-3">
                 <CreditCard className="w-5 h-5" />
-                <span>Se Connecter</span>
+                <span>{t('mobile.login')}</span>
               </div>
             </motion.button>
           </Link>
@@ -379,21 +387,21 @@ export default function MobileHome() {
           className="grid grid-cols-3 gap-4 w-full max-w-md"
         >
           {[
-            { 
-              Icon: Smartphone, 
-              title: "Mobile\nPayments", 
+            {
+              Icon: Smartphone,
+              title: t('mobile.features.mobilePayments'),
               color: "from-emerald-400 to-green-500",
               gradient: "from-emerald-400/20 to-green-500/20"
             },
-            { 
-              Icon: BarChart3, 
-              title: "Analytics\nPro", 
+            {
+              Icon: BarChart3,
+              title: t('mobile.features.analytics'),
               color: "from-teal-400 to-cyan-500",
               gradient: "from-teal-400/20 to-cyan-500/20"
             },
-            { 
-              Icon: QrCode, 
-              title: "QR Code\nInstant", 
+            {
+              Icon: QrCode,
+              title: t('mobile.features.qrcode'),
               color: "from-green-400 to-emerald-500",
               gradient: "from-green-400/20 to-emerald-500/20"
             },
@@ -460,7 +468,7 @@ export default function MobileHome() {
           className="absolute bottom-6 text-center"
         >
           <div className="text-xs text-emerald-200/80">
-            © 2025 Développé par{" "}
+            {t('mobile.footer')}{" "}
             <motion.a
               href="https://icelabsoft.com"
               target="_blank"
