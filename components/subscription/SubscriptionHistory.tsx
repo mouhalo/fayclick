@@ -88,7 +88,7 @@ export default function SubscriptionHistory({
                     {item.type_abonnement}
                   </p>
                   <p className="text-xs text-gray-500">
-                    {formatSubscriptionDate(item.date_debut)}
+                    {item.date_debut ? formatSubscriptionDate(item.date_debut) : 'N/A'}
                   </p>
                 </div>
               </div>
@@ -100,12 +100,12 @@ export default function SubscriptionHistory({
             <div className="flex items-center justify-between pt-3 border-t border-gray-100">
               <span className="text-sm text-gray-600">Montant</span>
               <span className="font-bold text-gray-900">
-                {formatAmount(item.montant)} FCFA
+                {item.montant ? `${Number(item.montant).toLocaleString('fr-FR')} FCFA` : 'N/A'}
               </span>
             </div>
 
             <div className="mt-2 text-xs text-gray-500">
-              Réf: {item.ref_abonnement}
+              Réf: {item.ref_abonnement || 'N/A'}
             </div>
           </motion.div>
         ))}
@@ -146,7 +146,7 @@ export default function SubscriptionHistory({
                   <div className="flex items-center gap-2">
                     <Calendar className="w-4 h-4 text-gray-400" />
                     <span className="text-sm text-gray-900">
-                      {formatSubscriptionDate(item.date_debut)}
+                      {item.date_debut ? formatSubscriptionDate(item.date_debut) : 'N/A'}
                     </span>
                   </div>
                 </td>
@@ -157,7 +157,7 @@ export default function SubscriptionHistory({
                 </td>
                 <td className="px-4 py-3 text-right">
                   <span className="font-bold text-gray-900">
-                    {formatAmount(item.montant)}
+                    {item.montant ? Number(item.montant).toLocaleString('fr-FR') : 'N/A'}
                   </span>
                   <span className="text-xs text-gray-500 ml-1">FCFA</span>
                 </td>
@@ -171,7 +171,7 @@ export default function SubscriptionHistory({
                 </td>
                 <td className="px-4 py-3">
                   <span className="text-xs text-gray-600 font-mono">
-                    {item.ref_abonnement}
+                    {item.ref_abonnement || 'N/A'}
                   </span>
                 </td>
               </motion.tr>
