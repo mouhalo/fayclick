@@ -456,34 +456,41 @@ export default function ModalPaiementAbonnement({
 
                 {/* SELECT_METHOD : Choix méthode */}
                 {modalState === 'SELECT_METHOD' && (
-                  <div className="space-y-3">
+                  <div className="space-y-4">
                     <p className="text-sm text-gray-600 mb-4">
                       Sélectionnez votre mode de paiement
                     </p>
 
-                    {(['OM', 'WAVE', 'FREE'] as const).map((method) => {
-                      const config = WALLET_CONFIG[method];
-                      return (
-                        <button
-                          key={method}
-                          onClick={() => handleSelectMethod(method)}
-                          disabled={isLoading}
-                          className="w-full p-4 bg-white rounded-xl border-2 border-gray-200 hover:border-emerald-500 hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed group"
-                        >
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                              <div className={`w-12 h-12 ${config.color} rounded-lg flex items-center justify-center text-2xl`}>
-                                {config.icon}
-                              </div>
-                              <span className="font-semibold text-gray-900">
-                                {config.name}
-                              </span>
+                    {/* Grille 3×1 pour les wallets */}
+                    <div className="grid grid-cols-3 gap-3">
+                      {(['OM', 'WAVE', 'FREE'] as const).map((method) => {
+                        const config = WALLET_CONFIG[method];
+                        const logoPath = method === 'OM' ? '/images/om.png' : method === 'WAVE' ? '/images/wave.png' : '/images/free.png';
+
+                        return (
+                          <button
+                            key={method}
+                            onClick={() => handleSelectMethod(method)}
+                            disabled={isLoading}
+                            className="flex flex-col items-center justify-center p-4 bg-white rounded-xl border-2 border-gray-200 hover:border-emerald-500 hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed group aspect-square"
+                          >
+                            {/* Logo wallet */}
+                            <div className="w-16 h-16 mb-3 flex items-center justify-center">
+                              <img
+                                src={logoPath}
+                                alt={config.name}
+                                className="w-full h-full object-contain"
+                              />
                             </div>
-                            <CreditCard className="w-5 h-5 text-gray-400 group-hover:text-emerald-600 transition-colors" />
-                          </div>
-                        </button>
-                      );
-                    })}
+
+                            {/* Nom wallet */}
+                            <span className="text-sm font-semibold text-gray-900 text-center">
+                              {config.name}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
 
                     <button
                       onClick={() => setModalState('SELECT_FORMULA')}
