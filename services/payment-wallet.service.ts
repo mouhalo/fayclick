@@ -438,6 +438,73 @@ class PaymentWalletService {
 
     return { valid: true };
   }
+
+  /**
+   * 🆕 Créer un paiement pour un abonnement
+   *
+   * Workflow spécifique abonnements :
+   * - Contexte différent (pas de facture)
+   * - Référence unique pour abonnement
+   * - Pas de double protection (pas de factureId)
+   */
+  async createSubscriptionPayment(params: {
+    idStructure: number;
+    typeAbonnement: string;
+    montant: number;
+    methode: Exclude<PaymentMethod, 'CASH'>;
+  }): Promise<CreatePaymentResponse> {
+    try {
+      console.log('💳 [SUBSCRIPTION-PAYMENT] Création paiement abonnement:', params);
+
+      // Générer référence unique pour l'abonnement
+      const reference = `ABO-${params.idStructure}-${Date.now()}`;
+
+      // Créer la requête de paiement
+      const request: CreatePaymentRequest = {
+        pAppName: 'FAYCLICK',
+        pMethode: params.methode,
+        pReference: reference,
+        pClientTel: '221000000000', // Numéro fictif pour abonnement structure
+        pMontant: params.montant,
+        pServiceName: WALLET_SERVICE_MAP[params.methode],
+        pNomClient: `Structure ${params.idStructure}`,
+        pnom_structure: `Abonnement ${params.typeAbonnement}`,
+        ref_all_facture: reference
+      };
+
+      console.log('📤 [SUBSCRIPTION-PAYMENT] Envoi requête API:', request);
+
+      const response = await fetch(`${this.API_BASE_URL}/create_payment`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(request)
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const data: CreatePaymentResponse = await response.json();
+
+      if (!data.uuid) {
+        throw new Error('UUID de paiement non reçu');
+      }
+
+      console.log('✅ [SUBSCRIPTION-PAYMENT] Paiement créé:', {
+        uuid: data.uuid,
+        reference,
+        montant: params.montant
+      });
+
+      return data;
+
+    } catch (error) {
+      console.error('❌ [SUBSCRIPTION-PAYMENT] Erreur création:', error);
+      throw error;
+    }
+  }
 }
 
 // Export singleton

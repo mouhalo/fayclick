@@ -31,6 +31,11 @@ import { StructureDetails, CompleteAuthData } from '@/types/auth';
 import LogoUpload from '@/components/ui/LogoUpload';
 import { UploadResult, UploadProgress } from '@/types/upload.types';
 import UsersManagement from '@/components/settings/UsersManagement';
+import ModalPaiementAbonnement from '@/components/subscription/ModalPaiementAbonnement';
+import SubscriptionHistory from '@/components/subscription/SubscriptionHistory';
+import CurrentSubscriptionStatus from '@/components/subscription/CurrentSubscriptionStatus';
+import subscriptionService from '@/services/subscription.service';
+import { HistoriqueAbonnement, CurrentSubscriptionState } from '@/types/subscription.types';
 
 interface StructureData {
   id_structure: number;
@@ -155,12 +160,10 @@ export default function StructureEditPage() {
     uploadProgress: 0
   });
 
-  const mockSubscriptions = [
-    { period: 'Janvier 2025', amount: 15000, status: 'Payé', date: '01/01/2025' },
-    { period: 'Décembre 2024', amount: 15000, status: 'Payé', date: '01/12/2024' },
-    { period: 'Novembre 2024', amount: 15000, status: 'Payé', date: '01/11/2024' },
-    { period: 'Octobre 2024', amount: 15000, status: 'Payé', date: '01/10/2024' }
-  ];
+  // États abonnements
+  const [showModalAbonnement, setShowModalAbonnement] = useState(false);
+  const [historiqueAbonnements, setHistoriqueAbonnements] = useState<HistoriqueAbonnement[]>([]);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
 
   useEffect(() => {
     const loadStructureData = async () => {
@@ -372,6 +375,66 @@ export default function StructureEditPage() {
 
   const showMessage = (type: 'success' | 'error' | 'warning' | 'info', message: string, title?: string) => {
     setPopMessage({ show: true, type, title, message });
+  };
+
+  // Charger l'historique des abonnements quand l'onglet est actif
+  useEffect(() => {
+    if (activeTab === 'subscription' && user?.id_structure) {
+      loadSubscriptionHistory();
+    }
+  }, [activeTab, user?.id_structure]);
+
+  // Fonction pour charger l'historique
+  const loadSubscriptionHistory = async () => {
+    if (!user?.id_structure) return;
+
+    setIsLoadingHistory(true);
+    try {
+      const response = await subscriptionService.getHistory({
+        id_structure: user.id_structure,
+        limite: 10
+      });
+
+      if (response.success && response.data) {
+        setHistoriqueAbonnements(response.data);
+      }
+    } catch (error) {
+      console.error('Erreur chargement historique:', error);
+    } finally {
+      setIsLoadingHistory(false);
+    }
+  };
+
+  // Handlers abonnement
+  const handleSubscriptionSuccess = () => {
+    showMessage('success', 'Abonnement activé avec succès !');
+    loadSubscriptionHistory();
+    // Recharger les données de la structure pour mettre à jour l'état
+    if (user?.id_structure) {
+      databaseService.getStructureDetails(user.id_structure).then((data) => {
+        if (data && data.length > 0) {
+          const structureData = data[0] as RawStructureData;
+          const mappedStructure: StructureData = {
+            id_structure: structureData.id_structure || user.id_structure,
+            nom_structure: structureData.nom_structure || '',
+            adresse: structureData.adresse || '',
+            mobile_om: structureData.mobile_om || '',
+            mobile_wave: structureData.mobile_wave || '',
+            mobile_free: structureData.mobile_free || '',
+            email: structureData.email || '',
+            logo: structureData.logo || '',
+            id_type: structureData.id_type || 1,
+            actif: structureData.actif !== false
+          };
+          setStructure(mappedStructure);
+          setOriginalStructure(mappedStructure);
+        }
+      });
+    }
+  };
+
+  const handleSubscriptionError = (message: string) => {
+    showMessage('error', message || 'Erreur lors de l\'abonnement');
   };
 
   // Fonction wrapper pour les composants enfants (utilisée par UsersManagement)
@@ -815,64 +878,59 @@ export default function StructureEditPage() {
               {/* Onglet Abonnement */}
               {activeTab === 'subscription' && (
                 <div className="space-y-6">
-                  {/* Code d'activation */}
-                  <motion.div 
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
+                  {/* Section 1: Choix formule - Bouton unique pour ouvrir le modal */}
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.1 }}
-                    className="p-6 bg-gradient-to-br from-emerald-50 to-green-50 rounded-xl border-2 border-emerald-200"
                   >
-                    <div className="flex items-center gap-3 mb-4">
-                      <Crown className="h-6 w-6 text-emerald-600" />
-                      <h3 className="font-bold text-gray-900">Activation Premium</h3>
-                    </div>
-                    <div className="flex gap-3">
-                      <input
-                        type="text"
-                        value={subscriptionCode}
-                        onChange={(e) => setSubscriptionCode(e.target.value)}
-                        className="flex-1 px-4 py-3 rounded-xl border-2 border-emerald-200 bg-white focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
-                        placeholder="Saisir le code d'activation"
-                      />
-                      <button className="px-6 py-3 bg-gradient-to-r from-emerald-500 to-green-600 text-white rounded-xl hover:from-emerald-600 hover:to-green-700 transition-all font-medium shadow-lg hover:shadow-xl">
-                        Activer
-                      </button>
-                    </div>
+                    <button
+                      onClick={() => setShowModalAbonnement(true)}
+                      className="w-full p-6 bg-gradient-to-br from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white rounded-xl shadow-lg hover:shadow-xl transition-all group"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                          <div className="w-14 h-14 bg-white/20 rounded-xl flex items-center justify-center">
+                            <Crown className="w-7 h-7 text-white" />
+                          </div>
+                          <div className="text-left">
+                            <h3 className="text-xl font-bold mb-1">Souscrire un abonnement</h3>
+                            <p className="text-sm text-emerald-50">
+                              Choisissez entre MENSUEL et ANNUEL
+                            </p>
+                          </div>
+                        </div>
+                        <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center group-hover:bg-white/30 transition-colors">
+                          <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                          </svg>
+                        </div>
+                      </div>
+                    </button>
                   </motion.div>
 
-                  {/* Historique abonnements */}
-                  <div>
-                    <h3 className="font-bold text-gray-900 mb-4">Historique des paiements</h3>
-                    <div className="space-y-3">
-                      {mockSubscriptions.map((sub, index) => (
-                        <motion.div 
-                          key={index}
-                          initial={{ opacity: 0, x: -20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: 0.2 + index * 0.1 }}
-                          className="p-4 bg-white rounded-xl border border-gray-200 hover:border-green-300 transition-all"
-                        >
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-4">
-                              <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                                <Check className="h-5 w-5 text-green-600" />
-                              </div>
-                              <div>
-                                <p className="font-semibold text-gray-900">{sub.period}</p>
-                                <p className="text-sm text-gray-500">{sub.date}</p>
-                              </div>
-                            </div>
-                            <div className="text-right">
-                              <p className="font-bold text-gray-900">{sub.amount.toLocaleString()} FCFA</p>
-                              <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-700">
-                                {sub.status}
-                              </span>
-                            </div>
-                          </div>
-                        </motion.div>
-                      ))}
-                    </div>
-                  </div>
+                  {/* Section 2: État actuel abonnement */}
+                  {user && (
+                    <CurrentSubscriptionStatus
+                      subscription={{
+                        etat_abonnement: (user as any).etat_abonnement || 'EXPIRE',
+                        date_limite_abonnement: (user as any).date_limite_abonnement || '',
+                        type_abonnement: (user as any).type_abonnement || null
+                      } as CurrentSubscriptionState}
+                    />
+                  )}
+
+                  {/* Section 3: Historique */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.3 }}
+                  >
+                    <SubscriptionHistory
+                      historique={historiqueAbonnements}
+                      isLoading={isLoadingHistory}
+                    />
+                  </motion.div>
                 </div>
               )}
             </div>
@@ -922,6 +980,17 @@ export default function StructureEditPage() {
           message={popMessage.message}
           onClose={() => setPopMessage({ ...popMessage, show: false })}
         />
+
+        {/* Modal Paiement Abonnement */}
+        {user && (
+          <ModalPaiementAbonnement
+            isOpen={showModalAbonnement}
+            onClose={() => setShowModalAbonnement(false)}
+            idStructure={user.id_structure}
+            onSuccess={handleSubscriptionSuccess}
+            onError={handleSubscriptionError}
+          />
+        )}
       </div>
     </div>
   );
