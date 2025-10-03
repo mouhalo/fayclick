@@ -18,6 +18,7 @@ export default function ConditionalAuthProvider({ children }: ConditionalAuthPro
   // Pages publiques qui n'ont pas besoin d'authentification
   const publicPages = [
     '/facture',
+    '/catalogue',
     '/fay', // Si on utilise aussi ce pattern
   ];
 

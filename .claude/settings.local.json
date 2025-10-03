@@ -14,7 +14,13 @@
       "Bash(gh pr create:*)",
       "Bash(npx next lint:*)",
       "Bash(git branch:*)",
-      "Bash(set NODE_TLS_REJECT_UNAUTHORIZED=0)"
+      "Bash(set NODE_TLS_REJECT_UNAUTHORIZED=0)",
+      "Bash(npm run lint:*)",
+      "Bash(npm install:*)",
+      "Bash(git reset:*)",
+      "Bash(cat:*)",
+      "Bash(tee:*)",
+      "Bash(xargs cat:*)"
     ],
     "deny": [],
     "ask": []

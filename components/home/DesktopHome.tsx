@@ -5,8 +5,12 @@ import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ReactElement } from 'react';
 import { GlassCard } from '@/components/ui/GlassCard';
+import { LanguageSwitcher } from '@/components/LanguageSwitcher';
+import { useTranslations } from '@/hooks/useTranslations';
+import { VersionLabel } from '@/components/ui/VersionLabel';
 
 export default function DesktopHome() {
+  const t = useTranslations('landing');
   const [particles, setParticles] = useState<ReactElement[]>([]);
   const [currentSlide, setCurrentSlide] = useState(0);
 
@@ -16,6 +20,14 @@ export default function DesktopHome() {
     '/images/accueil2.png',
     '/images/accueil3.png',
     '/images/accueil4.png',
+  ];
+
+  // Textes des slides
+  const slideTexts = [
+    t('desktop.slides.dashboard'),
+    t('desktop.slides.inventory'),
+    t('desktop.slides.payments'),
+    t('desktop.slides.reports')
   ];
 
   useEffect(() => {
@@ -64,8 +76,10 @@ export default function DesktopHome() {
         <GlassCard className="rounded-none border-x-0 border-t-0 border-b border-white/30">
           <div className="container mx-auto px-6 py-4">
             <div className="flex items-center justify-between">
-              {/* Logo gauche (vide pour centrer le logo principal) */}
-              <div className="w-32"></div>
+              {/* Logo gauche avec LanguageSwitcher */}
+              <div className="w-32">
+                <LanguageSwitcher variant="compact" />
+              </div>
 
               {/* Logo animé au centre */}
               <motion.div
@@ -99,12 +113,12 @@ export default function DesktopHome() {
                 transition={{ delay: 0.5, duration: 0.8 }}
               >
                 <Link href="/login">
-                  <GlassCard 
-                    variant="interactive" 
+                  <GlassCard
+                    variant="interactive"
                     animation="shine"
                     className="px-8 py-3 text-emerald-600 font-semibold shadow-lg hover:shadow-xl transform transition-all hover:scale-105"
                   >
-                    Se Connecter
+                    {t('desktop.login')}
                   </GlassCard>
                 </Link>
               </motion.div>
@@ -123,11 +137,10 @@ export default function DesktopHome() {
             className="text-center mb-12"
           >
             <h2 className="text-5xl font-bold text-white mb-4">
-              La Super App du Commerce Digital
+              {t('desktop.title')}
             </h2>
             <p className="text-xl text-white/90 max-w-3xl mx-auto">
-              Gérez votre business, acceptez les paiements Orange Money et Wave, 
-              et développez votre activité avec la première Super App du Sénégal
+              {t('desktop.subtitle')}
             </p>
           </motion.div>
 
@@ -156,10 +169,7 @@ export default function DesktopHome() {
                         Slide {currentSlide + 1}
                       </h3>
                       <p className="text-xl opacity-90">
-                        {currentSlide === 0 && "Tableau de bord intuitif"}
-                        {currentSlide === 1 && "Gestion des stocks simplifiée"}
-                        {currentSlide === 2 && "Paiements instantanés"}
-                        {currentSlide === 3 && "Rapports détaillés"}
+                        {slideTexts[currentSlide]}
                       </p>
                     </div>
                   </div>
@@ -226,7 +236,7 @@ export default function DesktopHome() {
                     whileHover={{ x: "100%" }}
                     transition={{ duration: 0.6 }}
                   />
-                  <span className="relative z-10">Commencer Gratuitement →</span>
+                  <span className="relative z-10">{t('desktop.ctaButton')} →</span>
                 </motion.div>
               </Link>
             </motion.div>
@@ -240,10 +250,10 @@ export default function DesktopHome() {
           <div className="container mx-auto px-6 py-8">
             <div className="text-center text-white">
               <p className="mb-2">
-                © 2025 FayClick - Tous droits réservés
+                {t('desktop.footer.copyright')}
               </p>
-              <p className="text-sm opacity-80">
-                Développé par{" "}
+              <p className="text-sm opacity-80 mb-3">
+                {t('desktop.footer.developedBy')}{" "}
                 <a
                   href="https://icelabsoft.com"
                   target="_blank"
@@ -253,6 +263,10 @@ export default function DesktopHome() {
                   IcelabSoft
                 </a>
               </p>
+              {/* Label de version */}
+              <div className="flex justify-center">
+                <VersionLabel variant="desktop" />
+              </div>
             </div>
           </div>
         </GlassCard>

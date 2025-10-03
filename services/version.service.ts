@@ -221,34 +221,13 @@ class VersionService {
 
   /**
    * Récupère les informations de version depuis le réseau
+   * 🚫 DÉSACTIVÉ - Gestion locale uniquement via localStorage
    */
   private async fetchRemoteVersion(): Promise<RemoteVersionInfo | null> {
-    try {
-      // Construire l'URL de vérification des versions
-      const versionCheckUrl = this.buildVersionCheckUrl();
-
-      const response = await fetch(versionCheckUrl, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Current-Version': this.currentVersion,
-          'X-App-Name': 'fayclick'
-        },
-        cache: 'no-cache'
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-
-      const remoteVersionInfo: RemoteVersionInfo = await response.json();
-      console.log('📋 Remote version info fetched:', remoteVersionInfo);
-
-      return remoteVersionInfo;
-    } catch (error) {
-      console.warn('⚠️ Network version check failed:', error);
-      throw error;
-    }
+    console.log('ℹ️ Network version check disabled - using localStorage only');
+    // Retourner null pour éviter les appels réseau inutiles
+    // La gestion des versions se fait uniquement via localStorage
+    return null;
   }
 
   /**
@@ -329,15 +308,12 @@ class VersionService {
 
   /**
    * Initialise la vérification des versions au démarrage
+   * 🚫 DÉSACTIVÉ - Pas de vérification automatique au démarrage
    */
   private initializeVersionCheck(): void {
-    // Vérifier au démarrage si nous sommes dans le navigateur
-    if (typeof window !== 'undefined') {
-      // Démarrer les vérifications périodiques après un délai
-      setTimeout(() => {
-        this.startPeriodicCheck();
-      }, 10000); // Attendre 10 secondes après le démarrage
-    }
+    console.log('ℹ️ Auto version check disabled at startup');
+    // Pas de vérification automatique pour éviter les appels API inutiles
+    // Les versions sont gérées manuellement via localStorage
   }
 
   /**

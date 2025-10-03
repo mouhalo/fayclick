@@ -1,28 +1,31 @@
 /**
  * Modal Panier - Interface complète de gestion du panier
- * Sections: Articles, Client, Remise/Acompte, Validation
+ * Sections: Articles, Client, Remise, Validation
  * Intégration avec facture.service.ts
+ * Note: Acompte = 0 par défaut pour nouvelle vente
  */
 
 'use client';
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  X, ShoppingCart, Trash2, Plus, Minus, 
-  ChevronDown, ChevronUp, Calculator, CreditCard 
+import {
+  X, ShoppingCart, Trash2, Plus, Minus,
+  ChevronDown, ChevronUp, Calculator, CreditCard, User, Edit3, XCircle
 } from 'lucide-react';
 import { usePanierStore } from '@/stores/panierStore';
 import { factureService } from '@/services/facture.service';
 import { useToast } from '@/components/ui/Toast';
 import { useFactureSuccessStore } from '@/hooks/useFactureSuccess';
+import { ModalRechercheClient } from './ModalRechercheClient';
+import { Client } from '@/types/client';
 
 export function ModalPanier() {
   const {
-    articles, infosClient, remise, acompte,
+    articles, infosClient, remise,
     isModalOpen, setModalOpen,
     updateQuantity, removeArticle, clearPanier,
-    updateInfosClient, updateRemise, updateAcompte,
+    updateInfosClient, updateRemise,
     getMontantsFacture
   } = usePanierStore();
 
@@ -30,6 +33,7 @@ export function ModalPanier() {
   const [isClientSectionOpen, setIsClientSectionOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { openModal: openFactureSuccess } = useFactureSuccessStore();
+  const [isModalRechercheOpen, setIsModalRechercheOpen] = useState(false);
 
   const montants = getMontantsFacture();
 
@@ -48,6 +52,32 @@ export function ModalPanier() {
     showToast('info', 'Article supprimé', 'L\'article a été retiré du panier');
   };
 
+  const handleSelectClient = (client: Partial<Client> & { nom_client: string; tel_client: string }) => {
+    console.log('[PANIER] Client selectionne:', client);
+
+    updateInfosClient({
+      id_client: client.id_client,
+      nom_client_payeur: client.nom_client,
+      tel_client: client.tel_client
+    });
+
+    showToast('success', 'Client selectionne', `${client.nom_client} - ${client.tel_client}`);
+  };
+
+  const handleAnnulerPanier = () => {
+    if (articles.length === 0) {
+      showToast('info', 'Panier vide', 'Le panier est deja vide');
+      return;
+    }
+
+    // Confirmation avant de vider
+    if (window.confirm(`Voulez-vous vraiment vider le panier ?\n${articles.length} article(s) seront supprimes.`)) {
+      clearPanier();
+      showToast('success', 'Panier vide', 'Tous les articles ont ete supprimes');
+      setModalOpen(false);
+    }
+  };
+
   const handleCommander = async () => {
     try {
       setIsLoading(true);
@@ -58,22 +88,22 @@ export function ModalPanier() {
         return;
       }
 
-      // Création de la facture
+      // Création de la facture (acompte = 0 par défaut pour nouvelle vente)
       const result = await factureService.createFacture(
         articles,
         infosClient,
-        { remise, acompte },
+        { remise, acompte: 0 },
         false // avec_frais
       );
 
       if (result.success) {
         // Succès - ouvrir le modal de succès via le store global
         console.log('✅ Facture créée avec succès, ID:', result.id_facture);
-        
+
         // Fermer le modal panier et vider
         clearPanier();
         setModalOpen(false);
-        
+
         // Ouvrir le modal de succès après un court délai
         setTimeout(() => {
           openFactureSuccess(result.id_facture);
@@ -205,17 +235,45 @@ export function ModalPanier() {
                   <button
                     onClick={() => setIsClientSectionOpen(!isClientSectionOpen)}
                     className="
-                      w-full flex items-center justify-between p-4 
+                      w-full flex items-center justify-between p-4
                       bg-gray-50 rounded-xl border border-gray-200/50
                       hover:bg-gray-100 transition-colors
                     "
                   >
-                    <span className="font-semibold text-gray-900">Informations client</span>
-                    {isClientSectionOpen ? (
-                      <ChevronUp className="w-5 h-5 text-gray-500" />
-                    ) : (
-                      <ChevronDown className="w-5 h-5 text-gray-500" />
-                    )}
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center">
+                        <User className="w-5 h-5 text-white" />
+                      </div>
+                      <div className="text-left">
+                        <span className="font-semibold text-gray-900 block">
+                          {infosClient.nom_client_payeur || 'CLIENT ANONYME'}
+                        </span>
+                        {infosClient.tel_client && (
+                          <span className="text-xs text-gray-500">
+                            {infosClient.tel_client}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setIsModalRechercheOpen(true);
+                        }}
+                        className="
+                          w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center
+                          hover:bg-blue-200 transition-colors
+                        "
+                      >
+                        <Edit3 className="w-4 h-4 text-blue-600" />
+                      </button>
+                      {isClientSectionOpen ? (
+                        <ChevronUp className="w-5 h-5 text-gray-500" />
+                      ) : (
+                        <ChevronDown className="w-5 h-5 text-gray-500" />
+                      )}
+                    </div>
                   </button>
 
                   <AnimatePresence>
@@ -227,38 +285,6 @@ export function ModalPanier() {
                         className="overflow-hidden"
                       >
                         <div className="pt-4 space-y-4">
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Nom du client
-                            </label>
-                            <input
-                              type="text"
-                              value={infosClient.nom_client_payeur || 'CLIENT_ANONYME'}
-                              onChange={(e) => updateInfosClient({ nom_client_payeur: e.target.value })}
-                              placeholder="CLIENT_ANONYME"
-                              className="
-                                w-full px-4 py-3 rounded-xl border border-gray-300
-                                focus:ring-2 focus:ring-blue-500 focus:border-transparent
-                                transition-all
-                              "
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Téléphone
-                            </label>
-                            <input
-                              type="tel"
-                              value={infosClient.tel_client || '771234567'}
-                              onChange={(e) => updateInfosClient({ tel_client: e.target.value })}
-                              placeholder="771234567"
-                              className="
-                                w-full px-4 py-3 rounded-xl border border-gray-300
-                                focus:ring-2 focus:ring-blue-500 focus:border-transparent
-                                transition-all
-                              "
-                            />
-                          </div>
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">
                               Description (optionnelle)
@@ -281,7 +307,7 @@ export function ModalPanier() {
                   </AnimatePresence>
                 </div>
 
-                {/* Section Remise et Acompte */}
+                {/* Section Remise uniquement */}
                 <div className="px-6 pb-6">
                   <div className="bg-gray-50 rounded-xl p-4 space-y-4">
                     <div className="flex items-center gap-2 mb-3">
@@ -289,41 +315,22 @@ export function ModalPanier() {
                       <span className="font-semibold text-gray-900">Calculs</span>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Remise (FCFA)
-                        </label>
-                        <input
-                          type="number"
-                          value={remise}
-                          onChange={(e) => updateRemise(Number(e.target.value))}
-                          min="0"
-                          max={montants.sous_total}
-                          className="
-                            w-full px-3 py-2 rounded-lg border border-gray-300
-                            focus:ring-2 focus:ring-blue-500 focus:border-transparent
-                            text-sm
-                          "
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Acompte (FCFA)
-                        </label>
-                        <input
-                          type="number"
-                          value={acompte}
-                          onChange={(e) => updateAcompte(Number(e.target.value))}
-                          min="0"
-                          max={montants.montant_net}
-                          className="
-                            w-full px-3 py-2 rounded-lg border border-gray-300
-                            focus:ring-2 focus:ring-blue-500 focus:border-transparent
-                            text-sm
-                          "
-                        />
-                      </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Remise (FCFA)
+                      </label>
+                      <input
+                        type="number"
+                        value={remise}
+                        onChange={(e) => updateRemise(Number(e.target.value))}
+                        min="0"
+                        max={montants.sous_total}
+                        className="
+                          w-full px-3 py-2 rounded-lg border border-gray-300
+                          focus:ring-2 focus:ring-blue-500 focus:border-transparent
+                          text-sm
+                        "
+                      />
                     </div>
 
                     {/* Récapitulatif des montants */}
@@ -342,32 +349,37 @@ export function ModalPanier() {
                         <span>Total:</span>
                         <span>{montants.montant_net.toLocaleString('fr-FR')} FCFA</span>
                       </div>
-                      {montants.acompte > 0 && (
-                        <div className="flex justify-between text-sm text-blue-600">
-                          <span>Acompte:</span>
-                          <span>-{montants.acompte.toLocaleString('fr-FR')} FCFA</span>
-                        </div>
-                      )}
-                      {montants.reste_a_payer !== montants.montant_net && (
-                        <div className="flex justify-between font-semibold text-orange-600">
-                          <span>Reste à payer:</span>
-                          <span>{montants.reste_a_payer.toLocaleString('fr-FR')} FCFA</span>
-                        </div>
-                      )}
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Footer - Bouton Commander */}
-              <div className="p-6 border-t border-gray-200/50">
+              {/* Footer - Boutons Annuler / Commander */}
+              <div className="p-6 border-t border-gray-200/50 grid grid-cols-2 gap-3">
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={handleAnnulerPanier}
+                  disabled={isLoading || articles.length === 0}
+                  className="
+                    bg-gradient-to-r from-red-500 to-red-600
+                    text-white font-semibold py-4 rounded-xl
+                    shadow-lg hover:shadow-xl transition-all
+                    disabled:opacity-50 disabled:cursor-not-allowed
+                    flex items-center justify-center gap-2
+                  "
+                >
+                  <XCircle className="w-5 h-5" />
+                  Annuler
+                </motion.button>
+
                 <motion.button
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={handleCommander}
                   disabled={isLoading || articles.length === 0}
                   className="
-                    w-full bg-gradient-to-r from-blue-600 to-blue-700
+                    bg-gradient-to-r from-blue-600 to-blue-700
                     text-white font-semibold py-4 rounded-xl
                     shadow-lg hover:shadow-xl transition-all
                     disabled:opacity-50 disabled:cursor-not-allowed
@@ -382,7 +394,7 @@ export function ModalPanier() {
                   ) : (
                     <>
                       <CreditCard className="w-5 h-5" />
-                      Créer - {montants.montant_net.toLocaleString('fr-FR')} FCFA
+                      Commander
                     </>
                   )}
                 </motion.button>
@@ -392,6 +404,14 @@ export function ModalPanier() {
         )}
       </AnimatePresence>
 
+      {/* Modal de Recherche Client */}
+      <ModalRechercheClient
+        isOpen={isModalRechercheOpen}
+        onClose={() => setIsModalRechercheOpen(false)}
+        onSelectClient={handleSelectClient}
+        initialPhone={infosClient.tel_client || ''}
+        initialName={infosClient.nom_client_payeur || ''}
+      />
     </>
   );
 }

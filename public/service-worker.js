@@ -1,13 +1,14 @@
 // Service Worker FayClick V2 - PWA Complète
-// Version: 2.0.0
+// Version: 2.5.0 - 2025-10-03 - Cache busting agressif sur logout
+// Build: 2025-10-03T08:56:13.880Z - Force upload fix for ftp-deploy size comparison bug
 
-const CACHE_NAME = 'fayclick-v2-cache-v1';
-const DYNAMIC_CACHE_NAME = 'fayclick-v2-dynamic-v1';
+const CACHE_NAME = 'fayclick-v2-cache-v2.5-20251003';
+const DYNAMIC_CACHE_NAME = 'fayclick-v2-dynamic-v2.5-20251003';
 const OFFLINE_PAGE_URL = '/offline';
 
 // Assets essentiels à mettre en cache lors de l'installation
+// Note: On ne met pas '/' car il sera caché dynamiquement (évite erreurs lors de l'install)
 const STATIC_ASSETS = [
-  '/',
   '/offline',
   '/manifest.json',
   '/favicon.ico',
@@ -27,22 +28,50 @@ const PUBLIC_ROUTES = [
 
 // Patterns des assets statiques
 const STATIC_PATTERNS = [
-  /\.(css|js|woff2?|ttf|eot|svg|png|jpg|jpeg|gif|ico)$/,
+  /\.(css|woff2?|ttf|eot|svg|png|jpg|jpeg|gif|ico)$/,
   /_next\/(static|image)/,
+];
+
+// Patterns des fichiers JS critiques qui doivent TOUJOURS être rechargés du réseau
+// Ces fichiers contiennent la logique d'authentification et de routing
+const CRITICAL_JS_PATTERNS = [
+  /\/app\/layout-.*\.js$/,  // Fichier contenant AuthContext
+  /\/chunks\/app\/.*\.js$/,  // Tous les chunks de l'app
 ];
 
 // Installation du Service Worker
 self.addEventListener('install', (event) => {
-  console.log('[Service Worker] Installation...');
+  console.log('[Service Worker] Installation v2.5.0...');
 
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
+    // D'abord, supprimer TOUS les anciens caches
+    caches.keys().then(cacheNames => {
+      console.log('[Service Worker] Suppression de TOUS les caches existants');
+      return Promise.all(
+        cacheNames.map(cacheName => {
+          console.log(`[Service Worker] 🗑️ Suppression cache: ${cacheName}`);
+          return caches.delete(cacheName);
+        })
+      );
+    }).then(() => {
+      // Ensuite, créer le nouveau cache
+      return caches.open(CACHE_NAME);
+    }).then(async (cache) => {
       console.log('[Service Worker] Mise en cache des assets essentiels');
-      return cache.addAll(STATIC_ASSETS).catch((error) => {
-        console.error('[Service Worker] Erreur lors de la mise en cache:', error);
-        // Continue même si certains assets échouent
-        return Promise.resolve();
+
+      // Cacher chaque asset individuellement pour éviter que l'échec d'un seul bloque tout
+      const cachePromises = STATIC_ASSETS.map(async (url) => {
+        try {
+          await cache.add(url);
+          console.log(`[Service Worker] ✓ Cached: ${url}`);
+        } catch (error) {
+          console.warn(`[Service Worker] ✗ Failed to cache ${url}:`, error.message);
+          // Continue même si cet asset échoue
+        }
       });
+
+      await Promise.allSettled(cachePromises);
+      console.log('[Service Worker] Installation v2.5.0 terminée');
     })
   );
 
@@ -65,6 +94,17 @@ self.addEventListener('activate', (event) => {
           }
         })
       );
+    }).then(() => {
+      // Informer tous les clients qu'une nouvelle version est activée
+      return self.clients.matchAll().then(clients => {
+        clients.forEach(client => {
+          client.postMessage({
+            type: 'SW_UPDATED',
+            version: '2.5.0',
+            message: 'Service Worker mis à jour, rechargement recommandé'
+          });
+        });
+      });
     })
   );
 
@@ -75,10 +115,24 @@ self.addEventListener('activate', (event) => {
 // Stratégie de cache pour les requêtes
 self.addEventListener('fetch', (event) => {
   const { request } = event;
-  const url = new URL(request.url);
+
+  // Protection: Ignorer si request.url n'est pas défini (crash mobile)
+  if (!request || !request.url) {
+    console.warn('[Service Worker] Request invalide ignoré');
+    return;
+  }
 
   // Ignorer les requêtes non-HTTP(S)
   if (!request.url.startsWith('http')) {
+    return;
+  }
+
+  // Protection: Ignorer les requêtes avec URL invalide
+  let url;
+  try {
+    url = new URL(request.url);
+  } catch (error) {
+    console.warn('[Service Worker] URL invalide:', request.url);
     return;
   }
 
@@ -91,10 +145,19 @@ self.addEventListener('fetch', (event) => {
   // Vérifier si c'est une route publique
   const isPublicRoute = PUBLIC_ROUTES.some(pattern => pattern.test(url.pathname));
 
+  // Vérifier si c'est un fichier JS critique (toujours network-first)
+  const isCriticalJS = CRITICAL_JS_PATTERNS.some(pattern => pattern.test(url.pathname));
+
+  if (isCriticalJS) {
+    console.log('[Service Worker] Fichier JS critique détecté, Network-First:', url.pathname);
+    event.respondWith(networkFirst(request, false)); // false = ne pas mettre en cache
+    return;
+  }
+
   // Vérifier si c'est un asset statique
   const isStaticAsset = STATIC_PATTERNS.some(pattern => pattern.test(url.pathname));
 
-  // Stratégie Cache-First pour les assets statiques
+  // Stratégie Cache-First pour les assets statiques (CSS, images, fonts)
   if (isStaticAsset) {
     event.respondWith(cacheFirst(request));
     return;
@@ -125,17 +188,24 @@ self.addEventListener('fetch', (event) => {
 
 // Stratégie Cache-First
 async function cacheFirst(request) {
-  const cachedResponse = await caches.match(request);
-  if (cachedResponse) {
-    return cachedResponse;
-  }
-
   try {
+    const cachedResponse = await caches.match(request);
+    if (cachedResponse) {
+      return cachedResponse;
+    }
+
     const networkResponse = await fetch(request);
     // Ne cacher que les requêtes GET réussies (POST/PUT/DELETE ne peuvent pas être cachés)
     if (networkResponse.ok && request.method === 'GET') {
-      const cache = await caches.open(DYNAMIC_CACHE_NAME);
-      cache.put(request, networkResponse.clone());
+      try {
+        const cache = await caches.open(DYNAMIC_CACHE_NAME);
+        // Protection: Vérifier que la réponse peut être clonée (crash mobile)
+        const responseToCache = networkResponse.clone();
+        await cache.put(request, responseToCache);
+      } catch (cacheError) {
+        console.warn('[Service Worker] Erreur mise en cache:', cacheError.message);
+        // Continue même si la mise en cache échoue
+      }
     }
     return networkResponse;
   } catch (error) {
@@ -145,19 +215,34 @@ async function cacheFirst(request) {
 }
 
 // Stratégie Network-First
-async function networkFirst(request) {
+async function networkFirst(request, shouldCache = true) {
   try {
     const networkResponse = await fetch(request);
     // Ne cacher que les requêtes GET réussies (POST/PUT/DELETE ne peuvent pas être cachés)
-    if (networkResponse.ok && request.method === 'GET') {
-      const cache = await caches.open(DYNAMIC_CACHE_NAME);
-      cache.put(request, networkResponse.clone());
+    // ET seulement si shouldCache est true
+    if (shouldCache && networkResponse.ok && request.method === 'GET') {
+      try {
+        const cache = await caches.open(DYNAMIC_CACHE_NAME);
+        // Protection: Vérifier que la réponse peut être clonée (crash mobile)
+        const responseToCache = networkResponse.clone();
+        await cache.put(request, responseToCache);
+      } catch (cacheError) {
+        console.warn('[Service Worker] Erreur mise en cache:', cacheError.message);
+        // Continue même si la mise en cache échoue
+      }
     }
     return networkResponse;
   } catch (error) {
-    const cachedResponse = await caches.match(request);
-    if (cachedResponse) {
-      return cachedResponse;
+    // Seulement essayer le cache si shouldCache est true
+    if (shouldCache) {
+      try {
+        const cachedResponse = await caches.match(request);
+        if (cachedResponse) {
+          return cachedResponse;
+        }
+      } catch (cacheMatchError) {
+        console.warn('[Service Worker] Erreur lecture cache:', cacheMatchError.message);
+      }
     }
     throw error;
   }

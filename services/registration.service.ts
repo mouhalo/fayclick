@@ -28,11 +28,11 @@ export class RegistrationService {
   async getStructureTypes(): Promise<StructureType[]> {
     try {
       console.log('📋 [REGISTRATION] Récupération types de structure');
-      
+
       const results = await DatabaseService.query(
         'SELECT id_type, nom_type FROM type_structure WHERE id_type != 0 ORDER BY nom_type'
       );
-      
+
       if (!results || results.length === 0) {
         throw new ApiException('Aucun type de structure trouvé', 404);
       }
@@ -47,8 +47,38 @@ export class RegistrationService {
 
     } catch (error) {
       console.error('❌ [REGISTRATION] Erreur récupération types structure:', error);
-      throw error instanceof ApiException ? error : 
+      throw error instanceof ApiException ? error :
         new ApiException('Impossible de récupérer les types de structure', 500);
+    }
+  }
+
+  /**
+   * Vérifie si un nom de structure existe déjà dans la base de données
+   * @param nom_structure - Nom de la structure à vérifier
+   * @returns true si le nom existe déjà, false sinon
+   */
+  async checkStructureNameExists(nom_structure: string): Promise<boolean> {
+    try {
+      // Échapper les quotes et mettre en majuscules (comme lors de l'insertion)
+      const escapedName = nom_structure.toUpperCase().trim().replace(/'/g, "''");
+
+      const query = `SELECT 1 FROM structures WHERE UPPER(nom_structure) = '${escapedName}' LIMIT 1;`;
+
+      console.log('🔍 [REGISTRATION] Vérification nom structure:', nom_structure);
+
+      const result = await DatabaseService.query(query);
+
+      // Si on a un résultat, le nom existe déjà
+      const exists = Array.isArray(result) && result.length > 0;
+
+      console.log(exists ? '⚠️ [REGISTRATION] Nom de structure déjà pris' : '✅ [REGISTRATION] Nom de structure disponible');
+
+      return exists;
+    } catch (error) {
+      SecurityService.secureLog('error', 'Erreur vérification nom structure', error);
+      // En cas d'erreur, on considère que le nom n'est pas pris
+      // pour ne pas bloquer l'utilisateur
+      return false;
     }
   }
 
@@ -63,9 +93,9 @@ export class RegistrationService {
       errors.push('Type de structure requis');
     }
 
-    // Validation nom structure (obligatoire, min 2 caractères)
-    if (!data.p_nom_structure || data.p_nom_structure.trim().length < 2) {
-      errors.push('Nom de structure requis (minimum 2 caractères)');
+    // Validation nom structure (obligatoire, min 5 caractères)
+    if (!data.p_nom_structure || data.p_nom_structure.trim().length < 5) {
+      errors.push('Nom de structure requis (minimum 5 caractères)');
     }
 
     // Validation adresse (obligatoire, max 255 caractères)

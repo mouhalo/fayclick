@@ -280,16 +280,18 @@ ${colors.green}✨ Développé avec expertise pour FayClick V2${colors.reset}
   }
 
   // Configuration FTP optimisée pour Next.js
+  // ⚠️  Utilise FTP_* (userv2) pour déploiement du SITE sur v2.fayclick.net
+  // ⚠️  Les uploads photos/logos utilisent FTP_UPLOAD_* (uploadv2) sur fayclick.net
   getFtpConfig() {
     const outDir = join(__dirname, 'out');
-    
+
     return {
-      user: process.env.FTP_USER,
-      password: process.env.FTP_PASSWORD,
-      host: process.env.FTP_HOST,
+      user: process.env.FTP_USER,           // userv2@fayclick.net
+      password: process.env.FTP_PASSWORD,   // Password déploiement site
+      host: process.env.FTP_HOST,           // node260-eu.n0c.com
       port: parseInt(process.env.FTP_PORT) || 21,
       localRoot: outDir,
-      remoteRoot: process.env.FTP_PATH || '/public_html/',
+      remoteRoot: process.env.FTP_SITE_PATH || '/',  // v2.fayclick.net root
       include: ['*', '**/*'],
       
       // Optimisations spécifiques Next.js

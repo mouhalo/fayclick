@@ -1,0 +1,147 @@
+{
+  "common": {
+    "back": "Retour",
+    "next": "Suivant",
+    "previous": "Précédent",
+    "loading": "Chargement...",
+    "submit": "Soumettre",
+    "cancel": "Annuler",
+    "save": "Enregistrer",
+    "edit": "Modifier",
+    "delete": "Supprimer",
+    "required": "Requis",
+    "optional": "Optionnel"
+  },
+  "register": {
+    "title": "Inscription Marchand",
+    "subtitle": "Créez votre structure",
+    "step": "Étape {current}/{total}",
+    "step1": {
+      "title": "Bienvenue sur FayClick !",
+      "subtitle": "Commençons par le nom de votre structure. Choisissez un nom unique et mémorable.",
+      "businessNameLabel": "Nom de votre structure",
+      "businessNamePlaceholder": "NOM DE VOTRE COMMERCE",
+      "available": "Disponible ✓",
+      "checking": "Vérification...",
+      "alreadyTaken": "Ce nom de structure est déjà pris",
+      "tooShort": "Minimum {min} caractères",
+      "tooLong": "Maximum {max} caractères",
+      "characterCount": "Entre {min} et {max} caractères",
+      "benefits": {
+        "free": "Inscription gratuite",
+        "instant": "Paiement instantané",
+        "secure": "Sécurisé et fiable",
+        "qrcode": "QR Code personnel"
+      }
+    },
+    "step2": {
+      "title": "Configuration",
+      "subtitle": "Informations sur votre structure et contact",
+      "structureType": "Type de structure",
+      "structureTypePlaceholder": "Sélectionnez un type de structure",
+      "serviceType": "Type de service",
+      "contact": "Contact",
+      "phoneOM": "Téléphone Orange Money",
+      "phoneOMPlaceholder": "77 123 45 67",
+      "phoneWave": "Téléphone Wave",
+      "phoneWavePlaceholder": "70 XXX XX XX",
+      "address": "Adresse complète",
+      "addressPlaceholder": "Adresse complète de votre structure",
+      "logo": "Logo"
+    },
+    "step3": {
+      "title": "Récapitulatif",
+      "subtitle": "Vérifiez vos informations avant de créer votre structure",
+      "structure": "Structure",
+      "contact": "Contact",
+      "orangeMoney": "Orange Money",
+      "wave": "Wave",
+      "logo": "Logo",
+      "terms": "J'accepte les {termsLink} et les {privacyLink} de FayClick.",
+      "termsLink": "conditions générales d'utilisation",
+      "privacyLink": "termes de service",
+      "createButton": "Créer ma structure",
+      "creating": "Création..."
+    },
+    "errors": {
+      "businessNameRequired": "Nom du business requis (minimum {min} caractères)",
+      "businessNameTaken": "Ce nom de structure est déjà pris",
+      "structureTypeRequired": "Veuillez sélectionner un type de structure",
+      "phoneOMInvalid": "Téléphone Orange Money invalide (9 chiffres, préfixes: 77, 78, 70, 76, 75)",
+      "addressRequired": "Adresse requise",
+      "addressTooLong": "Adresse trop longue (maximum {max} caractères)",
+      "termsRequired": "Veuillez accepter les conditions générales",
+      "loadingTypes": "Impossible de charger les types de structure"
+    }
+  },
+  "landing": {
+    "desktop": {
+      "login": "Se Connecter",
+      "title": "La Super App du Commerce Digital",
+      "subtitle": "Gérez votre business, acceptez les paiements Orange Money et Wave, et développez votre activité avec la première Super App du Sénégal",
+      "ctaButton": "Commencer Gratuitement",
+      "slides": {
+        "dashboard": "Tableau de bord intuitif",
+        "inventory": "Gestion des stocks simplifiée",
+        "payments": "Paiements instantanés",
+        "reports": "Rapports détaillés"
+      },
+      "footer": {
+        "copyright": "© 2025 FayClick - Tous droits réservés",
+        "developedBy": "Développé par"
+      }
+    },
+    "mobile": {
+      "title": "FayClick",
+      "subtitle": "Commerce Digital Sénégal",
+      "tagline": "Révolutionnez votre business avec une plateforme tout-en-un",
+      "taglineHighlight": "ultra-moderne",
+      "createAccount": "Créer un Compte",
+      "login": "Se Connecter",
+      "features": {
+        "mobilePayments": "Mobile\nPayments",
+        "analytics": "Analytics\nPro",
+        "qrcode": "QR Code\nInstant"
+      },
+      "footer": "© 2025 Développé par"
+    },
+    "hero": {
+      "title": "La Super App des Marchands Sénégalais",
+      "subtitle": "Gérez votre business, recevez des paiements et développez votre activité avec FayClick",
+      "ctaRegister": "Créer mon compte",
+      "ctaLogin": "Se connecter"
+    },
+    "features": {
+      "title": "Tout ce dont vous avez besoin",
+      "subtitle": "Une solution complète pour gérer votre activité",
+      "payments": {
+        "title": "Paiements Instantanés",
+        "description": "Recevez des paiements Orange Money et Wave en temps réel"
+      },
+      "invoicing": {
+        "title": "Facturation Simplifiée",
+        "description": "Créez et envoyez des factures professionnelles en quelques clics"
+      },
+      "inventory": {
+        "title": "Gestion de Stock",
+        "description": "Suivez vos produits et services en temps réel"
+      },
+      "analytics": {
+        "title": "Statistiques Détaillées",
+        "description": "Analysez vos performances avec des rapports complets"
+      }
+    },
+    "segments": {
+      "title": "Pour tous les secteurs",
+      "commerce": "Commerce",
+      "school": "Scolaire",
+      "services": "Services",
+      "realestate": "Immobilier"
+    },
+    "cta": {
+      "title": "Prêt à démarrer ?",
+      "subtitle": "Rejoignez des milliers de marchands qui utilisent FayClick",
+      "button": "Commencer gratuitement"
+    }
+  }
+}

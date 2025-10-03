@@ -149,7 +149,7 @@ export interface SenegalPhoneValidation {
 
 // Constants pour la validation (refonte)
 export const VALIDATION_RULES = {
-  BUSINESS_NAME_MIN_LENGTH: 2,
+  BUSINESS_NAME_MIN_LENGTH: 5,
   BUSINESS_NAME_MAX_LENGTH: 100,
   ADDRESS_MAX_LENGTH: 255,
   PHONE_LENGTH: 9,
