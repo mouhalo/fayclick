@@ -5,6 +5,7 @@ import { useState, useRef, useCallback } from 'react';
 import { LogoUploadProps, UploadProgress, LogoState } from '@/types/upload.types';
 import logoUploadSimpleService from '@/services/logo-upload-simple.service';
 import { useAuth } from '@/contexts/AuthContext';
+import PhotoResizer from './PhotoResizer';
 
 export default function LogoUpload({
   onUploadComplete,
@@ -25,6 +26,10 @@ export default function LogoUpload({
   });
   const [isDragOver, setIsDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // États pour PhotoResizer
+  const [showPhotoResizer, setShowPhotoResizer] = useState(false);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
 
   // Fonction d'upload automatique (définie en premier)
   const handleUploadAuto = useCallback(async (file: File) => {
@@ -91,9 +96,17 @@ export default function LogoUpload({
         error: error instanceof Error ? error.message : 'Upload échoué'
       }));
     }
-  }, [logoState.uploading, registerMode, structure, onUploadComplete, onUploadProgress]);
+  }, [logoState.uploading, registerMode, structure, onUploadComplete, onUploadProgress, uploadType]);
 
-  // Callback pour la sélection de fichier avec upload automatique
+  // Callback validation photo après redimensionnement
+  const handlePhotoValidated = useCallback(async (optimizedFile: File) => {
+    console.log('✅ [LOGO-UPLOAD] Photo redimensionnée validée:', optimizedFile.name);
+    setShowPhotoResizer(false);
+    setPendingFile(null);
+    await handleUploadAuto(optimizedFile);
+  }, [handleUploadAuto]);
+
+  // Callback pour la sélection de fichier avec upload automatique ou redimensionnement
   const handleFileSelect = useCallback(async (file: File) => {
     if (disabled || logoState.uploading) return;
 
@@ -106,7 +119,20 @@ export default function LogoUpload({
       return;
     }
 
-    // Preview immédiat
+    // Callback fichier sélectionné
+    if (onFileSelect) {
+      onFileSelect(file);
+    }
+
+    // 🆕 Pour les photos produits : ouvrir PhotoResizer AVANT upload
+    if (uploadType === 'photo') {
+      console.log('🖼️ [LOGO-UPLOAD] Ouverture PhotoResizer pour redimensionnement');
+      setPendingFile(file);
+      setShowPhotoResizer(true);
+      return; // Ne pas uploader tout de suite
+    }
+
+    // Pour les logos : upload direct avec preview
     try {
       const preview = await logoUploadSimpleService.fileToDataUrl(file);
       setLogoState(prev => ({
@@ -117,11 +143,6 @@ export default function LogoUpload({
         uploading: false,
         progress: 0
       }));
-
-      // Callback fichier sélectionné
-      if (onFileSelect) {
-        onFileSelect(file);
-      }
 
       // UPLOAD AUTOMATIQUE après sélection (délai pour laisser le preview s'afficher)
       console.log('🚀 [LOGO-UPLOAD] Démarrage upload automatique...');
@@ -391,6 +412,21 @@ export default function LogoUpload({
           : '💡 Optionnel : Ajoutez le logo de votre commerce pour personnaliser vos factures'
         }
       </div>
+
+      {/* Modal PhotoResizer pour les photos */}
+      {showPhotoResizer && pendingFile && (
+        <PhotoResizer
+          file={pendingFile}
+          onCancel={() => {
+            setShowPhotoResizer(false);
+            setPendingFile(null);
+          }}
+          onValidate={handlePhotoValidated}
+          maxSizeMB={5}
+          defaultScale={0.8}
+          defaultQuality="medium"
+        />
+      )}
     </div>
   );
 }
