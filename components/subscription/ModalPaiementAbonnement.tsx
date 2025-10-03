@@ -19,7 +19,9 @@ import {
   Smartphone,
   Crown,
   Calendar,
-  CreditCard
+  CreditCard,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 import {
   SubscriptionType,
@@ -80,6 +82,7 @@ export default function ModalPaiementAbonnement({
   // États UI
   const [isLoading, setIsLoading] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [qrExpanded, setQrExpanded] = useState(true); // QR Code déplié par défaut
 
   // Montage côté client (Portal)
   useEffect(() => {
@@ -527,28 +530,59 @@ export default function ModalPaiementAbonnement({
                       </span>
                     </div>
 
-                    {/* QR Code */}
-                    <div className="flex justify-center">
-                      <div className="relative p-4 bg-white rounded-xl border-2 border-gray-200 shadow-lg">
-                        {qrCode ? (
-                          <img
-                            src={`data:image/png;base64,${qrCode}`}
-                            alt="QR Code"
-                            className="w-64 h-64 md:w-72 md:h-72"
-                          />
+                    {/* QR Code - Accordéon dépliable */}
+                    <div className="border border-gray-200 rounded-xl overflow-hidden bg-white">
+                      {/* Header accordéon */}
+                      <button
+                        onClick={() => setQrExpanded(!qrExpanded)}
+                        className="w-full px-4 py-3 flex items-center justify-between bg-gradient-to-r from-emerald-50 to-green-50 hover:from-emerald-100 hover:to-green-100 transition-colors"
+                      >
+                        <div className="flex items-center gap-2">
+                          <QrCode className="w-5 h-5 text-emerald-600" />
+                          <span className="font-semibold text-gray-900">
+                            QR Code de paiement
+                          </span>
+                          {modalState === 'PROCESSING' && (
+                            <span className="px-2 py-0.5 bg-blue-500 text-white text-xs font-bold rounded-full animate-pulse">
+                              Détecté
+                            </span>
+                          )}
+                        </div>
+                        {qrExpanded ? (
+                          <ChevronUp className="w-5 h-5 text-gray-600" />
                         ) : (
-                          <div className="w-64 h-64 md:w-72 md:h-72 flex items-center justify-center">
-                            <Loader2 className="w-12 h-12 animate-spin text-emerald-600" />
-                          </div>
+                          <ChevronDown className="w-5 h-5 text-gray-600" />
                         )}
+                      </button>
 
-                        {/* Badge statut */}
-                        {modalState === 'PROCESSING' && (
-                          <div className="absolute -top-3 -right-3 px-3 py-1 bg-blue-500 text-white text-xs font-bold rounded-full shadow-lg animate-pulse">
-                            Paiement détecté
-                          </div>
+                      {/* Contenu accordéon */}
+                      <AnimatePresence>
+                        {qrExpanded && (
+                          <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: 'auto', opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={{ duration: 0.3 }}
+                            className="overflow-hidden"
+                          >
+                            <div className="p-4 flex justify-center bg-gray-50">
+                              <div className="relative p-4 bg-white rounded-xl border-2 border-gray-200 shadow-lg">
+                                {qrCode ? (
+                                  <img
+                                    src={qrCode}
+                                    alt="QR Code"
+                                    className="w-64 h-64 md:w-72 md:h-72"
+                                  />
+                                ) : (
+                                  <div className="w-64 h-64 md:w-72 md:h-72 flex items-center justify-center">
+                                    <Loader2 className="w-12 h-12 animate-spin text-emerald-600" />
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </motion.div>
                         )}
-                      </div>
+                      </AnimatePresence>
                     </div>
 
                     {/* Instructions */}
