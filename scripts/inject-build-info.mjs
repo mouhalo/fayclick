@@ -27,6 +27,25 @@ try {
   const buildTimestamp = new Date().toISOString();
   const buildInfo = `// Build: ${buildTimestamp} - Force upload fix for ftp-deploy size comparison bug`;
 
+  // Injecter la date de build dans .env.local pour l'affichage de version
+  const ENV_PATH = resolve(__dirname, '../.env.local');
+  try {
+    let envContent = readFileSync(ENV_PATH, 'utf-8');
+    const buildDatePattern = /^NEXT_PUBLIC_BUILD_DATE=.+$/m;
+    const buildDateLine = `NEXT_PUBLIC_BUILD_DATE=${buildTimestamp}`;
+
+    if (buildDatePattern.test(envContent)) {
+      envContent = envContent.replace(buildDatePattern, buildDateLine);
+    } else {
+      envContent += `\n${buildDateLine}\n`;
+    }
+
+    writeFileSync(ENV_PATH, envContent, 'utf-8');
+    console.log('✅ [BUILD] Date de build injectée dans .env.local');
+  } catch (envError) {
+    console.warn('⚠️  [BUILD] Impossible d\'injecter la date dans .env.local:', envError.message);
+  }
+
   // Remplacer ou ajouter la ligne de build
   if (BUILD_LINE_PATTERN.test(swContent)) {
     // Remplacer la ligne existante

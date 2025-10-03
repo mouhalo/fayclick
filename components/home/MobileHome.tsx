@@ -8,6 +8,7 @@ import { useBreakpoint } from '@/hooks/useBreakpoint';
 import LogoFayclick from '@/components/ui/LogoFayclick';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { useTranslations } from '@/hooks/useTranslations';
+import { VersionLabel } from '@/components/ui/VersionLabel';
 import {
   Smartphone,
   QrCode,
@@ -467,7 +468,7 @@ export default function MobileHome() {
           transition={{ delay: 2.5, duration: 1 }}
           className="absolute bottom-6 text-center"
         >
-          <div className="text-xs text-emerald-200/80">
+          <div className="text-xs text-emerald-200/80 mb-2">
             {t('mobile.footer')}{" "}
             <motion.a
               href="https://icelabsoft.com"
@@ -486,6 +487,8 @@ export default function MobileHome() {
               />
             </motion.a>
           </div>
+          {/* Label de version */}
+          <VersionLabel variant="mobile" />
         </motion.div>
       </div>
     </div>

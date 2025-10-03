@@ -232,7 +232,23 @@ export function AuthProvider({ children }: AuthProviderProps) {
       error: null
     });
 
-    router.push('/login');
+    // Solution Senior Developer : Cache busting agressif
+    // Couche 1 : Nettoyage complet des données en cache
+    if (typeof window !== 'undefined') {
+      // Nettoyer tous les storages (sauf cookies essentiels)
+      try {
+        localStorage.clear();
+        sessionStorage.clear();
+      } catch (e) {
+        console.warn('[AUTH] Erreur nettoyage storage:', e);
+      }
+
+      // Couche 2 : Cache busting avec timestamp pour forcer rechargement HTML/JS
+      const timestamp = Date.now();
+      window.location.href = `/?t=${timestamp}`;
+    } else {
+      router.push('/');
+    }
   }, [router]);
 
   // Rafraîchissement des données d'authentification
