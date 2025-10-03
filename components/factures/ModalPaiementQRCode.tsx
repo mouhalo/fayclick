@@ -49,6 +49,8 @@ export function ModalPaiementQRCode({
   const [modalState, setModalState] = useState<ModalState>('LOADING');
   const [qrCode, setQrCode] = useState<string>('');
   const [paymentUrl, setPaymentUrl] = useState<string | null>(null);
+  const [omDeeplink, setOmDeeplink] = useState<string | null>(null); // Lien OM app
+  const [maxitUrl, setMaxitUrl] = useState<string | null>(null); // Lien MaxIt web
   const [timeRemaining, setTimeRemaining] = useState(120); // 120 secondes
   const [error, setError] = useState<string>('');
   const [paymentStatusResponse, setPaymentStatusResponse] = useState<any>(null); // Store la réponse complète
@@ -126,7 +128,18 @@ export function ModalPaiementQRCode({
       }
 
       setQrCode(paymentWalletService.formatQRCode(response.qrCode));
-      setPaymentUrl(paymentWalletService.extractPaymentUrl(response, paymentMethod));
+
+      // Pour OM, extraire les 2 liens (deeplink + MaxIt)
+      if (paymentMethod === 'OM') {
+        setOmDeeplink(response.om || null);
+        setMaxitUrl(response.maxit || null);
+        setPaymentUrl(null);
+      } else {
+        setPaymentUrl(paymentWalletService.extractPaymentUrl(response, paymentMethod));
+        setOmDeeplink(null);
+        setMaxitUrl(null);
+      }
+
       setModalState('SHOWING_QR');
 
       console.log('✅ [QR] Paiement initialisé avec UUID:', response.uuid);
@@ -186,6 +199,8 @@ export function ModalPaiementQRCode({
       setPaymentStatusResponse(null);
       setQrCode('');
       setPaymentUrl(null);
+      setOmDeeplink(null);
+      setMaxitUrl(null);
     } else {
       console.log('🔄 [QR] Modal fermé - Nettoyage');
       // Nettoyage à la fermeture
@@ -309,8 +324,50 @@ export function ModalPaiementQRCode({
                   )}
                 </div>
 
-                {/* Lien de paiement mis en évidence */}
-                {paymentUrl && (
+                {/* Liens de paiement OM (2 boutons) */}
+                {paymentMethod === 'OM' && (omDeeplink || maxitUrl) && (
+                  <div className="mb-4 space-y-2">
+                    {/* Bouton Orange Money App */}
+                    {omDeeplink && (
+                      <motion.a
+                        href={omDeeplink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        className="block w-full bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-semibold py-3 px-4 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300"
+                      >
+                        <div className="flex items-center justify-center gap-2">
+                          <Smartphone className="w-5 h-5" />
+                          <span>📱 Ouvrir Orange Money</span>
+                        </div>
+                      </motion.a>
+                    )}
+
+                    {/* Bouton MaxIt Web */}
+                    {maxitUrl && (
+                      <motion.a
+                        href={maxitUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        className="block w-full bg-gradient-to-r from-orange-400 to-orange-500 hover:from-orange-500 hover:to-orange-600 text-white font-semibold py-3 px-4 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300"
+                      >
+                        <div className="flex items-center justify-center gap-2">
+                          <ExternalLink className="w-5 h-5" />
+                          <span>🌐 Payer via MaxIt Web</span>
+                        </div>
+                      </motion.a>
+                    )}
+                    <p className="text-xs text-gray-500 mt-1">
+                      Alternative si le QR code ne fonctionne pas
+                    </p>
+                  </div>
+                )}
+
+                {/* Lien de paiement WAVE/FREE (1 bouton) */}
+                {paymentMethod !== 'OM' && paymentUrl && (
                   <div className="mb-4">
                     <motion.button
                       whileHover={{ scale: 1.02 }}
