@@ -258,19 +258,43 @@ class SubscriptionService {
 
       console.log('🔍 [SUBSCRIPTION] Requête SQL:', query);
 
-      const result = await databaseService.query<HistoriqueAbonnement>(query);
+      const result = await databaseService.query<{ historique_abonnements_structure: string }>(query);
 
-      console.log(`✅ [SUBSCRIPTION] ${result.length} abonnements trouvés`);
+      console.log('🔍 [SUBSCRIPTION] Résultat brut:', result);
 
-      // Debug: Afficher les données brutes
-      if (result.length > 0) {
-        console.log('🔍 [SUBSCRIPTION] Premier élément:', JSON.stringify(result[0], null, 2));
-        console.log('🔍 [SUBSCRIPTION] Clés disponibles:', Object.keys(result[0]));
+      // La fonction PostgreSQL retourne un objet JSON stringifié
+      if (!result || result.length === 0) {
+        console.warn('⚠️ [SUBSCRIPTION] Aucun résultat de la fonction PostgreSQL');
+        return {
+          success: true,
+          data: []
+        };
       }
+
+      // Parser la réponse JSON de PostgreSQL
+      const responseData = result[0] as any;
+      console.log('🔍 [SUBSCRIPTION] Response data:', responseData);
+
+      // La fonction peut retourner directement l'objet ou un champ stringifié
+      let parsedData: any;
+      if (typeof responseData.historique_abonnements_structure === 'string') {
+        parsedData = JSON.parse(responseData.historique_abonnements_structure);
+      } else if (responseData.historique_abonnements_structure) {
+        parsedData = responseData.historique_abonnements_structure;
+      } else {
+        // Peut-être que c'est déjà l'objet complet
+        parsedData = responseData;
+      }
+
+      console.log('🔍 [SUBSCRIPTION] Parsed data:', parsedData);
+
+      // Extraire le tableau d'abonnements
+      const abonnements = parsedData.abonnements || [];
+      console.log(`✅ [SUBSCRIPTION] ${abonnements.length} abonnements trouvés`);
 
       return {
         success: true,
-        data: result || []
+        data: abonnements
       };
 
     } catch (error) {
