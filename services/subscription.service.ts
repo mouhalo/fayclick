@@ -262,6 +262,12 @@ class SubscriptionService {
 
       console.log(`✅ [SUBSCRIPTION] ${result.length} abonnements trouvés`);
 
+      // Debug: Afficher les données brutes
+      if (result.length > 0) {
+        console.log('🔍 [SUBSCRIPTION] Premier élément:', JSON.stringify(result[0], null, 2));
+        console.log('🔍 [SUBSCRIPTION] Clés disponibles:', Object.keys(result[0]));
+      }
+
       return {
         success: true,
         data: result || []
