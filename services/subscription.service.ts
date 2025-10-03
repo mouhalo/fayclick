@@ -44,10 +44,12 @@ class SubscriptionService {
         : new Date().toISOString().split('T')[0];
 
       // Appel fonction PostgreSQL: calculer_montant_abonnement
-      const query = `SELECT calculer_montant_abonnement($1, $2) as montant`;
-      const params = [type, dateDebutStr];
+      // Note: databaseService.query() ne supporte pas les paramètres $1, $2
+      const query = `SELECT calculer_montant_abonnement('${type}'::VARCHAR, '${dateDebutStr}'::DATE) as montant`;
 
-      const result = await databaseService.query<{ montant: number }>(query, params);
+      console.log('🔍 [SUBSCRIPTION] Requête SQL:', query);
+
+      const result = await databaseService.query<{ montant: number }>(query);
 
       if (!result || result.length === 0) {
         throw new Error('Aucun montant retourné par la fonction de calcul');
@@ -97,33 +99,29 @@ class SubscriptionService {
         console.warn('⚠️ [SUBSCRIPTION] Création sans UUID paiement (mode test?)');
       }
 
+      // Préparer les valeurs (NULL pour les optionnels)
+      const dateDebut = params.date_debut || 'CURRENT_DATE';
+      const refAbonnement = params.ref_abonnement ? `'${params.ref_abonnement}'` : 'NULL';
+      const numRecu = params.numrecu ? `'${params.numrecu}'` : 'NULL';
+      const uuidPaiement = params.uuid_paiement ? `'${params.uuid_paiement}'::UUID` : 'NULL';
+      const forcerRemplacement = params.forcer_remplacement || false;
+
       // Appel fonction PostgreSQL: add_abonnement_structure
+      // Note: databaseService.query() ne supporte pas les paramètres $1, $2
       const query = `SELECT add_abonnement_structure(
-        $1::INTEGER,           -- p_id_structure
-        $2::VARCHAR,           -- p_type_abonnement
-        $3::VARCHAR,           -- p_methode
-        $4::DATE,              -- p_date_debut
-        $5::VARCHAR,           -- p_ref_abonnement
-        $6::VARCHAR,           -- p_numrecu
-        $7::UUID,              -- p_uuid_paiement
-        $8::BOOLEAN            -- p_forcer_remplacement
+        ${params.id_structure}::INTEGER,
+        '${params.type_abonnement}'::VARCHAR,
+        '${params.methode}'::VARCHAR,
+        ${dateDebut === 'CURRENT_DATE' ? 'CURRENT_DATE' : `'${dateDebut}'::DATE`},
+        ${refAbonnement}::VARCHAR,
+        ${numRecu}::VARCHAR,
+        ${uuidPaiement},
+        ${forcerRemplacement}::BOOLEAN
       )`;
 
-      const queryParams = [
-        params.id_structure,
-        params.type_abonnement,
-        params.methode,
-        params.date_debut || null, // NULL = CURRENT_DATE
-        params.ref_abonnement || null, // NULL = auto-généré
-        params.numrecu || null, // NULL = auto-généré
-        params.uuid_paiement || null,
-        params.forcer_remplacement || false
-      ];
+      console.log('🔍 [SUBSCRIPTION] Requête SQL:', query);
 
-      const result = await databaseService.query<{ add_abonnement_structure: string }>(
-        query,
-        queryParams
-      );
+      const result = await databaseService.query<{ add_abonnement_structure: string }>(query);
 
       if (!result || result.length === 0) {
         throw new Error('Aucune réponse de la fonction de création');
@@ -183,22 +181,16 @@ class SubscriptionService {
       }
 
       // Appel fonction PostgreSQL: renouveler_abonnement
+      // Note: databaseService.query() ne supporte pas les paramètres $1, $2
       const query = `SELECT renouveler_abonnement(
-        $1::INTEGER,    -- p_id_structure
-        $2::VARCHAR,    -- p_type_abonnement
-        $3::VARCHAR     -- p_methode
+        ${params.id_structure}::INTEGER,
+        '${params.type_abonnement}'::VARCHAR,
+        '${params.methode}'::VARCHAR
       )`;
 
-      const queryParams = [
-        params.id_structure,
-        params.type_abonnement,
-        params.methode
-      ];
+      console.log('🔍 [SUBSCRIPTION] Requête SQL:', query);
 
-      const result = await databaseService.query<{ renouveler_abonnement: string }>(
-        query,
-        queryParams
-      );
+      const result = await databaseService.query<{ renouveler_abonnement: string }>(query);
 
       if (!result || result.length === 0) {
         throw new Error('Aucune réponse de la fonction de renouvellement');
@@ -254,21 +246,19 @@ class SubscriptionService {
         throw new Error('ID structure requis');
       }
 
+      const limite = params.limite || 10;
+
       // Appel fonction PostgreSQL: historique_abonnements_structure
+      // Note: databaseService.query() ne supporte pas les paramètres $1, $2
+      // On doit les remplacer directement dans la requête
       const query = `SELECT * FROM historique_abonnements_structure(
-        $1::INTEGER,    -- p_id_structure
-        $2::INTEGER     -- p_limite
+        ${params.id_structure}::INTEGER,
+        ${limite}::INTEGER
       )`;
 
-      const queryParams = [
-        params.id_structure,
-        params.limite || 10
-      ];
+      console.log('🔍 [SUBSCRIPTION] Requête SQL:', query);
 
-      const result = await databaseService.query<HistoriqueAbonnement>(
-        query,
-        queryParams
-      );
+      const result = await databaseService.query<HistoriqueAbonnement>(query);
 
       console.log(`✅ [SUBSCRIPTION] ${result.length} abonnements trouvés`);
 
