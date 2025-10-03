@@ -420,10 +420,10 @@ export default function ModalPaiementAbonnement({
                           onClick={() => handleSelectFormula(formula.type)}
                           className="w-full p-4 md:p-5 bg-gradient-to-br from-white to-gray-50 rounded-xl border-2 border-gray-200 hover:border-emerald-500 hover:shadow-lg transition-all group text-left"
                         >
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2 mb-2">
-                                <Calendar className="w-4 h-4 text-emerald-600" />
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-2 flex-wrap">
+                                <Calendar className="w-4 h-4 text-emerald-600 flex-shrink-0" />
                                 <h3 className="font-bold text-gray-900">
                                   {formula.type}
                                 </h3>
@@ -437,13 +437,13 @@ export default function ModalPaiementAbonnement({
                                   </span>
                                 )}
                               </div>
-                              <p className="text-sm text-gray-600">
+                              <p className="text-xs md:text-sm text-gray-600">
                                 {formula.description}
                               </p>
                             </div>
-                            <div className="text-right ml-4">
-                              <p className="text-2xl font-bold text-gray-900">
-                                {formatAmount(formula.montant)}
+                            <div className="text-right flex-shrink-0">
+                              <p className="text-lg md:text-2xl font-bold text-gray-900 whitespace-nowrap">
+                                {Number(formula.montant).toLocaleString('fr-FR')}
                               </p>
                               <p className="text-xs text-gray-500">FCFA</p>
                             </div>
