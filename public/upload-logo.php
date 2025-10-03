@@ -68,11 +68,11 @@ if (!in_array($file['type'], $allowedTypes)) {
     exit;
 }
 
-// Configuration FTP - Même serveur que le déploiement
+// Configuration FTP - User upload dédié (racine = /public_html/uploads/)
 $ftpHost = 'node260-eu.n0c.com';
-$ftpUser = 'userv2@fayclick.net';
-$ftpPass = 'Y@L@tif129*';
-$ftpDir = 'uploads'; // Dossier relatif
+$ftpUser = 'uploadv2@fayclick.net';
+$ftpPass = '<0vs:PWBhd';
+$ftpDir = ''; // Racine FTP pointe déjà vers /public_html/uploads/
 
 logMessage("Connexion FTP: " . $ftpHost . " user: " . $ftpUser);
 
@@ -113,16 +113,11 @@ logMessage("Authentification FTP réussie");
 ftp_pasv($ftpConn, true);
 logMessage("Mode passif activé");
 
-// Créer dossier uploads si n'existe pas
-$dirCreated = @ftp_mkdir($ftpConn, $ftpDir);
-if ($dirCreated) {
-    logMessage("Dossier créé: " . $ftpDir);
-} else {
-    logMessage("Dossier existe déjà: " . $ftpDir);
-}
+// Pas besoin de créer de dossier, on est déjà à la racine /uploads/
+logMessage("Upload direct à la racine FTP (/public_html/uploads/)");
 
-// Upload du fichier
-$remoteFile = $ftpDir . '/' . $filename;
+// Upload du fichier directement à la racine
+$remoteFile = $filename;
 $localFile = $file['tmp_name'];
 
 logMessage("Upload: " . $localFile . " → " . $remoteFile);
@@ -151,8 +146,8 @@ logMessage("Taille fichier distant: " . $fileSize . " bytes");
 ftp_close($ftpConn);
 logMessage("Connexion FTP fermée");
 
-// Construction URL publique
-$publicUrl = 'https://v2.fayclick.net/uploads/' . $filename;
+// Construction URL publique (domaine principal pour uploads)
+$publicUrl = 'https://fayclick.net/uploads/' . $filename;
 
 logMessage("URL publique générée: " . $publicUrl);
 logMessage("=== FIN UPLOAD (SUCCESS) ===");
