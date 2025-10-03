@@ -4,10 +4,13 @@
  * Solution Senior : Upload FTP avec logs détaillés
  */
 
-// Activer affichage des erreurs pour debugging
-error_reporting(E_ALL);
-ini_set('display_errors', 0); // Désactiver en prod
+// Désactiver complètement l'affichage des erreurs (uniquement logs)
+error_reporting(0); // Pas d'erreurs affichées
+ini_set('display_errors', 0);
 ini_set('log_errors', 1);
+
+// Buffer de sortie pour éviter tout output avant JSON
+ob_start();
 
 // Headers CORS
 header('Access-Control-Allow-Origin: *');
@@ -22,6 +25,7 @@ function logMessage($message) {
 
 // Gestion preflight OPTIONS
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    ob_end_clean();
     http_response_code(200);
     exit;
 }
@@ -29,6 +33,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 // Vérifier méthode POST
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     logMessage("Méthode non autorisée: " . $_SERVER['REQUEST_METHOD']);
+    ob_end_clean();
     http_response_code(405);
     echo json_encode(['success' => false, 'error' => 'Méthode non autorisée']);
     exit;
@@ -38,6 +43,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 if (!isset($_FILES['file']) || $_FILES['file']['error'] !== UPLOAD_ERR_OK) {
     $errorCode = isset($_FILES['file']) ? $_FILES['file']['error'] : 'NO_FILE';
     logMessage("Erreur fichier: " . $errorCode);
+    ob_end_clean();
     http_response_code(400);
     echo json_encode(['success' => false, 'error' => 'Aucun fichier reçu (code: ' . $errorCode . ')']);
     exit;
@@ -54,6 +60,7 @@ logMessage("Type MIME: " . $file['type']);
 // Validation taille (max 500KB)
 if ($file['size'] > 500 * 1024) {
     logMessage("Fichier trop volumineux: " . $file['size']);
+    ob_end_clean();
     http_response_code(400);
     echo json_encode(['success' => false, 'error' => 'Fichier trop volumineux (' . round($file['size'] / 1024) . 'KB). Max 500KB']);
     exit;
@@ -63,6 +70,7 @@ if ($file['size'] > 500 * 1024) {
 $allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
 if (!in_array($file['type'], $allowedTypes)) {
     logMessage("Type MIME non supporté: " . $file['type']);
+    ob_end_clean();
     http_response_code(400);
     echo json_encode(['success' => false, 'error' => 'Format non supporté: ' . $file['type']]);
     exit;
@@ -81,6 +89,7 @@ $ftpConn = @ftp_connect($ftpHost, 21, 30);
 if (!$ftpConn) {
     $lastError = error_get_last();
     logMessage("Connexion FTP échouée: " . ($lastError['message'] ?? 'Unknown'));
+    ob_end_clean();
     http_response_code(500);
     echo json_encode([
         'success' => false,
@@ -98,6 +107,7 @@ if (!$login) {
     $lastError = error_get_last();
     logMessage("Auth FTP échouée: " . ($lastError['message'] ?? 'Unknown'));
     ftp_close($ftpConn);
+    ob_end_clean();
     http_response_code(500);
     echo json_encode([
         'success' => false,
@@ -128,6 +138,7 @@ if (!$upload) {
     $lastError = error_get_last();
     logMessage("Upload FTP échoué: " . ($lastError['message'] ?? 'Unknown'));
     ftp_close($ftpConn);
+    ob_end_clean();
     http_response_code(500);
     echo json_encode([
         'success' => false,
@@ -151,6 +162,9 @@ $publicUrl = 'https://fayclick.net/uploads/' . $filename;
 
 logMessage("URL publique générée: " . $publicUrl);
 logMessage("=== FIN UPLOAD (SUCCESS) ===");
+
+// Nettoyer buffer et envoyer uniquement JSON
+ob_end_clean();
 
 // Succès
 echo json_encode([
