@@ -56,13 +56,14 @@ export async function POST(request: NextRequest) {
     await client.access(FTP_CONFIG);
     console.log('✅ [API-UPLOAD] Connecté');
 
-    await client.ensureDir(FTP_REMOTE_DIR);
-    console.log('📂 [API-UPLOAD] Changement vers:', FTP_REMOTE_DIR);
+    // La racine FTP de uploadv2@fayclick.net pointe déjà vers /public_html/uploads/
+    // Donc on upload directement à la racine (pas besoin de ensureDir)
+    console.log('📂 [API-UPLOAD] Répertoire racine FTP (déjà dans uploads/)');
 
     const stream = Readable.from(buffer);
-    // Le chemin est juste le filename car on est déjà dans FTP_REMOTE_DIR
     console.log('⬆️ [API-UPLOAD] Upload fichier:', filename);
 
+    // Upload direct à la racine FTP (qui est déjà /public_html/uploads/)
     await client.uploadFrom(stream, filename);
     client.close();
     console.log('✅ [API-UPLOAD] Upload terminé');

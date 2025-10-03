@@ -14,9 +14,10 @@ export default function LogoUpload({
   className = '',
   disabled = false,
   label,
-  uploadType = 'logo'
+  uploadType = 'logo',
+  registerMode = false
 }: LogoUploadProps) {
-  const { structure } = useAuth(); // Récupérer id_structure
+  const { structure } = useAuth(); // Récupérer id_structure (optionnel en mode Register)
   const [logoState, setLogoState] = useState<LogoState>({
     preview: initialPreview,
     uploading: false,
@@ -29,8 +30,8 @@ export default function LogoUpload({
   const handleUploadAuto = useCallback(async (file: File) => {
     if (!file || logoState.uploading) return;
 
-    // Vérifier que structure existe
-    if (!structure?.id_structure) {
+    // En mode Register, pas besoin de structure
+    if (!registerMode && !structure?.id_structure) {
       setLogoState(prev => ({
         ...prev,
         error: 'Structure non trouvée. Veuillez vous reconnecter.'
@@ -48,11 +49,15 @@ export default function LogoUpload({
     };
 
     try {
-      const result = await logoUploadSimpleService.uploadLogo(
-        file,
-        structure.id_structure,
-        progressCallback
-      );
+      // Mode Register : Upload FTP uniquement (sans sauvegarde BD)
+      // Mode normal : Upload FTP + Sauvegarde BD
+      const result = registerMode
+        ? await logoUploadSimpleService.uploadLogoOnly(file, progressCallback)
+        : await logoUploadSimpleService.uploadLogo(
+            file,
+            structure!.id_structure,
+            progressCallback
+          );
 
       if (result.success) {
         setLogoState(prev => ({
@@ -84,7 +89,7 @@ export default function LogoUpload({
         error: error instanceof Error ? error.message : 'Upload échoué'
       }));
     }
-  }, [logoState.uploading, structure, onUploadComplete, onUploadProgress]);
+  }, [logoState.uploading, registerMode, structure, onUploadComplete, onUploadProgress]);
 
   // Callback pour la sélection de fichier avec upload automatique
   const handleFileSelect = useCallback(async (file: File) => {
