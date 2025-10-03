@@ -461,7 +461,10 @@ class PaymentWalletService {
       console.log('💳 [SUBSCRIPTION] Création paiement abonnement:', params);
 
       // Générer référence unique pour l'abonnement
-      const reference = `ABO-${params.idStructure}-${Date.now()}`;
+      // ⚠️ IMPORTANT: Max 19 caractères pour compatibilité OM/WAVE/FREE
+      // Format: ABO-{id}-{timestamp_court} (ex: ABO-139-1759523454)
+      const timestamp = Date.now().toString().slice(-10); // 10 derniers chiffres
+      const reference = `ABO-${params.idStructure}-${timestamp}`;
 
       // Créer la requête de paiement
       const request: CreatePaymentRequest = {
