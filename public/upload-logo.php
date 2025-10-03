@@ -1,15 +1,15 @@
 <?php
 /**
  * Endpoint PHP Upload Logo - FayClick V2
- * Solution Senior : Upload FTP avec logs détaillés
+ * Solution Senior : Upload FTP simplifié
  */
 
-// Désactiver complètement l'affichage des erreurs (uniquement logs)
-error_reporting(0); // Pas d'erreurs affichées
+// Désactiver complètement l'affichage des erreurs
+error_reporting(0);
 ini_set('display_errors', 0);
 ini_set('log_errors', 1);
 
-// Buffer de sortie pour éviter tout output avant JSON
+// Buffer de sortie
 ob_start();
 
 // Headers CORS
@@ -23,153 +23,79 @@ function logMessage($message) {
     error_log("[UPLOAD-LOGO] " . $message);
 }
 
-// Gestion preflight OPTIONS
+// JSON Response helper
+function sendJSON($data, $code = 200) {
+    ob_end_clean();
+    http_response_code($code);
+    echo json_encode($data);
+    exit;
+}
+
+// Preflight
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    ob_end_clean();
-    http_response_code(200);
-    exit;
+    sendJSON([], 200);
 }
 
-// Vérifier méthode POST
+// Vérifier POST
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    logMessage("Méthode non autorisée: " . $_SERVER['REQUEST_METHOD']);
-    ob_end_clean();
-    http_response_code(405);
-    echo json_encode(['success' => false, 'error' => 'Méthode non autorisée']);
-    exit;
+    sendJSON(['success' => false, 'error' => 'Méthode non autorisée'], 405);
 }
 
-// Vérifier fichier uploadé
+// Vérifier fichier
 if (!isset($_FILES['file']) || $_FILES['file']['error'] !== UPLOAD_ERR_OK) {
-    $errorCode = isset($_FILES['file']) ? $_FILES['file']['error'] : 'NO_FILE';
-    logMessage("Erreur fichier: " . $errorCode);
-    ob_end_clean();
-    http_response_code(400);
-    echo json_encode(['success' => false, 'error' => 'Aucun fichier reçu (code: ' . $errorCode . ')']);
-    exit;
+    sendJSON(['success' => false, 'error' => 'Aucun fichier reçu'], 400);
 }
 
 $file = $_FILES['file'];
 $filename = isset($_POST['filename']) ? basename($_POST['filename']) : basename($file['name']);
 
-logMessage("=== DEBUT UPLOAD ===");
-logMessage("Fichier reçu: " . $filename);
-logMessage("Taille: " . $file['size'] . " bytes");
-logMessage("Type MIME: " . $file['type']);
+logMessage("Upload: " . $filename . " (" . $file['size'] . " bytes)");
 
-// Validation taille (max 500KB)
+// Validation taille
 if ($file['size'] > 500 * 1024) {
-    logMessage("Fichier trop volumineux: " . $file['size']);
-    ob_end_clean();
-    http_response_code(400);
-    echo json_encode(['success' => false, 'error' => 'Fichier trop volumineux (' . round($file['size'] / 1024) . 'KB). Max 500KB']);
-    exit;
+    sendJSON(['success' => false, 'error' => 'Fichier trop volumineux (max 500KB)'], 400);
 }
 
-// Validation type MIME
+// Validation type
 $allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
 if (!in_array($file['type'], $allowedTypes)) {
-    logMessage("Type MIME non supporté: " . $file['type']);
-    ob_end_clean();
-    http_response_code(400);
-    echo json_encode(['success' => false, 'error' => 'Format non supporté: ' . $file['type']]);
-    exit;
+    sendJSON(['success' => false, 'error' => 'Format non supporté'], 400);
 }
 
-// Configuration FTP - User upload dédié (racine = /public_html/uploads/)
-$ftpHost = 'node260-eu.n0c.com';
-$ftpUser = 'uploadv2@fayclick.net';
-$ftpPass = '<0vs:PWBhd';
-$ftpDir = ''; // Racine FTP pointe déjà vers /public_html/uploads/
-
-logMessage("Connexion FTP: " . $ftpHost . " user: " . $ftpUser);
-
-// Connexion FTP avec timeout
-$ftpConn = @ftp_connect($ftpHost, 21, 30);
+// Config FTP
+$ftpConn = @ftp_connect('node260-eu.n0c.com', 21, 30);
 if (!$ftpConn) {
-    $lastError = error_get_last();
-    logMessage("Connexion FTP échouée: " . ($lastError['message'] ?? 'Unknown'));
-    ob_end_clean();
-    http_response_code(500);
-    echo json_encode([
-        'success' => false,
-        'error' => 'Connexion FTP échouée',
-        'details' => $lastError['message'] ?? 'Cannot connect to ' . $ftpHost
-    ]);
-    exit;
+    logMessage("Connexion FTP échouée");
+    sendJSON(['success' => false, 'error' => 'Connexion FTP échouée'], 500);
 }
 
-logMessage("Connexion FTP établie");
-
-// Login FTP
-$login = @ftp_login($ftpConn, $ftpUser, $ftpPass);
+$login = @ftp_login($ftpConn, 'uploadv2@fayclick.net', '<0vs:PWBhd');
 if (!$login) {
-    $lastError = error_get_last();
-    logMessage("Auth FTP échouée: " . ($lastError['message'] ?? 'Unknown'));
     ftp_close($ftpConn);
-    ob_end_clean();
-    http_response_code(500);
-    echo json_encode([
-        'success' => false,
-        'error' => 'Authentification FTP échouée',
-        'details' => $lastError['message'] ?? 'Invalid credentials'
-    ]);
-    exit;
+    logMessage("Auth FTP échouée");
+    sendJSON(['success' => false, 'error' => 'Authentification FTP échouée'], 500);
 }
 
-logMessage("Authentification FTP réussie");
-
-// Mode passif
+logMessage("FTP connecté");
 ftp_pasv($ftpConn, true);
-logMessage("Mode passif activé");
 
-// Pas besoin de créer de dossier, on est déjà à la racine /uploads/
-logMessage("Upload direct à la racine FTP (/public_html/uploads/)");
-
-// Upload du fichier directement à la racine
-$remoteFile = $filename;
-$localFile = $file['tmp_name'];
-
-logMessage("Upload: " . $localFile . " → " . $remoteFile);
-
-$upload = @ftp_put($ftpConn, $remoteFile, $localFile, FTP_BINARY);
+// Upload (nettoyer buffer juste avant)
+ob_clean();
+$upload = @ftp_put($ftpConn, $filename, $file['tmp_name'], FTP_BINARY);
 
 if (!$upload) {
-    $lastError = error_get_last();
-    logMessage("Upload FTP échoué: " . ($lastError['message'] ?? 'Unknown'));
     ftp_close($ftpConn);
-    ob_end_clean();
-    http_response_code(500);
-    echo json_encode([
-        'success' => false,
-        'error' => 'Upload échoué',
-        'details' => $lastError['message'] ?? 'FTP PUT failed'
-    ]);
-    exit;
+    logMessage("Upload échoué");
+    sendJSON(['success' => false, 'error' => 'Upload FTP échoué'], 500);
 }
 
-logMessage("Upload FTP réussi: " . $remoteFile);
-
-// Vérifier que le fichier existe
-$fileSize = @ftp_size($ftpConn, $remoteFile);
-logMessage("Taille fichier distant: " . $fileSize . " bytes");
-
 ftp_close($ftpConn);
-logMessage("Connexion FTP fermée");
-
-// Construction URL publique (domaine principal pour uploads)
-$publicUrl = 'https://fayclick.net/uploads/' . $filename;
-
-logMessage("URL publique générée: " . $publicUrl);
-logMessage("=== FIN UPLOAD (SUCCESS) ===");
-
-// Nettoyer buffer et envoyer uniquement JSON
-ob_end_clean();
+logMessage("Upload réussi: " . $filename);
 
 // Succès
-echo json_encode([
+sendJSON([
     'success' => true,
-    'url' => $publicUrl,
+    'url' => 'https://fayclick.net/uploads/' . $filename,
     'filename' => $filename,
     'size' => $file['size']
 ]);
