@@ -130,4 +130,7 @@ export interface UploadError extends Error {
   details?: Record<string, unknown>;
 }
 
+// Export des types de redimensionnement de photos
+export * from './photo-resize.types';
+
 export default UPLOAD_CONSTANTS;

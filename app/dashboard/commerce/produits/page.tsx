@@ -316,7 +316,7 @@ export default function ProduitsCommercePage() {
   // Loading state
   if (isAuthLoading || !user) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-sky-400 to-sky-200">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#9c9125d9] via-[#203e2b] to-[#166534]">
         <div className="text-center">
           <div className="w-20 h-20 mx-auto mb-4 relative">
             <div className="absolute inset-0 bg-orange-500 rounded-full animate-ping opacity-30"></div>
@@ -347,8 +347,8 @@ export default function ProduitsCommercePage() {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-600 via-green-700 to-green-800">
-      <div className="max-w-md mx-auto bg-yellow-180 min-h-screen relative">
+    <div className="min-h-screen bg-gradient-to-br from-[#9c9125d9] via-[#203e2b] to-[#166534]">
+      <div className="max-w-md mx-auto min-h-screen relative">
         
         {/* Header avec design glassmorphism */}
         <GlassHeader

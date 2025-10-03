@@ -372,7 +372,7 @@ export function ModalAjoutProduitNew({
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[110] p-4"
+        className="fixed inset-0 bg-black/75 backdrop-blur-sm flex items-center justify-center z-[110] p-4"
         onClick={onClose}
       >
         <motion.div
@@ -380,10 +380,10 @@ export function ModalAjoutProduitNew({
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.9, opacity: 0 }}
           onClick={(e) => e.stopPropagation()}
-          className="bg-gradient-to-br from-white/95 via-sky-50/95 to-blue-50/95 backdrop-blur-xl rounded-3xl w-full max-w-4xl max-h-[90vh] overflow-hidden shadow-2xl border border-white/50"
+          className="bg-gradient-to-br from-green-600 via-green-700 to-green-800 backdrop-blur-xl rounded-3xl w-full max-w-4xl max-h-[90vh] overflow-hidden shadow-2xl border border-white/20"
         >
-          {/* Header avec onglets - Glassmorphisme */}
-          <div className="bg-gradient-to-r from-sky-400/90 to-blue-500/90 backdrop-blur-lg p-6 text-white relative overflow-hidden">
+          {/* Header avec onglets - Style harmonisé avec modal client */}
+          <div className="bg-gradient-to-r from-yellow-400 via-orange-500 to-red-600 backdrop-blur-lg p-6 text-white relative overflow-hidden">
             {/* Pattern décoratif */}
             <div className="absolute inset-0 opacity-20">
               <div className="absolute inset-0" style={{
@@ -431,8 +431,8 @@ export function ModalAjoutProduitNew({
             </div>
           </div>
 
-          {/* Contenu des onglets */}
-          <div className="p-6 overflow-y-auto max-h-[calc(90vh-200px)]">
+          {/* Contenu des onglets - Fond harmonisé */}
+          <div className="p-6 overflow-y-auto max-h-[calc(90vh-200px)] bg-gradient-to-br from-green-400/10 via-emerald-400/15 to-teal-400/10 backdrop-blur-2xl">
             {/* Onglet Informations */}
             {ongletActif === 'informations' && (
               <motion.div
@@ -443,7 +443,7 @@ export function ModalAjoutProduitNew({
                 <form onSubmit={handleSubmit} className="space-y-5">
                   {/* Nom du produit */}
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                    <label className="block text-sm font-medium text-white mb-2">
                       <Package className="w-4 h-4 inline mr-1" />
                       Nom du {formData.est_service ? 'service' : 'produit'} *
                     </label>
@@ -466,25 +466,25 @@ export function ModalAjoutProduitNew({
 
                   {/* Type: Produit ou Service */}
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">Type</label>
+                    <label className="block text-sm font-medium text-white mb-2">Type</label>
                     <div className="flex gap-4">
-                      <label className="flex items-center">
+                      <label className="flex items-center bg-white/80 px-4 py-2 rounded-lg cursor-pointer hover:bg-white/90 transition-all">
                         <input
                           type="radio"
                           checked={!formData.est_service}
                           onChange={() => handleInputChange('est_service', false)}
-                          className="mr-2 text-sky-600"
+                          className="mr-2 text-emerald-600"
                         />
-                        Produit physique
+                        <span className="text-slate-700 font-medium">Produit physique</span>
                       </label>
-                      <label className="flex items-center">
+                      <label className="flex items-center bg-white/80 px-4 py-2 rounded-lg cursor-pointer hover:bg-white/90 transition-all">
                         <input
                           type="radio"
                           checked={formData.est_service}
                           onChange={() => handleInputChange('est_service', true)}
-                          className="mr-2 text-sky-600"
+                          className="mr-2 text-emerald-600"
                         />
-                        Service
+                        <span className="text-slate-700 font-medium">Service</span>
                       </label>
                     </div>
                   </div>
@@ -492,8 +492,8 @@ export function ModalAjoutProduitNew({
                   {/* Prix - Grille horizontale 2x1 */}
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-2">
-                        Prix d&diapos;achat (FCFA) *
+                      <label className="block text-sm font-medium text-white mb-2">
+                        Prix d'achat (FCFA) *
                       </label>
                       <input
                         type="number"
@@ -511,7 +511,7 @@ export function ModalAjoutProduitNew({
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-2">
+                      <label className="block text-sm font-medium text-white mb-2">
                         Prix de vente (FCFA) *
                       </label>
                       <input
@@ -549,7 +549,7 @@ export function ModalAjoutProduitNew({
 
                   {/* Catégorie */}
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                    <label className="block text-sm font-medium text-white mb-2">
                       <Tag className="w-4 h-4 inline mr-1" />
                       Catégorie
                     </label>
@@ -567,7 +567,7 @@ export function ModalAjoutProduitNew({
 
                   {/* Description */}
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                    <label className="block text-sm font-medium text-white mb-2">
                       <FileText className="w-4 h-4 inline mr-1" />
                       Description
                     </label>
@@ -601,29 +601,29 @@ export function ModalAjoutProduitNew({
                     </label>
                   </div>
 
-                  {/* Boutons d'action */}
+                  {/* Boutons d'action - Style harmonisé */}
                   <div className="flex gap-3 pt-4">
                     <button
                       type="button"
                       onClick={onClose}
-                      className="flex-1 px-4 py-3 bg-white/60 backdrop-blur-sm border-2 border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50/60 hover:border-gray-300 transition-all font-medium"
+                      className="flex-1 px-4 py-3 bg-red-500/20 backdrop-blur-sm border border-red-400/30 text-red-200 rounded-xl hover:bg-red-500/30 transition-all font-medium"
                     >
                       Annuler
                     </button>
                     <button
                       type="submit"
                       disabled={isLoading}
-                      className="flex-1 px-4 py-3 bg-gradient-to-r from-sky-500 to-blue-600 text-white rounded-xl hover:from-sky-600 hover:to-blue-700 transition-all font-medium flex items-center justify-center gap-2 disabled:opacity-50 shadow-lg hover:shadow-xl"
+                      className="flex-1 px-4 py-3 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white rounded-xl hover:from-emerald-600 hover:to-emerald-700 transition-all font-medium flex items-center justify-center gap-2 disabled:opacity-50 shadow-lg hover:shadow-xl"
                     >
                       {isLoading ? (
                         <Loader2 className="w-4 h-4 animate-spin" />
                       ) : (
                         <Save className="w-4 h-4" />
                       )}
-                      {isLoading 
-                        ? 'Enregistrement...' 
-                        : produitToEdit 
-                          ? 'Modifier' 
+                      {isLoading
+                        ? 'Enregistrement...'
+                        : produitToEdit
+                          ? 'Modifier'
                           : 'Créer'
                       }
                     </button>
@@ -647,9 +647,9 @@ export function ModalAjoutProduitNew({
                 <form onSubmit={handleStockSubmit} className="space-y-5">
                   {/* Type de mouvement */}
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">Type de mouvement</label>
+                    <label className="block text-sm font-medium text-white mb-2">Type de mouvement</label>
                     <div className="grid grid-cols-2 gap-3">
-                      <label className="flex items-center p-3 border border-sky-300/50 rounded-lg hover:bg-sky-50/50 cursor-pointer">
+                      <label className="flex items-center p-3 bg-white/80 border border-emerald-300/50 rounded-lg hover:bg-white/90 cursor-pointer transition-all">
                         <input
                           type="radio"
                           checked={stockForm.type_mouvement === 'ENTREE'}
@@ -661,7 +661,7 @@ export function ModalAjoutProduitNew({
                           <span className="font-medium text-green-700">Entrée</span>
                         </div>
                       </label>
-                      <label className="flex items-center p-3 border border-sky-300/50 rounded-lg hover:bg-sky-50/50 cursor-pointer">
+                      <label className="flex items-center p-3 bg-white/80 border border-red-300/50 rounded-lg hover:bg-white/90 cursor-pointer transition-all">
                         <input
                           type="radio"
                           checked={stockForm.type_mouvement === 'SORTIE'}
@@ -679,7 +679,7 @@ export function ModalAjoutProduitNew({
                   {/* Quantité et Prix - Grille horizontale 2x1 */}
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-2">
+                      <label className="block text-sm font-medium text-white mb-2">
                         Quantité *
                       </label>
                       <input
@@ -692,7 +692,7 @@ export function ModalAjoutProduitNew({
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-2">
+                      <label className="block text-sm font-medium text-white mb-2">
                         Prix unitaire (FCFA) *
                       </label>
                       <input
@@ -709,7 +709,7 @@ export function ModalAjoutProduitNew({
 
                   {/* Description */}
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                    <label className="block text-sm font-medium text-white mb-2">
                       Description (optionnelle)
                     </label>
                     <textarea
@@ -733,11 +733,11 @@ export function ModalAjoutProduitNew({
                     </div>
                   )}
 
-                  {/* Bouton de soumission */}
+                  {/* Bouton de soumission - Style harmonisé */}
                   <button
                     type="submit"
                     disabled={isLoadingStock || stockForm.quantite <= 0 || stockForm.prix_unitaire <= 0}
-                    className="w-full px-4 py-3 bg-gradient-to-r from-sky-500 to-blue-600 text-white rounded-xl hover:from-sky-600 hover:to-blue-700 transition-all font-medium flex items-center justify-center gap-2 disabled:opacity-50 shadow-lg hover:shadow-xl"
+                    className="w-full px-4 py-3 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white rounded-xl hover:from-emerald-600 hover:to-emerald-700 transition-all font-medium flex items-center justify-center gap-2 disabled:opacity-50 shadow-lg hover:shadow-xl"
                   >
                     {isLoadingStock ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
