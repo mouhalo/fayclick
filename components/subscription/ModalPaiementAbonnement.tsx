@@ -180,15 +180,12 @@ export default function ModalPaiementAbonnement({
 
       // Créer un PaymentContext fictif pour l'abonnement
       // La méthode createPayment() existante attend une structure "facture"
-      // Note: Numéro fictif adapté selon le wallet (OM nécessite 77/78)
-      const telFictif = method === 'OM' ? '221770000000' : '221000000000';
-
       const paymentContext: PaymentContext = {
         facture: {
           id_facture: 0, // Facture virtuelle pour abonnement
           num_facture: `ABO-${idStructure}-${Date.now()}`,
           nom_client: `Structure ${idStructure}`,
-          tel_client: telFictif,
+          tel_client: '221770000000', // Numéro fictif valide pour tous wallets
           nom_structure: `Abonnement ${formula.type}`,
           montant_total: formula.montant,
           montant_restant: formula.montant

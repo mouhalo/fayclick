@@ -140,6 +140,8 @@ class PaymentWalletService {
         montant: context.montant_acompte
       });
 
+      console.log('📤 Requête complète:', JSON.stringify(request, null, 2));
+
       const response = await fetch(`${this.API_BASE_URL}/add_payement`, {
         method: 'POST',
         headers: {
