@@ -30,7 +30,6 @@ import {
 } from '@/types/subscription.types';
 import {
   PaymentMethod,
-  PaymentContext,
   WALLET_CONFIG,
   formatAmount
 } from '@/types/payment-wallet';
@@ -41,6 +40,8 @@ interface ModalPaiementAbonnementProps {
   isOpen: boolean;
   onClose: () => void;
   idStructure: number;
+  nomStructure: string;
+  telStructure: string; // mobile_om ou mobile_wave
   onSuccess: () => void; // Callback après création abonnement réussie
   onError: (message: string) => void;
 }
@@ -63,6 +64,8 @@ export default function ModalPaiementAbonnement({
   isOpen,
   onClose,
   idStructure,
+  nomStructure,
+  telStructure,
   onSuccess,
   onError
 }: ModalPaiementAbonnementProps) {
@@ -178,26 +181,15 @@ export default function ModalPaiementAbonnement({
         method
       });
 
-      // Créer un PaymentContext fictif pour l'abonnement
-      // La méthode createPayment() existante attend une structure "facture"
-      const paymentContext: PaymentContext = {
-        facture: {
-          id_facture: 0, // Facture virtuelle pour abonnement
-          num_facture: `ABO-${idStructure}-${Date.now()}`,
-          nom_client: `Structure ${idStructure}`,
-          tel_client: '221770000000', // Numéro fictif valide pour tous wallets
-          nom_structure: `Abonnement ${formula.type}`,
-          montant_total: formula.montant,
-          montant_restant: formula.montant
-        },
-        montant_acompte: formula.montant
-      };
-
-      // Créer le paiement wallet avec la méthode existante
-      const paymentResponse = await paymentWalletService.createPayment(
-        method,
-        paymentContext
-      );
+      // Créer le paiement wallet avec la méthode DÉDIÉE aux abonnements
+      const paymentResponse = await paymentWalletService.createSubscriptionPaymentDirect({
+        idStructure,
+        typeAbonnement: formula.type,
+        montant: formula.montant,
+        methode: method,
+        nomStructure,
+        telStructure
+      });
 
       if (!paymentResponse || !paymentResponse.uuid) {
         throw new Error('Échec de la création du paiement');
