@@ -28,6 +28,7 @@ import {
 } from '@/types/subscription.types';
 import {
   PaymentMethod,
+  PaymentContext,
   WALLET_CONFIG,
   formatAmount
 } from '@/types/payment-wallet';
@@ -155,6 +156,7 @@ export default function ModalPaiementAbonnement({
 
   /**
    * Sélection d'une méthode de paiement et démarrage du workflow
+   * Utilise createPayment() existant avec un PaymentContext adapté pour abonnement
    */
   const handleSelectMethod = async (method: Exclude<PaymentMethod, 'CASH'>) => {
     setSelectedMethod(method);
@@ -173,13 +175,26 @@ export default function ModalPaiementAbonnement({
         method
       });
 
-      // Créer le paiement wallet
-      const paymentResponse = await paymentWalletService.createSubscriptionPayment({
-        idStructure,
-        typeAbonnement: formula.type,
-        montant: formula.montant,
-        methode: method
-      });
+      // Créer un PaymentContext fictif pour l'abonnement
+      // La méthode createPayment() existante attend une structure "facture"
+      const paymentContext: PaymentContext = {
+        facture: {
+          id_facture: 0, // Facture virtuelle pour abonnement
+          num_facture: `ABO-${idStructure}-${Date.now()}`,
+          nom_client: `Structure ${idStructure}`,
+          tel_client: '221000000000', // Numéro fictif
+          nom_structure: `Abonnement ${formula.type}`,
+          montant_total: formula.montant,
+          montant_restant: formula.montant
+        },
+        montant_acompte: formula.montant
+      };
+
+      // Créer le paiement wallet avec la méthode existante
+      const paymentResponse = await paymentWalletService.createPayment(
+        method,
+        paymentContext
+      );
 
       if (!paymentResponse || !paymentResponse.uuid) {
         throw new Error('Échec de la création du paiement');
@@ -189,8 +204,8 @@ export default function ModalPaiementAbonnement({
 
       // Stocker les infos de paiement
       setPaymentUuid(paymentResponse.uuid);
-      setQrCode(paymentResponse.qrCode);
-      setPaymentUrl(paymentResponse.payment_url || null);
+      setQrCode(paymentWalletService.formatQRCode(paymentResponse.qrCode));
+      setPaymentUrl(paymentWalletService.extractPaymentUrl(paymentResponse, method));
 
       // Passer à l'affichage du QR
       setModalState('SHOWING_QR');
