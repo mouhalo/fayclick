@@ -140,8 +140,6 @@ class PaymentWalletService {
         montant: context.montant_acompte
       });
 
-      console.log('📤 Requête complète:', JSON.stringify(request, null, 2));
-
       const response = await fetch(`${this.API_BASE_URL}/add_payement`, {
         method: 'POST',
         headers: {
@@ -442,21 +440,25 @@ class PaymentWalletService {
   }
 
   /**
-   * 🆕 Créer un paiement pour un abonnement
+   * 🆕 Créer un paiement pour un abonnement - MÉTHODE DÉDIÉE
+   *
+   * ⚠️ NE PAS UTILISER createPayment() pour éviter de casser les paiements de factures
    *
    * Workflow spécifique abonnements :
-   * - Contexte différent (pas de facture)
-   * - Référence unique pour abonnement
-   * - Pas de double protection (pas de factureId)
+   * - Pas de contexte facture (référence ABO-XXX)
+   * - Numéro téléphone valide (77XXXXXXX pour tous wallets)
+   * - Pas de gestion de session (pas de factureId)
    */
-  async createSubscriptionPayment(params: {
+  async createSubscriptionPaymentDirect(params: {
     idStructure: number;
     typeAbonnement: string;
     montant: number;
     methode: Exclude<PaymentMethod, 'CASH'>;
+    nomStructure: string;
+    telStructure: string;
   }): Promise<CreatePaymentResponse> {
     try {
-      console.log('💳 [SUBSCRIPTION-PAYMENT] Création paiement abonnement:', params);
+      console.log('💳 [SUBSCRIPTION] Création paiement abonnement:', params);
 
       // Générer référence unique pour l'abonnement
       const reference = `ABO-${params.idStructure}-${Date.now()}`;
@@ -466,25 +468,27 @@ class PaymentWalletService {
         pAppName: 'FAYCLICK',
         pMethode: params.methode,
         pReference: reference,
-        pClientTel: '221000000000', // Numéro fictif pour abonnement structure
+        pClientTel: params.telStructure, // Utiliser le vrai numéro de la structure
         pMontant: params.montant,
         pServiceName: WALLET_SERVICE_MAP[params.methode],
-        pNomClient: `Structure ${params.idStructure}`,
-        pnom_structure: `Abonnement ${params.typeAbonnement}`,
-        ref_all_facture: reference
+        pNomClient: params.nomStructure, // Vrai nom de la structure
+        pnom_structure: params.nomStructure, // Même nom pour cohérence
       };
 
-      console.log('📤 [SUBSCRIPTION-PAYMENT] Envoi requête API:', request);
+      console.log('📤 [SUBSCRIPTION] Requête complète:', JSON.stringify(request, null, 2));
 
-      const response = await fetch(`${this.API_BASE_URL}/create_payment`, {
+      const response = await fetch(`${this.API_BASE_URL}/add_payement`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'application/json'
         },
         body: JSON.stringify(request)
       });
 
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ [SUBSCRIPTION] Erreur API:', response.status, errorText);
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
@@ -494,16 +498,17 @@ class PaymentWalletService {
         throw new Error('UUID de paiement non reçu');
       }
 
-      console.log('✅ [SUBSCRIPTION-PAYMENT] Paiement créé:', {
+      console.log('✅ [SUBSCRIPTION] Paiement créé:', {
         uuid: data.uuid,
         reference,
-        montant: params.montant
+        montant: params.montant,
+        methode: params.methode
       });
 
       return data;
 
     } catch (error) {
-      console.error('❌ [SUBSCRIPTION-PAYMENT] Erreur création:', error);
+      console.error('❌ [SUBSCRIPTION] Erreur création paiement:', error);
       throw error;
     }
   }

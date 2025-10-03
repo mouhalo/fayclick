@@ -997,6 +997,8 @@ export default function StructureEditPage() {
             isOpen={showModalAbonnement}
             onClose={() => setShowModalAbonnement(false)}
             idStructure={user.id_structure}
+            nomStructure={structure.nom_structure}
+            telStructure={structure.mobile_om || structure.mobile_wave || ''}
             onSuccess={handleSubscriptionSuccess}
             onError={handleSubscriptionError}
           />
