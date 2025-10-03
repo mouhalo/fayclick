@@ -2,9 +2,8 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   // Configuration pour la production
-  // ⚠️ IMPORTANT: Utiliser 'standalone' pour les API Routes (upload logo)
-  // output: 'export', // ❌ Désactivé pour permettre les API Routes
-  output: 'standalone', // ✅ Mode serveur Node.js pour API Routes
+  // Mode export statique + Upload via API backend
+  output: 'export', // ✅ Génération statique (Apache/Nginx)
   trailingSlash: false, // Désactiver les slashes finaux pour les URLs de factures
   images: {
     unoptimized: true,

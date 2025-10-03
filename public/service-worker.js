@@ -1,6 +1,6 @@
 // Service Worker FayClick V2 - PWA Complète
 // Version: 2.5.0 - 2025-10-03 - Cache busting agressif sur logout
-// Build: 2025-10-03T14:01:00.780Z - Force upload fix for ftp-deploy size comparison bug
+// Build: 2025-10-03T14:09:28.889Z - Force upload fix for ftp-deploy size comparison bug
 
 const CACHE_NAME = 'fayclick-v2-cache-v2.5-20251003';
 const DYNAMIC_CACHE_NAME = 'fayclick-v2-dynamic-v2.5-20251003';
