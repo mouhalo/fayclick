@@ -47,18 +47,27 @@ export default function CarteProduit({ produit, index }: CarteProduitProps) {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: index * 0.05 }}
         onClick={() => setShowModal(true)}
-        className="relative bg-white/90 backdrop-blur-xl rounded-2xl shadow-xl border border-white/40 overflow-hidden hover:shadow-2xl hover:scale-[1.03] transition-all duration-300 group cursor-pointer"
+        className="relative overflow-hidden rounded-2xl shadow-xl hover:shadow-2xl hover:scale-[1.03] transition-all duration-300 group cursor-pointer"
       >
-        {/* Effet prismatique au hover */}
+        {/* Background glassmorphism multicouches */}
+        <div className="absolute inset-0 bg-gradient-to-br from-white/95 via-white/90 to-white/85 backdrop-blur-2xl" />
+
+        {/* Gradient vert/orange FayClick subtil */}
+        <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 via-transparent to-orange-500/5" />
+
+        {/* Bordure glassmorphe */}
+        <div className="absolute inset-0 rounded-2xl border border-white/60 shadow-inner" />
+
+        {/* Effet prismatique vert/orange au hover */}
         <motion.div
           className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
           style={{
-            background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, transparent 50%, rgba(147, 51, 234, 0.1) 100%)'
+            background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, transparent 50%, rgba(251, 146, 60, 0.1) 100%)'
           }}
         />
 
-        {/* Photo du produit - Plus grande */}
-        <div className="relative w-full aspect-square bg-gradient-to-br from-gray-50 to-gray-100 overflow-hidden">
+        {/* Photo du produit - Plus grande avec effet glassmorphe */}
+        <div className="relative w-full aspect-square bg-gradient-to-br from-emerald-50/50 via-white/30 to-orange-50/50 overflow-hidden backdrop-blur-sm">
           {photoUrl ? (
             <Image
               src={photoUrl}
@@ -70,15 +79,15 @@ export default function CarteProduit({ produit, index }: CarteProduitProps) {
               }}
             />
           ) : (
-            <div className="w-full h-full flex items-center justify-center">
-              <Package className="w-20 h-20 text-gray-300" />
+            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-emerald-100/40 via-white/50 to-orange-100/40">
+              <Package className="w-20 h-20 text-emerald-300" />
             </div>
           )}
 
-          {/* Overlay gradient pour meilleure lisibilité */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+          {/* Overlay gradient glassmorphe au hover */}
+          <div className="absolute inset-0 bg-gradient-to-t from-emerald-900/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 backdrop-blur-[2px]" />
 
-          {/* Badge catégorie */}
+          {/* Badge catégorie glassmorphe */}
           {produit.nom_categorie && (
             <motion.div
               initial={{ x: 50, opacity: 0 }}
@@ -86,13 +95,13 @@ export default function CarteProduit({ produit, index }: CarteProduitProps) {
               transition={{ delay: index * 0.05 + 0.1 }}
               className="absolute top-3 right-3"
             >
-              <span className="inline-flex px-3 py-1.5 rounded-full text-xs font-semibold bg-blue-500/95 text-white backdrop-blur-md shadow-lg border border-blue-400/30">
+              <span className="inline-flex px-3 py-1.5 rounded-full text-xs font-semibold bg-gradient-to-br from-emerald-500/95 to-emerald-600/95 text-white backdrop-blur-md shadow-lg border border-emerald-400/40">
                 {produit.nom_categorie}
               </span>
             </motion.div>
           )}
 
-          {/* Indicateur photos multiples */}
+          {/* Indicateur photos multiples glassmorphe */}
           {produit.nombre_photos > 1 && (
             <motion.div
               initial={{ x: -50, opacity: 0 }}
@@ -100,7 +109,7 @@ export default function CarteProduit({ produit, index }: CarteProduitProps) {
               transition={{ delay: index * 0.05 + 0.1 }}
               className="absolute top-3 left-3"
             >
-              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-white/95 text-gray-700 backdrop-blur-md shadow-lg border border-white/40">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-white/95 text-gray-700 backdrop-blur-md shadow-lg border border-white/50 ring-1 ring-emerald-500/10">
                 <span>📷</span>
                 <span>{produit.nombre_photos}</span>
               </span>
@@ -110,20 +119,39 @@ export default function CarteProduit({ produit, index }: CarteProduitProps) {
 
         {/* Contenu de la carte - Plus compact et élégant */}
         <div className="p-4 space-y-3 relative z-10">
-          {/* Prix en évidence */}
-          <div className="flex items-center justify-between">
-            <div className="flex-1 min-w-0">
-              <motion.div
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: index * 0.05 + 0.2 }}
-                className="inline-flex items-baseline gap-2"
-              >
-                <span className="text-2xl font-bold bg-gradient-to-r from-emerald-600 to-emerald-500 bg-clip-text text-transparent">
-                  {formatPrix(produit.prix_vente)}
-                </span>
-              </motion.div>
-            </div>
+          {/* Prix et Stock en grille 2x1 */}
+          <div className="grid grid-cols-2 gap-3">
+            {/* Prix */}
+            <motion.div
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: index * 0.05 + 0.2 }}
+              className="flex flex-col"
+            >
+              <span className="text-xs text-gray-500 font-medium mb-1">Prix</span>
+              <span className="text-xl font-bold bg-gradient-to-r from-emerald-600 to-emerald-500 bg-clip-text text-transparent">
+                {formatPrix(produit.prix_vente)}
+              </span>
+            </motion.div>
+
+            {/* Stock */}
+            <motion.div
+              initial={{ opacity: 0, x: 10 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: index * 0.05 + 0.25 }}
+              className="flex flex-col"
+            >
+              <span className="text-xs text-gray-500 font-medium mb-1">Stock</span>
+              <span className={`text-xl font-bold ${
+                produit.stock_disponible > 10
+                  ? 'text-emerald-600'
+                  : produit.stock_disponible > 0
+                    ? 'text-orange-600'
+                    : 'text-red-600'
+              }`}>
+                {produit.stock_disponible}
+              </span>
+            </motion.div>
           </div>
 
           {/* Nom du produit */}
@@ -159,17 +187,21 @@ export default function CarteProduit({ produit, index }: CarteProduitProps) {
           </motion.div>
         </div>
 
-        {/* Effet de brillance au hover */}
+        {/* Effet de brillance glassmorphe au hover - Vert/Orange FayClick */}
         <motion.div
-          className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
+          className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
           style={{
-            transform: 'translateX(-100%) rotate(45deg)',
+            background: 'linear-gradient(90deg, transparent, rgba(16, 185, 129, 0.15), rgba(251, 146, 60, 0.1), transparent)',
+            transform: 'translateX(-100%) skewX(-20deg)',
           }}
           whileHover={{
             x: '200%',
-            transition: { duration: 0.6 }
+            transition: { duration: 0.8, ease: 'easeInOut' }
           }}
         />
+
+        {/* Reflet lumineux subtil au repos */}
+        <div className="absolute inset-0 bg-gradient-to-br from-white/20 via-transparent to-transparent opacity-50 pointer-events-none" />
       </motion.div>
 
     {/* Modal Carrousel Premium */}

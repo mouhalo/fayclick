@@ -1071,7 +1071,7 @@ export class ProduitsService {
       }
 
       const query = `
-        DELETE FROM photos_produits
+        DELETE FROM produit_photos
         WHERE id_photo = ${id_photo}
           AND id_structure = ${user.id_structure}
       `;
@@ -1165,7 +1165,7 @@ export class ProduitsService {
             url_photo,
             ordre,
             created_at
-          FROM photos_produits
+          FROM produit_photos
           WHERE id_produit = ${produit.id_produit}
           ORDER BY ordre ASC, created_at ASC
           LIMIT 6

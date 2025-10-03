@@ -50,13 +50,15 @@ export default function LogoUpload({
 
     try {
       // Mode Register : Upload FTP uniquement (sans sauvegarde BD)
-      // Mode normal : Upload FTP + Sauvegarde BD
+      // Mode normal : Upload FTP + Sauvegarde BD (seulement pour les logos)
+      // Pour les photos produits : uploadLogoOnly car la sauvegarde BD se fait via produitsService.addEditPhoto()
       const result = registerMode
-        ? await logoUploadSimpleService.uploadLogoOnly(file, progressCallback)
+        ? await logoUploadSimpleService.uploadLogoOnly(file, progressCallback, uploadType)
         : await logoUploadSimpleService.uploadLogo(
             file,
             structure!.id_structure,
-            progressCallback
+            progressCallback,
+            uploadType
           );
 
       if (result.success) {
