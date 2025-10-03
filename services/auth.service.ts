@@ -1,9 +1,9 @@
-import { LoginCredentials, LoginResponse, User, StructureDetails, UserPermissions, CompleteAuthData } from '@/types/auth';
+import { LoginCredentials, LoginResponse, User, StructureDetails, UserPermissions, CompleteAuthData, UserRights } from '@/types/auth';
 import DatabaseService from './database.service';
 import SecurityService from './security.service';
 import SMSService from './sms.service';
 import { extractSingleDataFromResult } from '@/utils/dataExtractor';
-import { createUserPermissions } from '@/utils/permissions';
+import { createUserPermissions, parseUserRights } from '@/utils/permissions';
 import { type UserCredentialsResult } from '@/types';
 
 // Classe pour gérer les erreurs API
@@ -84,31 +84,95 @@ export class AuthService {
     return createUserPermissions(user, structure);
   }
 
-  // Méthode de connexion complète avec structure et permissions
+  // 🆕 Méthode pour récupérer les droits utilisateur depuis PostgreSQL
+  async fetchUserRights(id_structure: number, id_profil: number): Promise<UserRights> {
+    try {
+      console.log('🔑 [AUTH] Récupération droits utilisateur:', { id_structure, id_profil });
+
+      const database = (await import('./database.service')).default;
+      const results = await database.getUserRights(id_structure, id_profil);
+
+      if (!results || results.length === 0) {
+        console.warn('⚠️ [AUTH] Aucun droit trouvé, utilisation droits par défaut');
+        return {
+          id_profil,
+          profil: 'UNKNOWN',
+          fonctionnalites: [],
+          _index: {}
+        };
+      }
+
+      // Extraire les données (peut être dans get_mes_droits ou directement le résultat)
+      const rawData = results[0];
+      let rightsData = rawData;
+
+      // Si le résultat est encapsulé dans une propriété get_mes_droits
+      if (typeof rawData === 'object' && 'get_mes_droits' in rawData) {
+        rightsData = rawData.get_mes_droits;
+      }
+
+      // Si c'est une chaîne JSON, la parser
+      if (typeof rightsData === 'string') {
+        rightsData = JSON.parse(rightsData);
+      }
+
+      // Parser et transformer les données
+      const userRights = parseUserRights(rightsData);
+
+      console.log('✅ [AUTH] Droits utilisateur récupérés:', {
+        profil: userRights.profil,
+        nb_fonctionnalites: userRights.fonctionnalites.length
+      });
+
+      return userRights;
+
+    } catch (error) {
+      console.error('❌ [AUTH] Erreur récupération droits:', error);
+
+      // Retourner des droits par défaut sécuritaires en cas d'erreur
+      return {
+        id_profil,
+        profil: 'ERROR',
+        fonctionnalites: [],
+        _index: {}
+      };
+    }
+  }
+
+  // Méthode de connexion complète avec structure, permissions et droits
   async completeLogin(credentials: LoginCredentials): Promise<CompleteAuthData> {
     try {
       console.log('🔐 [AUTH] Connexion complète démarrée');
-      
+
       // 1. Vérification des identifiants
       const loginResult = await this.login(credentials);
-      
+
       // 2. Récupération des détails de structure
       const structure = await this.fetchStructureDetails(loginResult.user.id_structure);
-      
-      // 3. Calcul des permissions
+
+      // 3. Calcul des permissions (ancien système - garder pour compatibilité)
       const permissions = this.getUserPermissions(loginResult.user, structure);
-      
+
+      // 4. 🆕 Récupération des droits depuis PostgreSQL
+      const rights = await this.fetchUserRights(
+        loginResult.user.id_structure,
+        loginResult.user.id_profil
+      );
+
       const completeData: CompleteAuthData = {
         user: loginResult.user,
         structure,
         permissions,
+        rights, // 🆕 Ajout des droits
         token: loginResult.token
       };
 
       console.log('✅ [AUTH] Connexion complète réussie:', {
         user: completeData.user.login,
         structure: completeData.structure.nom_structure,
-        permissions: completeData.permissions.permissions.length
+        permissions: completeData.permissions.permissions.length,
+        droits_profil: completeData.rights.profil,
+        nb_fonctionnalites: completeData.rights.fonctionnalites.length
       });
 
       return completeData;
@@ -324,10 +388,10 @@ export class AuthService {
     try {
       // Sauvegarder le token
       this.saveToken(authData.token);
-      
+
       // Sauvegarder les données utilisateur
       this.saveUser(authData.user);
-      
+
       // Sauvegarder les détails de structure
       const structureKey = SecurityService.generateStorageKey('fayclick_structure');
       localStorage.setItem(structureKey, JSON.stringify({
@@ -335,7 +399,7 @@ export class AuthService {
         timestamp: Date.now(),
         signature: SecurityService.generateDataSignature(authData.structure)
       }));
-      
+
       // Sauvegarder les permissions
       const permissionsKey = SecurityService.generateStorageKey('fayclick_permissions');
       localStorage.setItem(permissionsKey, JSON.stringify({
@@ -343,8 +407,16 @@ export class AuthService {
         timestamp: Date.now(),
         signature: SecurityService.generateDataSignature(authData.permissions)
       }));
-      
-      console.log('✅ [AUTH] Données complètes sauvegardées');
+
+      // 🆕 Sauvegarder les droits
+      const rightsKey = SecurityService.generateStorageKey('fayclick_rights');
+      localStorage.setItem(rightsKey, JSON.stringify({
+        data: authData.rights,
+        timestamp: Date.now(),
+        signature: SecurityService.generateDataSignature(authData.rights)
+      }));
+
+      console.log('✅ [AUTH] Données complètes sauvegardées (user, structure, permissions, rights)');
 
     } catch (error) {
       console.error('❌ [AUTH] Erreur sauvegarde données complètes:', error);
@@ -382,22 +454,47 @@ export class AuthService {
     try {
       const permissionsKey = SecurityService.generateStorageKey('fayclick_permissions');
       const stored = localStorage.getItem(permissionsKey);
-      
+
       if (!stored) return null;
-      
+
       const parsedData = JSON.parse(stored);
-      
+
       // Vérifier l'intégrité des données
       if (!SecurityService.verifyDataSignature(parsedData.data, parsedData.signature)) {
         console.warn('⚠️ [AUTH] Signature permissions invalide, suppression');
         localStorage.removeItem(permissionsKey);
         return null;
       }
-      
+
       return parsedData.data as UserPermissions;
-      
+
     } catch (error) {
       console.error('❌ [AUTH] Erreur récupération permissions:', error);
+      return null;
+    }
+  }
+
+  // 🆕 Récupérer les droits depuis localStorage
+  getUserRightsFromStorage(): UserRights | null {
+    try {
+      const rightsKey = SecurityService.generateStorageKey('fayclick_rights');
+      const stored = localStorage.getItem(rightsKey);
+
+      if (!stored) return null;
+
+      const parsedData = JSON.parse(stored);
+
+      // Vérifier l'intégrité des données
+      if (!SecurityService.verifyDataSignature(parsedData.data, parsedData.signature)) {
+        console.warn('⚠️ [AUTH] Signature droits invalide, suppression');
+        localStorage.removeItem(rightsKey);
+        return null;
+      }
+
+      return parsedData.data as UserRights;
+
+    } catch (error) {
+      console.error('❌ [AUTH] Erreur récupération droits:', error);
       return null;
     }
   }
@@ -408,19 +505,21 @@ export class AuthService {
       const user = this.getUser();
       const structure = this.getStructureDetails();
       const permissions = this.getUserPermissionsFromStorage();
+      const rights = this.getUserRightsFromStorage(); // 🆕
       const token = this.getToken();
-      
-      if (!user || !structure || !permissions || !token) {
+
+      if (!user || !structure || !permissions || !rights || !token) {
         return null;
       }
-      
+
       return {
         user,
         structure,
         permissions,
+        rights, // 🆕
         token
       };
-      
+
     } catch (error) {
       console.error('❌ [AUTH] Erreur récupération données complètes:', error);
       return null;
@@ -430,16 +529,18 @@ export class AuthService {
   // Nettoyer toutes les données de session
   clearSession(): void {
     SecurityService.secureLog('log', 'Nettoyage session utilisateur');
-    
+
     this.removeToken();
     this.removeUser();
-    
+
     // Supprimer les nouvelles données
     const structureKey = SecurityService.generateStorageKey('fayclick_structure');
     const permissionsKey = SecurityService.generateStorageKey('fayclick_permissions');
+    const rightsKey = SecurityService.generateStorageKey('fayclick_rights'); // 🆕
     localStorage.removeItem(structureKey);
     localStorage.removeItem(permissionsKey);
-    
+    localStorage.removeItem(rightsKey); // 🆕
+
     // Nettoyer toutes les données sensibles
     SecurityService.clearSensitiveStorage();
   }

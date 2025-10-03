@@ -30,6 +30,7 @@ import PopMessage from '@/components/ui/PopMessage';
 import { StructureDetails, CompleteAuthData } from '@/types/auth';
 import LogoUpload from '@/components/ui/LogoUpload';
 import { UploadResult, UploadProgress } from '@/types/upload.types';
+import UsersManagement from '@/components/settings/UsersManagement';
 
 interface StructureData {
   id_structure: number;
@@ -153,12 +154,6 @@ export default function StructureEditPage() {
     fileName: '',
     uploadProgress: 0
   });
-
-  const mockUsers = [
-    { id: 'AD', name: 'Aminata Diallo', role: 'GÉRANT PRINCIPAL', phone: '77 123 45 67', access: 'Accès complet', created: '15/01/2025', isMain: true },
-    { id: 'MF', name: 'Moussa Fall', role: 'CAISSIER', phone: '70 987 65 43', access: 'Ventes uniquement', created: '20/01/2025', isMain: false },
-    { id: 'FK', name: 'Fatou Kane', role: 'CAISSIER', phone: '76 456 78 90', access: 'Ventes uniquement', created: '22/01/2025', isMain: false }
-  ];
 
   const mockSubscriptions = [
     { period: 'Janvier 2025', amount: 15000, status: 'Payé', date: '01/01/2025' },
@@ -337,6 +332,20 @@ export default function StructureEditPage() {
 
   const handleLogoUploadComplete = (result: UploadResult) => {
     if (result.success && result.url) {
+      // Vérifier que l'URL n'est PAS une data URL
+      if (result.url.startsWith('data:')) {
+        console.error('❌ [SETTINGS] URL est une data URL (upload serveur a échoué)');
+        alert('Erreur: L\'upload vers le serveur a échoué. Veuillez réessayer.');
+        return;
+      }
+
+      // Vérifier que l'URL est bien une URL HTTP(S)
+      if (!result.url.startsWith('http://') && !result.url.startsWith('https://')) {
+        console.error('❌ [SETTINGS] URL invalide:', result.url);
+        alert('Erreur: URL de l\'image invalide. Veuillez réessayer.');
+        return;
+      }
+
       setStructure(prev => ({ ...prev, logo: result.url! }));
       setLogoUploadState({
         isUploaded: true,
@@ -363,6 +372,11 @@ export default function StructureEditPage() {
 
   const showMessage = (type: 'success' | 'error' | 'warning' | 'info', message: string, title?: string) => {
     setPopMessage({ show: true, type, title, message });
+  };
+
+  // Fonction wrapper pour les composants enfants (utilisée par UsersManagement)
+  const showPopMessage = (message: string, type: 'success' | 'error' | 'warning' | 'info') => {
+    showMessage(type, message);
   };
 
   const hasChanges = originalStructure && (
@@ -722,73 +736,7 @@ export default function StructureEditPage() {
 
               {/* Onglet Gestion utilisateurs */}
               {activeTab === 'users' && (
-                <div className="space-y-6">
-                  {mockUsers.map((user, index) => (
-                    <motion.div 
-                      key={user.id}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: index * 0.1 }}
-                      className={`p-4 rounded-xl border-2 ${
-                        user.isMain 
-                          ? 'bg-gradient-to-r from-green-50 to-emerald-50 border-green-300' 
-                          : 'bg-white border-gray-200 hover:border-gray-300'
-                      } transition-all duration-200`}
-                    >
-                      <div className="flex items-center gap-4">
-                        <div className={`w-12 h-12 rounded-full flex items-center justify-center text-white font-bold ${
-                          user.isMain ? 'bg-gradient-to-br from-green-500 to-emerald-600' : 'bg-gray-400'
-                        }`}>
-                          {user.id}
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <h3 className="font-bold text-gray-900">{user.name}</h3>
-                            {user.isMain && (
-                              <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs font-semibold rounded-full">
-                                Principal
-                              </span>
-                            )}
-                          </div>
-                          <p className="text-sm font-medium text-gray-600">{user.role}</p>
-                          <div className="flex flex-wrap items-center gap-3 text-sm text-gray-500 mt-2">
-                            <span className="flex items-center gap-1">
-                              <Phone className="h-3 w-3" />
-                              {user.phone}
-                            </span>
-                            <span className="flex items-center gap-1">
-                              <Shield className="h-3 w-3" />
-                              {user.access}
-                            </span>
-                            <span className="text-xs">Créé le {user.created}</span>
-                          </div>
-                        </div>
-                        <div className="flex gap-2">
-                          <button className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
-                            <Edit3 className="h-4 w-4" />
-                          </button>
-                          {!user.isMain && (
-                            <button className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors">
-                              <X className="h-4 w-4" />
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    </motion.div>
-                  ))}
-                  
-                  <motion.button 
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 0.4 }}
-                    className="w-full p-4 border-2 border-dashed border-gray-300 rounded-xl hover:border-green-400 hover:bg-green-50 transition-all duration-200 group"
-                  >
-                    <div className="flex items-center justify-center gap-2 text-gray-500 group-hover:text-green-600">
-                      <Users className="h-5 w-5" />
-                      <span className="font-medium">Ajouter un utilisateur</span>
-                    </div>
-                  </motion.button>
-                </div>
+                <UsersManagement onShowMessage={showPopMessage} />
               )}
 
               {/* Onglet Règles ventes */}

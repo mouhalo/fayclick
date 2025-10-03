@@ -1,6 +1,6 @@
 /**
  * Service pour récupérer le catalogue public de produits (sans authentification)
- * Inspiré de facture-publique.service.ts
+ * Inspiré de recu.service.ts avec requêtes SQL directes
  */
 
 export class CataloguePublicException extends Error {
@@ -22,6 +22,7 @@ class CataloguePublicService {
 
   /**
    * Récupère les produits publics d'une structure par son nom
+   * Utilise la fonction PostgreSQL get_produits_by_structure_name
    * @param nomStructure Nom de la structure (ex: 'SYLVIACOM')
    */
   async getProduitsPublics(nomStructure: string): Promise<unknown> {
@@ -36,25 +37,23 @@ class CataloguePublicService {
         throw new CataloguePublicException('Nom de structure invalide', 400);
       }
 
-      console.log('🔍 Appel DB catalogue public:', {
-        nomStructure
-      });
+      console.log('🔍 [CATALOGUE PUBLIC] Appel fonction PostgreSQL pour:', nomStructure);
 
       // Import dynamique du service database
       const database = (await import('./database.service')).default;
 
-      // Appel à la fonction PostgreSQL get_produits_by_structure_name
-      const query = `SELECT * FROM get_produits_by_structure_name('${nomStructure}')`;
+      // Appel de la fonction PostgreSQL qui retourne tout le JSON
+      const query = `SELECT * FROM get_produits_by_structure_name('${nomStructure.replace(/'/g, "''")}')`;
       const data = await database.query(query);
 
-      console.log('📦 Données catalogue reçues:', JSON.stringify(data, null, 2).substring(0, 500));
+      console.log('📦 [CATALOGUE PUBLIC] Données brutes reçues:', JSON.stringify(data, null, 2).substring(0, 500));
 
       // Vérifier si la requête a retourné des données
       if (!data || (Array.isArray(data) && data.length === 0)) {
         throw new CataloguePublicException('Structure introuvable ou aucun produit disponible', 404);
       }
 
-      // Parser les données retournées
+      // Parser les données retournées (la fonction retourne un JSON dans la première ligne)
       let catalogueData;
 
       if (Array.isArray(data) && data.length > 0) {
@@ -71,13 +70,14 @@ class CataloguePublicService {
         try {
           catalogueData = JSON.parse(catalogueData);
         } catch (e) {
-          console.error('Erreur parsing JSON:', e);
+          console.error('❌ [CATALOGUE PUBLIC] Erreur parsing JSON:', e);
+          throw new CataloguePublicException('Format de données invalide', 500);
         }
       }
 
       // Validation de la structure de réponse
       if (!catalogueData || typeof catalogueData !== 'object') {
-        console.error('❌ Structure de données invalide:', catalogueData);
+        console.error('❌ [CATALOGUE PUBLIC] Structure de données invalide:', catalogueData);
         throw new CataloguePublicException('Format de données invalide', 500);
       }
 
@@ -89,7 +89,7 @@ class CataloguePublicService {
         );
       }
 
-      console.log('✅ Catalogue récupéré:', {
+      console.log('✅ [CATALOGUE PUBLIC] Catalogue récupéré:', {
         nom_structure: catalogueData.nom_structure,
         total_produits: catalogueData.total_produits,
         data_length: catalogueData.data?.length
@@ -98,7 +98,7 @@ class CataloguePublicService {
       return catalogueData;
 
     } catch (error) {
-      console.error('❌ Erreur récupération catalogue public:', error);
+      console.error('❌ [CATALOGUE PUBLIC] Erreur:', error);
 
       if (error instanceof CataloguePublicException) {
         throw error;

@@ -94,29 +94,41 @@ export interface ClientDetailComplet extends Omit<ClientWithStats, 'factures'> {
   anciennete_texte: string; // "2 ans, 3 mois"
 }
 
-// Interfaces pour les réponses API
+// Interfaces pour les réponses API - Correspondant EXACTEMENT à la fonction PostgreSQL
+export interface ClientTop {
+  nom_client: string;
+  tel_client: string;
+  montant_total?: number;
+  nombre_factures?: number;
+}
+
 export interface StatistiquesGlobales {
   nombre_total_clients: number;
+  clients_nouveaux_aujourd_hui: number;
+  clients_modifies_aujourd_hui: number;
+  total_factures_structure: number;
   montant_total_structure: number;
   montant_paye_structure: number;
   montant_impaye_structure: number;
-  nombre_clients_actifs: number;
-  nombre_clients_inactifs: number;
-  taux_recouvrement_global: number;
+  factures_payees_structure: number;
+  factures_impayees_structure: number;
+  client_top_montant: ClientTop | null;
+  client_top_factures: ClientTop | null;
 }
 
 export interface ClientsApiResponse {
   success: boolean;
   structure_id: number;
   clients: ClientWithStats[];
-  statistiques_globales: StatistiquesGlobales;
+  statistiques_globales: StatistiquesGlobales | null;
+  filtre_telephone: string | null;
   timestamp_generation: string;
 }
 
 // Pour la création/édition de clients
 export interface AddEditClientResponse {
   result_id_client: number;
-  result_nom_client: string;
+  result_nom_client: string; // ⚠️ Manquait dans l'interface
   result_tel_client: string;
   result_adresse: string;
   result_date_creation: string;
@@ -222,4 +234,52 @@ export function getStatutFactureBadgeColor(statut: FactureClient['statut_paiemen
     default:
       return 'bg-gray-500/20 text-gray-200 border-gray-400/30';
   }
+}
+
+// 🆕 Types pour la recherche de clients dans le panier
+export interface ClientSearchResponse {
+  success: boolean;
+  message: string;
+  id_structure: number;
+  total_clients: number;
+  filtre_telephone?: string;
+  data: Client[];
+}
+
+export interface ClientSearchResult {
+  found: boolean;
+  client?: Client;
+  message: string;
+}
+
+// Types pour la fonction check_one_client (recherche rapide optimisée)
+export interface CheckOneClientStats {
+  nombre_total_ventes: number;
+  montant_total_achats: number;
+  montant_paye: number;
+  montant_restant: number;
+  nombre_factures_payees: number;
+  nombre_factures_impayees: number;
+  pourcentage_paiement: number;
+  date_premiere_vente: string | null;
+  date_derniere_vente: string | null;
+}
+
+export interface CheckOneClientInfo {
+  nom_client: string;
+  tel_client: string;
+  adresse: string;
+  date_creation: string;
+  date_modification: string;
+}
+
+export interface CheckOneClientResponse {
+  success: boolean;
+  client_found?: boolean;
+  structure_id: number;
+  client?: CheckOneClientInfo;
+  statistiques?: CheckOneClientStats;
+  tel_client_recherche?: string;
+  timestamp_generation: string;
+  error?: string;
 }

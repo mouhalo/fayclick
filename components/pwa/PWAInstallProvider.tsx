@@ -8,6 +8,7 @@ import { InstallPromptModal } from './InstallPromptModal';
 // Pages publiques où on ne propose pas l'installation
 const PUBLIC_ROUTES = [
   '/facture',
+  '/catalogue',
   '/fay',
   '/login',
   '/register',

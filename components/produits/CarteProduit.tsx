@@ -82,12 +82,13 @@ export function CarteProduit({
 
   return (
     <motion.div
-      whileHover={{ 
-        y: -4, 
+      whileHover={{
+        y: -4,
         scale: 1.02,
         transition: { type: "spring" as const, stiffness: 300, damping: 20 }
       }}
-      className="bg-white/90 backdrop-blur-sm rounded-2xl p-5 shadow-lg shadow-black/10 hover:bg-white/95 hover:shadow-xl hover:shadow-black/20 transition-all duration-300 border border-gray-200/50 relative overflow-hidden"
+      onClick={() => onEdit(produit)}
+      className="bg-white/90 backdrop-blur-sm rounded-2xl p-5 shadow-lg shadow-black/10 hover:bg-white/95 hover:shadow-xl hover:shadow-black/20 transition-all duration-300 border border-gray-200/50 relative overflow-hidden cursor-pointer"
     >
       {/* Effet de brillance subtil */}
       <div className="absolute inset-0 bg-gradient-to-br from-emerald-50/30 via-transparent to-emerald-100/20 pointer-events-none" />
@@ -171,7 +172,10 @@ export function CarteProduit({
         <div className="flex items-center gap-4">
           <motion.button
             whileTap={{ scale: 0.9 }}
-            onClick={() => handleQuantityChange(quantity - 1)}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleQuantityChange(quantity - 1);
+            }}
             disabled={quantity <= 1}
             className="w-9 h-7 rounded-full border-2 border-gray-200 bg-white flex items-center justify-center hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-md"
           >
@@ -184,7 +188,10 @@ export function CarteProduit({
 
           <motion.button
             whileTap={{ scale: 0.9 }}
-            onClick={() => handleQuantityChange(quantity + 1)}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleQuantityChange(quantity + 1);
+            }}
             disabled={quantity >= niveauStock}
             className="w-7 h-10 rounded-full border-2 border-gray-200 bg-white flex items-center justify-center hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-md"
           >
@@ -198,28 +205,35 @@ export function CarteProduit({
           <motion.button
             whileTap={{ scale: 0.9 }}
             whileHover={{ rotate: 5 }}
+            onClick={(e) => e.stopPropagation()}
             className="w-12 h-12 bg-blue-500 text-white rounded-full flex items-center justify-center shadow-lg hover:bg-blue-600 transition-colors"
             title="QR Code"
           >
             <QrCode className="w-5 h-5" />
           </motion.button>
-          
+
           {/* Bouton Éditer */}
           <motion.button
             whileTap={{ scale: 0.9 }}
             whileHover={{ rotate: -5 }}
-            onClick={() => onEdit(produit)}
+            onClick={(e) => {
+              e.stopPropagation();
+              onEdit(produit);
+            }}
             className="w-12 h-12 bg-emerald-500 text-white rounded-full flex items-center justify-center shadow-lg hover:bg-emerald-600 transition-colors"
             title="Modifier"
           >
             <Edit className="w-5 h-5" />
           </motion.button>
-          
+
           {/* Bouton Supprimer */}
           <motion.button
             whileTap={{ scale: 0.9 }}
             whileHover={{ rotate: 5 }}
-            onClick={() => onDelete(produit)}
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete(produit);
+            }}
             className="w-12 h-12 bg-red-500 text-white rounded-full flex items-center justify-center shadow-lg hover:bg-red-600 transition-colors"
             title="Supprimer"
           >
@@ -232,7 +246,10 @@ export function CarteProduit({
       <motion.button
         whileHover={{ scale: 1.02, y: -1 }}
         whileTap={{ scale: 0.98 }}
-        onClick={handleAddToCart}
+        onClick={(e) => {
+          e.stopPropagation();
+          handleAddToCart();
+        }}
         disabled={niveauStock === 0 || quantity > niveauStock}
         className="w-full bg-emerald-500 text-white py-4 px-4 rounded-xl font-semibold text-lg hover:bg-emerald-600 transition-all duration-300 flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
       >
@@ -256,7 +273,7 @@ interface CarteProduitSkeletonProps {
   compactMode?: boolean;
 }
 
-export function CarteProduitSkeleton({ compactMode }: CarteProduitSkeletonProps) {
+export function CarteProduitSkeleton({  }: CarteProduitSkeletonProps) {
   return (
     <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 animate-pulse">
       {/* Header */}

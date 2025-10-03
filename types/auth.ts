@@ -115,18 +115,34 @@ export enum Permission {
 export interface UserPermissions {
   // Liste des permissions accordées
   permissions: Permission[];
-  
+
   // Méthodes d'aide pour vérifier les permissions
   canViewDashboard: boolean;
   canManageUsers: boolean;
   canAccessFinances: boolean;
   canExportData: boolean;
   canEditSettings: boolean;
-  
+
   // Permissions spécifiques selon le type de structure
   hasAdminAccess: boolean;
   hasManagerAccess: boolean;
   hasReadOnlyAccess: boolean;
+}
+
+// 🆕 Interface pour une fonctionnalité avec son autorisation (système PostgreSQL)
+export interface Functionality {
+  name: string;          // Ex: "AJOUTER FACTURE"
+  allowed: boolean;      // "oui" → true, "non" → false
+}
+
+// 🆕 Interface pour les droits utilisateur complets depuis get_mes_droits()
+export interface UserRights {
+  id_profil: number;
+  profil: string;        // Ex: "ADMIN"
+  fonctionnalites: Functionality[];
+
+  // Index pour accès rapide O(1)
+  _index?: Record<string, boolean>; // Cache pour performance
 }
 
 // Configuration des permissions par profil
@@ -144,6 +160,7 @@ export interface AuthState {
   user: User | null;
   structure: StructureDetails | null;
   permissions: UserPermissions | null;
+  rights: UserRights | null; // 🆕 Droits depuis PostgreSQL
   isAuthenticated: boolean;
   isLoading: boolean;
   isHydrated: boolean; // Pour gérer l'hydration depuis localStorage
@@ -155,6 +172,7 @@ export interface CompleteAuthData {
   user: User;
   structure: StructureDetails;
   permissions: UserPermissions;
+  rights: UserRights; // 🆕 Droits depuis PostgreSQL
   token: string;
 }
 

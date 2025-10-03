@@ -9,6 +9,7 @@ import { ArticlePanier } from '@/types/produit';
 
 // Interface pour les informations client
 export interface InfosClient {
+  id_client?: number; // 🆕 ID du client si existant (pour éviter les doublons en DB)
   nom_client_payeur?: string;
   tel_client?: string;
   description?: string;
@@ -57,6 +58,7 @@ export const usePanierStore = create<PanierStore>()(
       // État initial
       articles: [],
       infosClient: {
+        id_client: undefined, // Aucun client sélectionné par défaut
         nom_client_payeur: 'CLIENT_ANONYME',
         tel_client: '771234567'
       },
@@ -103,7 +105,22 @@ export const usePanierStore = create<PanierStore>()(
 
       removeArticle: (id_produit) => {
         const articles = get().articles.filter(a => a.id_produit !== id_produit);
-        set({ articles });
+
+        // Si le panier devient vide, réinitialiser aussi le client
+        if (articles.length === 0) {
+          set({
+            articles: [],
+            infosClient: {
+              id_client: undefined,
+              nom_client_payeur: 'CLIENT_ANONYME',
+              tel_client: '771234567'
+            },
+            remise: 0,
+            acompte: 0
+          });
+        } else {
+          set({ articles });
+        }
       },
 
       updateQuantity: (id_produit, quantity) => {
@@ -136,6 +153,7 @@ export const usePanierStore = create<PanierStore>()(
         set({
           articles: [],
           infosClient: {
+            id_client: undefined, // 🆕 Réinitialiser l'ID client
             nom_client_payeur: 'CLIENT_ANONYME',
             tel_client: '771234567'
           },

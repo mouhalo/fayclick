@@ -310,7 +310,7 @@ export default function LogoUpload({
 
             {/* Texte principal */}
             <h4 className="text-base md:text-lg font-medium text-gray-700 mb-2">
-              {uploadType === 'photo' ? 'Ajouter une photo' : 'Ajouter un logo'}
+              {uploadType === 'photo' ? 'Cliquer' : 'Cliquer'}
             </h4>
 
             {/* Formats acceptés */}
@@ -319,9 +319,7 @@ export default function LogoUpload({
             </p>
 
             {/* Instruction drag & drop */}
-            <div className="text-xs text-primary-600 opacity-70">
-              Cliquez ou glissez-déposez votre fichier
-            </div>
+           
           </div>
         )}
 
@@ -367,7 +365,7 @@ export default function LogoUpload({
       {/* Note informative */}
       <div className="mt-3 md:mt-4 text-xs text-gray-500 italic text-center">
         {uploadType === 'photo'
-          ? '💡 Optionnel : Ajoutez des photos pour présenter vos produits'
+          ? '💡 Optionnel : Ajoutez des photos'
           : '💡 Optionnel : Ajoutez le logo de votre commerce pour personnaliser vos factures'
         }
       </div>

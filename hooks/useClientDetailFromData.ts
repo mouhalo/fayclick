@@ -72,8 +72,9 @@ function createHistoriqueProduits(factures: FactureBrute[]): HistoriqueProduitCl
   });
 
   // Transformer en HistoriqueProduitClient[]
+  // ✅ Utiliser une clé unique basée sur le nom du produit + index pour éviter les doublons
   return Array.from(produitsMap.entries()).map(([nom_produit, data], index) => ({
-    id_produit: index + 1,
+    id_produit: index + 1, // Clé unique garantie par l'index
     nom_produit,
     quantite_totale: data.quantite_totale,
     montant_total: data.montant_total,
@@ -204,9 +205,9 @@ export function useClientDetailFromData(): UseClientDetailFromDataReturn {
   // Fonction utilitaire pour transformer ClientWithStats en ClientDetailComplet
   const transformClientWithStatsToDetailComplet = useCallback((clientWithStats: ClientWithStats): ClientDetailComplet => {
     // Transformer les factures PostgreSQL au format interface FactureClient
-    const facturesTransformees: FactureClient[] = (clientWithStats.factures || []).map(facture => ({
-      id_facture: facture.id_facture,
-      numero_facture: facture.num_facture,
+    const facturesTransformees: FactureClient[] = (clientWithStats.factures || []).map((facture, index) => ({
+      id_facture: facture.id_facture || index + 1, // Fallback si id_facture est vide
+      numero_facture: facture.num_facture || `FACTURE-${index + 1}`, // Fallback si num_facture est vide
       date_facture: facture.date_facture,
       montant_facture: facture.montant,
       statut_paiement: mapLibelleEtatToStatut(facture.libelle_etat),

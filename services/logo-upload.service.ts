@@ -176,7 +176,8 @@ class LogoUploadService implements ILogoUploadService {
   }
 
   /**
-   * Upload réel vers le serveur FTP via l'API route
+   * Upload réel vers le serveur via l'API backend
+   * Solution Senior : Détection environnement et upload direct backend en prod
    */
   private async uploadToServer(
     file: File,
@@ -184,38 +185,71 @@ class LogoUploadService implements ILogoUploadService {
     onProgress?: (progress: UploadProgress) => void
   ): Promise<string> {
     try {
-      // Préparation du FormData
+      // Détection environnement client-side (Next.js export statique n'a pas d'API routes)
+      const isProd = typeof window !== 'undefined' &&
+        (window.location.hostname.includes('fayclick.net') ||
+         window.location.hostname.includes('v2.fayclick'));
+
+      // En développement : retourner une data URL locale (pas d'upload serveur nécessaire)
+      if (!isProd) {
+        console.log('🔧 [LOGO-UPLOAD] Mode DEV - Utilisation data URL locale');
+        const dataUrl = await this.fileToDataUrl(file);
+        this.updateProgress(onProgress, 'uploading', 100, 'Upload local terminé!');
+        return dataUrl;
+      }
+
+      // En production : upload via l'API Route Next.js
       const formData = new FormData();
       formData.append('file', file);
       formData.append('filename', filename);
 
       this.updateProgress(onProgress, 'uploading', 70, 'Envoi vers le serveur...');
 
-      // Appel de l'API route pour l'upload FTP
-      const response = await fetch('/api/upload-logo', {
+      // Upload via l'API Route Next.js locale (fonctionne avec output: 'standalone')
+      const uploadUrl = '/api/upload-logo';
+      console.log('📤 [LOGO-UPLOAD] Upload via API Route:', uploadUrl);
+
+      const response = await fetch(uploadUrl, {
         method: 'POST',
-        body: formData
+        body: formData,
+        // Pas de Content-Type, le browser le définit automatiquement avec boundary
       });
 
       this.updateProgress(onProgress, 'uploading', 90, 'Finalisation...');
 
+      // Gestion améliorée des erreurs - vérifier le content-type
+      const contentType = response.headers.get('content-type');
+
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || `Erreur HTTP: ${response.status}`);
+        console.error(`❌ [LOGO-UPLOAD] Backend retourne ${response.status}`);
+        throw new Error(`Erreur serveur: ${response.status}. Veuillez réessayer.`);
       }
 
-      const result = await response.json();
+      // Parser la réponse JSON
+      let result;
+      try {
+        // Vérifier que c'est bien du JSON
+        if (!contentType || !contentType.includes('application/json')) {
+          console.error('❌ [LOGO-UPLOAD] Réponse non-JSON du backend');
+          throw new Error('Le serveur a retourné une réponse invalide. Veuillez réessayer.');
+        }
+        result = await response.json();
+      } catch (parseError) {
+        console.error('❌ [LOGO-UPLOAD] Erreur parsing réponse');
+        throw new Error('Impossible de lire la réponse du serveur. Veuillez réessayer.');
+      }
 
       if (!result.success || !result.url) {
-        throw new Error(result.error || 'Upload échoué');
+        console.error('❌ [LOGO-UPLOAD] Backend retourne erreur:', result.error);
+        throw new Error(result.error || 'Upload échoué. Veuillez réessayer.');
       }
 
-      this.updateProgress(onProgress, 'uploading', 100, 'Upload terminé!');
+      this.updateProgress(onProgress, 'uploading', 100, 'Upload backend terminé!');
 
-      console.log('✅ [LOGO-UPLOAD] Upload réel réussi:', {
+      console.log('✅ [LOGO-UPLOAD] Upload backend réussi:', {
         url: result.url,
-        filename: result.filename,
-        size: result.size
+        filename: result.filename || filename,
+        size: result.size || file.size
       });
 
       return result.url;

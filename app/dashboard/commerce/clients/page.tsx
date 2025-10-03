@@ -9,16 +9,15 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { 
-  Plus, 
-  RefreshCw,
+import {
+  Plus,
   Users,
   AlertCircle
 } from 'lucide-react';
 import { authService } from '@/services/auth.service';
 import { clientsService, ClientsApiException } from '@/services/clients.service';
 import { useClients, useClientsUI } from '@/hooks/useClients';
-import { ModalClientMultiOnglets } from '@/components/clients';
+import { ModalClientMultiOnglets, FilterHeaderClientsGlass } from '@/components/clients';
 import { useToast } from '@/components/ui/Toast';
 import { GlassHeader } from '@/components/ui/GlassHeader';
 import { GlassPagination, usePagination } from '@/components/ui/GlassPagination';
@@ -132,8 +131,15 @@ export default function ClientsCommercePage() {
   // Rechargement manuel
   const handleRefresh = async () => {
     setRefreshing(true);
+
+    // ✅ IMPORTANT : Vider le cache AVANT de recharger
+    clientsService.clearCache();
+    console.log('🧹 [CLIENTS COMMERCE] Cache vidé avant actualisation');
+
     await loadClients();
     setRefreshing(false);
+
+    console.log('✅ [CLIENTS COMMERCE] Actualisation terminée');
   };
 
   // Mise à jour hybride : client spécifique + statistiques globales
@@ -168,16 +174,7 @@ export default function ClientsCommercePage() {
     }
   }, [clients, setClients, setStatistiquesGlobales, loadClients]);
 
-  // Gestion de la recherche avec debouncing
-  const handleSearchChange = (value: string) => {
-    setSearchInput(value);
-    // Debouncing simple avec timeout
-    const timeoutId = setTimeout(() => {
-      setSearchTerm(value);
-      setCurrentPage(1); // Reset pagination
-    }, 300);
-    return () => clearTimeout(timeoutId);
-  };
+  // La gestion de la recherche avec debouncing est maintenant dans FilterHeaderClientsGlass
 
   // Ajouter un nouveau client
   const handleAddClient = () => {
@@ -204,29 +201,35 @@ export default function ClientsCommercePage() {
   };
 
   // Succès modal
-  const handleClientSuccess = (response: AddEditClientResponse) => {
+  const handleClientSuccess = async (response: AddEditClientResponse) => {
     const isCreation = response.result_action_effectuee === 'CREATION';
     
     console.log(
       isCreation 
-        ? `✅ Client ${response.result_nom_client} créé avec succès`
-        : `✅ Client ${response.result_nom_client} modifié avec succès`
+        ? `✅ Client ${response.result_tel_client} créé avec succès`
+        : `✅ Client ${response.result_tel_client} modifié avec succès`
     );
     
-    // Recharger la liste
-    loadClients();
+    // ✅ Vider le cache du service pour forcer le rechargement
+    clientsService.clearCache();
+    
+    // ✅ Recharger la liste (avec await pour garantir la mise à jour)
+    await loadClients();
+    
+    console.log('✅ [CLIENTS] Liste rechargée après', isCreation ? 'création' : 'modification');
   };
 
   // Component carte client
   const CarteClient = ({ clientWithStats }: { clientWithStats: ClientWithStats }) => {
     const { client, statistiques_factures } = clientWithStats;
     const hasImpayees = statistiques_factures.nombre_factures_impayees > 0;
-    
+
     return (
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-white/10 backdrop-blur-lg rounded-2xl p-4 border border-white/20 hover:bg-white/15 transition-all"
+        onClick={() => handleViewDetails(clientWithStats)}
+        className="bg-white/10 backdrop-blur-lg rounded-2xl p-4 border border-white/20 hover:bg-white/15 transition-all cursor-pointer"
       >
         {/* Header */}
         <div className="flex justify-between items-start mb-3">
@@ -276,17 +279,14 @@ export default function ClientsCommercePage() {
         
         {/* Actions */}
         <div className="flex gap-2">
-          <button 
-            onClick={() => handleViewDetails(clientWithStats)}
-            className="flex-1 py-2 bg-white/20 rounded-lg text-white text-sm hover:bg-white/30 transition-colors"
-          >
-            Détails
-          </button>
-          <button 
-            onClick={() => handleEditClient(clientWithStats)}
+          <button
+            onClick={(e) => {
+              e.stopPropagation(); // Empêche le clic sur la carte
+              handleEditClient(clientWithStats);
+            }}
             className="flex-1 py-2 bg-emerald-500/20 rounded-lg text-emerald-200 text-sm hover:bg-emerald-500/30 transition-colors"
           >
-            Modifier
+            ✏️ Modifier
           </button>
         </div>
       </motion.div>
@@ -314,35 +314,16 @@ export default function ClientsCommercePage() {
           showBackButton={true}
           backgroundGradient="bg-gradient-to-r from-green-800 via-yellow-700 to-red-600"
           filterContent={
-            <div className="space-y-4">
-              {/* Barre de recherche */}
-              <div className="relative">
-                <input
-                  type="text"
-                  value={searchInput}
-                  onChange={(e) => handleSearchChange(e.target.value)}
-                  placeholder="Rechercher un client..."
-                  className="w-full px-4 py-2 pl-10 bg-white/20 border border-white/30 rounded-xl focus:ring-2 focus:ring-emerald-400 text-white placeholder-white/60"
-                />
-                <Users className="absolute left-3 top-2.5 w-4 h-4 text-white/60" />
-              </div>
-
-              {/* Actions */}
-              <div className="flex items-center justify-between">
-                <button
-                  onClick={handleRefresh}
-                  disabled={refreshing}
-                  className="flex items-center gap-2 px-3 py-2 bg-white/20 rounded-lg text-white/80 hover:text-white"
-                >
-                  <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
-                  <span className="text-sm">Actualiser</span>
-                </button>
-
-                <div className="text-white/80 text-sm">
-                  {clientsFiltered.length} client{clientsFiltered.length > 1 ? 's' : ''}
-                </div>
-              </div>
-            </div>
+            <FilterHeaderClientsGlass
+              searchTerm={searchInput}
+              onSearchChange={(value) => {
+                setSearchInput(value);
+                setSearchTerm(value);
+                setCurrentPage(1);
+              }}
+              onRefresh={handleRefresh}
+              isRefreshing={refreshing}
+            />
           }
         />
 
