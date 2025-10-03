@@ -5,6 +5,7 @@ import ConditionalAuthProvider from '@/components/providers/ConditionalAuthProvi
 import { VersionProvider } from '@/contexts/VersionContext';
 import { PWAInstallProvider } from '@/components/pwa/PWAInstallProvider';
 import { LanguageProvider } from '@/contexts/LanguageContext';
+import { ServiceWorkerUpdateHandler } from '@/components/ServiceWorkerUpdateHandler';
 import { Toaster } from 'sonner';
 
 // Temporary fallback to system fonts for deployment
@@ -64,6 +65,7 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
       </head>
       <body className="font-inter antialiased min-h-screen">
+        <ServiceWorkerUpdateHandler />
         <LanguageProvider>
           <ConditionalAuthProvider>
             <VersionProvider autoCheck={true}>

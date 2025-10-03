@@ -4,6 +4,21 @@
 # SÉCURITÉ : Désactiver les listings de répertoire
 Options -Indexes
 
+# CACHE CONTROL : Forcer le rechargement des fichiers JS pour la mise à jour
+# Les fichiers JS critiques ne doivent PAS être cachés par le navigateur
+<FilesMatch "\.(js|json)$">
+  Header set Cache-Control "no-cache, no-store, must-revalidate, max-age=0"
+  Header set Pragma "no-cache"
+  Header set Expires "0"
+</FilesMatch>
+
+# Service Worker : toujours recharger
+<Files "service-worker.js">
+  Header set Cache-Control "no-cache, no-store, must-revalidate, max-age=0"
+  Header set Pragma "no-cache"
+  Header set Expires "0"
+</Files>
+
 # Activer le moteur de réécriture
 RewriteEngine On
 

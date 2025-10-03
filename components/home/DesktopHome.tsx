@@ -7,6 +7,7 @@ import { ReactElement } from 'react';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { useTranslations } from '@/hooks/useTranslations';
+import { VersionLabel } from '@/components/ui/VersionLabel';
 
 export default function DesktopHome() {
   const t = useTranslations('landing');
@@ -251,7 +252,7 @@ export default function DesktopHome() {
               <p className="mb-2">
                 {t('desktop.footer.copyright')}
               </p>
-              <p className="text-sm opacity-80">
+              <p className="text-sm opacity-80 mb-3">
                 {t('desktop.footer.developedBy')}{" "}
                 <a
                   href="https://icelabsoft.com"
@@ -262,6 +263,10 @@ export default function DesktopHome() {
                   IcelabSoft
                 </a>
               </p>
+              {/* Label de version */}
+              <div className="flex justify-center">
+                <VersionLabel variant="desktop" />
+              </div>
             </div>
           </div>
         </GlassCard>

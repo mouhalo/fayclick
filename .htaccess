@@ -41,9 +41,11 @@ Options -Indexes
   ExpiresByType image/gif "access plus 1 year"
   ExpiresByType image/png "access plus 1 year"
   ExpiresByType image/svg+xml "access plus 1 year"
-  ExpiresByType text/css "access plus 1 month"
-  ExpiresByType application/javascript "access plus 1 month"
-  ExpiresByType application/json "access plus 1 week"
+  # CRITICAL: No cache pour CSS/JS pour permettre mises à jour instantanées
+  ExpiresByType text/css "access plus 0 seconds"
+  ExpiresByType application/javascript "access plus 0 seconds"
+  ExpiresByType application/json "access plus 0 seconds"
+  ExpiresByType text/html "access plus 0 seconds"
 </IfModule>
 
 # Sécurité
@@ -52,6 +54,13 @@ Options -Indexes
   Header set X-Frame-Options "SAMEORIGIN"
   Header set X-XSS-Protection "1; mode=block"
   Header set Referrer-Policy "strict-origin-when-cross-origin"
+
+  # CRITICAL: Force no-cache pour JS/CSS/HTML (override expires)
+  <FilesMatch "\.(js|css|html|json)$">
+    Header set Cache-Control "no-cache, no-store, must-revalidate, max-age=0"
+    Header set Pragma "no-cache"
+    Header set Expires "0"
+  </FilesMatch>
 </IfModule>
 
 # Empêcher l'accès aux fichiers sensibles
