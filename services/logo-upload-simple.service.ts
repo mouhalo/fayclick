@@ -228,12 +228,12 @@ class LogoUploadSimpleService {
         (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
 
       // En dev : API Route Next.js locale
-      // En prod : API Backend (TODO: créer endpoint)
+      // En prod : Endpoint PHP sur v2.fayclick.net (pas de CORS)
       const uploadUrl = isLocalhost
         ? '/api/upload-logo'  // Next.js API Route (dev uniquement)
-        : 'https://api.icelabsoft.com/api/upload_logo'; // API Backend (prod)
+        : '/upload-logo.php'; // Endpoint PHP (même domaine, pas de CORS)
 
-      console.log('📤 [LOGO-SIMPLE] Upload vers:', isLocalhost ? 'API Route locale' : 'API Backend', uploadUrl);
+      console.log('📤 [LOGO-SIMPLE] Upload vers:', isLocalhost ? 'API Route locale' : 'Endpoint PHP', uploadUrl);
 
       const response = await fetch(uploadUrl, {
         method: 'POST',
