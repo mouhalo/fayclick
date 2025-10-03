@@ -31,6 +31,29 @@ import LogoUpload from '@/components/ui/LogoUpload';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { useTranslations } from '@/hooks/useTranslations';
 
+/**
+ * Nettoie une chaîne pour être compatible XML
+ * Remplace les caractères problématiques par leur équivalent sûr
+ */
+const sanitizeForXML = (str: string): string => {
+  if (!str) return '';
+
+  return str
+    // Remplacer les apostrophes typographiques et droites
+    .replace(/['']/g, ' ')
+    .replace(/["\"]/g, ' ')
+    // Remplacer les caractères de ponctuation problématiques
+    .replace(/[;:]/g, ' ')
+    .replace(/,/g, ' ')
+    // Remplacer les caractères spéciaux XML
+    .replace(/&/g, 'et')
+    .replace(/</g, ' ')
+    .replace(/>/g, ' ')
+    // Nettoyer les espaces multiples
+    .replace(/\s+/g, ' ')
+    .trim();
+};
+
 export default function RegisterPage() {
   const router = useRouter();
   const t = useTranslations('register');
@@ -286,10 +309,13 @@ export default function RegisterPage() {
     setError('');
 
     try {
+      // Nettoyer l'adresse pour éviter les problèmes XML
+      const cleanedAddress = sanitizeForXML(formData.address);
+
       const registrationData = {
         p_id_type: formData.structureTypeId,
         p_nom_structure: formData.businessName,
-        p_adresse: formData.address,
+        p_adresse: cleanedAddress,
         p_mobile_om: formData.phoneOM,
         p_mobile_wave: formData.phoneWave || '',
         p_nom_service: formData.serviceType || 'SERVICES',
