@@ -181,6 +181,8 @@ The project is in Phase 2 development with:
 - ✅ **PWA complète** avec Service Worker et installation intelligente
 - ✅ **Système de panier** avec recherche client intelligente
 - ✅ **Gestion des clients** avec fonction PostgreSQL get_list_clients()
+- ✅ **Gestion des abonnements** (MENSUEL/ANNUEL) avec paiement wallet
+- ✅ **Système de paiement wallet** (OM/WAVE/FREE) pour factures et abonnements
 
 ### Production Environment
 - **Live URL**: https://v2.fayclick.net
@@ -221,6 +223,8 @@ Tous les services suivent un pattern singleton avec gestion d'erreurs centralis�
 - **`produits.service.ts`** : Gestion produits/articles
 - **`facture.service.ts`** : Création/gestion factures
 - **`dashboard.service.ts`** : Statistiques par type de structure
+- **`subscription.service.ts`** : Gestion abonnements structures (MENSUEL/ANNUEL)
+- **`payment-wallet.service.ts`** : Paiements mobiles (OM/WAVE/FREE)
 
 ### PostgreSQL Functions Used
 ```sql
@@ -232,6 +236,12 @@ SELECT * FROM get_mes_droits(pid_structure, pid_profil);
 
 -- Structures
 SELECT * FROM list_structures WHERE id_structure = ?;
+
+-- Abonnements
+SELECT calculer_montant_abonnement(type, date_debut);
+SELECT add_abonnement_structure(id_structure, type, methode, ...);
+SELECT renouveler_abonnement(id_structure, type, methode);
+SELECT * FROM historique_abonnements_structure(id_structure, limite);
 ```
 
 ## Composants Clés
@@ -336,13 +346,111 @@ clearPanier() {
 - **Montants** : `toLocaleString('fr-FR')` + ' FCFA'
 - **Dates** : `toLocaleDateString('fr-FR')` avec format DD/MM/YYYY
 
+## Système de Paiement Wallet (OM/WAVE/FREE)
+
+### Architecture Séparée Factures vs Abonnements
+⚠️ **CRITIQUE** : Ne jamais mélanger les workflows factures et abonnements
+
+- **`payment-wallet.service.ts`** contient **2 méthodes distinctes** :
+  - `createPayment(method, context)` - Pour **factures** uniquement
+  - `createSubscriptionPaymentDirect(params)` - Pour **abonnements** uniquement
+
+### Spécificités Orange Money (OM)
+- **2 liens de paiement** (vs 1 pour WAVE/FREE) :
+  - `response.om` : Deeplink app Orange Money (📱 Ouvrir Orange Money)
+  - `response.maxit` : Lien web MaxIt (🌐 Payer via MaxIt Web)
+- **UI** : Afficher **2 boutons orange** avec gradients différenciés
+- **Validation stricte** : Numéro doit commencer par 77 ou 78
+
+### Contraintes Techniques Paiements
+- **Référence paiement** : Max **19 caractères** (ex: `ABO-139-1759523454`)
+  - Format : `ABO-{id_structure}-{timestamp_10digits}`
+  - Dépasser 19 caractères → HTTP 400 sur tous wallets
+- **Timeout polling** : 90s pour abonnements, 120s pour factures
+- **Endpoint API** : `/add_payement` (pas `/create_payment`)
+
+### Workflow Paiement Abonnement
+```typescript
+1. Utilisateur sélectionne MENSUEL/ANNUEL
+2. Sélection wallet (OM/WAVE/FREE)
+3. createSubscriptionPaymentDirect({
+     idStructure,
+     typeAbonnement,
+     montant,
+     methode,
+     nomStructure,    // Vrai nom depuis structure
+     telStructure     // mobile_om ou mobile_wave
+   })
+4. Affichage QR Code + liens paiement
+5. Polling statut (5s interval, 90s timeout)
+6. Si COMPLETED → createSubscription(uuid_paiement)
+7. Modal SUCCESS → callback onSuccess()
+```
+
+### Gestion QR Code & URLs
+```typescript
+// Extraction conditionnelle selon wallet
+if (method === 'OM') {
+  setOmDeeplink(response.om || null);
+  setMaxitUrl(response.maxit || null);
+  setPaymentUrl(null);
+} else {
+  setPaymentUrl(extractPaymentUrl(response, method));
+  setOmDeeplink(null);
+  setMaxitUrl(null);
+}
+```
+
+### Composants Paiement Wallet
+- **`ModalPaiementAbonnement.tsx`** : Paiement abonnements avec workflow complet
+- **`ModalPaiementQRCode.tsx`** : Paiement factures avec QR + polling
+- **QR Code dépliable** : Accordéon avec animation Framer Motion
+- **Dual buttons OM** : App + Web pour Orange Money uniquement
+
+## Système d'Abonnements Structures
+
+### Formules Disponibles
+- **MENSUEL** : Calcul dynamique selon jours du mois (28-31 jours × 100 FCFA)
+- **ANNUEL** : Somme 12 mois - 120 FCFA de réduction (10 FCFA/mois économie)
+
+### Workflow Abonnement Complet
+```typescript
+1. calculateAmount(type, date_debut?) → Montant en FCFA
+2. Affichage formules avec montants calculés
+3. Sélection formule + méthode paiement
+4. Création paiement wallet (voir section Paiement Wallet)
+5. Polling jusqu'à statut COMPLETED
+6. createSubscription({
+     id_structure,
+     type_abonnement,
+     methode,
+     uuid_paiement  // ⚠️ OBLIGATOIRE après polling COMPLETED
+   })
+7. PostgreSQL crée abonnement + annule ancien si actif
+```
+
+### États Abonnement
+- **ACTIF** : En cours, date_fin > aujourd'hui
+- **EXPIRE** : Terminé, date_fin < aujourd'hui
+- **EN_ATTENTE** : Paiement initié mais non complété
+- **ANNULE** : Remplacé par nouveau (forcer_remplacement=true)
+
+### Règles de Gestion PostgreSQL
+- **1 seul abonnement ACTIF** par structure à la fois
+- **Chevauchement interdit** : Nouveau annule automatiquement l'ancien
+- **Renouvellement** : date_debut = date_fin ancien + 1 jour
+- **Calcul montant** : 100 FCFA/jour (tarification dynamique)
+
 ## Notes Importantes
 
 ### À NE PAS FAIRE
-- ❌ Ne jamais lancer `npm run dev` après des modifications sans raison (mentionne dans fichier)
+- ❌ Ne jamais lancer `npm run dev` après des modifications sans raison
 - ❌ Ne pas oublier `stopPropagation()` sur boutons dans éléments cliquables
 - ❌ Ne pas oublier de mettre à jour la version du Service Worker lors de changements majeurs
 - ❌ Ne pas commit sans tester le déploiement en production
+- ❌ **Ne JAMAIS modifier `createPayment()` pour gérer les abonnements** - Utiliser `createSubscriptionPaymentDirect()`
+- ❌ **Ne pas dépasser 19 caractères** pour les références de paiement (pReference)
+- ❌ **Ne pas oublier les 2 boutons OM** (app + web) lors d'ajout de modals paiement
 
 ### À TOUJOURS FAIRE
 - ✅ Mettre à jour `CACHE_NAME` dans Service Worker si changements UI majeurs
