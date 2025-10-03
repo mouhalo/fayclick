@@ -7,7 +7,7 @@
  * Utilisation: npm run prebuild (automatique avant chaque build)
  */
 
-import { readFileSync, writeFileSync } from 'fs';
+import { readFileSync, writeFileSync, copyFileSync, existsSync, mkdirSync } from 'fs';
 import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
@@ -73,6 +73,40 @@ try {
   console.log('🎉 [BUILD] Service Worker prêt pour le déploiement');
   console.log(`   Fichier: ${SW_PATH}`);
   console.log(`   Taille: ${swContent.length} octets`);
+
+  // Copier les fichiers critiques de public/ vers out/
+  console.log('\n📋 [BUILD] Copie des fichiers critiques vers out/...');
+
+  const OUT_DIR = resolve(__dirname, '../out');
+  const PUBLIC_DIR = resolve(__dirname, '../public');
+
+  // Créer le dossier out si n'existe pas
+  if (!existsSync(OUT_DIR)) {
+    mkdirSync(OUT_DIR, { recursive: true });
+  }
+
+  const criticalFiles = [
+    '.htaccess',
+    'upload-logo.php'
+  ];
+
+  criticalFiles.forEach(file => {
+    try {
+      const source = resolve(PUBLIC_DIR, file);
+      const dest = resolve(OUT_DIR, file);
+
+      if (existsSync(source)) {
+        copyFileSync(source, dest);
+        console.log(`✅ [BUILD] Copié: ${file}`);
+      } else {
+        console.warn(`⚠️  [BUILD] Fichier non trouvé: ${file}`);
+      }
+    } catch (copyError) {
+      console.error(`❌ [BUILD] Erreur copie ${file}:`, copyError.message);
+    }
+  });
+
+  console.log('🎉 [BUILD] Fichiers critiques copiés avec succès');
 
 } catch (error) {
   console.error('❌ [BUILD] Erreur lors de l\'injection du timestamp:', error.message);

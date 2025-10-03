@@ -33,7 +33,62 @@ class LogoUploadSimpleService {
   }
 
   /**
-   * Upload principal - Solution ingénieuse sans FTP
+   * Upload UNIQUEMENT FTP (pour Register - sans sauvegarde BD)
+   * Retourne juste l'URL du logo uploadé
+   */
+  async uploadLogoOnly(
+    file: File,
+    onProgress?: (progress: UploadProgress) => void
+  ): Promise<UploadResult> {
+    try {
+      console.log('🖼️ [LOGO-REGISTER] Début upload (mode Register):', file.name);
+
+      // 1. Validation rapide
+      this.updateProgress(onProgress, 'compressing', 10, 'Validation...');
+      const validation = this.quickValidate(file);
+      if (!validation.isValid) {
+        throw new Error(validation.error || 'Fichier invalide');
+      }
+
+      // 2. Compression agressive
+      this.updateProgress(onProgress, 'compressing', 30, 'Compression...');
+      const compressedFile = await this.compressImage(file);
+      console.log('✅ [LOGO-REGISTER] Taille après compression:', {
+        original: `${Math.round(file.size / 1024)}KB`,
+        compressed: `${Math.round(compressedFile.size / 1024)}KB`,
+        reduction: `${Math.round((1 - compressedFile.size / file.size) * 100)}%`
+      });
+
+      // 3. Génération nom de fichier unique
+      const filename = this.generateFilename(file.name);
+
+      // 4. Upload FTP uniquement (pas de sauvegarde BD)
+      this.updateProgress(onProgress, 'uploading', 60, 'Upload serveur...');
+      const logoUrl = await this.uploadToFTP(compressedFile, filename);
+
+      this.updateProgress(onProgress, 'success', 100, 'Upload terminé!');
+
+      console.log('🎉 [LOGO-REGISTER] Upload FTP réussi, URL:', logoUrl);
+
+      return {
+        success: true,
+        url: logoUrl,
+        filename: filename
+      };
+
+    } catch (error) {
+      console.error('❌ [LOGO-REGISTER] Erreur upload:', error);
+      this.updateProgress(onProgress, 'error', 0, `Erreur: ${error instanceof Error ? error.message : 'Upload échoué'}`);
+
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Erreur inconnue'
+      };
+    }
+  }
+
+  /**
+   * Upload principal avec sauvegarde BD (pour Settings - user connecté)
    */
   async uploadLogo(
     file: File,

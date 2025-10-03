@@ -660,6 +660,7 @@ export default function RegisterPage() {
                 onUploadComplete={handleLogoUploadComplete}
                 onUploadProgress={handleLogoUploadProgress}
                 onFileSelect={handleLogoFileSelect}
+                registerMode={true}
               />
             </div>
           </motion.div>
