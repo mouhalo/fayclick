@@ -68,6 +68,9 @@ interface RawStructureData {
   logo: string;
   id_type: number;
   actif: boolean;
+  etat_abonnement?: string;
+  date_limite_abonnement?: string;
+  type_abonnement?: string | null;
   [key: string]: unknown;
 }
 
@@ -164,6 +167,7 @@ export default function StructureEditPage() {
   const [showModalAbonnement, setShowModalAbonnement] = useState(false);
   const [historiqueAbonnements, setHistoriqueAbonnements] = useState<HistoriqueAbonnement[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const [currentStructureData, setCurrentStructureData] = useState<RawStructureData | null>(null);
 
   useEffect(() => {
     const loadStructureData = async () => {
@@ -178,6 +182,10 @@ export default function StructureEditPage() {
 
         if (data && data.length > 0) {
           const structureData = data[0] as RawStructureData;
+
+          // Stocker les données complètes pour les infos d'abonnement
+          setCurrentStructureData(structureData);
+
           const mappedStructure: StructureData = {
             id_structure: structureData.id_structure || user.id_structure,
             nom_structure: structureData.nom_structure || '',
@@ -414,6 +422,10 @@ export default function StructureEditPage() {
       databaseService.getStructureDetails(user.id_structure).then((data) => {
         if (data && data.length > 0) {
           const structureData = data[0] as RawStructureData;
+
+          // Mettre à jour les données complètes d'abonnement
+          setCurrentStructureData(structureData);
+
           const mappedStructure: StructureData = {
             id_structure: structureData.id_structure || user.id_structure,
             nom_structure: structureData.nom_structure || '',
@@ -910,15 +922,13 @@ export default function StructureEditPage() {
                   </motion.div>
 
                   {/* Section 2: État actuel abonnement */}
-                  {user && (
-                    <CurrentSubscriptionStatus
-                      subscription={{
-                        etat_abonnement: (user as any).etat_abonnement || 'EXPIRE',
-                        date_limite_abonnement: (user as any).date_limite_abonnement || '',
-                        type_abonnement: (user as any).type_abonnement || null
-                      } as CurrentSubscriptionState}
-                    />
-                  )}
+                  <CurrentSubscriptionStatus
+                    subscription={{
+                      etat_abonnement: currentStructureData?.etat_abonnement || 'EXPIRE',
+                      date_limite_abonnement: currentStructureData?.date_limite_abonnement || '',
+                      type_abonnement: currentStructureData?.type_abonnement || null
+                    } as CurrentSubscriptionState}
+                  />
 
                   {/* Section 3: Historique */}
                   <motion.div
