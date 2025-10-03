@@ -213,7 +213,9 @@ class LogoUploadSimpleService {
   }
 
   /**
-   * Upload vers serveur FTP via API Route Next.js
+   * Upload vers serveur FTP
+   * - DEV (localhost): API Route Next.js locale
+   * - PROD (export): API Backend (api.icelabsoft.com/api/upload_logo)
    */
   private async uploadToFTP(file: File, filename: string): Promise<string> {
     try {
@@ -221,10 +223,17 @@ class LogoUploadSimpleService {
       formData.append('file', file);
       formData.append('filename', filename);
 
-      // API Route Next.js (fonctionne en standalone)
-      const uploadUrl = '/api/upload-logo';
+      // Détection environnement
+      const isLocalhost = typeof window !== 'undefined' &&
+        (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
 
-      console.log('📤 [LOGO-SIMPLE] Upload vers API Route:', uploadUrl);
+      // En dev : API Route Next.js locale
+      // En prod : API Backend (TODO: créer endpoint)
+      const uploadUrl = isLocalhost
+        ? '/api/upload-logo'  // Next.js API Route (dev uniquement)
+        : 'https://api.icelabsoft.com/api/upload_logo'; // API Backend (prod)
+
+      console.log('📤 [LOGO-SIMPLE] Upload vers:', isLocalhost ? 'API Route locale' : 'API Backend', uploadUrl);
 
       const response = await fetch(uploadUrl, {
         method: 'POST',
