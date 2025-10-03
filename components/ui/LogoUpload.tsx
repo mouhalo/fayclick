@@ -3,7 +3,8 @@
 
 import { useState, useRef, useCallback } from 'react';
 import { LogoUploadProps, UploadProgress, LogoState } from '@/types/upload.types';
-import logoUploadService from '@/services/logo-upload.service';
+import logoUploadSimpleService from '@/services/logo-upload-simple.service';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function LogoUpload({
   onUploadComplete,
@@ -15,6 +16,7 @@ export default function LogoUpload({
   label,
   uploadType = 'logo'
 }: LogoUploadProps) {
+  const { structure } = useAuth(); // Récupérer id_structure
   const [logoState, setLogoState] = useState<LogoState>({
     preview: initialPreview,
     uploading: false,
@@ -27,6 +29,15 @@ export default function LogoUpload({
   const handleUploadAuto = useCallback(async (file: File) => {
     if (!file || logoState.uploading) return;
 
+    // Vérifier que structure existe
+    if (!structure?.id_structure) {
+      setLogoState(prev => ({
+        ...prev,
+        error: 'Structure non trouvée. Veuillez vous reconnecter.'
+      }));
+      return;
+    }
+
     setLogoState(prev => ({ ...prev, uploading: true, error: undefined, file }));
 
     const progressCallback = (progress: UploadProgress) => {
@@ -37,7 +48,11 @@ export default function LogoUpload({
     };
 
     try {
-      const result = await logoUploadService.uploadLogo(file, progressCallback);
+      const result = await logoUploadSimpleService.uploadLogo(
+        file,
+        structure.id_structure,
+        progressCallback
+      );
 
       if (result.success) {
         setLogoState(prev => ({
@@ -69,7 +84,7 @@ export default function LogoUpload({
         error: error instanceof Error ? error.message : 'Upload échoué'
       }));
     }
-  }, [logoState.uploading, onUploadComplete, onUploadProgress]);
+  }, [logoState.uploading, structure, onUploadComplete, onUploadProgress]);
 
   // Callback pour la sélection de fichier avec upload automatique
   const handleFileSelect = useCallback(async (file: File) => {
@@ -78,7 +93,7 @@ export default function LogoUpload({
     console.log('📁 [LOGO-UPLOAD] Fichier sélectionné:', file.name);
 
     // Validation rapide
-    const quickValidation = logoUploadService.quickValidateFile(file);
+    const quickValidation = logoUploadSimpleService.quickValidateFile(file);
     if (!quickValidation.isValid) {
       setLogoState(prev => ({ ...prev, error: quickValidation.error }));
       return;
@@ -86,7 +101,7 @@ export default function LogoUpload({
 
     // Preview immédiat
     try {
-      const preview = await logoUploadService.fileToDataUrl(file);
+      const preview = await logoUploadSimpleService.fileToDataUrl(file);
       setLogoState(prev => ({
         ...prev,
         file,
