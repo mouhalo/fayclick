@@ -78,6 +78,8 @@ export default function ModalPaiementAbonnement({
   // États paiement
   const [qrCode, setQrCode] = useState<string>('');
   const [paymentUrl, setPaymentUrl] = useState<string | null>(null);
+  const [omDeeplink, setOmDeeplink] = useState<string | null>(null); // Lien OM app
+  const [maxitUrl, setMaxitUrl] = useState<string | null>(null); // Lien MaxIt web
   const [paymentUuid, setPaymentUuid] = useState<string>('');
   const [timeRemaining, setTimeRemaining] = useState(90); // 90 secondes pour abonnement
   const [error, setError] = useState<string>('');
@@ -200,7 +202,17 @@ export default function ModalPaiementAbonnement({
       // Stocker les infos de paiement
       setPaymentUuid(paymentResponse.uuid);
       setQrCode(paymentWalletService.formatQRCode(paymentResponse.qrCode));
-      setPaymentUrl(paymentWalletService.extractPaymentUrl(paymentResponse, method));
+
+      // Pour OM, extraire les 2 liens (deeplink + MaxIt)
+      if (method === 'OM') {
+        setOmDeeplink(paymentResponse.om || null);
+        setMaxitUrl(paymentResponse.maxit || null);
+        setPaymentUrl(null); // Pas utilisé pour OM
+      } else {
+        setPaymentUrl(paymentWalletService.extractPaymentUrl(paymentResponse, method));
+        setOmDeeplink(null);
+        setMaxitUrl(null);
+      }
 
       // Passer à l'affichage du QR
       setModalState('SHOWING_QR');
@@ -329,6 +341,8 @@ export default function ModalPaiementAbonnement({
     setSelectedMethod(null);
     setQrCode('');
     setPaymentUrl(null);
+    setOmDeeplink(null);
+    setMaxitUrl(null);
     setPaymentUuid('');
     setTimeRemaining(90);
     setError('');
@@ -590,8 +604,37 @@ export default function ModalPaiementAbonnement({
                       </div>
                     </div>
 
-                    {/* Lien paiement (si disponible) */}
-                    {paymentUrl && (
+                    {/* Liens paiement */}
+                    {selectedMethod === 'OM' && (omDeeplink || maxitUrl) && (
+                      <div className="space-y-3">
+                        {/* Bouton Orange Money App (deeplink) */}
+                        {omDeeplink && (
+                          <a
+                            href={omDeeplink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="block w-full px-4 py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white text-center font-semibold rounded-xl hover:from-orange-600 hover:to-orange-700 transition-all shadow-lg"
+                          >
+                            📱 Ouvrir Orange Money
+                          </a>
+                        )}
+
+                        {/* Bouton MaxIt Web */}
+                        {maxitUrl && (
+                          <a
+                            href={maxitUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="block w-full px-4 py-3 bg-gradient-to-r from-orange-400 to-orange-500 text-white text-center font-semibold rounded-xl hover:from-orange-500 hover:to-orange-600 transition-all shadow-lg"
+                          >
+                            🌐 Payer via MaxIt Web
+                          </a>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Lien paiement pour WAVE et FREE */}
+                    {selectedMethod !== 'OM' && paymentUrl && (
                       <a
                         href={paymentUrl}
                         target="_blank"
