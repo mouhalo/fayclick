@@ -1,0 +1,625 @@
+/**
+ * Modal de paiement pour les abonnements FayClick
+ * Workflow: Choix formule → Sélection méthode → QR Code → Polling → Création abonnement
+ * Timeout: 90 secondes (au lieu de 120 pour factures)
+ */
+
+'use client';
+
+import { useState, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+  X,
+  QrCode,
+  Clock,
+  CheckCircle,
+  AlertCircle,
+  Loader2,
+  Smartphone,
+  Crown,
+  Calendar,
+  CreditCard
+} from 'lucide-react';
+import {
+  SubscriptionType,
+  SubscriptionFormula,
+  SUBSCRIPTION_FORMULAS
+} from '@/types/subscription.types';
+import {
+  PaymentMethod,
+  WALLET_CONFIG,
+  formatAmount
+} from '@/types/payment-wallet';
+import { paymentWalletService } from '@/services/payment-wallet.service';
+import subscriptionService from '@/services/subscription.service';
+
+interface ModalPaiementAbonnementProps {
+  isOpen: boolean;
+  onClose: () => void;
+  idStructure: number;
+  onSuccess: () => void; // Callback après création abonnement réussie
+  onError: (message: string) => void;
+}
+
+type ModalState =
+  | 'SELECT_FORMULA'   // Choix MENSUEL/ANNUEL
+  | 'SELECT_METHOD'    // Choix OM/WAVE/FREE
+  | 'SHOWING_QR'       // Affichage QR + attente paiement
+  | 'PROCESSING'       // Paiement en cours (détecté par polling)
+  | 'CREATING_SUB'     // Création abonnement après paiement validé
+  | 'SUCCESS'          // Abonnement créé avec succès
+  | 'FAILED'           // Échec paiement ou création
+  | 'TIMEOUT';         // Timeout 90s
+
+interface FormulaMontant extends SubscriptionFormula {
+  montant: number;
+}
+
+export default function ModalPaiementAbonnement({
+  isOpen,
+  onClose,
+  idStructure,
+  onSuccess,
+  onError
+}: ModalPaiementAbonnementProps) {
+  // États principaux
+  const [modalState, setModalState] = useState<ModalState>('SELECT_FORMULA');
+  const [selectedFormula, setSelectedFormula] = useState<SubscriptionType | null>(null);
+  const [selectedMethod, setSelectedMethod] = useState<Exclude<PaymentMethod, 'CASH'> | null>(null);
+  const [formulas, setFormulas] = useState<FormulaMontant[]>([]);
+
+  // États paiement
+  const [qrCode, setQrCode] = useState<string>('');
+  const [paymentUrl, setPaymentUrl] = useState<string | null>(null);
+  const [paymentUuid, setPaymentUuid] = useState<string>('');
+  const [timeRemaining, setTimeRemaining] = useState(90); // 90 secondes pour abonnement
+  const [error, setError] = useState<string>('');
+
+  // États UI
+  const [isLoading, setIsLoading] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  // Montage côté client (Portal)
+  useEffect(() => {
+    setMounted(true);
+    return () => setMounted(false);
+  }, []);
+
+  // Charger les montants des formules à l'ouverture
+  useEffect(() => {
+    if (isOpen) {
+      loadFormulas();
+    } else {
+      // Reset à la fermeture
+      resetModal();
+    }
+  }, [isOpen]);
+
+  // Timer countdown
+  useEffect(() => {
+    if (modalState === 'SHOWING_QR' && timeRemaining > 0) {
+      const timer = setInterval(() => {
+        setTimeRemaining((prev) => {
+          if (prev <= 1) {
+            clearInterval(timer);
+            handleTimeout();
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+
+      return () => clearInterval(timer);
+    }
+  }, [modalState, timeRemaining]);
+
+  /**
+   * Charge les formules avec leurs montants calculés
+   */
+  const loadFormulas = async () => {
+    setIsLoading(true);
+    try {
+      const [montantMensuel, montantAnnuel] = await Promise.all([
+        subscriptionService.calculateAmount('MENSUEL'),
+        subscriptionService.calculateAmount('ANNUEL')
+      ]);
+
+      const formulasWithAmounts: FormulaMontant[] = [
+        {
+          ...SUBSCRIPTION_FORMULAS.MENSUEL,
+          montant: montantMensuel
+        },
+        {
+          ...SUBSCRIPTION_FORMULAS.ANNUEL,
+          montant: montantAnnuel
+        }
+      ];
+
+      setFormulas(formulasWithAmounts);
+    } catch (err) {
+      console.error('Erreur chargement formules:', err);
+      setError('Impossible de charger les formules d\'abonnement');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  /**
+   * Sélection d'une formule
+   */
+  const handleSelectFormula = (type: SubscriptionType) => {
+    setSelectedFormula(type);
+    setModalState('SELECT_METHOD');
+  };
+
+  /**
+   * Sélection d'une méthode de paiement et démarrage du workflow
+   */
+  const handleSelectMethod = async (method: Exclude<PaymentMethod, 'CASH'>) => {
+    setSelectedMethod(method);
+    setIsLoading(true);
+
+    try {
+      // Trouver la formule sélectionnée
+      const formula = formulas.find((f) => f.type === selectedFormula);
+      if (!formula) {
+        throw new Error('Formule non trouvée');
+      }
+
+      console.log('🚀 [SUBSCRIPTION-MODAL] Création paiement:', {
+        formula: formula.type,
+        montant: formula.montant,
+        method
+      });
+
+      // Créer le paiement wallet
+      const paymentResponse = await paymentWalletService.createSubscriptionPayment({
+        idStructure,
+        typeAbonnement: formula.type,
+        montant: formula.montant,
+        methode: method
+      });
+
+      if (!paymentResponse || !paymentResponse.uuid) {
+        throw new Error('Échec de la création du paiement');
+      }
+
+      console.log('✅ [SUBSCRIPTION-MODAL] Paiement créé:', paymentResponse);
+
+      // Stocker les infos de paiement
+      setPaymentUuid(paymentResponse.uuid);
+      setQrCode(paymentResponse.qrCode);
+      setPaymentUrl(paymentResponse.payment_url || null);
+
+      // Passer à l'affichage du QR
+      setModalState('SHOWING_QR');
+      setTimeRemaining(90);
+
+      // Démarrer le polling
+      startPolling(paymentResponse.uuid);
+
+    } catch (err) {
+      console.error('❌ [SUBSCRIPTION-MODAL] Erreur:', err);
+      setError(err instanceof Error ? err.message : 'Erreur lors de la création du paiement');
+      setModalState('FAILED');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  /**
+   * Démarre le polling du statut de paiement
+   */
+  const startPolling = (uuid: string) => {
+    console.log('🔄 [SUBSCRIPTION-MODAL] Démarrage polling:', uuid);
+
+    paymentWalletService.startPolling(
+      uuid,
+      async (status, statusResponse) => {
+        console.log('📊 [SUBSCRIPTION-MODAL] Statut reçu:', status, statusResponse);
+
+        switch (status) {
+          case 'PROCESSING':
+            setModalState('PROCESSING');
+            break;
+
+          case 'COMPLETED':
+            // Paiement validé → Créer l'abonnement
+            await handlePaymentCompleted(uuid, statusResponse);
+            break;
+
+          case 'FAILED':
+            setModalState('FAILED');
+            setError('Le paiement a échoué');
+            setTimeout(() => {
+              onError('Paiement échoué');
+              onClose();
+            }, 3000);
+            break;
+
+          case 'TIMEOUT':
+            handleTimeout();
+            break;
+
+          default:
+            break;
+        }
+      },
+      90000 // 90 secondes timeout
+    );
+  };
+
+  /**
+   * Gère le paiement complété et crée l'abonnement
+   */
+  const handlePaymentCompleted = async (uuid: string, statusResponse?: any) => {
+    setModalState('CREATING_SUB');
+
+    try {
+      if (!selectedFormula || !selectedMethod) {
+        throw new Error('Formule ou méthode non sélectionnée');
+      }
+
+      console.log('📝 [SUBSCRIPTION-MODAL] Création abonnement avec UUID:', uuid);
+
+      // Créer l'abonnement avec l'UUID du paiement validé
+      const response = await subscriptionService.createSubscription({
+        id_structure: idStructure,
+        type_abonnement: selectedFormula,
+        methode: selectedMethod,
+        uuid_paiement: uuid
+      });
+
+      if (!response.success) {
+        throw new Error(response.message || 'Échec de la création');
+      }
+
+      console.log('✅ [SUBSCRIPTION-MODAL] Abonnement créé:', response.data);
+
+      setModalState('SUCCESS');
+
+      setTimeout(() => {
+        onSuccess();
+        onClose();
+      }, 2000);
+
+    } catch (err) {
+      console.error('❌ [SUBSCRIPTION-MODAL] Erreur création abonnement:', err);
+      setError(err instanceof Error ? err.message : 'Erreur lors de la création');
+      setModalState('FAILED');
+
+      setTimeout(() => {
+        onError(err instanceof Error ? err.message : 'Erreur inconnue');
+        onClose();
+      }, 3000);
+    }
+  };
+
+  /**
+   * Gère le timeout (90s écoulées sans paiement)
+   */
+  const handleTimeout = () => {
+    console.log('⏱️ [SUBSCRIPTION-MODAL] Timeout du paiement');
+    setModalState('TIMEOUT');
+    paymentWalletService.stopPolling();
+
+    setTimeout(() => {
+      onError('Temps écoulé - Paiement non confirmé');
+      onClose();
+    }, 3000);
+  };
+
+  /**
+   * Réinitialise le modal
+   */
+  const resetModal = () => {
+    setModalState('SELECT_FORMULA');
+    setSelectedFormula(null);
+    setSelectedMethod(null);
+    setQrCode('');
+    setPaymentUrl(null);
+    setPaymentUuid('');
+    setTimeRemaining(90);
+    setError('');
+    setIsLoading(false);
+    paymentWalletService.stopPolling();
+  };
+
+  /**
+   * Fermeture du modal
+   */
+  const handleClose = () => {
+    paymentWalletService.stopPolling();
+    onClose();
+  };
+
+  // Ne rien rendre si pas monté ou pas ouvert
+  if (!mounted || !isOpen) return null;
+
+  // Configuration wallet sélectionnée
+  const walletConfig = selectedMethod ? WALLET_CONFIG[selectedMethod] : null;
+
+  const modalContent = (
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
+          onClick={(e) => {
+            if (e.target === e.currentTarget && modalState === 'SELECT_FORMULA') {
+              handleClose();
+            }
+          }}
+        >
+          {/* Modal */}
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0, y: 20 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            exit={{ scale: 0.9, opacity: 0, y: 20 }}
+            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+            onClick={(e) => e.stopPropagation()}
+            className="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl overflow-hidden"
+          >
+            {/* Background glassmorphism */}
+            <div className="absolute inset-0 bg-gradient-to-br from-emerald-50/50 via-white to-orange-50/50" />
+            <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 via-transparent to-orange-500/5" />
+
+            {/* Contenu */}
+            <div className="relative z-10">
+              {/* Header */}
+              <div className="flex items-center justify-between p-5 md:p-6 border-b border-gray-200">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-green-600 rounded-lg flex items-center justify-center shadow-lg">
+                    <Crown className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg md:text-xl font-bold text-gray-900">
+                      {modalState === 'SELECT_FORMULA' && 'Choisir votre abonnement'}
+                      {modalState === 'SELECT_METHOD' && 'Mode de paiement'}
+                      {(modalState === 'SHOWING_QR' || modalState === 'PROCESSING') && 'Paiement en cours'}
+                      {modalState === 'CREATING_SUB' && 'Finalisation...'}
+                      {modalState === 'SUCCESS' && 'Abonnement activé !'}
+                      {modalState === 'FAILED' && 'Échec'}
+                      {modalState === 'TIMEOUT' && 'Temps écoulé'}
+                    </h2>
+                    {selectedFormula && (
+                      <p className="text-xs md:text-sm text-gray-600">
+                        Abonnement {selectedFormula}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Bouton fermer (sauf pendant création) */}
+                {modalState !== 'CREATING_SUB' && modalState !== 'PROCESSING' && (
+                  <button
+                    onClick={handleClose}
+                    className="w-9 h-9 flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                  >
+                    <X className="w-5 h-5 text-gray-600" />
+                  </button>
+                )}
+              </div>
+
+              {/* Corps du modal */}
+              <div className="p-5 md:p-6">
+                {/* SELECT_FORMULA : Choix formule */}
+                {modalState === 'SELECT_FORMULA' && (
+                  <div className="space-y-3">
+                    {isLoading ? (
+                      <div className="flex items-center justify-center py-12">
+                        <Loader2 className="w-8 h-8 animate-spin text-emerald-600" />
+                      </div>
+                    ) : (
+                      formulas.map((formula) => (
+                        <button
+                          key={formula.type}
+                          onClick={() => handleSelectFormula(formula.type)}
+                          className="w-full p-4 md:p-5 bg-gradient-to-br from-white to-gray-50 rounded-xl border-2 border-gray-200 hover:border-emerald-500 hover:shadow-lg transition-all group text-left"
+                        >
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-2">
+                                <Calendar className="w-4 h-4 text-emerald-600" />
+                                <h3 className="font-bold text-gray-900">
+                                  {formula.type}
+                                </h3>
+                                {formula.badge && (
+                                  <span className={`px-2 py-0.5 text-xs font-semibold rounded-full ${
+                                    formula.badgeColor === 'emerald'
+                                      ? 'bg-emerald-100 text-emerald-700'
+                                      : 'bg-blue-100 text-blue-700'
+                                  }`}>
+                                    {formula.badge}
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-sm text-gray-600">
+                                {formula.description}
+                              </p>
+                            </div>
+                            <div className="text-right ml-4">
+                              <p className="text-2xl font-bold text-gray-900">
+                                {formatAmount(formula.montant)}
+                              </p>
+                              <p className="text-xs text-gray-500">FCFA</p>
+                            </div>
+                          </div>
+                        </button>
+                      ))
+                    )}
+                  </div>
+                )}
+
+                {/* SELECT_METHOD : Choix méthode */}
+                {modalState === 'SELECT_METHOD' && (
+                  <div className="space-y-3">
+                    <p className="text-sm text-gray-600 mb-4">
+                      Sélectionnez votre mode de paiement
+                    </p>
+
+                    {(['OM', 'WAVE', 'FREE'] as const).map((method) => {
+                      const config = WALLET_CONFIG[method];
+                      return (
+                        <button
+                          key={method}
+                          onClick={() => handleSelectMethod(method)}
+                          disabled={isLoading}
+                          className="w-full p-4 bg-white rounded-xl border-2 border-gray-200 hover:border-emerald-500 hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed group"
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <div className={`w-12 h-12 ${config.color} rounded-lg flex items-center justify-center text-2xl`}>
+                                {config.icon}
+                              </div>
+                              <span className="font-semibold text-gray-900">
+                                {config.name}
+                              </span>
+                            </div>
+                            <CreditCard className="w-5 h-5 text-gray-400 group-hover:text-emerald-600 transition-colors" />
+                          </div>
+                        </button>
+                      );
+                    })}
+
+                    <button
+                      onClick={() => setModalState('SELECT_FORMULA')}
+                      className="w-full px-4 py-2 text-sm text-gray-600 hover:text-gray-900 transition-colors"
+                    >
+                      ← Retour aux formules
+                    </button>
+                  </div>
+                )}
+
+                {/* SHOWING_QR / PROCESSING : Affichage QR + polling */}
+                {(modalState === 'SHOWING_QR' || modalState === 'PROCESSING') && walletConfig && (
+                  <div className="space-y-4">
+                    {/* Timer */}
+                    <div className="flex items-center justify-center gap-2 p-3 bg-orange-50 rounded-lg border border-orange-200">
+                      <Clock className="w-4 h-4 text-orange-600" />
+                      <span className="text-sm font-semibold text-orange-900">
+                        Temps restant : {Math.floor(timeRemaining / 60)}:{(timeRemaining % 60).toString().padStart(2, '0')}
+                      </span>
+                    </div>
+
+                    {/* QR Code */}
+                    <div className="flex justify-center">
+                      <div className="relative p-4 bg-white rounded-xl border-2 border-gray-200 shadow-lg">
+                        {qrCode ? (
+                          <img
+                            src={`data:image/png;base64,${qrCode}`}
+                            alt="QR Code"
+                            className="w-64 h-64 md:w-72 md:h-72"
+                          />
+                        ) : (
+                          <div className="w-64 h-64 md:w-72 md:h-72 flex items-center justify-center">
+                            <Loader2 className="w-12 h-12 animate-spin text-emerald-600" />
+                          </div>
+                        )}
+
+                        {/* Badge statut */}
+                        {modalState === 'PROCESSING' && (
+                          <div className="absolute -top-3 -right-3 px-3 py-1 bg-blue-500 text-white text-xs font-bold rounded-full shadow-lg animate-pulse">
+                            Paiement détecté
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Instructions */}
+                    <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                      <div className="flex items-start gap-3">
+                        <Smartphone className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                        <div className="text-sm text-blue-900">
+                          <p className="font-semibold mb-1">Scannez le QR Code</p>
+                          <p>
+                            Ouvrez votre application {walletConfig.name} et scannez ce code pour payer votre abonnement.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Lien paiement (si disponible) */}
+                    {paymentUrl && (
+                      <a
+                        href={paymentUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block w-full px-4 py-3 bg-gradient-to-r from-emerald-500 to-green-600 text-white text-center font-semibold rounded-xl hover:from-emerald-600 hover:to-green-700 transition-all shadow-lg"
+                      >
+                        Ouvrir {walletConfig.name}
+                      </a>
+                    )}
+                  </div>
+                )}
+
+                {/* CREATING_SUB : Création abonnement */}
+                {modalState === 'CREATING_SUB' && (
+                  <div className="flex flex-col items-center justify-center py-8">
+                    <Loader2 className="w-16 h-16 animate-spin text-emerald-600 mb-4" />
+                    <p className="text-lg font-semibold text-gray-900">
+                      Activation de votre abonnement...
+                    </p>
+                    <p className="text-sm text-gray-600 mt-2">
+                      Veuillez patienter
+                    </p>
+                  </div>
+                )}
+
+                {/* SUCCESS */}
+                {modalState === 'SUCCESS' && (
+                  <div className="flex flex-col items-center justify-center py-8">
+                    <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mb-4">
+                      <CheckCircle className="w-10 h-10 text-emerald-600" />
+                    </div>
+                    <p className="text-xl font-bold text-gray-900">
+                      Abonnement activé !
+                    </p>
+                    <p className="text-sm text-gray-600 mt-2 text-center">
+                      Votre abonnement {selectedFormula} a été activé avec succès.
+                    </p>
+                  </div>
+                )}
+
+                {/* FAILED */}
+                {modalState === 'FAILED' && (
+                  <div className="flex flex-col items-center justify-center py-8">
+                    <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
+                      <AlertCircle className="w-10 h-10 text-red-600" />
+                    </div>
+                    <p className="text-xl font-bold text-gray-900">
+                      Échec
+                    </p>
+                    <p className="text-sm text-gray-600 mt-2 text-center">
+                      {error || 'Une erreur est survenue'}
+                    </p>
+                  </div>
+                )}
+
+                {/* TIMEOUT */}
+                {modalState === 'TIMEOUT' && (
+                  <div className="flex flex-col items-center justify-center py-8">
+                    <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mb-4">
+                      <Clock className="w-10 h-10 text-orange-600" />
+                    </div>
+                    <p className="text-xl font-bold text-gray-900">
+                      Temps écoulé
+                    </p>
+                    <p className="text-sm text-gray-600 mt-2 text-center">
+                      Le paiement n'a pas été confirmé dans le délai imparti.
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+
+  return createPortal(modalContent, document.body);
+}
