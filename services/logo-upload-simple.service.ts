@@ -34,14 +34,19 @@ class LogoUploadSimpleService {
 
   /**
    * Upload UNIQUEMENT FTP (pour Register - sans sauvegarde BD)
-   * Retourne juste l'URL du logo uploadé
+   * Retourne juste l'URL du logo/photo uploadé
+   * @param file - Fichier à uploader
+   * @param onProgress - Callback de progression
+   * @param uploadType - Type d'upload: 'logo' (défaut) ou 'photo'
    */
   async uploadLogoOnly(
     file: File,
-    onProgress?: (progress: UploadProgress) => void
+    onProgress?: (progress: UploadProgress) => void,
+    uploadType: 'logo' | 'photo' = 'logo'
   ): Promise<UploadResult> {
     try {
-      console.log('🖼️ [LOGO-REGISTER] Début upload (mode Register):', file.name);
+      const typeLabel = uploadType === 'photo' ? 'PHOTO-PRODUIT' : 'LOGO-REGISTER';
+      console.log(`🖼️ [${typeLabel}] Début upload (mode sans BD):`, file.name);
 
       // 1. Validation rapide
       this.updateProgress(onProgress, 'compressing', 10, 'Validation...');
@@ -53,31 +58,32 @@ class LogoUploadSimpleService {
       // 2. Compression agressive
       this.updateProgress(onProgress, 'compressing', 30, 'Compression...');
       const compressedFile = await this.compressImage(file);
-      console.log('✅ [LOGO-REGISTER] Taille après compression:', {
+      console.log(`✅ [${typeLabel}] Taille après compression:`, {
         original: `${Math.round(file.size / 1024)}KB`,
         compressed: `${Math.round(compressedFile.size / 1024)}KB`,
         reduction: `${Math.round((1 - compressedFile.size / file.size) * 100)}%`
       });
 
-      // 3. Génération nom de fichier unique
-      const filename = this.generateFilename(file.name);
+      // 3. Génération nom de fichier unique avec préfixe approprié
+      const filename = this.generateFilename(file.name, uploadType);
 
       // 4. Upload FTP uniquement (pas de sauvegarde BD)
       this.updateProgress(onProgress, 'uploading', 60, 'Upload serveur...');
-      const logoUrl = await this.uploadToFTP(compressedFile, filename);
+      const fileUrl = await this.uploadToFTP(compressedFile, filename);
 
       this.updateProgress(onProgress, 'success', 100, 'Upload terminé!');
 
-      console.log('🎉 [LOGO-REGISTER] Upload FTP réussi, URL:', logoUrl);
+      console.log(`🎉 [${typeLabel}] Upload FTP réussi, URL:`, fileUrl);
 
       return {
         success: true,
-        url: logoUrl,
+        url: fileUrl,
         filename: filename
       };
 
     } catch (error) {
-      console.error('❌ [LOGO-REGISTER] Erreur upload:', error);
+      const typeLabel = uploadType === 'photo' ? 'PHOTO-PRODUIT' : 'LOGO-REGISTER';
+      console.error(`❌ [${typeLabel}] Erreur upload:`, error);
       this.updateProgress(onProgress, 'error', 0, `Erreur: ${error instanceof Error ? error.message : 'Upload échoué'}`);
 
       return {
@@ -89,14 +95,22 @@ class LogoUploadSimpleService {
 
   /**
    * Upload principal avec sauvegarde BD (pour Settings - user connecté)
+   * NOTE: Pour les photos produits, utiliser uploadLogoOnly() car la sauvegarde
+   * BD se fait via produitsService.addEditPhoto() dans le composant
+   * @param file - Fichier à uploader
+   * @param id_structure - ID de la structure
+   * @param onProgress - Callback de progression
+   * @param uploadType - Type d'upload: 'logo' (défaut) ou 'photo'
    */
   async uploadLogo(
     file: File,
     id_structure: number,
-    onProgress?: (progress: UploadProgress) => void
+    onProgress?: (progress: UploadProgress) => void,
+    uploadType: 'logo' | 'photo' = 'logo'
   ): Promise<UploadResult> {
     try {
-      console.log('🖼️ [LOGO-SIMPLE] Début upload:', file.name);
+      const typeLabel = uploadType === 'photo' ? 'PHOTO-PRODUIT' : 'LOGO-SIMPLE';
+      console.log(`🖼️ [${typeLabel}] Début upload:`, file.name);
 
       // 1. Validation rapide
       this.updateProgress(onProgress, 'compressing', 10, 'Validation...');
@@ -108,35 +122,39 @@ class LogoUploadSimpleService {
       // 2. Compression agressive
       this.updateProgress(onProgress, 'compressing', 30, 'Compression...');
       const compressedFile = await this.compressImage(file);
-      console.log('✅ [LOGO-SIMPLE] Taille après compression:', {
+      console.log(`✅ [${typeLabel}] Taille après compression:`, {
         original: `${Math.round(file.size / 1024)}KB`,
         compressed: `${Math.round(compressedFile.size / 1024)}KB`,
         reduction: `${Math.round((1 - compressedFile.size / file.size) * 100)}%`
       });
 
-      // 3. Génération nom de fichier unique
-      const filename = this.generateFilename(file.name);
+      // 3. Génération nom de fichier unique avec préfixe approprié
+      const filename = this.generateFilename(file.name, uploadType);
 
       // 4. Upload FTP via endpoint PHP
       this.updateProgress(onProgress, 'uploading', 50, 'Upload serveur...');
-      const logoUrl = await this.uploadToFTP(compressedFile, filename);
+      const fileUrl = await this.uploadToFTP(compressedFile, filename);
 
-      // 5. Sauvegarde URL en base de données
-      this.updateProgress(onProgress, 'uploading', 80, 'Sauvegarde...');
-      await this.saveLogoToDatabase(id_structure, logoUrl);
+      // 5. Sauvegarde URL en base de données (uniquement pour les logos)
+      // Pour les photos produits, la sauvegarde se fait via produitsService.addEditPhoto()
+      if (uploadType === 'logo') {
+        this.updateProgress(onProgress, 'uploading', 80, 'Sauvegarde...');
+        await this.saveLogoToDatabase(id_structure, fileUrl);
+      }
 
       this.updateProgress(onProgress, 'success', 100, 'Upload terminé!');
 
-      console.log('🎉 [LOGO-SIMPLE] Upload réussi pour structure:', id_structure);
+      console.log(`🎉 [${typeLabel}] Upload réussi pour structure:`, id_structure);
 
       return {
         success: true,
-        url: logoUrl,
+        url: fileUrl,
         filename: filename
       };
 
     } catch (error) {
-      console.error('❌ [LOGO-SIMPLE] Erreur upload:', error);
+      const typeLabel = uploadType === 'photo' ? 'PHOTO-PRODUIT' : 'LOGO-SIMPLE';
+      console.error(`❌ [${typeLabel}] Erreur upload:`, error);
       this.updateProgress(onProgress, 'error', 0, `Erreur: ${error instanceof Error ? error.message : 'Upload échoué'}`);
 
       return {
@@ -200,8 +218,10 @@ class LogoUploadSimpleService {
 
   /**
    * Génération nom de fichier unique et sécurisé
+   * @param originalName - Nom original du fichier
+   * @param uploadType - Type d'upload: 'logo' ou 'photo'
    */
-  private generateFilename(originalName: string): string {
+  private generateFilename(originalName: string, uploadType: 'logo' | 'photo' = 'logo'): string {
     const timestamp = Date.now();
     const randomHash = Math.random().toString(36).substring(2, 10);
     const extension = originalName.split('.').pop()?.toLowerCase() || 'png';
@@ -209,7 +229,10 @@ class LogoUploadSimpleService {
     // Nettoyage et sécurisation du nom
     const cleanExtension = ['png', 'jpg', 'jpeg', 'gif', 'webp'].includes(extension) ? extension : 'jpg';
 
-    return `logo-${timestamp}-${randomHash}.${cleanExtension}`;
+    // Préfixe selon le type d'upload
+    const prefix = uploadType === 'photo' ? 'produit' : 'logo';
+
+    return `${prefix}-${timestamp}-${randomHash}.${cleanExtension}`;
   }
 
   /**
