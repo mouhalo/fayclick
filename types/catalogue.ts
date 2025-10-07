@@ -10,6 +10,7 @@ export interface ProduitPublic {
   id_produit: number;
   nom_produit: string;
   prix_vente: number;
+  stock_disponible: number;
   nom_categorie: string;
   description: string;
   presente_au_public: boolean;
@@ -25,6 +26,8 @@ export interface CatalogueResponse {
   nom_structure: string;
   id_structure: number;
   total_produits: number;
+  logo?: string;  // Logo de la structure
+  telephone?: string;  // Téléphone de la structure
   data: ProduitPublic[];
 }
 

@@ -1,6 +1,6 @@
 /**
- * Composant client pour l'affichage du catalogue public d'une structure
- * Design harmonisé avec le catalogue global - Thème vert glassmorphism
+ * Composant client pour l'affichage du catalogue global multi-structures
+ * Affiche tous les produits publics de toutes les structures
  */
 
 'use client';
@@ -16,29 +16,27 @@ import {
   ChevronRight,
   Package,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Building2
 } from 'lucide-react';
-import Image from 'next/image';
+import LogoFayclick from '@/components/ui/LogoFayclick';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
-import { cataloguePublicService } from '@/services/catalogue-public.service';
-import { CatalogueResponse, ProduitPublic, FiltresCatalogue } from '@/types/catalogue';
+import { cataloguesPublicService } from '@/services/catalogues-public.service';
+import { CataloguesGlobalResponse, ProduitPublicGlobal, FiltresCatalogueGlobal } from '@/types/catalogues';
 import CarteProduit from './CarteProduit';
 
-interface CataloguePublicClientProps {
-  nomStructure: string;
-}
-
-export default function CataloguePublicClient({ nomStructure }: CataloguePublicClientProps) {
+export default function CataloguesGlobalClient() {
   const { isMobile, isMobileLarge } = useBreakpoint();
 
   // États principaux
-  const [catalogue, setCatalogue] = useState<CatalogueResponse | null>(null);
+  const [catalogue, setCatalogue] = useState<CataloguesGlobalResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   // États de filtrage
-  const [filtres, setFiltres] = useState<FiltresCatalogue>({
-    searchTerm: '',
+  const [filtres, setFiltres] = useState<FiltresCatalogueGlobal>({
+    searchProduit: '',
+    searchStructure: '',
     categorie: ''
   });
 
@@ -49,35 +47,34 @@ export default function CataloguePublicClient({ nomStructure }: CataloguePublicC
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 12;
 
-  // Charger le catalogue
+  // Charger le catalogue global
   const loadCatalogue = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
 
-      console.log('🛒 Chargement catalogue pour:', nomStructure);
+      console.log('🛒 Chargement catalogue global...');
 
-      const catalogueData = await cataloguePublicService.getProduitsPublics(nomStructure);
+      const catalogueData = await cataloguesPublicService.getAllProduitsPublics();
 
       if (!catalogueData) {
         throw new Error('Catalogue introuvable');
       }
 
-      const typedCatalogue = catalogueData as CatalogueResponse;
-      setCatalogue(typedCatalogue);
+      setCatalogue(catalogueData);
 
-      console.log('✅ Catalogue chargé:', {
-        nom_structure: typedCatalogue.nom_structure,
-        total_produits: typedCatalogue.total_produits
+      console.log('✅ Catalogue global chargé:', {
+        total_produits: catalogueData.total_produits,
+        total_structures: catalogueData.total_structures
       });
 
     } catch (err: unknown) {
-      console.error('Erreur lors du chargement du catalogue:', err);
+      console.error('Erreur lors du chargement du catalogue global:', err);
       setError(err instanceof Error ? err.message : 'Impossible de charger le catalogue');
     } finally {
       setLoading(false);
     }
-  }, [nomStructure]);
+  }, []);
 
   useEffect(() => {
     loadCatalogue();
@@ -89,11 +86,19 @@ export default function CataloguePublicClient({ nomStructure }: CataloguePublicC
 
     let filtered = [...catalogue.data];
 
-    // Filtre par nom
-    if (filtres.searchTerm.trim() !== '') {
-      const searchLower = filtres.searchTerm.toLowerCase();
+    // Filtre par nom de produit
+    if (filtres.searchProduit.trim() !== '') {
+      const searchLower = filtres.searchProduit.toLowerCase();
       filtered = filtered.filter(p =>
         p.nom_produit.toLowerCase().includes(searchLower)
+      );
+    }
+
+    // Filtre par nom de structure
+    if (filtres.searchStructure.trim() !== '') {
+      const searchLower = filtres.searchStructure.toLowerCase();
+      filtered = filtered.filter(p =>
+        p.nom_structure.toLowerCase().includes(searchLower)
       );
     }
 
@@ -118,14 +123,25 @@ export default function CataloguePublicClient({ nomStructure }: CataloguePublicC
     return Array.from(uniqueCategories).sort();
   }, [catalogue]);
 
+  // Liste unique des structures
+  const structures = useMemo(() => {
+    if (!catalogue?.data) return [];
+    const uniqueStructures = new Set(catalogue.data.map(p => p.nom_structure).filter(Boolean));
+    return Array.from(uniqueStructures).sort();
+  }, [catalogue]);
+
   // Reset pagination quand les filtres changent
   useEffect(() => {
     setCurrentPage(1);
   }, [filtres]);
 
-  // Handler pour les filtres
-  const handleSearchChange = (value: string) => {
-    setFiltres(prev => ({ ...prev, searchTerm: value }));
+  // Handlers pour les filtres
+  const handleSearchProduitChange = (value: string) => {
+    setFiltres(prev => ({ ...prev, searchProduit: value }));
+  };
+
+  const handleSearchStructureChange = (value: string) => {
+    setFiltres(prev => ({ ...prev, searchStructure: value }));
   };
 
   const handleCategorieChange = (value: string) => {
@@ -133,7 +149,7 @@ export default function CataloguePublicClient({ nomStructure }: CataloguePublicC
   };
 
   const resetFiltres = () => {
-    setFiltres({ searchTerm: '', categorie: '' });
+    setFiltres({ searchProduit: '', searchStructure: '', categorie: '' });
   };
 
   // Styles responsifs
@@ -177,7 +193,7 @@ export default function CataloguePublicClient({ nomStructure }: CataloguePublicC
           className="text-center"
         >
           <Loader className="w-8 h-8 text-emerald-600 animate-spin mx-auto mb-3" />
-          <p className="text-emerald-600 font-medium text-sm">Chargement du catalogue...</p>
+          <p className="text-emerald-600 font-medium text-sm">Chargement du catalogue global...</p>
         </motion.div>
       </div>
     );
@@ -231,7 +247,7 @@ export default function CataloguePublicClient({ nomStructure }: CataloguePublicC
         animate={{ opacity: 1 }}
         className={`max-w-7xl mx-auto relative z-10 ${styles.container}`}
       >
-        {/* Header Premium avec Logo Structure et Glassmorphism */}
+        {/* Header Premium avec Logo Animé et Glassmorphism */}
         <motion.div
           initial={{ opacity: 0, y: -30, scale: 0.95 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -261,7 +277,7 @@ export default function CataloguePublicClient({ nomStructure }: CataloguePublicC
           <div className="absolute inset-0 rounded-3xl border border-white/30 shadow-inner" />
 
           <div className="text-center relative z-10">
-            {/* Logo Structure - Inspiré de la page login */}
+            {/* Logo FayClick SVG Animé - Inspiré de la page login */}
             <motion.div
               initial={{ scale: 0, rotate: -180 }}
               animate={{ scale: 1, rotate: 0 }}
@@ -273,54 +289,55 @@ export default function CataloguePublicClient({ nomStructure }: CataloguePublicC
               }}
               className="inline-flex items-center justify-center mb-4"
             >
-              {catalogue.logo ? (
-                <div className="relative">
-                  <Image
-                    src={catalogue.logo}
-                    alt={`Logo ${catalogue.nom_structure}`}
-                    width={isMobile ? 80 : 120}
-                    height={isMobile ? 80 : 120}
-                    className="object-contain rounded-2xl"
-                  />
-                </div>
-              ) : (
-                <div className={`${isMobile ? 'w-20 h-20' : 'w-24 h-24 md:w-28 md:h-28'} flex items-center justify-center bg-white/20 backdrop-blur-xl rounded-2xl border border-white/40`}>
-                  <Package className={`${isMobile ? 'w-10 h-10' : 'w-12 h-12 md:w-14 md:h-14'} text-emerald-300`} />
-                </div>
-              )}
+              <LogoFayclick className={isMobile ? "w-20 h-20" : "w-24 h-24 md:w-28 md:h-28"} />
             </motion.div>
 
-            {/* Titre Structure */}
+            {/* Titre FayClick */}
             <motion.h2
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.25 }}
               className={`${isMobile ? 'text-xl' : 'text-2xl md:text-3xl'} font-bold text-white drop-shadow-lg mb-1`}
             >
-              {catalogue.nom_structure}
+              FayClick
             </motion.h2>
 
-            {/* Sous-titre */}
+            {/* Sous-titre avec effet de texte lumineux - Vert FayClick */}
             <motion.p
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
               className={`${isMobile ? 'text-sm' : 'text-base md:text-lg'} text-emerald-100 drop-shadow mb-4`}
             >
-              Catalogue de produits et services
+              Nos marchands vous présentent leurs produits et services
             </motion.p>
 
-            {/* Badge total produits */}
+            {/* Stats avec glassmorphism */}
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.4 }}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-500/20 backdrop-blur-sm rounded-full border border-emerald-400/30"
+              className="flex items-center justify-center gap-4 md:gap-8"
             >
-              <Package className="w-4 h-4 text-emerald-200" />
-              <span className="font-bold text-emerald-100 text-sm">
-                {catalogue.total_produits} produit{catalogue.total_produits > 1 ? 's' : ''}
-              </span>
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                className="flex items-center gap-2 px-4 py-2 bg-emerald-500/20 backdrop-blur-sm rounded-full border border-emerald-400/30"
+              >
+                <Package className="w-4 h-4 md:w-5 md:h-5 text-emerald-200" />
+                <span className="font-bold text-emerald-100 text-sm md:text-base">
+                  {catalogue.total_produits} produit{catalogue.total_produits > 1 ? 's' : ''}
+                </span>
+              </motion.div>
+
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                className="flex items-center gap-2 px-4 py-2 bg-teal-500/20 backdrop-blur-sm rounded-full border border-teal-400/30"
+              >
+                <Building2 className="w-4 h-4 md:w-5 md:h-5 text-teal-200" />
+                <span className="font-bold text-teal-100 text-sm md:text-base">
+                  {catalogue.total_structures} marchand{catalogue.total_structures > 1 ? 's' : ''}
+                </span>
+              </motion.div>
             </motion.div>
           </div>
         </motion.div>
@@ -349,7 +366,7 @@ export default function CataloguePublicClient({ nomStructure }: CataloguePublicC
                   <h2 className="font-semibold text-white text-sm md:text-base">Recherche & Filtres</h2>
                   <p className="text-xs text-emerald-200">
                     {produitsFiltres.length} résultat{produitsFiltres.length > 1 ? 's' : ''}
-                    {(filtres.searchTerm || filtres.categorie) && ` sur ${catalogue.total_produits}`}
+                    {(filtres.searchProduit || filtres.searchStructure || filtres.categorie) && ` sur ${catalogue.total_produits}`}
                   </p>
                 </div>
               </div>
@@ -404,9 +421,21 @@ export default function CataloguePublicClient({ nomStructure }: CataloguePublicC
                       <input
                         type="text"
                         placeholder="Rechercher un produit..."
-                        value={filtres.searchTerm}
-                        onChange={(e) => handleSearchChange(e.target.value)}
+                        value={filtres.searchProduit}
+                        onChange={(e) => handleSearchProduitChange(e.target.value)}
                         className="w-full pl-9 pr-3 py-2 text-sm bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg focus:ring-2 focus:ring-emerald-400/50 focus:border-emerald-400/50 transition-all text-white placeholder-emerald-200/60"
+                      />
+                    </div>
+
+                    {/* Recherche structure - Glassmorphe Vert */}
+                    <div className="relative">
+                      <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-teal-300" />
+                      <input
+                        type="text"
+                        placeholder="Rechercher un marchand..."
+                        value={filtres.searchStructure}
+                        onChange={(e) => handleSearchStructureChange(e.target.value)}
+                        className="w-full pl-9 pr-3 py-2 text-sm bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg focus:ring-2 focus:ring-teal-400/50 focus:border-teal-400/50 transition-all text-white placeholder-teal-200/60"
                       />
                     </div>
 
@@ -427,7 +456,7 @@ export default function CataloguePublicClient({ nomStructure }: CataloguePublicC
                       </div>
 
                       {/* Bouton reset - Glassmorphe */}
-                      {(filtres.searchTerm || filtres.categorie) && (
+                      {(filtres.searchProduit || filtres.searchStructure || filtres.categorie) && (
                         <motion.button
                           initial={{ scale: 0, opacity: 0 }}
                           animate={{ scale: 1, opacity: 1 }}
@@ -441,6 +470,7 @@ export default function CataloguePublicClient({ nomStructure }: CataloguePublicC
                         </motion.button>
                       )}
                     </div>
+
                   </div>
                 </motion.div>
               )}
@@ -465,9 +495,9 @@ export default function CataloguePublicClient({ nomStructure }: CataloguePublicC
               Aucun produit trouvé
             </h3>
             <p className="text-emerald-200 text-sm md:text-base">
-              {filtres.searchTerm || filtres.categorie
+              {filtres.searchProduit || filtres.searchStructure || filtres.categorie
                 ? 'Essayez de modifier vos critères de recherche'
-                : 'Cette structure n\'a pas encore de produits dans son catalogue'
+                : 'Aucun produit public n\'est disponible pour le moment'
               }
             </p>
           </motion.div>
@@ -485,7 +515,7 @@ export default function CataloguePublicClient({ nomStructure }: CataloguePublicC
                   key={produit.id_produit}
                   produit={produit}
                   index={index}
-                  showStructureName={false}
+                  showStructureName={true}
                 />
               ))}
             </motion.div>

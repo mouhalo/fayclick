@@ -10,16 +10,22 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Package } from 'lucide-react';
 import { ProduitPublic } from '@/types/catalogue';
+import { ProduitPublicGlobal } from '@/types/catalogues';
 import Image from 'next/image';
 import ModalCarrouselProduit from './ModalCarrouselProduit';
 
 interface CarteProduitProps {
-  produit: ProduitPublic;
+  produit: ProduitPublic | ProduitPublicGlobal;
   index: number;
+  showStructureName?: boolean;  // Afficher le nom de la structure (pour catalogue global)
 }
 
-export default function CarteProduit({ produit, index }: CarteProduitProps) {
+export default function CarteProduit({ produit, index, showStructureName = false }: CarteProduitProps) {
   const [showModal, setShowModal] = useState(false);
+
+  // Vérifier si le produit contient des informations de structure
+  const produitGlobal = produit as ProduitPublicGlobal;
+  const hasStructureInfo = 'nom_structure' in produit && showStructureName;
   // Récupérer la première photo ou utiliser un placeholder
   const photoUrl = produit.photos && produit.photos.length > 0
     ? produit.photos[0].url_photo
@@ -79,8 +85,14 @@ export default function CarteProduit({ produit, index }: CarteProduitProps) {
               }}
             />
           ) : (
-            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-emerald-100/40 via-white/50 to-orange-100/40">
-              <Package className="w-20 h-20 text-emerald-300" />
+            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-white/90 via-blue-50/50 to-purple-50/50">
+              <Image
+                src="/images/logofayclick.png"
+                alt="FayClick Logo"
+                width={120}
+                height={120}
+                className="object-contain opacity-40 group-hover:opacity-60 group-hover:scale-110 transition-all duration-500"
+              />
             </div>
           )}
 
@@ -117,10 +129,10 @@ export default function CarteProduit({ produit, index }: CarteProduitProps) {
           )}
         </div>
 
-        {/* Contenu de la carte - Plus compact et élégant */}
-        <div className="p-4 space-y-3 relative z-10">
+        {/* Contenu de la carte - Compact avec polices réduites */}
+        <div className="p-2.5 space-y-2 relative z-10">
           {/* Prix et Stock en grille 2x1 */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-2">
             {/* Prix */}
             <motion.div
               initial={{ opacity: 0, x: -10 }}
@@ -128,8 +140,8 @@ export default function CarteProduit({ produit, index }: CarteProduitProps) {
               transition={{ delay: index * 0.05 + 0.2 }}
               className="flex flex-col"
             >
-              <span className="text-xs text-gray-500 font-medium mb-1">Prix</span>
-              <span className="text-xl font-bold bg-gradient-to-r from-emerald-600 to-emerald-500 bg-clip-text text-transparent">
+              <span className="text-[10px] text-gray-500 font-medium mb-0.5">Prix</span>
+              <span className="text-sm font-bold bg-gradient-to-r from-emerald-600 to-emerald-500 bg-clip-text text-transparent leading-tight">
                 {formatPrix(produit.prix_vente)}
               </span>
             </motion.div>
@@ -141,8 +153,8 @@ export default function CarteProduit({ produit, index }: CarteProduitProps) {
               transition={{ delay: index * 0.05 + 0.25 }}
               className="flex flex-col"
             >
-              <span className="text-xs text-gray-500 font-medium mb-1">Stock</span>
-              <span className={`text-xl font-bold ${
+              <span className="text-[10px] text-gray-500 font-medium mb-0.5">Stock</span>
+              <span className={`text-sm font-bold leading-tight ${
                 produit.stock_disponible > 10
                   ? 'text-emerald-600'
                   : produit.stock_disponible > 0
@@ -159,7 +171,7 @@ export default function CarteProduit({ produit, index }: CarteProduitProps) {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.05 + 0.25 }}
-            className="text-base font-bold text-gray-900 line-clamp-2 leading-snug"
+            className="text-xs font-bold text-gray-900 line-clamp-2 leading-tight"
           >
             {produit.nom_produit}
           </motion.h3>
@@ -170,10 +182,31 @@ export default function CarteProduit({ produit, index }: CarteProduitProps) {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: index * 0.05 + 0.3 }}
-              className="text-sm text-gray-600 line-clamp-2 leading-relaxed"
+              className="text-[10px] text-gray-600 line-clamp-1 leading-tight"
             >
-              {truncateDescription(produit.description, 80)}
+              {truncateDescription(produit.description, 50)}
             </motion.p>
+          )}
+
+          {/* Nom de la structure (catalogue global uniquement) */}
+          {hasStructureInfo && (
+            <motion.div
+              initial={{ opacity: 0, y: 5 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.05 + 0.32 }}
+              className="flex items-center gap-1.5 pt-1.5 border-t border-gray-200"
+            >
+              <div className="flex items-center gap-1">
+                <div className="w-4 h-4 rounded-full bg-gradient-to-br from-orange-400 to-orange-500 flex items-center justify-center">
+                  <span className="text-white text-[8px] font-bold">
+                    {produitGlobal.nom_structure?.charAt(0) || 'S'}
+                  </span>
+                </div>
+                <span className="text-[10px] font-semibold text-orange-700 truncate">
+                  {produitGlobal.nom_structure}
+                </span>
+              </div>
+            </motion.div>
           )}
 
           {/* ID discret */}
@@ -181,7 +214,7 @@ export default function CarteProduit({ produit, index }: CarteProduitProps) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: index * 0.05 + 0.35 }}
-            className="text-xs text-gray-400"
+            className="text-[9px] text-gray-400"
           >
             Réf. #{produit.id_produit}
           </motion.div>
