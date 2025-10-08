@@ -30,6 +30,7 @@ import { produitsService } from '@/services/produits.service';
 import LogoUpload from '@/components/ui/LogoUpload';
 import PopMessage from '@/components/ui/PopMessage';
 import { UploadResult, UploadProgress } from '@/types/upload.types';
+import { useUserProfile } from '@/hooks/useUserProfile';
 
 interface ModalAjoutProduitNewProps {
   isOpen: boolean;
@@ -54,6 +55,11 @@ export function ModalAjoutProduitNew({
   typeStructure,
   defaultTab = 'informations'
 }: ModalAjoutProduitNewProps) {
+  // Hook pour vérifier si l'utilisateur est ADMIN
+  const { isAdmin } = useUserProfile();
+  const isEditMode = !!produitToEdit;
+  const canEdit = isAdmin || !isEditMode; // ADMIN peut tout faire, les autres uniquement créer
+
   const [ongletActif, setOngletActif] = useState<OngletType>(defaultTab);
   const [formData, setFormData] = useState<ProduitFormDataNew>({
     nom_produit: '',
@@ -128,10 +134,21 @@ export function ModalAjoutProduitNew({
   ];
 
   // Onglets filtrés selon le contexte
-  const ongletsAffiches = onglets.filter(onglet =>
-    onglet.alwaysVisible ||
-    (produitToEdit && !produitToEdit.est_service)
-  );
+  const ongletsAffiches = onglets.filter(onglet => {
+    // Toujours afficher les onglets marqués "alwaysVisible"
+    if (onglet.alwaysVisible) return true;
+
+    // Les onglets gestion-stock et historique uniquement pour produits (pas services)
+    if (produitToEdit && !produitToEdit.est_service) {
+      // Gestion du stock uniquement pour ADMIN
+      if (onglet.id === 'gestion-stock') {
+        return isAdmin;
+      }
+      return true;
+    }
+
+    return false;
+  });
 
   // Initialiser le formulaire quand on modifie un produit
   useEffect(() => {
@@ -451,8 +468,13 @@ export function ModalAjoutProduitNew({
                       type="text"
                       value={formData.nom_produit}
                       onChange={(e) => handleInputChange('nom_produit', e.target.value)}
-                      className={`w-full px-4 py-3 border rounded-xl bg-white/60 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-transparent transition-all hover:bg-white/70 ${
-                        errors.nom_produit ? 'border-red-400 bg-red-50/60' : 'border-sky-200'
+                      disabled={!canEdit}
+                      className={`w-full px-4 py-3 border rounded-xl backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-transparent transition-all ${
+                        !canEdit
+                          ? 'bg-gray-100/80 border-gray-300 cursor-not-allowed text-gray-600'
+                          : errors.nom_produit
+                            ? 'border-red-400 bg-red-50/60 hover:bg-white/70'
+                            : 'border-sky-200 bg-white/60 hover:bg-white/70'
                       }`}
                       placeholder={`Ex: ${formData.est_service ? 'Consultation technique' : 'Samsung Galaxy A10'}`}
                     />
@@ -468,20 +490,26 @@ export function ModalAjoutProduitNew({
                   <div>
                     <label className="block text-sm font-medium text-white mb-2">Type</label>
                     <div className="flex gap-4">
-                      <label className="flex items-center bg-white/80 px-4 py-2 rounded-lg cursor-pointer hover:bg-white/90 transition-all">
+                      <label className={`flex items-center bg-white/80 px-4 py-2 rounded-lg transition-all ${
+                        canEdit ? 'cursor-pointer hover:bg-white/90' : 'cursor-not-allowed opacity-60'
+                      }`}>
                         <input
                           type="radio"
                           checked={!formData.est_service}
                           onChange={() => handleInputChange('est_service', false)}
+                          disabled={!canEdit}
                           className="mr-2 text-emerald-600"
                         />
                         <span className="text-slate-700 font-medium">Produit physique</span>
                       </label>
-                      <label className="flex items-center bg-white/80 px-4 py-2 rounded-lg cursor-pointer hover:bg-white/90 transition-all">
+                      <label className={`flex items-center bg-white/80 px-4 py-2 rounded-lg transition-all ${
+                        canEdit ? 'cursor-pointer hover:bg-white/90' : 'cursor-not-allowed opacity-60'
+                      }`}>
                         <input
                           type="radio"
                           checked={formData.est_service}
                           onChange={() => handleInputChange('est_service', true)}
+                          disabled={!canEdit}
                           className="mr-2 text-emerald-600"
                         />
                         <span className="text-slate-700 font-medium">Service</span>
@@ -495,16 +523,28 @@ export function ModalAjoutProduitNew({
                       <label className="block text-sm font-medium text-white mb-2">
                         Prix d'achat (FCFA) *
                       </label>
-                      <input
-                        type="number"
-                        value={formData.cout_revient}
-                        onChange={(e) => handleInputChange('cout_revient', parseFloat(e.target.value) || 0)}
-                        className={`w-full px-4 py-3 border rounded-xl bg-white/60 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-transparent transition-all hover:bg-white/70 ${
-                          errors.cout_revient ? 'border-red-400 bg-red-50/60' : 'border-sky-200'
-                        }`}
-                        min="0"
-                        step="0.01"
-                      />
+                      {!isAdmin && isEditMode ? (
+                        // Non-ADMIN en mode édition : masquer avec astérisques
+                        <div className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-gray-100/80 backdrop-blur-sm text-gray-600 font-mono tracking-widest cursor-not-allowed flex items-center">
+                          ••••••••
+                        </div>
+                      ) : (
+                        <input
+                          type="number"
+                          value={formData.cout_revient}
+                          onChange={(e) => handleInputChange('cout_revient', parseFloat(e.target.value) || 0)}
+                          disabled={!canEdit}
+                          className={`w-full px-4 py-3 border rounded-xl backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-transparent transition-all ${
+                            !canEdit
+                              ? 'bg-gray-100/80 border-gray-300 cursor-not-allowed text-gray-600'
+                              : errors.cout_revient
+                                ? 'border-red-400 bg-red-50/60 hover:bg-white/70'
+                                : 'border-sky-200 bg-white/60 hover:bg-white/70'
+                          }`}
+                          min="0"
+                          step="0.01"
+                        />
+                      )}
                       {errors.cout_revient && (
                         <p className="text-red-500 text-sm mt-1">{errors.cout_revient}</p>
                       )}
@@ -518,8 +558,13 @@ export function ModalAjoutProduitNew({
                         type="number"
                         value={formData.prix_vente}
                         onChange={(e) => handleInputChange('prix_vente', parseFloat(e.target.value) || 0)}
-                        className={`w-full px-4 py-3 border rounded-xl bg-white/60 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-transparent transition-all hover:bg-white/70 ${
-                          errors.prix_vente ? 'border-red-400 bg-red-50/60' : 'border-sky-200'
+                        disabled={!canEdit}
+                        className={`w-full px-4 py-3 border rounded-xl backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-transparent transition-all ${
+                          !canEdit
+                            ? 'bg-gray-100/80 border-gray-300 cursor-not-allowed text-gray-600'
+                            : errors.prix_vente
+                              ? 'border-red-400 bg-red-50/60 hover:bg-white/70'
+                              : 'border-sky-200 bg-white/60 hover:bg-white/70'
                         }`}
                         min="0"
                         step="0.01"
@@ -556,7 +601,12 @@ export function ModalAjoutProduitNew({
                     <select
                       value={formData.nom_categorie}
                       onChange={(e) => handleInputChange('nom_categorie', e.target.value)}
-                      className="w-full px-4 py-3 border border-sky-200 rounded-xl bg-white/60 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-transparent transition-all hover:bg-white/70"
+                      disabled={!canEdit}
+                      className={`w-full px-4 py-3 border rounded-xl backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-transparent transition-all ${
+                        !canEdit
+                          ? 'bg-gray-100/80 border-gray-300 cursor-not-allowed text-gray-600'
+                          : 'border-sky-200 bg-white/60 hover:bg-white/70'
+                      }`}
                     >
                       <option value="">Sélectionner une catégorie</option>
                       {categories.map(cat => (
@@ -574,20 +624,30 @@ export function ModalAjoutProduitNew({
                     <textarea
                       value={formData.description}
                       onChange={(e) => handleInputChange('description', e.target.value)}
+                      disabled={!canEdit}
                       rows={3}
-                      className="w-full px-4 py-3 border border-sky-200 rounded-xl bg-white/60 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-transparent transition-all hover:bg-white/70 resize-none"
+                      className={`w-full px-4 py-3 border rounded-xl backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-transparent transition-all resize-none ${
+                        !canEdit
+                          ? 'bg-gray-100/80 border-gray-300 cursor-not-allowed text-gray-600'
+                          : 'border-sky-200 bg-white/60 hover:bg-white/70'
+                      }`}
                       placeholder={`Décrivez votre ${formData.est_service ? 'service' : 'produit'}...`}
                     />
                   </div>
 
                   {/* Présenter au public */}
-                  <div className="bg-gradient-to-r from-amber-50/70 to-orange-50/70 backdrop-blur-sm p-4 rounded-xl border border-amber-200/50">
-                    <label className="flex items-center gap-3 cursor-pointer">
+                  <div className={`bg-gradient-to-r from-amber-50/70 to-orange-50/70 backdrop-blur-sm p-4 rounded-xl border border-amber-200/50 ${
+                    !canEdit ? 'opacity-60' : ''
+                  }`}>
+                    <label className={`flex items-center gap-3 ${canEdit ? 'cursor-pointer' : 'cursor-not-allowed'}`}>
                       <input
                         type="checkbox"
                         checked={formData.presente_au_public || false}
                         onChange={(e) => handleInputChange('presente_au_public', e.target.checked)}
-                        className="w-5 h-5 text-amber-600 border-amber-300 rounded focus:ring-amber-500 focus:ring-offset-0 cursor-pointer"
+                        disabled={!canEdit}
+                        className={`w-5 h-5 text-amber-600 border-amber-300 rounded focus:ring-amber-500 focus:ring-offset-0 ${
+                          canEdit ? 'cursor-pointer' : 'cursor-not-allowed'
+                        }`}
                       />
                       <div className="flex-1">
                         <span className="text-sm font-medium text-slate-800 flex items-center gap-2">
@@ -608,26 +668,38 @@ export function ModalAjoutProduitNew({
                       onClick={onClose}
                       className="flex-1 px-4 py-3 bg-red-500/20 backdrop-blur-sm border border-red-400/30 text-red-200 rounded-xl hover:bg-red-500/30 transition-all font-medium"
                     >
-                      Annuler
+                      {!canEdit ? 'Fermer' : 'Annuler'}
                     </button>
-                    <button
-                      type="submit"
-                      disabled={isLoading}
-                      className="flex-1 px-4 py-3 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white rounded-xl hover:from-emerald-600 hover:to-emerald-700 transition-all font-medium flex items-center justify-center gap-2 disabled:opacity-50 shadow-lg hover:shadow-xl"
-                    >
-                      {isLoading ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <Save className="w-4 h-4" />
-                      )}
-                      {isLoading
-                        ? 'Enregistrement...'
-                        : produitToEdit
-                          ? 'Modifier'
-                          : 'Créer'
-                      }
-                    </button>
+                    {canEdit && (
+                      <button
+                        type="submit"
+                        disabled={isLoading}
+                        className="flex-1 px-4 py-3 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white rounded-xl hover:from-emerald-600 hover:to-emerald-700 transition-all font-medium flex items-center justify-center gap-2 disabled:opacity-50 shadow-lg hover:shadow-xl"
+                      >
+                        {isLoading ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Save className="w-4 h-4" />
+                        )}
+                        {isLoading
+                          ? 'Enregistrement...'
+                          : produitToEdit
+                            ? 'Modifier'
+                            : 'Créer'
+                        }
+                      </button>
+                    )}
                   </div>
+
+                  {/* Message d'avertissement si non-ADMIN en mode édition */}
+                  {!canEdit && (
+                    <div className="mt-3 p-3 bg-amber-500/20 backdrop-blur-sm border border-amber-400/30 rounded-xl">
+                      <p className="text-amber-200 text-sm text-center flex items-center justify-center gap-2">
+                        <AlertCircle className="w-4 h-4" />
+                        Seul l&apos;administrateur peut modifier les produits
+                      </p>
+                    </div>
+                  )}
                 </form>
               </motion.div>
             )}

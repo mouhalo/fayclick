@@ -9,6 +9,7 @@ import { useState } from 'react';
 import { FacturesList } from './FacturesList';
 import { ModalFacturePrivee } from '../facture/ModalFacturePrivee';
 import { FactureComplete } from '@/types/facture';
+import { useUserProfile } from '@/hooks/useUserProfile';
 
 interface FacturesPageWithModalProps {
   factures: FactureComplete[];
@@ -25,6 +26,9 @@ export function FacturesPageWithModal({
   onPartager,
   onFactureDeleted
 }: FacturesPageWithModalProps) {
+  // Hook pour récupérer le profil utilisateur
+  const { user } = useUserProfile();
+
   const [selectedFacture, setSelectedFacture] = useState<FactureComplete | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -57,6 +61,7 @@ export function FacturesPageWithModal({
         onVoirDetailsModal={handleVoirDetailsModal}
         onAjouterAcompte={onAjouterAcompte}
         onPartager={onPartager}
+        userProfileId={user?.id_profil}
       />
 
       {selectedFacture && (

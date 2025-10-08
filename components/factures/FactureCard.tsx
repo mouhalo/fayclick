@@ -20,6 +20,7 @@ interface FactureCardProps {
   onVoirRecu?: (facture: FactureComplete) => void;
   onSupprimer?: (facture: FactureComplete) => void;
   delay?: number;
+  userProfileId?: number; // ID du profil utilisateur (1 = ADMIN)
 }
 
 export const FactureCard = ({
@@ -29,9 +30,17 @@ export const FactureCard = ({
   onPartager,
   onVoirRecu,
   onSupprimer,
-  delay = 0
+  delay = 0,
+  userProfileId
 }: FactureCardProps) => {
   const { facture: factureData } = facture;
+
+  // Vérifier si l'utilisateur est admin (id_profil = 1)
+  const isAdmin = userProfileId === 1;
+
+  // Déterminer si le bouton supprimer doit être affiché
+  // ⚠️ SÉCURITÉ : Seul l'ADMIN peut supprimer des factures (payées ou impayées)
+  const shouldShowDeleteButton = onSupprimer && isAdmin;
 
   // Vérification de sécurité pour éviter les erreurs de rendu
   if (!factureData) {
@@ -130,7 +139,7 @@ export const FactureCard = ({
                 <span className="hidden xs:inline">Voir</span>
               </button>
 
-              {onSupprimer && (
+              {shouldShowDeleteButton && (
                 <button
                   onClick={() => onSupprimer(facture)}
                   className="flex-1 py-1.5 sm:py-2 bg-red-500/20 rounded-md sm:rounded-lg text-red-200 text-xs sm:text-sm hover:bg-red-500/30 transition-colors flex items-center justify-center gap-1"
@@ -159,6 +168,17 @@ export const FactureCard = ({
                 <span className="hidden xs:inline">Voir</span>
               </button>
 
+              {shouldShowDeleteButton && (
+                <button
+                  onClick={() => onSupprimer(facture)}
+                  className="flex-1 py-1.5 sm:py-2 bg-red-500/20 rounded-md sm:rounded-lg text-red-200 text-xs sm:text-sm hover:bg-red-500/30 transition-colors flex items-center justify-center gap-1"
+                  title={isAdmin ? "Supprimer la facture (ADMIN)" : "Supprimer la facture"}
+                >
+                  <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
+                  <span className="hidden xs:inline">Sup.</span>
+                </button>
+              )}
+
               <button
                 onClick={() => onVoirRecu?.(facture)}
                 className="flex-1 py-1.5 sm:py-2 bg-emerald-500/20 rounded-md sm:rounded-lg text-emerald-200 text-xs sm:text-sm hover:bg-emerald-500/30 transition-colors flex items-center justify-center gap-1"
@@ -169,7 +189,15 @@ export const FactureCard = ({
               </button>
             </>
           )}
+
         </div>
+
+        {/* Message informatif pour non-admin */}
+        {!isAdmin && (
+          <div className="text-center text-xs text-white/50 italic mt-2">
+            🔒 Suppression réservée à l&apos;Administrateur
+          </div>
+        )}
 
         {/* Effet de brillance sur hover */}
         <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 pointer-events-none" />
