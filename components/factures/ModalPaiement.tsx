@@ -20,6 +20,7 @@ import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { FactureComplete, AjouterAcompteData } from '@/types/facture';
 import { factureService } from '@/services/facture.service';
 import { recuService } from '@/services/recu.service';
+import { authService } from '@/services/auth.service';
 import { ModalChoixPaiement } from './ModalChoixPaiement';
 import { ModalPaiementQRCode } from './ModalPaiementQRCode';
 import { ModalRecuGenere } from '@/components/recu';
@@ -482,6 +483,20 @@ export function ModalPaiement({
   const createPaymentContext = (): PaymentContext | null => {
     if (!facture || !montants) return null;
 
+    // 🔧 FIX CRITIQUE: Récupérer nom_structure depuis AuthContext si manquant dans facture
+    // Problème: get_my_factures() ne retourne pas nom_structure (contrairement à get_facture_details())
+    const user = authService.getUser();
+    const structureFromAuth = user?.structure;
+
+    const nomStructureFinal = facture.facture.nom_structure || structureFromAuth?.nom_structure || 'FAYCLICK';
+
+    console.log('💳 [PAYMENT-CONTEXT] Création contexte paiement:', {
+      nomStructureFacture: facture.facture.nom_structure,
+      nomStructureAuth: structureFromAuth?.nom_structure,
+      nomStructureFinal: nomStructureFinal,
+      facture: facture.facture.num_facture
+    });
+
     return {
       facture: {
         id_facture: facture.facture.id_facture,
@@ -490,7 +505,7 @@ export function ModalPaiement({
         tel_client: facture.facture.tel_client,
         montant_total: facture.facture.montant,
         montant_restant: facture.facture.mt_restant,
-        nom_structure: facture.facture.nom_structure
+        nom_structure: nomStructureFinal  // ✅ FALLBACK ROBUSTE
       },
       montant_acompte: montants.montantSaisi
     };
