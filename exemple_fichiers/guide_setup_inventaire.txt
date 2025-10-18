@@ -1,0 +1,890 @@
+Guide Technique - Implémentation du Composant Inventaire/Statistiques
+📊 Analyse des Captures d'Écran
+Structure du Composant
+Header :
+
+Bouton retour (gauche)
+Logo centré
+Bouton export (droite)
+
+Onglets de Période :
+
+Semaine (jours en abscisse)
+Mois (semaines en abscisse)
+Année (mois en abscisse)
+
+Sections par Onglet :
+
+Résumé des Ventes (4 StatCards) :
+
+CA Total (FCFA) + variation %
+Ventes Total (nombre) + variation %
+Panier Moyen (FCFA) + variation %
+Clients Actifs (nombre) + variation %
+
+
+Graphique d'Évolution :
+
+Graphique à barres vertes
+Axe X : selon période (jours/semaines/mois)
+Axe Y : Montant des ventes
+
+
+Meilleurs Articles (Top 5) :
+
+Nom produit + image
+Montant total vendu
+Nombre de ventes + unités vendues
+
+
+Meilleurs Clients (Top 5) :
+
+Nom + initiales
+Téléphone
+Montant total + badge statut (VIP)
+Nombre de commandes
+
+
+
+🗄️ Fonction PostgreSQL : get_inventaire
+sql-- DROP FUNCTION public.get_inventaire(int4, int4, varchar);
+
+CREATE OR REPLACE FUNCTION public.get_inventaire(
+    pid_structure integer, 
+    pannee integer DEFAULT EXTRACT(YEAR FROM CURRENT_DATE)::integer,
+    pperiode varchar DEFAULT 'semaine' -- 'semaine', 'mois', 'annee'
+)
+RETURNS json
+LANGUAGE plpgsql
+AS $function$
+DECLARE
+    v_result_json json;
+    v_resume_ventes json;
+    v_evolution_ventes json;
+    v_top_articles json;
+    v_top_clients json;
+    v_date_debut date;
+    v_date_fin date;
+    v_date_debut_precedent date;
+    v_date_fin_precedent date;
+BEGIN
+    -- Validation des paramètres
+    IF pid_structure IS NULL OR pid_structure <= 0 THEN
+        RETURN json_build_object(
+            'success', false,
+            'error', 'L''ID structure doit être un entier positif valide'
+        );
+    END IF;
+
+    -- Vérifier que la structure existe
+    IF NOT EXISTS (SELECT 1 FROM public.structures s WHERE s.id_structure = pid_structure) THEN
+        RETURN json_build_object(
+            'success', false,
+            'error', 'La structure avec l''ID ' || pid_structure || ' n''existe pas'
+        );
+    END IF;
+
+    -- Déterminer les dates selon la période
+    CASE LOWER(pperiode)
+        WHEN 'semaine' THEN
+            -- Semaine en cours (Lundi à Dimanche)
+            v_date_debut := DATE_TRUNC('week', CURRENT_DATE);
+            v_date_fin := v_date_debut + INTERVAL '6 days';
+            v_date_debut_precedent := v_date_debut - INTERVAL '7 days';
+            v_date_fin_precedent := v_date_fin - INTERVAL '7 days';
+            
+        WHEN 'mois' THEN
+            -- Mois en cours
+            v_date_debut := DATE_TRUNC('month', CURRENT_DATE);
+            v_date_fin := (DATE_TRUNC('month', CURRENT_DATE) + INTERVAL '1 month - 1 day')::date;
+            v_date_debut_precedent := DATE_TRUNC('month', CURRENT_DATE - INTERVAL '1 month');
+            v_date_fin_precedent := (DATE_TRUNC('month', CURRENT_DATE) - INTERVAL '1 day')::date;
+            
+        WHEN 'annee' THEN
+            -- Année spécifiée
+            v_date_debut := (pannee || '-01-01')::date;
+            v_date_fin := (pannee || '-12-31')::date;
+            v_date_debut_precedent := ((pannee - 1) || '-01-01')::date;
+            v_date_fin_precedent := ((pannee - 1) || '-12-31')::date;
+            
+        ELSE
+            RETURN json_build_object(
+                'success', false,
+                'error', 'Période invalide. Utilisez: semaine, mois ou annee'
+            );
+    END CASE;
+
+    -- 1. RÉSUMÉ DES VENTES (Période actuelle)
+    WITH ventes_actuelles AS (
+        SELECT 
+            COUNT(DISTINCT f.id_facture) as nb_ventes,
+            COALESCE(SUM(f.montant), 0) as ca_total,
+            COUNT(DISTINCT f.tel_client) as clients_actifs,
+            CASE 
+                WHEN COUNT(DISTINCT f.id_facture) > 0 
+                THEN COALESCE(SUM(f.montant), 0) / COUNT(DISTINCT f.id_facture)
+                ELSE 0 
+            END as panier_moyen
+        FROM list_factures_com f
+        WHERE f.id_structure = pid_structure
+          AND f.date_facture BETWEEN v_date_debut AND v_date_fin
+    ),
+    ventes_precedentes AS (
+        SELECT 
+            COUNT(DISTINCT f.id_facture) as nb_ventes,
+            COALESCE(SUM(f.montant), 0) as ca_total,
+            COUNT(DISTINCT f.tel_client) as clients_actifs,
+            CASE 
+                WHEN COUNT(DISTINCT f.id_facture) > 0 
+                THEN COALESCE(SUM(f.montant), 0) / COUNT(DISTINCT f.id_facture)
+                ELSE 0 
+            END as panier_moyen
+        FROM list_factures_com f
+        WHERE f.id_structure = pid_structure
+          AND f.date_facture BETWEEN v_date_debut_precedent AND v_date_fin_precedent
+    )
+    SELECT json_build_object(
+        'ca_total', va.ca_total,
+        'ca_variation', CASE 
+            WHEN vp.ca_total > 0 
+            THEN ROUND(((va.ca_total - vp.ca_total) * 100.0 / vp.ca_total), 1)
+            ELSE 0 
+        END,
+        'ventes_total', va.nb_ventes,
+        'ventes_variation', CASE 
+            WHEN vp.nb_ventes > 0 
+            THEN ROUND(((va.nb_ventes - vp.nb_ventes) * 100.0 / vp.nb_ventes), 1)
+            ELSE 0 
+        END,
+        'panier_moyen', ROUND(va.panier_moyen, 0),
+        'panier_variation', CASE 
+            WHEN vp.panier_moyen > 0 
+            THEN ROUND(((va.panier_moyen - vp.panier_moyen) * 100.0 / vp.panier_moyen), 1)
+            ELSE 0 
+        END,
+        'clients_actifs', va.clients_actifs,
+        'clients_variation', CASE 
+            WHEN vp.clients_actifs > 0 
+            THEN ROUND(((va.clients_actifs - vp.clients_actifs) * 100.0 / vp.clients_actifs), 1)
+            ELSE 0 
+        END
+    ) INTO v_resume_ventes
+    FROM ventes_actuelles va, ventes_precedentes vp;
+
+    -- 2. ÉVOLUTION DES VENTES (Graphique)
+    CASE LOWER(pperiode)
+        WHEN 'semaine' THEN
+            -- Grouper par jour de la semaine
+            SELECT json_agg(
+                json_build_object(
+                    'periode', TO_CHAR(jour, 'Dy'),
+                    'label', TO_CHAR(jour, 'DD/MM'),
+                    'montant', COALESCE(ventes.montant_total, 0),
+                    'nombre_ventes', COALESCE(ventes.nb_ventes, 0)
+                ) ORDER BY jour
+            ) INTO v_evolution_ventes
+            FROM generate_series(v_date_debut, v_date_fin, '1 day'::interval) jour
+            LEFT JOIN (
+                SELECT 
+                    f.date_facture::date as jour,
+                    SUM(f.montant) as montant_total,
+                    COUNT(*) as nb_ventes
+                FROM list_factures_com f
+                WHERE f.id_structure = pid_structure
+                  AND f.date_facture BETWEEN v_date_debut AND v_date_fin
+                GROUP BY f.date_facture::date
+            ) ventes ON jour = ventes.jour;
+            
+        WHEN 'mois' THEN
+            -- Grouper par semaine
+            SELECT json_agg(
+                json_build_object(
+                    'periode', 'S' || EXTRACT(WEEK FROM semaine)::text,
+                    'label', 'Semaine ' || EXTRACT(WEEK FROM semaine)::text,
+                    'montant', COALESCE(ventes.montant_total, 0),
+                    'nombre_ventes', COALESCE(ventes.nb_ventes, 0)
+                ) ORDER BY semaine
+            ) INTO v_evolution_ventes
+            FROM generate_series(v_date_debut, v_date_fin, '1 week'::interval) semaine
+            LEFT JOIN (
+                SELECT 
+                    DATE_TRUNC('week', f.date_facture)::date as semaine,
+                    SUM(f.montant) as montant_total,
+                    COUNT(*) as nb_ventes
+                FROM list_factures_com f
+                WHERE f.id_structure = pid_structure
+                  AND f.date_facture BETWEEN v_date_debut AND v_date_fin
+                GROUP BY DATE_TRUNC('week', f.date_facture)
+            ) ventes ON semaine = ventes.semaine;
+            
+        WHEN 'annee' THEN
+            -- Grouper par mois
+            SELECT json_agg(
+                json_build_object(
+                    'periode', TO_CHAR(mois, 'Mon'),
+                    'label', TO_CHAR(mois, 'Month YYYY'),
+                    'montant', COALESCE(ventes.montant_total, 0),
+                    'nombre_ventes', COALESCE(ventes.nb_ventes, 0)
+                ) ORDER BY mois
+            ) INTO v_evolution_ventes
+            FROM generate_series(v_date_debut, v_date_fin, '1 month'::interval) mois
+            LEFT JOIN (
+                SELECT 
+                    DATE_TRUNC('month', f.date_facture)::date as mois,
+                    SUM(f.montant) as montant_total,
+                    COUNT(*) as nb_ventes
+                FROM list_factures_com f
+                WHERE f.id_structure = pid_structure
+                  AND f.date_facture BETWEEN v_date_debut AND v_date_fin
+                GROUP BY DATE_TRUNC('month', f.date_facture)
+            ) ventes ON mois = ventes.mois;
+    END CASE;
+
+    -- 3. TOP 5 ARTICLES
+    SELECT json_agg(
+        json_build_object(
+            'rang', row_number,
+            'nom_produit', nom_produit,
+            'nom_categorie', nom_categorie,
+            'montant_total', montant_total,
+            'nombre_ventes', nombre_ventes,
+            'quantite_totale', quantite_totale
+        )
+    ) INTO v_top_articles
+    FROM (
+        SELECT 
+            ROW_NUMBER() OVER (ORDER BY SUM(dv.quantite * dv.prix) DESC) as row_number,
+            dv.nom_produit,
+            dv.nom_categorie,
+            SUM(dv.quantite * dv.prix) as montant_total,
+            COUNT(DISTINCT dv.id_facture) as nombre_ventes,
+            SUM(dv.quantite) as quantite_totale
+        FROM list_detailventes dv
+        INNER JOIN list_factures_com f ON dv.id_facture = f.id_facture
+        WHERE f.id_structure = pid_structure
+          AND f.date_facture BETWEEN v_date_debut AND v_date_fin
+        GROUP BY dv.nom_produit, dv.nom_categorie
+        ORDER BY montant_total DESC
+        LIMIT 5
+    ) top_articles;
+
+    -- 4. TOP 5 CLIENTS
+    SELECT json_agg(
+        json_build_object(
+            'rang', row_number,
+            'nom_client', nom_client,
+            'tel_client', tel_client,
+            'initiales', initiales,
+            'montant_total', montant_total,
+            'nombre_factures', nombre_factures,
+            'statut', CASE 
+                WHEN montant_total >= 400000 THEN 'VIP'
+                WHEN montant_total >= 200000 THEN 'Premium'
+                ELSE 'Standard'
+            END
+        )
+    ) INTO v_top_clients
+    FROM (
+        SELECT 
+            ROW_NUMBER() OVER (ORDER BY SUM(f.montant) DESC) as row_number,
+            cf.nom_client,
+            cf.tel_client,
+            UPPER(SUBSTRING(SPLIT_PART(cf.nom_client, ' ', 1), 1, 1)) || 
+            UPPER(SUBSTRING(SPLIT_PART(cf.nom_client, ' ', 2), 1, 1)) as initiales,
+            SUM(f.montant) as montant_total,
+            COUNT(f.id_facture) as nombre_factures
+        FROM list_factures_com f
+        INNER JOIN client_facture cf ON f.tel_client = cf.tel_client 
+            AND f.id_structure = cf.id_structure
+        WHERE f.id_structure = pid_structure
+          AND f.date_facture BETWEEN v_date_debut AND v_date_fin
+        GROUP BY cf.nom_client, cf.tel_client
+        ORDER BY montant_total DESC
+        LIMIT 5
+    ) top_clients;
+
+    -- Construction du résultat final
+    SELECT json_build_object(
+        'success', true,
+        'structure_id', pid_structure,
+        'periode', pperiode,
+        'annee', pannee,
+        'date_debut', v_date_debut,
+        'date_fin', v_date_fin,
+        'resume_ventes', v_resume_ventes,
+        'evolution_ventes', COALESCE(v_evolution_ventes, '[]'::json),
+        'top_articles', COALESCE(v_top_articles, '[]'::json),
+        'top_clients', COALESCE(v_top_clients, '[]'::json),
+        'timestamp_generation', NOW()
+    ) INTO v_result_json;
+
+    RETURN v_result_json;
+
+EXCEPTION
+    WHEN OTHERS THEN
+        RETURN json_build_object(
+            'success', false,
+            'error', 'Erreur lors de la génération des statistiques: ' || SQLERRM,
+            'timestamp', NOW()
+        );
+END;
+$function$;
+📋 Structure de la Réponse JSON
+json{
+  "success": true,
+  "structure_id": 182,
+  "periode": "semaine",
+  "annee": 2025,
+  "date_debut": "2025-10-13",
+  "date_fin": "2025-10-19",
+  "resume_ventes": {
+    "ca_total": 687500,
+    "ca_variation": 12.5,
+    "ventes_total": 89,
+    "ventes_variation": 8.3,
+    "panier_moyen": 7725,
+    "panier_variation": 3.7,
+    "clients_actifs": 34,
+    "clients_variation": 15.2
+  },
+  "evolution_ventes": [
+    {
+      "periode": "Mon",
+      "label": "13/10",
+      "montant": 95000,
+      "nombre_ventes": 12
+    },
+    {
+      "periode": "Tue",
+      "label": "14/10",
+      "montant": 120000,
+      "nombre_ventes": 15
+    }
+    // ... autres jours
+  ],
+  "top_articles": [
+    {
+      "rang": 1,
+      "nom_produit": "Riz parfumé 25kg",
+      "nom_categorie": "Alimentation",
+      "montant_total": 1648200,
+      "nombre_ventes": 89,
+      "quantite_totale": 178
+    }
+    // ... 4 autres articles
+  ],
+  "top_clients": [
+    {
+      "rang": 1,
+      "nom_client": "Aminata Diallo",
+      "tel_client": "77 123 45 67",
+      "initiales": "AD",
+      "montant_total": 487500,
+      "nombre_factures": 23,
+      "statut": "VIP"
+    }
+    // ... 4 autres clients
+  ],
+  "timestamp_generation": "2025-10-18T19:45:23.456Z"
+}
+🎯 Prompt pour l'Assistant IA
+markdown# MISSION : Implémentation du Composant Statistiques Inventaire
+
+## CONTEXTE
+Tu es un expert développeur Next.js/React spécialisé dans FayClick V2. Tu dois créer un composant de statistiques d'inventaire avec 3 onglets de périodes (Semaine, Mois, Année).
+
+## ARCHITECTURE STRICTE
+
+### 1. COMMUNICATION API
+**RÈGLE ABSOLUE** : Utilise UNIQUEMENT le DatabaseService avec le format XML/JSON défini.
+```typescript
+// ✅ CORRECT
+const xml = `
+
+    fayclick
+    SELECT * FROM get_inventaire(${structureId}, ${annee}, '${periode}')
+`;
+
+const result = await databaseService.envoyerRequeteApi('fayclick', requeteSql);
+const data = extractSingleDataFromResult(result[0]);
+```
+
+**INTERDICTIONS** :
+- ❌ Pas de fetch direct
+- ❌ Pas de Supabase
+- ❌ Pas d'autres services API
+- ❌ Pas de mock data en production
+
+### 2. STRUCTURE DES FICHIERS
+```
+app/
+├── dashboard/
+│   └── inventaire/
+│       └── page.tsx          # Page principale
+├── components/
+│   └── inventaire/
+│       ├── InventaireHeader.tsx
+│       ├── ResumeStat Card.tsx
+│       ├── EvolutionChart.tsx
+│       ├── TopArticlesCard.tsx
+│       └── TopClientsCard.tsx
+├── services/
+│   └── inventaire.service.ts  # Service dédié
+└── types/
+    └── inventaire.types.ts    # Types TypeScript
+```
+
+### 3. TYPES TYPESCRIPT OBLIGATOIRES
+```typescript
+// types/inventaire.types.ts
+export type PeriodeType = 'semaine' | 'mois' | 'annee';
+
+export interface ResumeVentes {
+  ca_total: number;
+  ca_variation: number;
+  ventes_total: number;
+  ventes_variation: number;
+  panier_moyen: number;
+  panier_variation: number;
+  clients_actifs: number;
+  clients_variation: number;
+}
+
+export interface EvolutionVente {
+  periode: string;
+  label: string;
+  montant: number;
+  nombre_ventes: number;
+}
+
+export interface TopArticle {
+  rang: number;
+  nom_produit: string;
+  nom_categorie: string;
+  montant_total: number;
+  nombre_ventes: number;
+  quantite_totale: number;
+}
+
+export interface TopClient {
+  rang: number;
+  nom_client: string;
+  tel_client: string;
+  initiales: string;
+  montant_total: number;
+  nombre_factures: number;
+  statut: 'VIP' | 'Premium' | 'Standard';
+}
+
+export interface InventaireData {
+  success: boolean;
+  structure_id: number;
+  periode: PeriodeType;
+  annee: number;
+  date_debut: string;
+  date_fin: string;
+  resume_ventes: ResumeVentes;
+  evolution_ventes: EvolutionVente[];
+  top_articles: TopArticle[];
+  top_clients: TopClient[];
+  timestamp_generation: string;
+}
+```
+
+### 4. SERVICE INVENTAIRE
+```typescript
+// services/inventaire.service.ts
+import { DatabaseService } from './database.service';
+import { extractSingleDataFromResult } from '@/utils/dataExtractor';
+import type { InventaireData, PeriodeType } from '@/types/inventaire.types';
+
+export class InventaireService {
+  private databaseService: DatabaseService;
+
+  constructor() {
+    this.databaseService = new DatabaseService();
+  }
+
+  async getStatistiques(
+    structureId: number, 
+    annee: number,
+    periode: PeriodeType
+  ): Promise {
+    try {
+      const requeteSql = `SELECT * FROM get_inventaire(${structureId}, ${annee}, '${periode}')`;
+
+      const result = await this.databaseService.envoyerRequeteApi(
+        'fayclick',
+        requeteSql
+      );
+
+      if (!result || result.length === 0) {
+        throw new Error('Aucune donnée retournée');
+      }
+
+      const data = extractSingleDataFromResult(result[0]);
+      
+      if (!data.success) {
+        throw new Error(data.error || 'Erreur inconnue');
+      }
+
+      return data;
+    } catch (error) {
+      console.error('[InventaireService] Erreur:', error);
+      throw error;
+    }
+  }
+}
+```
+
+### 5. COMPOSANTS UI
+
+#### A. Header
+```tsx
+// components/inventaire/InventaireHeader.tsx
+interface InventaireHeaderProps {
+  onExport: () => void;
+  onBack: () => void;
+}
+
+export default function InventaireHeader({ onExport, onBack }: InventaireHeaderProps) {
+  return (
+    
+      
+        
+          
+        
+        
+          
+        
+      
+      
+        
+        Statistiques Inventaires
+        Analyse des performances
+      
+    
+  );
+}
+```
+
+#### B. StatCard avec Variation
+```tsx
+// components/inventaire/ResumeStatCard.tsx
+interface ResumeStatCardProps {
+  titre: string;
+  valeur: number | string;
+  variation: number;
+  suffix?: string;
+  icon?: React.ReactNode;
+}
+
+export default function ResumeStatCard({ 
+  titre, 
+  valeur, 
+  variation, 
+  suffix = '',
+  icon 
+}: ResumeStatCardProps) {
+  const isPositive = variation >= 0;
+  
+  return (
+    
+      {icon && {icon}}
+      
+        {typeof valeur === 'number' ? valeur.toLocaleString('fr-FR') : valeur}
+        {suffix && {suffix}}
+      
+      {titre}
+      
+        {isPositive ?  : }
+        
+          {isPositive ? '+' : ''}{variation}% vs mois dernier
+        
+      
+    
+  );
+}
+```
+
+#### C. Graphique d'Évolution
+```tsx
+// components/inventaire/EvolutionChart.tsx
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+
+interface EvolutionChartProps {
+  data: EvolutionVente[];
+}
+
+export default function EvolutionChart({ data }: EvolutionChartProps) {
+  return (
+    
+      Évolution des Ventes
+      
+        
+          
+          
+          
+          <Tooltip 
+            formatter={(value) => `${Number(value).toLocaleString('fr-FR')} FCFA`}
+            labelFormatter={(label) => data.find(d => d.periode === label)?.label || label}
+          />
+          
+        
+      
+    
+  );
+}
+```
+
+#### D. Top Articles
+```tsx
+// components/inventaire/TopArticlesCard.tsx
+interface TopArticlesCardProps {
+  articles: TopArticle[];
+}
+
+export default function TopArticlesCard({ articles }: TopArticlesCardProps) {
+  return (
+    
+      
+        
+        Meilleurs articles
+      
+      
+        {articles.map((article) => (
+          
+            
+              {article.rang}
+            
+            
+              
+            
+            
+              {article.nom_produit}
+              
+                {article.nombre_ventes} ventes • {article.quantite_totale} unités
+              
+            
+            
+              
+                {article.montant_total.toLocaleString('fr-FR')} FCFA
+              
+            
+          
+        ))}
+      
+    
+  );
+}
+```
+
+#### E. Top Clients
+```tsx
+// components/inventaire/TopClientsCard.tsx
+interface TopClientsCardProps {
+  clients: TopClient[];
+}
+
+export default function TopClientsCard({ clients }: TopClientsCardProps) {
+  const getStatutBadge = (statut: string) => {
+    const styles = {
+      'VIP': 'bg-amber-100 text-amber-700',
+      'Premium': 'bg-purple-100 text-purple-700',
+      'Standard': 'bg-gray-100 text-gray-700'
+    };
+    return styles[statut] || styles['Standard'];
+  };
+
+  return (
+    
+      
+        
+        Meilleurs clients
+      
+      
+        {clients.map((client) => (
+          
+            
+              {client.rang}
+            
+            
+              {client.initiales}
+            
+            
+              {client.nom_client}
+              
+                
+                {client.tel_client}
+              
+              
+                {client.statut}
+              
+            
+            
+              
+                {client.montant_total.toLocaleString('fr-FR')} FCFA
+              
+              
+                {client.nombre_factures} commandes
+              
+            
+          
+        ))}
+      
+    
+  );
+}
+```
+
+### 6. PAGE PRINCIPALE
+```tsx
+// app/dashboard/inventaire/page.tsx
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
+import { InventaireService } from '@/services/inventaire.service';
+import type { InventaireData, PeriodeType } from '@/types/inventaire.types';
+
+import InventaireHeader from '@/components/inventaire/InventaireHeader';
+import ResumeStatCard from '@/components/inventaire/ResumeStatCard';
+import EvolutionChart from '@/components/inventaire/EvolutionChart';
+import TopArticlesCard from '@/components/inventaire/TopArticlesCard';
+import TopClientsCard from '@/components/inventaire/TopClientsCard';
+
+export default function InventairePage() {
+  const { userData } = useAuth();
+  const [data, setData] = useState(null);
+  const [periode, setPeriode] = useState('semaine');
+  const [annee] = useState(new Date().getFullYear());
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const inventaireService = new InventaireService();
+
+  useEffect(() => {
+    if (userData?.id_structure) {
+      chargerStatistiques();
+    }
+  }, [periode, userData]);
+
+  const chargerStatistiques = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const result = await inventaireService.getStatistiques(
+        userData!.id_structure,
+        annee,
+        periode
+      );
+      
+      setData(result);
+    } catch (err) {
+      console.error('Erreur chargement statistiques:', err);
+      setError('Impossible de charger les statistiques');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleExport = () => {
+    // TODO: Implémenter export PDF/Excel
+    console.log('Export des données');
+  };
+
+  if (loading) {
+    return Chargement...;
+  }
+
+  if (error || !data) {
+    return {error};
+  }
+
+  return (
+    
+      <InventaireHeader 
+        onExport={handleExport}
+        onBack={() => window.history.back()}
+      />
+
+      {/* Onglets de Période */}
+      
+        {(['semaine', 'mois', 'annee'] as PeriodeType[]).map((p) => (
+          <button
+            key={p}
+            onClick={() => setPeriode(p)}
+            className={`px-6 py-2 rounded-lg font-medium transition ${
+              periode === p
+                ? 'bg-emerald-500 text-white'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}
+          >
+            {p.charAt(0).toUpperCase() + p.slice(1)}
+          
+        ))}
+      
+
+      
+        {/* Résumé des Ventes */}
+        
+          
+          
+          
+          
+        
+
+        {/* Graphique */}
+        
+
+        {/* Top Articles */}
+        
+
+        {/* Top Clients */}
+        
+      
+    
+  );
+}
+```
+
+## ✅ CHECKLIST DE VALIDATION
+
+Avant de soumettre le code, vérifie :
+
+- [ ] Communication via DatabaseService + XML uniquement
+- [ ] Types TypeScript complets et exportés
+- [ ] Gestion d'erreurs robuste (try/catch partout)
+- [ ] Loading states affichés
+- [ ] Responsive design (mobile-first)
+- [ ] Aucun hardcoding de données
+- [ ] Utilisation de extractSingleDataFromResult
+- [ ] Format des montants avec toLocaleString('fr-FR')
+- [ ] Couleurs conformes aux captures (vert émeraude)
+- [ ] Icônes lucide-react installées et importées
+- [ ] Composants réutilisables et modulaires
+- [ ] Code commenté en français
+- [ ] Console.log uniquement en développement
+
+## 🚫 INTERDICTIONS ABSOLUES
+
+1. ❌ NE JAMAIS utiliser fetch direct
+2. ❌ NE JAMAIS créer de mock data
+3. ❌ NE JAMAIS ignorer les erreurs API
+4. ❌ NE JAMAIS hardcoder les IDs
+5. ❌ NE JAMAIS oublier les types TypeScript
+6. ❌ NE JAMAIS utiliser Supabase ou autre ORM
+7. ❌ NE JAMAIS modifier le format XML de requête
+
+## 📚 RESSOURCES
+
+- Guide API: Fourni ci-dessus
+- Fonction PostgreSQL: `get_inventaire(pid_structure, pannee, pperiode)`
+- Captures d'écran: Référence visuelle fournie
+- DatabaseService: services/database.service.ts
+- DataExtractor: utils/dataExtractor.ts
+
+## 🎯 OBJECTIF FINAL
+
+Un composant **identique** aux captures fournies, fonctionnel, performant et maintenable

@@ -57,17 +57,32 @@ class InventaireService {
       // Construction de la requête SQL
       const requeteSql = `SELECT * FROM get_inventaire(${structureId}, ${annee}, '${periode}')`;
 
-      console.log('📝 [InventaireService] Requête SQL:', requeteSql);
+      console.log('📝 [InventaireService] Requête SQL complète:', {
+        requete: requeteSql,
+        parametres: {
+          structureId,
+          annee,
+          periode,
+          typesPeriode: typeof periode
+        }
+      });
 
       // Envoi de la requête via DatabaseService
       const result = await this.databaseService.envoyerRequeteApi(
-        'payecole',
+        'fayclick',
         requeteSql
       );
 
-      console.log('✅ [InventaireService] Résultat brut reçu:', result);
+      console.log('✅ [InventaireService] Résultat brut reçu:', {
+        type: typeof result,
+        isArray: Array.isArray(result),
+        length: Array.isArray(result) ? result.length : 'N/A',
+        keys: result && typeof result === 'object' ? Object.keys(result) : 'N/A',
+        fullResult: JSON.stringify(result, null, 2)
+      });
 
       if (!result || result.length === 0) {
+        console.error('❌ [InventaireService] Résultat vide ou null');
         throw new Error('Aucune donnée retournée par la fonction get_inventaire');
       }
 
@@ -100,13 +115,26 @@ class InventaireService {
    */
   private extractInventaireData(rawData: unknown): InventaireData {
     try {
+      console.log('🔍 [extractInventaireData] Début extraction:', {
+        typeRawData: typeof rawData,
+        isString: typeof rawData === 'string',
+        rawDataPreview: typeof rawData === 'string' ? rawData.substring(0, 200) : rawData
+      });
+
       // Si rawData est une chaîne JSON, la parser
       let data: unknown;
       if (typeof rawData === 'string') {
+        console.log('📄 [extractInventaireData] Parsing JSON string...');
         data = JSON.parse(rawData);
       } else {
         data = rawData;
       }
+
+      console.log('📦 [extractInventaireData] Données après parsing initial:', {
+        type: typeof data,
+        keys: data && typeof data === 'object' ? Object.keys(data) : 'N/A',
+        fullData: JSON.stringify(data, null, 2)
+      });
 
       // Vérifier si data est un objet
       if (!data || typeof data !== 'object') {
@@ -120,15 +148,25 @@ class InventaireService {
       let inventaireData: unknown;
 
       if ('get_inventaire' in dataObj) {
+        console.log('🔑 [extractInventaireData] Clé "get_inventaire" trouvée');
         inventaireData = dataObj.get_inventaire;
+        console.log('📝 [extractInventaireData] Type de get_inventaire:', typeof inventaireData);
+
         // Si c'est une chaîne, la parser
         if (typeof inventaireData === 'string') {
+          console.log('🔄 [extractInventaireData] Parsing du contenu get_inventaire...');
           inventaireData = JSON.parse(inventaireData);
         }
       } else {
-        // Si pas de clé get_inventaire, utiliser data directement
+        console.log('⚠️ [extractInventaireData] Pas de clé "get_inventaire", utilisation data directement');
         inventaireData = data;
       }
+
+      console.log('✅ [extractInventaireData] Données finales extraites:', {
+        type: typeof inventaireData,
+        keys: inventaireData && typeof inventaireData === 'object' ? Object.keys(inventaireData) : 'N/A',
+        fullInventaireData: JSON.stringify(inventaireData, null, 2)
+      });
 
       // Validation du format final
       if (!inventaireData || typeof inventaireData !== 'object') {

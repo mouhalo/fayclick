@@ -20,7 +20,7 @@ import TopClientsCard from '@/components/inventaire/TopClientsCard';
  */
 export default function InventairePage() {
   const router = useRouter();
-  const { userData } = useAuth();
+  const { user } = useAuth();
 
   // États
   const [data, setData] = useState<InventaireData | null>(null);
@@ -31,28 +31,28 @@ export default function InventairePage() {
 
   // Chargement des statistiques
   useEffect(() => {
-    if (userData?.id_structure) {
+    if (user?.id_structure) {
       chargerStatistiques();
     }
-  }, [periode, userData]);
+  }, [periode, user]);
 
   const chargerStatistiques = async () => {
     try {
       setLoading(true);
       setError(null);
 
-      if (!userData?.id_structure) {
+      if (!user?.id_structure) {
         throw new Error('Structure non identifiée');
       }
 
       console.log('🔄 [InventairePage] Chargement statistiques:', {
-        id_structure: userData.id_structure,
+        id_structure: user.id_structure,
         annee,
         periode
       });
 
       const result = await inventaireService.getStatistiques(
-        userData.id_structure,
+        user.id_structure,
         annee,
         periode
       );
@@ -125,54 +125,103 @@ export default function InventairePage() {
       {/* Header */}
       <InventaireHeader onExport={handleExport} onBack={handleBack} />
 
-      <div className="max-w-7xl mx-auto px-4 -mt-16 pb-12">
+      <div className="max-w-7xl mx-auto px-4 pt-4 pb-12">
         {/* Onglets de Période */}
-        <div className="flex gap-3 mb-8 bg-white rounded-2xl p-2 shadow-lg">
-          {(['semaine', 'mois', 'annee'] as PeriodeType[]).map((p) => (
-            <button
-              key={p}
-              onClick={() => setPeriode(p)}
-              className={`flex-1 px-6 py-3 rounded-xl font-semibold transition-all duration-200 ${
-                periode === p
-                  ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-lg scale-105'
-                  : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
-              }`}
-            >
-              {inventaireService.getPeriodeLabel(p)}
-            </button>
-          ))}
+        <div className="flex gap-2 mb-6 bg-gray-100 rounded-2xl p-1 shadow-sm">
+          <button
+            onClick={() => setPeriode('semaine')}
+            className={`flex-1 px-6 py-3 rounded-xl font-semibold text-base transition-all duration-200 ${
+              periode === 'semaine'
+                ? 'bg-white text-emerald-600 shadow-md'
+                : 'bg-transparent text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            Semaine
+          </button>
+          <button
+            onClick={() => setPeriode('mois')}
+            className={`flex-1 px-6 py-3 rounded-xl font-semibold text-base transition-all duration-200 ${
+              periode === 'mois'
+                ? 'bg-white text-emerald-600 shadow-md'
+                : 'bg-transparent text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            Mois
+          </button>
+          <button
+            onClick={() => setPeriode('annee')}
+            className={`flex-1 px-6 py-3 rounded-xl font-semibold text-base transition-all duration-200 ${
+              periode === 'annee'
+                ? 'bg-white text-emerald-600 shadow-md'
+                : 'bg-transparent text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            Année
+          </button>
         </div>
 
-        {/* Résumé des Ventes - 4 StatCards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <ResumeStatCard
-            titre="CA Total (FCFA)"
-            valeur={data.resume_ventes.ca_total}
-            variation={data.resume_ventes.ca_variation}
-            variationLabel={variationLabel}
-            icon={<DollarSign className="w-6 h-6 text-emerald-600" />}
-          />
-          <ResumeStatCard
-            titre="Ventes Total"
-            valeur={data.resume_ventes.ventes_total}
-            variation={data.resume_ventes.ventes_variation}
-            variationLabel={variationLabel}
-            icon={<ShoppingCart className="w-6 h-6 text-emerald-600" />}
-          />
-          <ResumeStatCard
-            titre="Panier Moyen (FCFA)"
-            valeur={data.resume_ventes.panier_moyen}
-            variation={data.resume_ventes.panier_variation}
-            variationLabel={variationLabel}
-            icon={<TrendingUp className="w-6 h-6 text-emerald-600" />}
-          />
-          <ResumeStatCard
-            titre="Clients Actifs"
-            valeur={data.resume_ventes.clients_actifs}
-            variation={data.resume_ventes.clients_variation}
-            variationLabel={variationLabel}
-            icon={<Users className="w-6 h-6 text-emerald-600" />}
-          />
+        {/* Résumé des Ventes - Card unique avec grille 2x2 */}
+        <div className="bg-white rounded-3xl p-6 shadow-lg border-l-4 border-emerald-500 mb-8">
+          {/* Titre de la section */}
+          <h2 className="text-lg font-bold text-gray-800 mb-6 flex items-center gap-2">
+            <span>🔥</span>
+            <span>Résumé des ventes</span>
+          </h2>
+
+          {/* Grille 2x2 des statistiques */}
+          <div className="grid grid-cols-2 gap-6">
+            {/* CA Total */}
+            <div>
+              <div className="text-3xl font-bold text-emerald-600 mb-1">
+                {data.resume_ventes.ca_total.toLocaleString('fr-FR')}
+              </div>
+              <div className="text-sm text-gray-600 font-medium mb-2">
+                CA Total (FCFA)
+              </div>
+              <div className={`text-sm font-semibold ${data.resume_ventes.ca_variation >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                {data.resume_ventes.ca_variation >= 0 ? '+' : ''}{data.resume_ventes.ca_variation.toFixed(1)}% {variationLabel}
+              </div>
+            </div>
+
+            {/* Ventes Total */}
+            <div>
+              <div className="text-3xl font-bold text-emerald-600 mb-1">
+                {data.resume_ventes.ventes_total.toLocaleString('fr-FR')}
+              </div>
+              <div className="text-sm text-gray-600 font-medium mb-2">
+                Ventes Total
+              </div>
+              <div className={`text-sm font-semibold ${data.resume_ventes.ventes_variation >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                {data.resume_ventes.ventes_variation >= 0 ? '+' : ''}{data.resume_ventes.ventes_variation.toFixed(1)}% {variationLabel}
+              </div>
+            </div>
+
+            {/* Panier Moyen */}
+            <div>
+              <div className="text-3xl font-bold text-emerald-600 mb-1">
+                {data.resume_ventes.panier_moyen.toLocaleString('fr-FR')}
+              </div>
+              <div className="text-sm text-gray-600 font-medium mb-2">
+                Panier Moyen (FCFA)
+              </div>
+              <div className={`text-sm font-semibold ${data.resume_ventes.panier_variation >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                {data.resume_ventes.panier_variation >= 0 ? '+' : ''}{data.resume_ventes.panier_variation.toFixed(1)}% {variationLabel}
+              </div>
+            </div>
+
+            {/* Clients Actifs */}
+            <div>
+              <div className="text-3xl font-bold text-emerald-600 mb-1">
+                {data.resume_ventes.clients_actifs.toLocaleString('fr-FR')}
+              </div>
+              <div className="text-sm text-gray-600 font-medium mb-2">
+                Clients Actifs
+              </div>
+              <div className={`text-sm font-semibold ${data.resume_ventes.clients_variation >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                {data.resume_ventes.clients_variation >= 0 ? '+' : ''}{data.resume_ventes.clients_variation.toFixed(1)}% {variationLabel}
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Graphique d'Évolution */}
