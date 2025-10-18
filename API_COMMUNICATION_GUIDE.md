@@ -32,7 +32,7 @@ Toutes les requêtes sont formatées en XML avec la structure suivante :
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
 <request>
-    <application>payecole</application>
+    <application>fayclick</application>
     <requete_sql>SELECT * FROM fonction_postgres(param1, param2)</requete_sql>
 </request>
 ```
@@ -285,7 +285,7 @@ const testDirectAPI = async () => {
   const url = 'https://api.icelabsoft.com/api/psql_request/api/psql_request';
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <request>
-    <application>payecole</application>
+    <application>fayclick</application>
     <requete_sql>SELECT * FROM check_user_credentials('test','pass')</requete_sql>
 </request>`;
 
@@ -294,7 +294,7 @@ const testDirectAPI = async () => {
     headers: { 'Content-Type': 'application/xml' },
     body: xml
   });
-  
+
   console.log(await response.json());
 };
 ```
@@ -356,15 +356,21 @@ Les applications disponibles sont définies dans `config/env.ts` :
 
 ```typescript
 export const APPLICATIONS_CONFIG = {
+  fayclick: {
+    name: 'fayclick',
+    description: 'Super App de gestion avec payement Wallet',
+    defaultTimeout: 10000
+  },
   payecole: {
     name: 'payecole',
-    description: 'Application de gestion scolaire'
+    description: 'Application de gestion scolaire et paiements',
+    defaultTimeout: 10000
   },
-  facturier: {
-    name: 'facturier',
-    description: 'Application de facturation'
+  sms: {
+    name: 'sms',
+    description: 'Application d\'envoi de SMS via add_pending_sms',
+    defaultTimeout: 10000
   }
-  // Ajouter d'autres applications au besoin
 };
 ```
 
