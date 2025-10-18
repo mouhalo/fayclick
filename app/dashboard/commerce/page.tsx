@@ -236,8 +236,8 @@ export default function CommerceDashboard() {
             <motion.div
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              className="bg-white rounded-2xl p-5 shadow-lg border-l-4 border-green-500"
-              // Retrait du cursor-pointer et du onClick pour empêcher la redirection
+              className="bg-white rounded-2xl p-5 shadow-lg border-l-4 border-green-500 cursor-pointer"
+              onClick={() => router.push('/dashboard/commerce/inventaire')}
             >
               <span className="text-3xl mb-3 block">💰</span>
               <div className="text-2xl font-bold text-gray-800 mb-1">
@@ -248,7 +248,9 @@ export default function CommerceDashboard() {
                 )}
               </div>
               <div className="text-xs text-gray-600 font-semibold uppercase tracking-wide">Valeur Stock</div>
-              <div className="text-xs text-green-600 mt-2 font-semibold">FCFA</div>
+              <div className="text-xs text-emerald-600 mt-2 font-semibold flex items-center justify-center gap-1">
+                <span>📊</span> Voir Inventaires
+              </div>
             </motion.div>
           </motion.div>
 
