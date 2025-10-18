@@ -12,7 +12,6 @@ import { StatusBarPanier } from '@/components/panier/StatusBarPanier';
 import { ModalPanier } from '@/components/panier/ModalPanier';
 import { ModalFactureSuccess } from '@/components/panier/ModalFactureSuccess';
 import { useToast } from '@/components/ui/Toast';
-import { ModalConfirmation } from '@/components/ui/ModalConfirmation';
 
 
 export default function CommerceDashboard() {
@@ -22,7 +21,6 @@ export default function CommerceDashboard() {
   const [showCoffreModal, setShowCoffreModal] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [notifications, setNotifications] = useState(3);
-  const [showInventoryModal, setShowInventoryModal] = useState(false);
   const { ToastComponent } = useToast();
 
   // Hook pour charger les vraies données depuis l'API
@@ -103,10 +101,6 @@ export default function CommerceDashboard() {
   const handleNotifications = () => {
     setNotifications(0);
     alert('Notifications (3) :\n\n• Nouvelle commande de Fatou K.\n• Rappel : Stock faible pour "Riz parfumé"\n• Paiement Orange Money reçu : 15,000 FCFA');
-  };
-
-  const handleInventoryClick = () => {
-    setShowInventoryModal(true);
   };
 
   if (isAuthLoading || !user) {
@@ -323,7 +317,7 @@ export default function CommerceDashboard() {
                   } rounded-2xl p-5 text-center cursor-pointer shadow-md hover:shadow-xl transition-all border-2 border-transparent hover:border-${action.color}-200 relative overflow-hidden`}
                   onClick={() => {
                     if (action.path === '/inventory') {
-                      handleInventoryClick();
+                      router.push('/dashboard/commerce/inventaire');
                     } else {
                       router.push(`/dashboard/commerce${action.path}`);
                     }
@@ -514,17 +508,6 @@ export default function CommerceDashboard() {
         onClose={() => setShowMenu(false)}
         userName={user?.username}
         businessName={user?.nom_structure}
-      />
-
-      {/* Modal Inventaire à venir */}
-      <ModalConfirmation
-        isOpen={showInventoryModal}
-        onClose={() => setShowInventoryModal(false)}
-        onConfirm={() => setShowInventoryModal(false)}
-        title="Fonctionnalité à venir"
-        message="Le module Inventaires sera bientôt disponible !\n\nIl vous permettra de :\n• Gérer vos stocks en temps réel\n• Suivre les mouvements d'inventaire\n• Générer des rapports détaillés\n• Optimiser vos approvisionnements\n\nRestez connecté pour les mises à jour !"
-        confirmText="J'ai compris"
-        type="info"
       />
 
       <style jsx global>{`
