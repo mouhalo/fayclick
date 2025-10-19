@@ -194,31 +194,31 @@ export default function CommerceDashboard() {
 
         {/* Content */}
         <div className="p-5 pb-24 bg-gradient-to-b from-[#ecfae5] to-[#1b5307] min-h-[calc(100vh-180px)] overflow-y-auto">
-          {/* Stats Section */}
+          {/* Stats Section - Réduit de 1/3 */}
           <motion.div
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.6 }}
-            className="grid grid-cols-2 gap-4 mb-6"
+            className="grid grid-cols-2 gap-3 mb-4"
           >
             <motion.div
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              className="bg-white rounded-2xl p-5 shadow-lg border-l-4 border-orange-500 cursor-pointer"
+              className="bg-white rounded-xl p-3 shadow-md border-l-4 border-orange-500 cursor-pointer"
               onClick={() => router.push('/dashboard/commerce/produits')}
             >
-              <span className="text-3xl mb-3 block">📦</span>
-              <div className="text-3xl font-bold text-gray-800 mb-1">
+              <span className="text-2xl mb-2 block">📦</span>
+              <div className="text-2xl font-bold text-gray-800 mb-1">
                 {loadingStats ? (
-                  <div className="w-12 h-8 bg-gray-200 animate-pulse rounded"></div>
+                  <div className="w-10 h-6 bg-gray-200 animate-pulse rounded"></div>
                 ) : (
                   <AnimatedCounter value={statsCardData?.primaryCount || 0} />
                 )}
               </div>
               <div className="text-xs text-gray-600 font-semibold uppercase tracking-wide">Produits</div>
-              <div className="text-xs text-green-600 mt-2 font-semibold">
+              <div className="text-xs text-green-600 mt-1 font-semibold">
                 {loadingStats ? (
-                  <div className="w-16 h-3 bg-gray-200 animate-pulse rounded"></div>
+                  <div className="w-14 h-3 bg-gray-200 animate-pulse rounded"></div>
                 ) : (
                   `+${statsCardData?.primaryGrowth || 0} cette semaine`
                 )}
@@ -228,19 +228,19 @@ export default function CommerceDashboard() {
             <motion.div
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              className="bg-white rounded-2xl p-5 shadow-lg border-l-4 border-green-500 cursor-pointer"
+              className="bg-white rounded-xl p-3 shadow-md border-l-4 border-green-500 cursor-pointer"
               onClick={() => router.push('/dashboard/commerce/inventaire')}
             >
-              <span className="text-3xl mb-3 block">💰</span>
-              <div className="text-2xl font-bold text-gray-800 mb-1">
+              <span className="text-2xl mb-2 block">💰</span>
+              <div className="text-lg font-bold text-gray-800 mb-1">
                 {loadingStats ? (
-                  <div className="w-12 h-6 bg-gray-200 animate-pulse rounded"></div>
+                  <div className="w-10 h-5 bg-gray-200 animate-pulse rounded"></div>
                 ) : (
                   formatAmount(statsCardData?.totalAmount || 0)
                 )}
               </div>
               <div className="text-xs text-gray-600 font-semibold uppercase tracking-wide">Valeur Stock</div>
-              <div className="text-xs text-emerald-600 mt-2 font-semibold flex items-center justify-center gap-1">
+              <div className="text-xs text-emerald-600 mt-1 font-semibold flex items-center justify-center gap-1">
                 <span>📊</span> Voir Inventaires
               </div>
             </motion.div>
@@ -278,18 +278,18 @@ export default function CommerceDashboard() {
             </div>
           </motion.div>
 
-          {/* Quick Actions */}
+          {/* Quick Actions - Réduit de 1/3 */}
           <motion.div
             initial={{ y: 30, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.8 }}
           >
-            <div className="bg-white rounded-2xl p-4 mb-4 shadow-md flex items-center gap-3">
-              <span className="text-2xl">⚡</span>
-              <h2 className="text-lg font-bold text-gray-800">Actions rapides</h2>
+            <div className="bg-white rounded-xl p-3 mb-3 shadow-md flex items-center gap-2">
+              <span className="text-xl">⚡</span>
+              <h2 className="text-base font-bold text-gray-800">Actions rapides</h2>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3">
               {[
                 { icon: '📦', title: 'Liste Produits', subtitle: 'Gérer votre stock', color: 'orange', path: '/produits' },
                 { icon: '🧾', title: 'Mes Factures', subtitle: 'Gestion des factures', color: 'purple', path: '/factures' },
@@ -309,32 +309,32 @@ export default function CommerceDashboard() {
                     action.color === 'blue' ? 'from-blue-50 to-blue-100' :
                     action.color === 'red' ? 'from-red-50 to-red-100' :
                     'from-amber-50 to-amber-100'
-                  } rounded-2xl p-5 text-center cursor-pointer shadow-md hover:shadow-xl transition-all border-2 border-transparent hover:border-${action.color}-200 relative overflow-hidden`}
+                  } rounded-xl p-3 text-center cursor-pointer shadow-md hover:shadow-xl transition-all border-2 border-transparent hover:border-${action.color}-200 relative overflow-hidden`}
                   onClick={() => router.push(`/dashboard/commerce${action.path}`)}
                 >
                   <div className="relative z-10">
-                    <span className="text-4xl mb-3 block">{action.icon}</span>
-                    <div className="text-sm font-bold text-gray-800 mb-1">{action.title}</div>
-                    <div className="text-xs text-gray-600">{action.subtitle}</div>
+                    <span className="text-3xl mb-2 block">{action.icon}</span>
+                    <div className="text-xs font-bold text-gray-800 mb-0.5">{action.title}</div>
+                    <div className="text-[10px] text-gray-600">{action.subtitle}</div>
                   </div>
                 </motion.div>
               ))}
             </div>
 
-            {/* Coffre-Fort Button */}
+            {/* Coffre-Fort Button - Réduit de 1/3 */}
             <motion.div
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 1.3 }}
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              className="mt-4 bg-gradient-to-br from-yellow-100 to-yellow-200 rounded-2xl p-5 cursor-pointer shadow-lg hover:shadow-xl transition-all"
+              className="mt-3 bg-gradient-to-br from-yellow-100 to-yellow-200 rounded-xl p-3 cursor-pointer shadow-lg hover:shadow-xl transition-all"
               onClick={() => setShowCoffreModal(true)}
             >
               <div className="text-center">
-                <span className="text-4xl mb-3 block">🏦</span>
-                <div className="text-base font-bold text-gray-800 mb-1">Coffre-Fort</div>
-                <div className="text-xs text-gray-600">CA réel, ventes, charges & solde</div>
+                <span className="text-3xl mb-2 block">🏦</span>
+                <div className="text-sm font-bold text-gray-800 mb-0.5">Coffre-Fort</div>
+                <div className="text-[10px] text-gray-600">CA réel, ventes, charges & solde</div>
               </div>
             </motion.div>
           </motion.div>

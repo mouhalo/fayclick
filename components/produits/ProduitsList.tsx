@@ -13,7 +13,7 @@ import { Produit } from '@/types/produit';
 interface ProduitsListProps {
   items: Produit[];
   loading?: boolean;
-  viewMode: 'grid' | 'list';
+  viewMode: 'grid' | 'list' | 'compact';
   renderItem: (item: Produit, index: number) => React.ReactNode;
   renderSkeleton?: (index: number) => React.ReactNode;
   onAddProduit: () => void;
@@ -39,11 +39,23 @@ export function ProduitsList({
   hasFilters = false,
   skeletonCount = 6
 }: ProduitsListProps) {
-  
+
   // Classes de grille selon le mode de vue
-  const gridClassName = viewMode === 'grid' 
-    ? 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4' 
-    : 'grid grid-cols-1 gap-4';
+  const getGridClassName = () => {
+    switch (viewMode) {
+      case 'grid':
+        return 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4';
+      case 'compact':
+        // Vue compacte : 2 colonnes mobile, 3 tablet, 4 desktop
+        return 'grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 gap-3';
+      case 'list':
+        return 'grid grid-cols-1 gap-4';
+      default:
+        return 'grid grid-cols-1 gap-4';
+    }
+  };
+
+  const gridClassName = getGridClassName();
 
   // Si chargement, affichage des skeletons
   if (loading) {

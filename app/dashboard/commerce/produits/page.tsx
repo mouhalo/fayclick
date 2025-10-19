@@ -20,6 +20,8 @@ import { produitsService, ProduitsApiException } from '@/services/produits.servi
 import { useProduits, useProduitsUI } from '@/hooks/useProduits';
 import { StatsCardsNouveaux, StatsCardsNouveauxLoading } from '@/components/produits/StatsCardsNouveaux';
 import { CarteProduit, CarteProduitSkeleton } from '@/components/produits/CarteProduit';
+import { CarteProduitReduit } from '@/components/produits/CarteProduitReduit';
+import { CarteProduitReduitSkeleton } from '@/components/produits/CarteProduitReduitSkeleton';
 import { ModalAjoutProduitNew } from '@/components/produits/ModalAjoutProduitNew';
 import { StatusBarPanier } from '@/components/panier/StatusBarPanier';
 import { ModalPanier } from '@/components/panier/ModalPanier';
@@ -40,7 +42,7 @@ export default function ProduitsCommercePage() {
   // États locaux
   const [user, setUser] = useState<User | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [viewMode, setViewMode] = useState<'grid' | 'list' | 'compact'>('grid');
   const [showFilters, setShowFilters] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -370,19 +372,40 @@ export default function ProduitsCommercePage() {
     );
   }
 
-  const renderProduitItem = (produit: Produit) => (
-    <CarteProduit
-      produit={produit}
-      onEdit={handleEditProduit}
-      onDelete={handleDeleteProduit}
-      typeStructure="COMMERCIALE"
-      compactMode={viewMode === 'list'}
-    />
-  );
+  const renderProduitItem = (produit: Produit) => {
+    // Vue compacte : utilise CarteProduitReduit
+    if (viewMode === 'compact') {
+      return (
+        <CarteProduitReduit
+          produit={produit}
+          onEdit={handleEditProduit}
+          onDelete={handleDeleteProduit}
+          typeStructure="COMMERCIALE"
+        />
+      );
+    }
 
-  const renderProduitSkeleton = (index: number) => (
-    <CarteProduitSkeleton key={index} compactMode={viewMode === 'list'} />
-  );
+    // Vues grille et liste : utilise CarteProduit classique
+    return (
+      <CarteProduit
+        produit={produit}
+        onEdit={handleEditProduit}
+        onDelete={handleDeleteProduit}
+        typeStructure="COMMERCIALE"
+        compactMode={viewMode === 'list'}
+      />
+    );
+  };
+
+  const renderProduitSkeleton = (index: number) => {
+    // Skeleton pour vue compacte
+    if (viewMode === 'compact') {
+      return <CarteProduitReduitSkeleton key={index} />;
+    }
+
+    // Skeleton pour vues grille et liste
+    return <CarteProduitSkeleton key={index} compactMode={viewMode === 'list'} />;
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#9c9125d9] via-[#203e2b] to-[#166534]">
