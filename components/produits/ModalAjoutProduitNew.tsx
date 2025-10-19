@@ -378,10 +378,16 @@ export function ModalAjoutProduitNew({
   // Gestion des changements de champs
   const handleInputChange = (field: keyof ProduitFormDataNew, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
-    
+
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: undefined }));
     }
+  };
+
+  // Handler pour le scan de code-barres
+  const handleScanSuccess = (code: string) => {
+    setFormData(prev => ({ ...prev, code_barres: code }));
+    setShowScanModal(false);
   };
 
   // Formatage des montants
@@ -491,6 +497,37 @@ export function ModalAjoutProduitNew({
                       </p>
                     )}
                   </div>
+
+                  {/* Code-barres avec scanner */}
+                  {!formData.est_service && (
+                    <div>
+                      <label className="block text-sm font-medium text-white mb-2">
+                        Code-barres (optionnel)
+                      </label>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={formData.code_barres || ''}
+                          onChange={(e) => handleInputChange('code_barres', e.target.value)}
+                          disabled={!canEdit}
+                          className={`flex-1 px-4 py-3 border rounded-xl backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-transparent transition-all ${
+                            !canEdit
+                              ? 'bg-gray-100/80 border-gray-300 cursor-not-allowed text-gray-600'
+                              : 'border-sky-200 bg-white/60 hover:bg-white/70'
+                          }`}
+                          placeholder="Ex: 3560071234560"
+                        />
+                        {canEdit && (
+                          <div className="w-28">
+                            <BoutonScanCodeBarre
+                              onScanClick={() => setShowScanModal(true)}
+                              variant="secondary"
+                            />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
 
                   {/* Type: Produit ou Service */}
                   <div>
@@ -1140,6 +1177,14 @@ export function ModalAjoutProduitNew({
         title={popMessage.title}
         message={popMessage.message}
         onClose={() => setPopMessage({ ...popMessage, show: false })}
+      />
+
+      {/* Modal scanner code-barres */}
+      <ModalScanCodeBarre
+        isOpen={showScanModal}
+        onClose={() => setShowScanModal(false)}
+        onScanSuccess={handleScanSuccess}
+        context="ajout-produit"
       />
     </AnimatePresence>
   );

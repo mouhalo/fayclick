@@ -31,6 +31,8 @@ import { ProduitsFilterHeader } from '@/components/produits/ProduitsFilterHeader
 import { GlassPagination, usePagination } from '@/components/ui/GlassPagination';
 import { Produit, AddEditProduitResponse } from '@/types/produit';
 import { User } from '@/types/auth';
+import { ModalScanCodeBarre } from '@/components/produits/ModalScanCodeBarre';
+import { usePanierStore } from '@/stores/panierStore';
 
 export default function ProduitsCommercePage() {
   const router = useRouter();
@@ -50,7 +52,10 @@ export default function ProduitsCommercePage() {
   // États pour la confirmation de suppression
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
   const [produitToDelete, setProduitToDelete] = useState<Produit | null>(null);
-  
+
+  // État pour le scanner de code-barres
+  const [showScanModal, setShowScanModal] = useState(false);
+
   // Configuration pagination
   const itemsPerPage = 10;
 
@@ -72,7 +77,10 @@ export default function ProduitsCommercePage() {
     resetFiltres
   } = useProduits();
 
-  const { ToastComponent } = useToast();
+  const { ToastComponent, showToast } = useToast();
+
+  // Store panier
+  const addArticle = usePanierStore(state => state.addArticle);
 
   // Pagination
   const filteredCount = produitsFiltered.length;
@@ -294,6 +302,35 @@ export default function ProduitsCommercePage() {
     setPendingStockProduct(null);
   };
 
+  // Gestion du scanner de code-barres pour ajout direct au panier
+  const handleScanSuccess = (code: string) => {
+    console.log('📸 [PRODUITS COMMERCE] Code-barres scanné:', code);
+
+    // Rechercher le produit par code-barres dans la liste filtrée
+    const produitTrouve = produitsFiltered.find(p => p.code_barres === code);
+
+    if (produitTrouve) {
+      console.log('✅ [PRODUITS COMMERCE] Produit trouvé:', produitTrouve.nom_produit);
+
+      // Vérifier le stock disponible
+      const stockDisponible = produitTrouve.niveau_stock || 0;
+      if (stockDisponible < 1) {
+        showToast('Stock insuffisant', `Le produit "${produitTrouve.nom_produit}" n'est plus en stock.`, 'error');
+        setShowScanModal(false);
+        return;
+      }
+
+      // Ajouter au panier
+      addArticle(produitTrouve);
+      showToast('Produit ajouté', `"${produitTrouve.nom_produit}" a été ajouté au panier`, 'success');
+      setShowScanModal(false);
+    } else {
+      console.log('❌ [PRODUITS COMMERCE] Produit non trouvé pour le code:', code);
+      showToast('Produit non trouvé', `Aucun produit trouvé avec le code-barres ${code}`, 'error');
+      // Ne pas fermer le modal pour permettre un nouveau scan
+    }
+  };
+
   // Note: La gestion du panier est maintenant dans CarteProduit via le store Zustand
 
   // Gestion de la pagination
@@ -367,6 +404,7 @@ export default function ProduitsCommercePage() {
               onToggleFilters={() => setShowFilters(!showFilters)}
               onRefresh={handleRefresh}
               refreshing={refreshing}
+              onScanClick={() => setShowScanModal(true)}
             />
           }
         />
@@ -550,6 +588,14 @@ export default function ProduitsCommercePage() {
           </motion.div>
         </div>
       )}
+
+      {/* Modal scanner de code-barres */}
+      <ModalScanCodeBarre
+        isOpen={showScanModal}
+        onClose={() => setShowScanModal(false)}
+        onScanSuccess={handleScanSuccess}
+        context="panier"
+      />
 
       {/* Toast Component */}
       <ToastComponent />
