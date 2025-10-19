@@ -315,18 +315,18 @@ export default function ProduitsCommercePage() {
       // Vérifier le stock disponible
       const stockDisponible = produitTrouve.niveau_stock || 0;
       if (stockDisponible < 1) {
-        showToast('Stock insuffisant', `Le produit "${produitTrouve.nom_produit}" n'est plus en stock.`, 'error');
+        showToast('error', 'Stock insuffisant', `Le produit "${produitTrouve.nom_produit}" n'est plus en stock.`);
         setShowScanModal(false);
         return;
       }
 
       // Ajouter au panier
       addArticle(produitTrouve);
-      showToast('Produit ajouté', `"${produitTrouve.nom_produit}" a été ajouté au panier`, 'success');
+      showToast('success', 'Produit ajouté', `"${produitTrouve.nom_produit}" a été ajouté au panier`);
       setShowScanModal(false);
     } else {
       console.log('❌ [PRODUITS COMMERCE] Produit non trouvé pour le code:', code);
-      showToast('Produit non trouvé', `Aucun produit trouvé avec le code-barres ${code}`, 'error');
+      showToast('error', 'Produit non trouvé', `Aucun produit trouvé avec le code-barres ${code}`);
       // Ne pas fermer le modal pour permettre un nouveau scan
     }
   };
