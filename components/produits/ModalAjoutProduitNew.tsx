@@ -31,6 +31,8 @@ import LogoUpload from '@/components/ui/LogoUpload';
 import PopMessage from '@/components/ui/PopMessage';
 import { UploadResult, UploadProgress } from '@/types/upload.types';
 import { useUserProfile } from '@/hooks/useUserProfile';
+import { BoutonScanCodeBarre } from '@/components/produits/BoutonScanCodeBarre';
+import { ModalScanCodeBarre } from '@/components/produits/ModalScanCodeBarre';
 
 interface ModalAjoutProduitNewProps {
   isOpen: boolean;
@@ -61,6 +63,7 @@ export function ModalAjoutProduitNew({
   const canEdit = isAdmin || !isEditMode; // ADMIN peut tout faire, les autres uniquement créer
 
   const [ongletActif, setOngletActif] = useState<OngletType>(defaultTab);
+  const [showScanModal, setShowScanModal] = useState(false);
   const [formData, setFormData] = useState<ProduitFormDataNew>({
     nom_produit: '',
     cout_revient: 0,
@@ -68,7 +71,8 @@ export function ModalAjoutProduitNew({
     est_service: false,
     nom_categorie: '',
     description: '',
-    presente_au_public: false
+    presente_au_public: false,
+    code_barres: ''
   });
   const [photos, setPhotos] = useState<PhotoProduit[]>([]);
   const [isLoadingPhotos, setIsLoadingPhotos] = useState(false);
@@ -160,7 +164,8 @@ export function ModalAjoutProduitNew({
         est_service: produitToEdit.est_service || false,
         nom_categorie: produitToEdit.nom_categorie || '',
         description: produitToEdit.description || '',
-        presente_au_public: produitToEdit.presente_au_public || false
+        presente_au_public: produitToEdit.presente_au_public || false,
+        code_barres: produitToEdit.code_barres || ''
       });
       setStockForm({
         quantite: 0,
@@ -181,7 +186,8 @@ export function ModalAjoutProduitNew({
         est_service: typeStructure === 'PRESTATAIRE DE SERVICES',
         nom_categorie: '',
         description: '',
-        presente_au_public: false
+        presente_au_public: false,
+        code_barres: ''
       });
       setStockForm({
         quantite: 0,
