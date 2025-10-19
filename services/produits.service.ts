@@ -644,7 +644,8 @@ export class ProduitsService {
           est_service: produitResult.result_est_service,
           nom_categorie: produitResult.result_nom_categorie,
           description: produitResult.result_description,
-          action_effectuee: produitResult.result_action_effectuee
+          action_effectuee: produitResult.result_action_effectuee,
+          code_barres: produitResult.result_code_barre || undefined
         };
         console.log('✅ [PRODUITS SERVICE] Produit transformé:', produitResult);
       }
@@ -730,7 +731,8 @@ export class ProduitsService {
           est_service: produitDataResult.result_est_service,
           nom_categorie: produitDataResult.result_nom_categorie,
           description: produitDataResult.result_description,
-          action_effectuee: produitDataResult.result_action_effectuee
+          action_effectuee: produitDataResult.result_action_effectuee,
+          code_barres: produitDataResult.result_code_barre || undefined
         };
         console.log('✅ [PRODUITS SERVICE] Produit transformé (update):', produitDataResult);
       }
