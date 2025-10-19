@@ -606,7 +606,8 @@ export class ProduitsService {
           ${produitData.nom_categorie ? `'${produitData.nom_categorie.replace(/'/g, "''")}'` : `'produit_service'`},
           ${produitData.description ? `'${produitData.description.replace(/'/g, "''")}'` : `'RAS'`},
           ${produitData.presente_au_public !== undefined ? (produitData.presente_au_public ? 'true' : 'false') : 'NULL'},
-          0
+          0,
+          ${produitData.code_barres ? `'${produitData.code_barres.replace(/'/g, "''")}'` : `''`}
         )
       `;
 
@@ -691,7 +692,8 @@ export class ProduitsService {
           ${produitData.nom_categorie ? `'${produitData.nom_categorie.replace(/'/g, "''")}'` : `'produit_service'`},
           ${produitData.description ? `'${produitData.description.replace(/'/g, "''")}'` : `'RAS'`},
           ${produitData.presente_au_public !== undefined ? (produitData.presente_au_public ? 'true' : 'false') : 'NULL'},
-          ${id_produit}
+          ${id_produit},
+          ${produitData.code_barres ? `'${produitData.code_barres.replace(/'/g, "''")}'` : `''`}
         )
       `;
 

@@ -102,6 +102,7 @@ export interface ProduitFormDataNew {
   description?: string;
   nom_categorie?: string;
   presente_au_public?: boolean;
+  code_barres?: string;
 }
 
 // Données formulaire mouvement de stock
@@ -123,6 +124,7 @@ export interface AddEditProduitResponse {
   nom_categorie: string;
   description: string;
   action_effectuee: string;
+  code_barres?: string;
 }
 
 // Réponse API pour la liste des produits
