@@ -23,6 +23,7 @@ export interface Produit {
   nom_categorie?: string;
   unite_mesure?: string;
   code_produit?: string;
+  code_barre?: string; // Code-barres du produit (EAN-13, CODE_128, etc.)
   image_url?: string;
   // Catalogue public
   presente_au_public?: boolean;

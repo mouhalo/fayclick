@@ -307,7 +307,8 @@ export default function ProduitsCommercePage() {
     console.log('📸 [PRODUITS COMMERCE] Code-barres scanné:', code);
 
     // Rechercher le produit par code-barres dans la liste filtrée
-    const produitTrouve = produitsFiltered.find(p => p.code_barres === code);
+    // Note: L'API retourne 'code_barre' (sans 's')
+    const produitTrouve = produitsFiltered.find(p => p.code_barre === code);
 
     if (produitTrouve) {
       console.log('✅ [PRODUITS COMMERCE] Produit trouvé:', produitTrouve.nom_produit);
