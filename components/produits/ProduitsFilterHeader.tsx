@@ -6,13 +6,13 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Search, Filter, Grid, List, RefreshCw, Camera } from 'lucide-react';
+import { Search, Filter, Grid, List, LayoutGrid, RefreshCw, Camera } from 'lucide-react';
 
 interface ProduitsFilterHeaderProps {
   searchTerm: string;
   onSearchChange: (value: string) => void;
-  viewMode: 'grid' | 'list';
-  onViewModeChange: (mode: 'grid' | 'list') => void;
+  viewMode: 'grid' | 'list' | 'compact';
+  onViewModeChange: (mode: 'grid' | 'list' | 'compact') => void;
   showFilters: boolean;
   onToggleFilters: () => void;
   onRefresh: () => void;
@@ -62,23 +62,39 @@ export function ProduitsFilterHeader({
 
       {/* Contrôles vue et filtres */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center bg-white/20 backdrop-blur-sm rounded-lg p-1">
+        <div className="flex items-center bg-white/20 backdrop-blur-sm rounded-lg p-1 gap-1">
+          {/* Vue Grille normale */}
           <motion.button
             whileTap={{ scale: 0.95 }}
             onClick={() => onViewModeChange('grid')}
             className={`p-2 rounded-md transition-colors ${
               viewMode === 'grid' ? 'bg-white text-green-600' : 'text-white hover:bg-white/20'
             }`}
+            title="Vue grille normale"
           >
             <Grid className="w-4 h-4" />
           </motion.button>
-          
+
+          {/* Vue Compacte */}
+          <motion.button
+            whileTap={{ scale: 0.95 }}
+            onClick={() => onViewModeChange('compact')}
+            className={`p-2 rounded-md transition-colors ${
+              viewMode === 'compact' ? 'bg-white text-green-600' : 'text-white hover:bg-white/20'
+            }`}
+            title="Vue compacte"
+          >
+            <LayoutGrid className="w-4 h-4" />
+          </motion.button>
+
+          {/* Vue Liste */}
           <motion.button
             whileTap={{ scale: 0.95 }}
             onClick={() => onViewModeChange('list')}
             className={`p-2 rounded-md transition-colors ${
               viewMode === 'list' ? 'bg-white text-green-600' : 'text-white hover:bg-white/20'
             }`}
+            title="Vue liste"
           >
             <List className="w-4 h-4" />
           </motion.button>
