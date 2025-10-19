@@ -44,13 +44,11 @@ export function StatsCardsNouveaux({ articles, ventes = [] }: StatsCardsNouveaux
       return total + (produit.prix_vente * stock);
     }, 0);
 
-    // 3. Valeur Ventes réalisées - TODO: À partir des vraies données de ventes
-    // Pour l'instant, simulation basée sur une partie du stock vendu
+    // 3. Valeur Ventes réalisées - Somme des mt_total_ventereelle (montant réel encaissé)
     const valeurVentesRealisees = articles.reduce((total, produit) => {
-      const stock = produit.niveau_stock || 0;
-      // Simulation: on considère qu'on a vendu 20% du stock au prix de vente
-      const ventesSimulees = Math.floor(stock * 0.2);
-      return total + (produit.prix_vente * ventesSimulees);
+      // Utiliser le champ mt_total_ventereelle qui contient le montant réel des ventes
+      const ventesReelles = produit.mt_total_ventereelle || 0;
+      return total + ventesReelles;
     }, 0);
 
     // 4. Bénéfice Potentiel - Différence entre valeur stock PV et PA

@@ -16,6 +16,7 @@ export interface Produit {
   marge?: number;
   valeur_stock?: number;
   revenu_potentiel?: number;
+  mt_total_ventereelle?: number; // Montant total des ventes réelles encaissées
   // Métadonnées
   created_at?: string;
   updated_at?: string;
