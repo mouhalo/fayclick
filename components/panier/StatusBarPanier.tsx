@@ -6,12 +6,14 @@
 
 'use client';
 
-import { ShoppingCart, Trash2 } from 'lucide-react';
+import { useState } from 'react';
+import { ShoppingCart, Trash2, AlertTriangle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { usePanierStore } from '@/stores/panierStore';
 
 export function StatusBarPanier() {
   const { articles, getTotalItems, getSousTotal, isModalOpen, setModalOpen, clearPanier } = usePanierStore();
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
 
   const totalItems = getTotalItems();
   const totalAmount = getSousTotal();
@@ -24,9 +26,16 @@ export function StatusBarPanier() {
   };
 
   const handleClearPanier = () => {
-    if (confirm(`Voulez-vous vraiment vider le panier ?\n${totalItems} article(s) seront supprimés.`)) {
-      clearPanier();
-    }
+    setShowConfirmModal(true);
+  };
+
+  const handleConfirmClear = () => {
+    clearPanier();
+    setShowConfirmModal(false);
+  };
+
+  const handleCancelClear = () => {
+    setShowConfirmModal(false);
   };
 
   return (
@@ -125,6 +134,87 @@ export function StatusBarPanier() {
           </motion.div>
         </div>
       </motion.div>
+
+      {/* Modal de confirmation de suppression */}
+      {showConfirmModal && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[200] flex items-center justify-center p-4"
+          onClick={handleCancelClear}
+        >
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.9, opacity: 0 }}
+            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden"
+          >
+            {/* Header */}
+            <div className="bg-gradient-to-r from-red-500 to-red-600 p-4 text-center">
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ delay: 0.1, type: 'spring', stiffness: 200 }}
+                className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-3"
+              >
+                <AlertTriangle className="w-8 h-8 text-red-600" />
+              </motion.div>
+              <h3 className="text-xl font-bold text-white">
+                Vider le panier ?
+              </h3>
+            </div>
+
+            {/* Body */}
+            <div className="p-6 text-center">
+              <p className="text-gray-700 text-base mb-2">
+                Voulez-vous vraiment vider le panier ?
+              </p>
+              <p className="text-gray-900 font-bold text-lg mb-1">
+                {totalItems} article{totalItems > 1 ? 's' : ''}
+              </p>
+              <p className="text-gray-600 text-sm mb-4">
+                {totalAmount.toLocaleString('fr-FR')} FCFA
+              </p>
+              <p className="text-red-600 text-sm font-medium">
+                Cette action est irréversible
+              </p>
+            </div>
+
+            {/* Footer - Boutons */}
+            <div className="p-4 bg-gray-50 flex gap-3">
+              <button
+                onClick={handleCancelClear}
+                className="
+                  flex-1 py-3 px-4 rounded-xl
+                  bg-gray-200 hover:bg-gray-300
+                  text-gray-700 font-semibold text-sm
+                  transition-colors
+                "
+              >
+                Annuler
+              </button>
+              <button
+                onClick={handleConfirmClear}
+                className="
+                  flex-1 py-3 px-4 rounded-xl
+                  bg-gradient-to-r from-red-500 to-red-600
+                  hover:from-red-600 hover:to-red-700
+                  text-white font-semibold text-sm
+                  shadow-lg hover:shadow-xl
+                  transition-all
+                  flex items-center justify-center gap-2
+                "
+              >
+                <Trash2 className="w-4 h-4" />
+                Vider
+              </button>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
     </AnimatePresence>
   );
 }
