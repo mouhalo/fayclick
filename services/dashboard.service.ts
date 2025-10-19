@@ -2,6 +2,8 @@ import { ApiException, authService } from './auth.service';
 import { FinancialData, DashboardStats } from '@/types/dashboard';
 import DatabaseService from './database.service';
 import { extractSingleDataFromResult } from '@/utils/dataExtractor';
+import EtatGlobalService from './etatGlobal.service';
+import type { EtatGlobalData } from '@/types/etatGlobal.types';
 
 // Interface pour les données dashboard (retour direct de PostgreSQL)
 interface DashboardRawData {
@@ -304,6 +306,18 @@ export class DashboardService {
       // Ignore les erreurs de préchargement
       console.warn('Erreur lors du préchargement des stats:', error);
     }
+  }
+
+  /**
+   * Récupère les vraies données financières via get_etat_global()
+   * Utilisé par le modal Coffre-Fort pour afficher les données réelles
+   * @param structureId - ID de la structure
+   * @param annee - Année (optionnel, par défaut année en cours)
+   * @returns Données financières réelles depuis PostgreSQL
+   */
+  async getRealFinancialData(structureId: number, annee?: number): Promise<EtatGlobalData> {
+    const etatGlobalService = EtatGlobalService.getInstance();
+    return await etatGlobalService.getEtatGlobal(structureId, annee);
   }
 }
 
