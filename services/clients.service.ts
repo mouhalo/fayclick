@@ -847,44 +847,69 @@ export class ClientsService {
   }
 
   /**
-   * Recherche rapide d'un client par téléphone (optimisée pour le panier)
+   * Recherche rapide d'un client par téléphone OU par nom (optimisée pour le panier)
    * Utilise la fonction PostgreSQL check_one_client qui retourne uniquement les infos essentielles
-   * @param telephone - Numéro de téléphone du client (9 chiffres)
+   * @param searchValue - Numéro de téléphone (9 chiffres) OU nom du client
    * @returns Informations du client (nom, tél, adresse) + stats simplifiées
    */
-  async checkOneClient(telephone: string): Promise<CheckOneClientResponse> {
+  async checkOneClient(searchValue: string): Promise<CheckOneClientResponse> {
     try {
       const user = authService.getUser();
       if (!user) {
         throw new ClientsApiException('Utilisateur non authentifié', 401);
       }
 
-      // Nettoyer le numéro de téléphone (enlever espaces, tirets, etc.)
-      const cleanTel = telephone.replace(/[\s-]/g, '').trim();
+      // Nettoyer la valeur de recherche
+      const cleanedValue = searchValue.replace(/[\s-]/g, '').trim();
 
-      // Validation du format (9 chiffres commençant par 7)
-      if (!/^7\d{8}$/.test(cleanTel)) {
-        throw new ClientsApiException('Format de téléphone invalide (9 chiffres commençant par 7)', 400);
-      }
+      // Détecter si c'est un téléphone (9 chiffres commençant par 7) ou un nom
+      const isPhone = /^7\d{8}$/.test(cleanedValue);
+      const searchType = isPhone ? 'TÉLÉPHONE' : 'NOM';
 
-      SecurityService.secureLog('log', '🔍 [CLIENTS] Recherche rapide client', {
-        telephone: cleanTel,
-        id_structure: user.id_structure
+      console.log('🔍 [CLIENTS] ═══════════════════════════════════════');
+      console.log('🔍 [CLIENTS] DÉBUT RECHERCHE CLIENT');
+      console.log('🔍 [CLIENTS] Type de recherche:', searchType);
+      console.log('🔍 [CLIENTS] Valeur brute reçue:', searchValue);
+      console.log('🔍 [CLIENTS] Valeur nettoyée:', cleanedValue);
+      console.log('🔍 [CLIENTS] ID Structure:', user.id_structure);
+
+      SecurityService.secureLog('log', `🔍 [CLIENTS] Recherche rapide client par ${searchType}`, {
+        searchValue: isPhone ? cleanedValue : cleanedValue.substring(0, 20) + '...',
+        id_structure: user.id_structure,
+        searchType
       });
 
-      // Appel à la fonction PostgreSQL check_one_client
-      const query = `SELECT * FROM check_one_client(${user.id_structure}, '${cleanTel}')`;
+      // Échapper les quotes SQL pour éviter les injections
+      const escapedValue = cleanedValue.replace(/'/g, "''");
 
-      console.log('🔍 [CLIENTS] Requête check_one_client:', query);
+      // Appel à la fonction PostgreSQL check_one_client
+      const query = `SELECT * FROM check_one_client(${user.id_structure}, '${escapedValue}')`;
+
+      console.log('🔍 [CLIENTS] ───────────────────────────────────────');
+      console.log('🔍 [CLIENTS] REQUÊTE SQL GÉNÉRÉE:');
+      console.log('🔍 [CLIENTS]', query);
+      console.log('🔍 [CLIENTS] ───────────────────────────────────────');
 
       const results = await database.query(query);
 
-      console.log('🔍 [CLIENTS] Résultats bruts:', results);
+      console.log('🔍 [CLIENTS] ───────────────────────────────────────');
+      console.log('🔍 [CLIENTS] RÉSULTATS BRUTS DE POSTGRESQL:');
+      console.log('🔍 [CLIENTS] Type:', typeof results);
+      console.log('🔍 [CLIENTS] Is Array:', Array.isArray(results));
+      console.log('🔍 [CLIENTS] Length:', Array.isArray(results) ? results.length : 'N/A');
+      console.log('🔍 [CLIENTS] Contenu:', JSON.stringify(results, null, 2));
 
       // Parser la réponse JSON
       const rawData = Array.isArray(results) && results.length > 0 ? results[0] : null;
 
+      console.log('🔍 [CLIENTS] ───────────────────────────────────────');
+      console.log('🔍 [CLIENTS] RAW DATA (premier élément):');
+      console.log('🔍 [CLIENTS] Type:', typeof rawData);
+      console.log('🔍 [CLIENTS] Clés:', rawData ? Object.keys(rawData) : 'null');
+      console.log('🔍 [CLIENTS] Contenu:', JSON.stringify(rawData, null, 2));
+
       if (!rawData) {
+        console.error('❌ [CLIENTS] Aucune donnée retournée par PostgreSQL');
         throw new ClientsApiException('Aucune donnée retournée par l\'API', 500);
       }
 
@@ -892,41 +917,96 @@ export class ClientsService {
       let data: CheckOneClientResponse;
 
       try {
+        console.log('🔍 [CLIENTS] ───────────────────────────────────────');
+        console.log('🔍 [CLIENTS] PARSING DES DONNÉES:');
+
         if (rawData.check_one_client) {
           const clientData = rawData.check_one_client;
+          console.log('🔍 [CLIENTS] Propriété "check_one_client" trouvée');
+          console.log('🔍 [CLIENTS] Type de check_one_client:', typeof clientData);
 
           if (typeof clientData === 'string') {
+            console.log('🔍 [CLIENTS] Parsing string JSON...');
             data = JSON.parse(clientData);
           } else {
+            console.log('🔍 [CLIENTS] Utilisation objet direct');
             data = clientData;
           }
         } else if (typeof rawData === 'string') {
+          console.log('🔍 [CLIENTS] rawData est une string, parsing JSON...');
           data = JSON.parse(rawData);
         } else {
+          console.log('🔍 [CLIENTS] Utilisation rawData comme objet direct');
           data = rawData;
         }
       } catch (parseError) {
-        console.error('❌ [CLIENTS] Erreur parsing:', parseError);
+        console.error('❌ [CLIENTS] ═══════════════════════════════════════');
+        console.error('❌ [CLIENTS] ERREUR DE PARSING:');
+        console.error('❌ [CLIENTS] Erreur:', parseError);
+        console.error('❌ [CLIENTS] rawData:', rawData);
+        console.error('❌ [CLIENTS] check_one_client:', rawData.check_one_client);
+        console.error('❌ [CLIENTS] ═══════════════════════════════════════');
         throw new ClientsApiException('Erreur de format des données client', 500);
       }
 
-      console.log('🔍 [CLIENTS] Données parsées:', data);
+      console.log('🔍 [CLIENTS] ───────────────────────────────────────');
+      console.log('🔍 [CLIENTS] DONNÉES PARSÉES FINALES:');
+      console.log('🔍 [CLIENTS] success:', data.success);
+      console.log('🔍 [CLIENTS] client_found:', data.client_found);
+      console.log('🔍 [CLIENTS] client:', data.client);
+      console.log('🔍 [CLIENTS] statistiques:', data.statistiques);
+      console.log('🔍 [CLIENTS] error:', data.error);
+      console.log('🔍 [CLIENTS] Contenu complet:', JSON.stringify(data, null, 2));
+
+      // Si pas de propriété client_found, déduire de success + présence client
+      if (data.client_found === undefined) {
+        console.log('⚠️ [CLIENTS] client_found absent, déduction automatique...');
+        if (data.success && data.client) {
+          console.log('✅ [CLIENTS] → client_found = true (success + client présent)');
+          data.client_found = true;
+        } else {
+          console.log('❌ [CLIENTS] → client_found = false (success ou client absent)');
+          data.client_found = false;
+        }
+      }
 
       if (!data.success) {
-        if (data.client_found === false) {
-          SecurityService.secureLog('log', '❌ [CLIENTS] Client non trouvé', {
-            telephone: cleanTel
+        if (data.client_found === false || !data.client) {
+          console.log('❌ [CLIENTS] ═══════════════════════════════════════');
+          console.log('❌ [CLIENTS] CLIENT NON TROUVÉ');
+          console.log('❌ [CLIENTS] Recherche:', searchType);
+          console.log('❌ [CLIENTS] Valeur:', cleanedValue);
+          console.log('❌ [CLIENTS] ═══════════════════════════════════════');
+
+          SecurityService.secureLog('log', `❌ [CLIENTS] Client non trouvé (${searchType})`, {
+            searchValue: cleanedValue.substring(0, 20),
+            searchType
           });
         } else {
-          console.error('❌ [CLIENTS] Erreur:', data.error);
+          console.error('❌ [CLIENTS] ═══════════════════════════════════════');
+          console.error('❌ [CLIENTS] ERREUR LORS DE LA RECHERCHE');
+          console.error('❌ [CLIENTS] Message:', data.error);
+          console.error('❌ [CLIENTS] ═══════════════════════════════════════');
           throw new ClientsApiException(data.error || 'Erreur lors de la recherche du client', 500);
         }
       } else {
-        SecurityService.secureLog('log', '✅ [CLIENTS] Client trouvé', {
+        console.log('✅ [CLIENTS] ═══════════════════════════════════════');
+        console.log('✅ [CLIENTS] CLIENT TROUVÉ AVEC SUCCÈS');
+        console.log('✅ [CLIENTS] Type de recherche:', searchType);
+        console.log('✅ [CLIENTS] Nom:', data.client?.nom_client);
+        console.log('✅ [CLIENTS] Téléphone:', data.client?.tel_client);
+        console.log('✅ [CLIENTS] Adresse:', data.client?.adresse);
+        console.log('✅ [CLIENTS] ═══════════════════════════════════════');
+
+        SecurityService.secureLog('log', `✅ [CLIENTS] Client trouvé (${searchType})`, {
           nom: data.client?.nom_client,
-          telephone: cleanTel
+          telephone: data.client?.tel_client,
+          searchType
         });
       }
+
+      console.log('🔍 [CLIENTS] FIN RECHERCHE CLIENT');
+      console.log('🔍 [CLIENTS] ═══════════════════════════════════════');
 
       return data;
 
