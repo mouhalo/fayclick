@@ -6,7 +6,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Search, Filter, Grid, List, RefreshCw } from 'lucide-react';
+import { Search, Filter, Grid, List, RefreshCw, Camera } from 'lucide-react';
 
 interface ProduitsFilterHeaderProps {
   searchTerm: string;
@@ -17,6 +17,7 @@ interface ProduitsFilterHeaderProps {
   onToggleFilters: () => void;
   onRefresh: () => void;
   refreshing?: boolean;
+  onScanClick?: () => void;
 }
 
 export function ProduitsFilterHeader({
@@ -27,20 +28,36 @@ export function ProduitsFilterHeader({
   showFilters,
   onToggleFilters,
   onRefresh,
-  refreshing = false
+  refreshing = false,
+  onScanClick
 }: ProduitsFilterHeaderProps) {
   return (
     <div className="space-y-4">
-      {/* Barre de recherche */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-        <input
-          type="text"
-          value={searchTerm}
-          onChange={(e) => onSearchChange(e.target.value)}
-          placeholder="Rechercher un produit..."
-          className="w-full pl-10 pr-4 py-3 rounded-lg text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-green-300 bg-white/90 backdrop-blur-sm"
-        />
+      {/* Barre de recherche avec bouton Scan */}
+      <div className="flex gap-2">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={(e) => onSearchChange(e.target.value)}
+            placeholder="Rechercher..."
+            className="w-full pl-10 pr-4 py-3 rounded-lg text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-green-300 bg-white/90 backdrop-blur-sm"
+          />
+        </div>
+
+        {/* Bouton Scan */}
+        {onScanClick && (
+          <motion.button
+            whileTap={{ scale: 0.95 }}
+            onClick={onScanClick}
+            className="px-4 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg font-medium flex items-center gap-2 hover:from-green-600 hover:to-green-700 transition-all shadow-md hover:shadow-lg"
+            aria-label="Scanner un code-barres"
+          >
+            <Camera className="w-5 h-5" />
+            <span className="font-semibold">Scan</span>
+          </motion.button>
+        )}
       </div>
 
       {/* Contrôles vue et filtres */}
