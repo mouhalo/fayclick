@@ -26,6 +26,7 @@ export function ModalRechercheClient({
   initialPhone = '',
   initialName = ''
 }: ModalRechercheClientProps) {
+  const [searchMode, setSearchMode] = useState<'name' | 'phone'>('name');
   const [telephone, setTelephone] = useState(initialPhone);
   const [nomClient, setNomClient] = useState(initialName);
   const [isSearching, setIsSearching] = useState(false);
@@ -39,31 +40,54 @@ export function ModalRechercheClient({
     nombre_factures_impayees: number;
   } | null>(null);
 
-  // Auto-recherche quand le telephone atteint 9 caracteres
+  // Auto-recherche par téléphone quand 9 caractères
   useEffect(() => {
+    if (searchMode !== 'phone') return;
+
     const cleanedPhone = telephone.replace(/\D/g, '');
 
     if (cleanedPhone.length === 9) {
-      handleSearchClient(cleanedPhone);
+      handleSearchClientByPhone(cleanedPhone);
     } else if (cleanedPhone.length < 9) {
-      // Reinitialiser si < 9 caracteres
+      // Réinitialiser si < 9 caractères
       setClientTrouve(false);
       setSearchMessage('');
       setClientData(null);
+      setClientStats(null);
       if (!initialName) {
         setNomClient('');
       }
     }
-  }, [telephone]);
+  }, [telephone, searchMode]);
 
-  const handleSearchClient = async (phone: string) => {
+  // Auto-recherche par nom quand ≥ 3 caractères
+  useEffect(() => {
+    if (searchMode !== 'name') return;
+
+    const trimmedName = nomClient.trim();
+
+    if (trimmedName.length >= 3) {
+      handleSearchClientByName(trimmedName);
+    } else if (trimmedName.length < 3) {
+      // Réinitialiser si < 3 caractères
+      setClientTrouve(false);
+      setSearchMessage('');
+      setClientData(null);
+      setClientStats(null);
+      if (!initialPhone) {
+        setTelephone('');
+      }
+    }
+  }, [nomClient, searchMode]);
+
+  const handleSearchClientByPhone = async (phone: string) => {
     try {
       setIsSearching(true);
       setSearchMessage('');
 
-      console.log('[MODAL] Recherche rapide client pour:', phone);
+      console.log('[MODAL] Recherche client par téléphone:', phone);
 
-      // Utilisation de la nouvelle méthode optimisée checkOneClient
+      // Utilisation de la méthode checkOneClient avec téléphone
       const response = await clientsService.checkOneClient(phone);
 
       // Vérifier si client trouvé : success=true ET client présent
@@ -110,6 +134,67 @@ export function ModalRechercheClient({
       setSearchMessage('Erreur lors de la recherche');
       setClientTrouve(false);
       setClientData(null);
+      setClientStats(null);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const handleSearchClientByName = async (name: string) => {
+    try {
+      setIsSearching(true);
+      setSearchMessage('');
+
+      console.log('[MODAL] Recherche client par nom:', name);
+
+      // Utilisation de la méthode checkOneClient avec nom
+      const response = await clientsService.checkOneClient(name);
+
+      // Vérifier si client trouvé : success=true ET client présent
+      if (response.success && response.client) {
+        console.log('[MODAL] ✅ Client trouvé:', response.client.tel_client);
+
+        setClientTrouve(true);
+        // Mapper CheckOneClientInfo vers Client
+        setClientData({
+          id_client: 0,
+          nom_client: response.client.nom_client,
+          tel_client: response.client.tel_client,
+          adresse: response.client.adresse,
+          date_creation: response.client.date_creation,
+          date_modification: response.client.date_modification
+        });
+        setTelephone(response.client.tel_client);
+
+        // Stocker les statistiques
+        if (response.statistiques) {
+          setClientStats({
+            montant_restant: response.statistiques.montant_restant || 0,
+            nombre_total_ventes: response.statistiques.nombre_total_ventes || 0,
+            montant_total_achats: response.statistiques.montant_total_achats || 0,
+            nombre_factures_impayees: response.statistiques.nombre_factures_impayees || 0
+          });
+        }
+
+        setSearchMessage('Client trouvé dans la base');
+      } else {
+        console.log('[MODAL] ℹ️ Client non trouvé, nouveau client');
+
+        setClientTrouve(false);
+        setClientData(null);
+        setClientStats(null);
+        setSearchMessage('Nouveau client - Saisissez le téléphone');
+        // Ne pas effacer le téléphone si déjà rempli
+        if (!telephone) {
+          setTelephone('');
+        }
+      }
+    } catch (error) {
+      console.error('[MODAL] ❌ Erreur recherche:', error);
+      setSearchMessage('Erreur lors de la recherche');
+      setClientTrouve(false);
+      setClientData(null);
+      setClientStats(null);
     } finally {
       setIsSearching(false);
     }
@@ -194,116 +279,259 @@ export function ModalRechercheClient({
             "
           >
             {/* Header Compact */}
-            <div className="flex items-center justify-between p-4 border-b border-gray-200/50 bg-gradient-to-r from-blue-50 to-blue-100/50">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
-                  <Search className="w-4 h-4 text-white" />
-                </div>
-                <div>
+            <div className="p-4 border-b border-gray-200/50 bg-gradient-to-r from-blue-50 to-blue-100/50">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
+                    <Search className="w-4 h-4 text-white" />
+                  </div>
                   <h2 className="text-lg font-bold text-gray-900">Rechercher un client</h2>
-                  <p className="text-xs text-gray-600">Par numero de telephone</p>
                 </div>
+                <button
+                  onClick={handleCancel}
+                  className="w-7 h-7 bg-gray-100 rounded-full flex items-center justify-center hover:bg-gray-200 transition-colors"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
               </div>
-              <button
-                onClick={handleCancel}
-                className="w-7 h-7 bg-gray-100 rounded-full flex items-center justify-center hover:bg-gray-200 transition-colors"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
+
+              {/* Boutons Toggle */}
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setSearchMode('name')}
+                  className={`
+                    flex-1 py-2.5 px-4 rounded-lg font-medium text-sm
+                    flex items-center justify-center gap-2
+                    transition-all
+                    ${searchMode === 'name'
+                      ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-md'
+                      : 'bg-white text-gray-700 hover:bg-gray-50'
+                    }
+                  `}
+                >
+                  <User className="w-4 h-4" />
+                  Par nom
+                </button>
+                <button
+                  onClick={() => setSearchMode('phone')}
+                  className={`
+                    flex-1 py-2.5 px-4 rounded-lg font-medium text-sm
+                    flex items-center justify-center gap-2
+                    transition-all
+                    ${searchMode === 'phone'
+                      ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-md'
+                      : 'bg-white text-gray-700 hover:bg-gray-50'
+                    }
+                  `}
+                >
+                  <Phone className="w-4 h-4" />
+                  Par téléphone
+                </button>
+              </div>
             </div>
 
             {/* Body */}
             <div className="p-4 space-y-4">
-              {/* Input Telephone */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5 flex items-center gap-1.5">
-                  <Phone className="w-3.5 h-3.5 text-blue-600" />
-                  <span>Telephone du client ({telephone.replace(/\D/g, '').length}/9)</span>
-                </label>
-                <div className="relative">
-                  <input
-                    type="tel"
-                    value={formatPhoneDisplay(telephone)}
-                    onChange={handlePhoneChange}
-                    placeholder="77 123 45 67"
-                    autoFocus
-                    className="
-                      w-full px-3 py-2.5 rounded-lg border-2 border-gray-300
-                      focus:ring-2 focus:ring-blue-500 focus:border-transparent
-                      transition-all text-base font-medium
-                      placeholder:text-gray-400
-                    "
-                  />
-                  {isSearching && (
-                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                      <Loader2 className="w-4 h-4 text-blue-600 animate-spin" />
+              {/* Mode PAR NOM */}
+              {searchMode === 'name' ? (
+                <>
+                  {/* Input Nom Client EN PREMIER */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="text-sm font-medium text-gray-700 flex items-center gap-1.5">
+                        <User className="w-3.5 h-3.5 text-blue-600" />
+                        Nom du client (min. 3 caractères)
+                      </label>
+                      {clientTrouve && (
+                        <span className="text-xs text-green-600 flex items-center gap-1 bg-green-50 px-2 py-0.5 rounded-full">
+                          <CheckCircle className="w-3 h-3" />
+                          Client existant
+                        </span>
+                      )}
                     </div>
-                  )}
-                </div>
-              </div>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={nomClient}
+                        onChange={(e) => setNomClient(e.target.value)}
+                        placeholder="CLIENT_ANONYME"
+                        autoFocus
+                        readOnly={clientTrouve}
+                        className={`
+                          w-full px-3 py-2.5 rounded-lg border-2
+                          ${clientTrouve
+                            ? 'border-green-300 bg-green-50 text-green-900'
+                            : 'border-gray-300 bg-white'
+                          }
+                          focus:ring-2 focus:ring-blue-500 focus:border-transparent
+                          transition-all text-base
+                          placeholder:text-gray-400
+                          ${clientTrouve ? 'cursor-not-allowed' : ''}
+                        `}
+                      />
+                      {isSearching && (
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                          <Loader2 className="w-4 h-4 text-blue-600 animate-spin" />
+                        </div>
+                      )}
+                      {clientTrouve && !isSearching && (
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                          <CheckCircle className="w-4 h-4 text-green-600" />
+                        </div>
+                      )}
+                    </div>
+                  </div>
 
-              {/* Message de recherche */}
-              {searchMessage && (
-                <motion.div
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className={`
-                    p-2 rounded-lg flex items-center gap-1.5 text-xs font-medium
-                    ${clientTrouve
-                      ? 'bg-green-50 text-green-700 border border-green-200'
-                      : 'bg-blue-50 text-blue-700 border border-blue-200'
-                    }
-                  `}
-                >
-                  {clientTrouve ? (
-                    <CheckCircle className="w-3.5 h-3.5" />
-                  ) : (
-                    <UserPlus className="w-3.5 h-3.5" />
+                  {/* Message de recherche */}
+                  {searchMessage && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className={`
+                        p-2 rounded-lg flex items-center gap-1.5 text-xs font-medium
+                        ${clientTrouve
+                          ? 'bg-green-50 text-green-700 border border-green-200'
+                          : 'bg-blue-50 text-blue-700 border border-blue-200'
+                        }
+                      `}
+                    >
+                      {clientTrouve ? (
+                        <CheckCircle className="w-3.5 h-3.5" />
+                      ) : (
+                        <UserPlus className="w-3.5 h-3.5" />
+                      )}
+                      {searchMessage}
+                    </motion.div>
                   )}
-                  {searchMessage}
-                </motion.div>
+
+                  {/* Input Telephone EN SECOND */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5 flex items-center gap-1.5">
+                      <Phone className="w-3.5 h-3.5 text-blue-600" />
+                      <span>Téléphone ({telephone.replace(/\D/g, '').length}/9)</span>
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="tel"
+                        value={formatPhoneDisplay(telephone)}
+                        onChange={handlePhoneChange}
+                        placeholder="77 123 45 67"
+                        readOnly={clientTrouve}
+                        className={`
+                          w-full px-3 py-2.5 rounded-lg border-2
+                          ${clientTrouve
+                            ? 'border-green-300 bg-green-50 text-green-900'
+                            : 'border-gray-300 bg-white'
+                          }
+                          focus:ring-2 focus:ring-blue-500 focus:border-transparent
+                          transition-all text-base font-medium
+                          placeholder:text-gray-400
+                          ${clientTrouve ? 'cursor-not-allowed' : ''}
+                        `}
+                      />
+                      {clientTrouve && (
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                          <CheckCircle className="w-4 h-4 text-green-600" />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <>
+                  {/* Mode PAR TÉLÉPHONE */}
+                  {/* Input Telephone EN PREMIER */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5 flex items-center gap-1.5">
+                      <Phone className="w-3.5 h-3.5 text-blue-600" />
+                      <span>Téléphone du client ({telephone.replace(/\D/g, '').length}/9)</span>
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="tel"
+                        value={formatPhoneDisplay(telephone)}
+                        onChange={handlePhoneChange}
+                        placeholder="77 123 45 67"
+                        autoFocus
+                        className="
+                          w-full px-3 py-2.5 rounded-lg border-2 border-gray-300
+                          focus:ring-2 focus:ring-blue-500 focus:border-transparent
+                          transition-all text-base font-medium
+                          placeholder:text-gray-400
+                        "
+                      />
+                      {isSearching && (
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                          <Loader2 className="w-4 h-4 text-blue-600 animate-spin" />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Message de recherche */}
+                  {searchMessage && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className={`
+                        p-2 rounded-lg flex items-center gap-1.5 text-xs font-medium
+                        ${clientTrouve
+                          ? 'bg-green-50 text-green-700 border border-green-200'
+                          : 'bg-blue-50 text-blue-700 border border-blue-200'
+                        }
+                      `}
+                    >
+                      {clientTrouve ? (
+                        <CheckCircle className="w-3.5 h-3.5" />
+                      ) : (
+                        <UserPlus className="w-3.5 h-3.5" />
+                      )}
+                      {searchMessage}
+                    </motion.div>
+                  )}
+
+                  {/* Input Nom Client EN SECOND */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="text-sm font-medium text-gray-700 flex items-center gap-1.5">
+                        <User className="w-3.5 h-3.5 text-blue-600" />
+                        Nom du client
+                      </label>
+                      {clientTrouve && (
+                        <span className="text-xs text-green-600 flex items-center gap-1 bg-green-50 px-2 py-0.5 rounded-full">
+                          <CheckCircle className="w-3 h-3" />
+                          Client existant
+                        </span>
+                      )}
+                    </div>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={nomClient}
+                        onChange={(e) => setNomClient(e.target.value)}
+                        placeholder="CLIENT_ANONYME"
+                        readOnly={clientTrouve}
+                        className={`
+                          w-full px-3 py-2.5 rounded-lg border-2
+                          ${clientTrouve
+                            ? 'border-green-300 bg-green-50 text-green-900'
+                            : 'border-gray-300 bg-white'
+                          }
+                          focus:ring-2 focus:ring-blue-500 focus:border-transparent
+                          transition-all text-base
+                          placeholder:text-gray-400
+                          ${clientTrouve ? 'cursor-not-allowed' : ''}
+                        `}
+                      />
+                      {clientTrouve && (
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                          <CheckCircle className="w-4 h-4 text-green-600" />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </>
               )}
-
-              {/* Input Nom Client */}
-              <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <label className="text-sm font-medium text-gray-700 flex items-center gap-1.5">
-                    <User className="w-3.5 h-3.5 text-blue-600" />
-                    Nom du client
-                  </label>
-                  {clientTrouve && (
-                    <span className="text-xs text-green-600 flex items-center gap-1 bg-green-50 px-2 py-0.5 rounded-full">
-                      <CheckCircle className="w-3 h-3" />
-                      Client existant
-                    </span>
-                  )}
-                </div>
-                <div className="relative">
-                  <input
-                    type="text"
-                    value={nomClient}
-                    onChange={(e) => setNomClient(e.target.value)}
-                    placeholder="Abdou Diallo"
-                    readOnly={clientTrouve}
-                    className={`
-                      w-full px-3 py-2.5 rounded-lg border-2
-                      ${clientTrouve
-                        ? 'border-green-300 bg-green-50 text-green-900'
-                        : 'border-gray-300 bg-white'
-                      }
-                      focus:ring-2 focus:ring-blue-500 focus:border-transparent
-                      transition-all text-base
-                      placeholder:text-gray-400
-                      ${clientTrouve ? 'cursor-not-allowed' : ''}
-                    `}
-                  />
-                  {clientTrouve && (
-                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                      <CheckCircle className="w-4 h-4 text-green-600" />
-                    </div>
-                  )}
-                </div>
-              </div>
 
               {/* Statistiques Client (2x2 Grid) */}
               {clientTrouve && clientStats && (
