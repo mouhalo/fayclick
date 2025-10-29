@@ -278,14 +278,52 @@ export default function CommerceDashboard() {
             </div>
           </motion.div>
 
-          {/* Quick Actions - Réduit de 1/3 */}
+          {/* Bouton Vente Flash - Pleine largeur */}
           <motion.div
             initial={{ y: 30, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.8 }}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={() => router.push('/dashboard/commerce/venteflash')}
+            className="
+              bg-gradient-to-br from-green-400 via-emerald-500 to-teal-600
+              rounded-2xl p-6 cursor-pointer shadow-xl hover:shadow-2xl
+              transition-all border-2 border-white/20 mb-4
+              relative overflow-hidden
+            "
+          >
+            {/* Pattern décoratif */}
+            <div className="absolute inset-0 opacity-10">
+              <div className="absolute inset-0" style={{
+                backgroundImage: 'radial-gradient(circle at 20% 50%, white 2px, transparent 2px)',
+                backgroundSize: '30px 30px'
+              }} />
+            </div>
+
+            <div className="relative z-10 text-center">
+              <motion.span
+                className="text-6xl mb-3 block"
+                animate={{ rotate: [0, 10, -10, 0] }}
+                transition={{ duration: 2, repeat: Infinity }}
+              >
+                ⚡
+              </motion.span>
+              <h3 className="text-2xl font-bold text-white mb-1">Vente Flash</h3>
+              <p className="text-sm text-white/90">
+                Scan code-barre • Recherche rapide • Vente instantanée
+              </p>
+            </div>
+          </motion.div>
+
+          {/* Quick Actions - Réduit de 1/3 */}
+          <motion.div
+            initial={{ y: 30, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.9 }}
           >
             <div className="bg-white rounded-xl p-3 mb-3 shadow-md flex items-center gap-2">
-              <span className="text-xl">⚡</span>
+              <span className="text-xl">🚀</span>
               <h2 className="text-base font-bold text-gray-800">Actions rapides</h2>
             </div>
 
@@ -300,7 +338,7 @@ export default function CommerceDashboard() {
                   key={index}
                   initial={{ scale: 0.8, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
-                  transition={{ delay: 0.9 + index * 0.1 }}
+                  transition={{ delay: 1.0 + index * 0.1 }}
                   whileHover={{ scale: 1.05, y: -5 }}
                   whileTap={{ scale: 0.95 }}
                   className={`bg-gradient-to-br ${
@@ -325,7 +363,7 @@ export default function CommerceDashboard() {
             <motion.div
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 1.3 }}
+              transition={{ delay: 1.4 }}
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               className="mt-3 bg-gradient-to-br from-yellow-100 to-yellow-200 rounded-xl p-3 cursor-pointer shadow-lg hover:shadow-xl transition-all"
