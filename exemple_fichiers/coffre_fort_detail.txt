@@ -1,0 +1,267 @@
+🎨 Types TypeScript pour le Composant
+typescript// types/etatGlobal.types.ts
+
+export interface VentesDetails {
+  chiffre_affaires: number;
+  nombre_factures: number;
+  panier_moyen: number;
+}
+
+export interface CoutsDetails {
+  cout_achats_marchandises: number;
+  charges_exploitation: number;
+  total_couts: number;
+}
+
+export interface RentabiliteDetails {
+  marge_brute: number;
+  resultat_net: number;
+  taux_marge_nette: number;
+  taux_marge_brute: number;
+}
+
+export interface ComparaisonDetails {
+  ca_annee_precedente: number;
+  evolution_ca: number;
+}
+
+export interface EtatGlobalData {
+  success: boolean;
+  structure_id: number;
+  annee: number;
+  date_debut: string;
+  date_fin: string;
+  
+  // Indicateurs principaux
+  ca_total: number;
+  nb_ventes: number;
+  total_charges: number;
+  cout_achats: number;
+  total_charges_achats: number;
+  solde_net: number;
+  marge_brute: number;
+  taux_marge: number;
+  
+  // Détails
+  details: {
+    ventes: VentesDetails;
+    couts: CoutsDetails;
+    rentabilite: RentabiliteDetails;
+  };
+  
+  comparaison: ComparaisonDetails;
+  timestamp_generation: string;
+}
+🎯 Composant React pour Afficher l'État Global
+tsx// components/dashboard/EtatGlobalCard.tsx
+'use client';
+
+import { DollarSign, ShoppingCart, TrendingDown, Diamond } from 'lucide-react';
+import type { EtatGlobalData } from '@/types/etatGlobal.types';
+
+interface EtatGlobalCardProps {
+  data: EtatGlobalData;
+}
+
+export default function EtatGlobalCard({ data }: EtatGlobalCardProps) {
+  const formatMontant = (montant: number) => {
+    return montant.toLocaleString('fr-FR');
+  };
+
+  return (
+    <div className="space-y-4 p-4">
+      {/* Chiffre d'Affaires Total - Card principale */}
+      <div className="bg-gradient-to-r from-green-500 to-emerald-600 rounded-2xl p-6 text-white shadow-lg">
+        <div className="text-center">
+          <div className="text-4xl font-bold mb-1">
+            {formatMontant(data.ca_total)} FCFA
+          </div>
+          <div className="text-sm opacity-90">
+            Chiffre d'Affaires Total
+          </div>
+        </div>
+      </div>
+
+      {/* Autres indicateurs */}
+      <div className="space-y-3">
+        {/* Total Ventes */}
+        <div className="bg-white rounded-xl p-4 shadow-sm border-l-4 border-yellow-400 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="text-2xl">💰</div>
+            <div>
+              <div className="text-sm text-gray-600 font-medium">Total Ventes</div>
+              <div className="text-xl font-bold text-gray-800">
+                {data.nb_ventes}
+              </div>
+            </div>
+          </div>
+          <div className="text-right">
+            <div className="text-xs text-gray-500">Panier moyen</div>
+            <div className="text-sm font-semibold text-gray-700">
+              {formatMontant(data.details.ventes.panier_moyen)} FCFA
+            </div>
+          </div>
+        </div>
+
+        {/* Charges & Achats */}
+        <div className="bg-white rounded-xl p-4 shadow-sm border-l-4 border-red-400 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="text-2xl">📊</div>
+            <div>
+              <div className="text-sm text-gray-600 font-medium">Charges & Achats</div>
+              <div className="text-xl font-bold text-red-600">
+                {formatMontant(data.total_charges_achats)} FCFA
+              </div>
+            </div>
+          </div>
+          <div className="text-right text-xs text-gray-500">
+            <div>Charges: {formatMontant(data.total_charges)}</div>
+            <div>Achats: {formatMontant(data.cout_achats)}</div>
+          </div>
+        </div>
+
+        {/* Solde Net */}
+        <div className="bg-white rounded-xl p-4 shadow-sm border-l-4 border-blue-400 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="text-2xl">💎</div>
+            <div>
+              <div className="text-sm text-gray-600 font-medium">Solde Net</div>
+              <div className="text-xl font-bold text-blue-600">
+                {formatMontant(data.solde_net)} FCFA
+              </div>
+            </div>
+          </div>
+          <div className="text-right">
+            <div className="text-xs text-gray-500">Marge nette</div>
+            <div className="text-sm font-semibold text-blue-700">
+              {data.taux_marge}%
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+📱 Service TypeScript
+typescript// services/etatGlobal.service.ts
+import { DatabaseService } from './database.service';
+import { extractSingleDataFromResult } from '@/utils/dataExtractor';
+import type { EtatGlobalData } from '@/types/etatGlobal.types';
+
+export class EtatGlobalService {
+  private databaseService: DatabaseService;
+
+  constructor() {
+    this.databaseService = new DatabaseService();
+  }
+
+  async getEtatGlobal(
+    structureId: number,
+    annee?: number
+  ): Promise<EtatGlobalData> {
+    try {
+      const anneeParam = annee || new Date().getFullYear();
+      const requeteSql = `SELECT * FROM get_etat_global(${structureId}, ${anneeParam})`;
+      
+      const result = await this.databaseService.envoyerRequeteApi(
+        'payecole',
+        requeteSql
+      );
+
+      if (!result || result.length === 0) {
+        throw new Error('Aucune donnée retournée');
+      }
+
+      const data = extractSingleDataFromResult<EtatGlobalData>(result[0]);
+      
+      if (!data.success) {
+        throw new Error(data.error || 'Erreur lors de la récupération de l\'état global');
+      }
+
+      return data;
+    } catch (error) {
+      console.error('[EtatGlobalService] Erreur:', error);
+      throw error;
+    }
+  }
+}
+```
+
+## 💡 Explication des Calculs
+
+### 1. **Chiffre d'Affaires (CA)**
+```
+CA = Somme de tous les montants des factures
+```
+
+### 2. **Coût des Achats**
+```
+Coût Achats = Somme(quantité vendue × coût de revient) pour chaque produit vendu
+```
+
+### 3. **Total Charges**
+```
+Charges = Somme de toutes les dépenses (table depense)
+```
+
+### 4. **Charges & Achats**
+```
+Total = Charges + Coût Achats
+```
+
+### 5. **Solde Net**
+```
+Solde Net = CA - (Charges + Coût Achats)
+```
+
+### 6. **Taux de Marge**
+```
+Taux Marge = (Solde Net / CA) × 100
+
+
+📋 Structure de la Réponse JSON
+json{
+  "success": true,
+  "structure_id": 139,
+  "annee": 2025,
+  "date_debut": "2025-01-01",
+  "date_fin": "2025-12-31",
+  
+  "ca_total": 89500,
+  "nb_ventes": 15,
+  "total_charges": 15000,
+  "cout_achats": 11850,
+  "total_charges_achats": 26850,
+  "solde_net": 62650,
+  "marge_brute": 77650,
+  "taux_marge": 70.0,
+  
+  "details": {
+    "ventes": {
+      "chiffre_affaires": 89500,
+      "nombre_factures": 15,
+      "panier_moyen": 5967
+    },
+    "couts": {
+      "cout_achats_marchandises": 11850,
+      "charges_exploitation": 15000,
+      "total_couts": 26850
+    },
+    "rentabilite": {
+      "marge_brute": 77650,
+      "resultat_net": 62650,
+      "taux_marge_nette": 70.0,
+      "taux_marge_brute": 86.76
+    }
+  },
+  
+  "comparaison": {
+    "ca_annee_precedente": 75000,
+    "evolution_ca": 19.3
+  },
+  
+  "timestamp_generation": "2025-10-18T21:45:23.456Z"
+}
+✅ Tests de Validation
+sql-- Test basique
+SELECT * FROM get_etat_global(139, 2025);

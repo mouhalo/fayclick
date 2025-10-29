@@ -1,0 +1,1264 @@
+# 🎯 PROMPT : Implémentation du Module de Gestion des Dépenses
+
+## CONTEXTE
+Tu es un expert développeur Next.js/React spécialisé dans FayClick V2. Tu dois créer un module complet de gestion des dépenses pour une structure, incluant la gestion des types de dépenses, avec toutes les opérations CRUD (Create, Read, Update, Delete).
+
+---
+
+## 📋 FONCTIONS SQL DISPONIBLES
+
+### 1. Récupération des Dépenses
+```sql
+-- Fonction : get_list_depenses
+SELECT * FROM get_list_depenses(pid_structure, pannee, pperiode);
+-- Paramètres :
+-- - pid_structure : INTEGER (requis)
+-- - pannee : INTEGER (défaut = année en cours)
+-- - pperiode : VARCHAR ('mois', 'trimestre', 'annee') (défaut = 'annee')
+```
+
+**Réponse JSON :**
+```json
+{
+  "success": true,
+  "structure_id": 139,
+  "periode": "annee",
+  "annee": 2025,
+  "date_debut": "2025-01-01",
+  "date_fin": "2025-12-31",
+  "resume_depenses": {
+    "total_depenses": 725000,
+    "variation_depenses": 12.5,
+    "nb_depenses": 15,
+    "variation_nb_depenses": -25.0,
+    "depense_moyenne": 48333,
+    "nb_types_utilises": 3,
+    "nb_types_total": 4,
+    "montant_min": 5000,
+    "montant_max": 550000,
+    "date_premiere_depense": "2025-03-21",
+    "date_derniere_depense": "2025-09-21"
+  },
+  "depenses_par_type": [
+    {
+      "id_type_depense": 4,
+      "nom_type": "SALAIRE",
+      "total_depenses": 550000,
+      "nb_depenses": 3,
+      "pourcentage_total": 75.9,
+      "depense_moyenne": 183333,
+      "montant_min": 150000,
+      "montant_max": 250000,
+      "derniere_depense": "2025-08-21"
+    }
+  ],
+  "liste_depenses": [
+    {
+      "id_depense": 1,
+      "date_depense": "2025-09-21",
+      "id_type_depense": 2,
+      "nom_type": "EQUIPEMENTS",
+      "montant": 25000,
+      "description": "Achat matériel bureau",
+      "tms_update": "2025-09-24T20:31:36.776",
+      "mois": "September",
+      "trimestre": "Q3",
+      "jour_semaine": "Sunday"
+    }
+  ],
+  "evolution_depenses": [...],
+  "timestamp_generation": "2025-10-18T20:30:45.123Z"
+}
+```
+
+### 2. Ajout/Modification d'une Dépense
+```sql
+-- Fonction : add_edit_depense
+SELECT * FROM add_edit_depense(
+    pid_structure,      -- INTEGER : ID structure
+    pdate,              -- DATE : Date de la dépense
+    pid_type,           -- INTEGER : ID type de dépense
+    pmontant,           -- NUMERIC : Montant (doit être positif)
+    pdescription,       -- VARCHAR : Description
+    pid_depense         -- INTEGER : 0 pour création, >0 pour modification
+);
+```
+
+**Réponse (format TABLE) :**
+```json
+{
+  "result_id_depense": 1,
+  "result_id_structure": 139,
+  "result_date_depense": "2025-09-21",
+  "result_id_type_depense": 2,
+  "result_nom_type_depense": "EQUIPEMENTS",
+  "result_montant": 25000,
+  "result_description": "Achat matériel bureau",
+  "result_tms_update": "2025-09-24T20:31:36.776",
+  "result_action_effectuee": "CREATION" // ou "MODIFICATION"
+}
+```
+
+### 3. Ajout/Modification d'un Type de Dépense
+```sql
+-- Fonction : add_edit_type_depense
+SELECT * FROM add_edit_type_depense(
+    pid_structure,       -- INTEGER : ID structure
+    pnom_type,          -- VARCHAR : Nom du type (max 120 caractères)
+    pid_type_depense    -- INTEGER : 0 pour création, >0 pour modification
+);
+```
+
+**Réponse (format TABLE) :**
+```json
+{
+  "result_id_type_depense": 1,
+  "result_id_structure": 139,
+  "result_nom_type": "FRAIS DE TRANSPORT",
+  "result_action_effectuee": "CREATION", // ou "MODIFICATION"
+  "result_nb_depenses_associees": 5
+}
+```
+
+### 4. Suppression d'une Dépense
+```sql
+-- Fonction : delete_depense
+SELECT * FROM delete_depense(pid_structure, pid_depense);
+```
+
+**Réponse JSON :**
+```json
+{
+  "success": true,
+  "message": "Dépense supprimée avec succès",
+  "depense_supprimee": {
+    "id_depense": 1,
+    "date_depense": "2025-09-21",
+    "nom_type": "EQUIPEMENTS",
+    "montant": 25000,
+    "description": "Achat matériel bureau"
+  },
+  "timestamp": "2025-10-18T20:45:23.456Z"
+}
+```
+
+### 5. Suppression d'un Type de Dépense
+```sql
+-- Fonction : delete_type_depense
+SELECT * FROM delete_type_depense(pid_structure, pid_type);
+```
+
+**Réponse JSON (succès) :**
+```json
+{
+  "success": true,
+  "message": "Type de dépense supprimé avec succès",
+  "type_supprime": {
+    "id_type_depense": 1,
+    "nom_type": "FRAIS DE TRANSPORT"
+  },
+  "timestamp": "2025-10-18T20:46:15.789Z"
+}
+```
+
+**Réponse JSON (échec - dépenses liées) :**
+```json
+{
+  "success": false,
+  "error": "Impossible de supprimer ce type de dépense car 5 dépense(s) y sont associée(s)",
+  "nb_depenses_liees": 5,
+  "nom_type": "SALAIRE",
+  "suggestion": "Veuillez d'abord supprimer ou réaffecter les dépenses associées"
+}
+```
+
+---
+
+## 🎨 STRUCTURE DE L'INTERFACE
+
+### Layout de la Page
+
+```
+┌─────────────────────────────────────────────────────────┐
+│  ← [Back]          [Logo]                               │
+│                 Gestion des Dépenses                     │
+├─────────────────────────────────────────────────────────┤
+│  📊 StatCards (2x1)                                     │
+│  ┌──────────────────────┐  ┌─────────────────────────┐ │
+│  │ Nombre: 15           │  │ Type le + coûteux      │ │
+│  │ Total: 725,000 FCFA  │  │ SALAIRE: 550,000 FCFA  │ │
+│  └──────────────────────┘  └─────────────────────────┘ │
+├─────────────────────────────────────────────────────────┤
+│  🔍 Barre de Recherche (3x1)                            │
+│  ┌──────────────────┐ [🔽] [↻]                         │
+│  │ Rechercher...    │  Filtre Refresh                   │
+│  └──────────────────┘                                    │
+├─────────────────────────────────────────────────────────┤
+│  📄 Pagination                                           │
+│  « Précédent | Page 1 de 2 | Suivant »                 │
+├─────────────────────────────────────────────────────────┤
+│  📝 Liste des Dépenses (Cartes)                         │
+│  ┌───────────────────────────────────────────────────┐ │
+│  │ 📅 21/09/2025        EQUIPEMENTS          [✏️] [🗑️]│ │
+│  │ Achat matériel bureau                             │ │
+│  │ 💰 25,000 FCFA                                    │ │
+│  │ Mis à jour: 24/09/2025 20:31                      │ │
+│  └───────────────────────────────────────────────────┘ │
+│  ┌───────────────────────────────────────────────────┐ │
+│  │ 📅 21/08/2025        SALAIRE              [✏️] [🗑️]│ │
+│  │ Salaire Gardien                                   │ │
+│  │ 💰 550,000 FCFA                                   │ │
+│  │ Mis à jour: 24/09/2025 20:33                      │ │
+│  └───────────────────────────────────────────────────┘ │
+├─────────────────────────────────────────────────────────┤
+│  [+ Nouvelle Dépense]  [⚙️ Gérer les Types]            │
+└─────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 🏗️ ARCHITECTURE DES FICHIERS
+
+```
+app/
+├── dashboard/
+│   └── depenses/
+│       └── page.tsx                    # Page principale
+
+components/
+├── depenses/
+│   ├── DepensesHeader.tsx             # Header avec back + logo
+│   ├── DepensesStatCards.tsx          # 2 StatCards (Nombre/Total, Type +coûteux)
+│   ├── DepensesSearchBar.tsx          # Barre de recherche + filtres
+│   ├── DepensesPagination.tsx         # Pagination
+│   ├── DepenseCard.tsx                # Carte individuelle de dépense
+│   ├── DepensesList.tsx               # Liste des cartes
+│   ├── AddEditDepenseModal.tsx        # Modal ajout/édition dépense
+│   ├── DeleteDepenseModal.tsx         # Modal confirmation suppression
+│   ├── GererTypesModal.tsx            # Modal gestion des types
+│   └── FiltresDepensesModal.tsx       # Modal filtres multicritères
+
+services/
+└── depense.service.ts                 # Service de communication API
+
+types/
+└── depense.types.ts                   # Types TypeScript
+
+hooks/
+└── useDepenses.ts                     # Hook personnalisé (optionnel)
+```
+
+---
+
+## 📐 TYPES TYPESCRIPT OBLIGATOIRES
+
+```typescript
+// types/depense.types.ts
+
+export interface Depense {
+  id_depense: number;
+  date_depense: string;
+  id_type_depense: number;
+  nom_type: string;
+  montant: number;
+  description: string;
+  tms_update: string;
+  mois?: string;
+  trimestre?: string;
+  jour_semaine?: string;
+}
+
+export interface TypeDepense {
+  id_type_depense: number;
+  nom_type: string;
+  total_depenses: number;
+  nb_depenses: number;
+  pourcentage_total: number;
+  depense_moyenne: number;
+  montant_min: number;
+  montant_max: number;
+  derniere_depense: string | null;
+}
+
+export interface ResumeDepenses {
+  total_depenses: number;
+  variation_depenses: number;
+  nb_depenses: number;
+  variation_nb_depenses: number;
+  depense_moyenne: number;
+  nb_types_utilises: number;
+  nb_types_total: number;
+  montant_min: number;
+  montant_max: number;
+  date_premiere_depense: string | null;
+  date_derniere_depense: string | null;
+}
+
+export interface DepensesData {
+  success: boolean;
+  structure_id: number;
+  periode: string;
+  annee: number;
+  date_debut: string;
+  date_fin: string;
+  resume_depenses: ResumeDepenses;
+  depenses_par_type: TypeDepense[];
+  liste_depenses: Depense[];
+  evolution_depenses: any[];
+  timestamp_generation: string;
+}
+
+export interface DepenseFormData {
+  date_depense: string;
+  id_type_depense: number;
+  montant: number;
+  description: string;
+}
+
+export interface FiltresDepenses {
+  recherche?: string;
+  type_depense?: number;
+  date_debut?: string;
+  date_fin?: string;
+  montant_min?: number;
+  montant_max?: number;
+}
+```
+
+---
+
+## 🔧 SERVICE DE COMMUNICATION
+
+```typescript
+// services/depense.service.ts
+import { DatabaseService } from './database.service';
+import { extractSingleDataFromResult, extractDataFromResults } from '@/utils/dataExtractor';
+import type { DepensesData, DepenseFormData } from '@/types/depense.types';
+
+export class DepenseService {
+  private databaseService: DatabaseService;
+
+  constructor() {
+    this.databaseService = new DatabaseService();
+  }
+
+  // 1. RÉCUPÉRER LA LISTE DES DÉPENSES
+  async getListeDepenses(
+    structureId: number,
+    annee: number,
+    periode: string = 'annee'
+  ): Promise<DepensesData> {
+    try {
+      const requeteSql = `SELECT * FROM get_list_depenses(${structureId}, ${annee}, '${periode}')`;
+      
+      const result = await this.databaseService.envoyerRequeteApi('payecole', requeteSql);
+
+      if (!result || result.length === 0) {
+        throw new Error('Aucune donnée retournée');
+      }
+
+      const data = extractSingleDataFromResult<DepensesData>(result[0]);
+      
+      if (!data.success) {
+        throw new Error(data.error || 'Erreur lors de la récupération des dépenses');
+      }
+
+      return data;
+    } catch (error) {
+      console.error('[DepenseService] getListeDepenses:', error);
+      throw error;
+    }
+  }
+
+  // 2. AJOUTER UNE DÉPENSE
+  async ajouterDepense(
+    structureId: number,
+    formData: DepenseFormData
+  ): Promise<any> {
+    try {
+      const requeteSql = `
+        SELECT * FROM add_edit_depense(
+          ${structureId},
+          '${formData.date_depense}'::date,
+          ${formData.id_type_depense},
+          ${formData.montant},
+          '${formData.description.replace(/'/g, "''")}',
+          0
+        )
+      `;
+      
+      const result = await this.databaseService.envoyerRequeteApi('payecole', requeteSql);
+
+      if (!result || result.length === 0) {
+        throw new Error('Échec de l\'ajout de la dépense');
+      }
+
+      return extractSingleDataFromResult(result[0]);
+    } catch (error) {
+      console.error('[DepenseService] ajouterDepense:', error);
+      throw error;
+    }
+  }
+
+  // 3. MODIFIER UNE DÉPENSE
+  async modifierDepense(
+    structureId: number,
+    depenseId: number,
+    formData: DepenseFormData
+  ): Promise<any> {
+    try {
+      const requeteSql = `
+        SELECT * FROM add_edit_depense(
+          ${structureId},
+          '${formData.date_depense}'::date,
+          ${formData.id_type_depense},
+          ${formData.montant},
+          '${formData.description.replace(/'/g, "''")}',
+          ${depenseId}
+        )
+      `;
+      
+      const result = await this.databaseService.envoyerRequeteApi('payecole', requeteSql);
+
+      if (!result || result.length === 0) {
+        throw new Error('Échec de la modification de la dépense');
+      }
+
+      return extractSingleDataFromResult(result[0]);
+    } catch (error) {
+      console.error('[DepenseService] modifierDepense:', error);
+      throw error;
+    }
+  }
+
+  // 4. SUPPRIMER UNE DÉPENSE
+  async supprimerDepense(
+    structureId: number,
+    depenseId: number
+  ): Promise<any> {
+    try {
+      const requeteSql = `SELECT * FROM delete_depense(${structureId}, ${depenseId})`;
+      
+      const result = await this.databaseService.envoyerRequeteApi('payecole', requeteSql);
+
+      if (!result || result.length === 0) {
+        throw new Error('Échec de la suppression');
+      }
+
+      const data = extractSingleDataFromResult(result[0]);
+      
+      if (!data.success) {
+        throw new Error(data.error || 'Erreur lors de la suppression');
+      }
+
+      return data;
+    } catch (error) {
+      console.error('[DepenseService] supprimerDepense:', error);
+      throw error;
+    }
+  }
+
+  // 5. AJOUTER/MODIFIER UN TYPE DE DÉPENSE
+  async ajouterOuModifierType(
+    structureId: number,
+    nomType: string,
+    typeId: number = 0
+  ): Promise<any> {
+    try {
+      const requeteSql = `
+        SELECT * FROM add_edit_type_depense(
+          ${structureId},
+          '${nomType.replace(/'/g, "''")}',
+          ${typeId}
+        )
+      `;
+      
+      const result = await this.databaseService.envoyerRequeteApi('payecole', requeteSql);
+
+      if (!result || result.length === 0) {
+        throw new Error('Échec de l\'opération sur le type');
+      }
+
+      return extractSingleDataFromResult(result[0]);
+    } catch (error) {
+      console.error('[DepenseService] ajouterOuModifierType:', error);
+      throw error;
+    }
+  }
+
+  // 6. SUPPRIMER UN TYPE DE DÉPENSE
+  async supprimerType(
+    structureId: number,
+    typeId: number
+  ): Promise<any> {
+    try {
+      const requeteSql = `SELECT * FROM delete_type_depense(${structureId}, ${typeId})`;
+      
+      const result = await this.databaseService.envoyerRequeteApi('payecole', requeteSql);
+
+      if (!result || result.length === 0) {
+        throw new Error('Échec de la suppression du type');
+      }
+
+      const data = extractSingleDataFromResult(result[0]);
+      
+      if (!data.success) {
+        throw new Error(data.error || 'Erreur lors de la suppression du type');
+      }
+
+      return data;
+    } catch (error) {
+      console.error('[DepenseService] supprimerType:', error);
+      throw error;
+    }
+  }
+}
+```
+
+---
+
+## 🎨 COMPOSANTS UI PRINCIPAUX
+
+### 1. Header
+
+```tsx
+// components/depenses/DepensesHeader.tsx
+import { ArrowLeft } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+
+export default function DepensesHeader() {
+  const router = useRouter();
+
+  return (
+    <div className="bg-gradient-to-r from-blue-600 to-indigo-700 p-6 shadow-md">
+      <div className="flex items-center justify-between mb-4">
+        <button 
+          onClick={() => router.push('/dashboard')}
+          className="text-white hover:bg-white/20 p-2 rounded-lg transition"
+        >
+          <ArrowLeft size={24} />
+        </button>
+        <div className="text-white">
+          {/* Logo centré */}
+          <div className="text-2xl font-bold">FayClick</div>
+        </div>
+        <div className="w-10" /> {/* Espaceur pour centrer le logo */}
+      </div>
+      <h1 className="text-2xl font-bold text-white text-center">
+        Gestion des Dépenses
+      </h1>
+    </div>
+  );
+}
+```
+
+### 2. StatCards
+
+```tsx
+// components/depenses/DepensesStatCards.tsx
+import { TrendingUp, DollarSign } from 'lucide-react';
+import type { ResumeDepenses, TypeDepense } from '@/types/depense.types';
+
+interface DepensesStatCardsProps {
+  resume: ResumeDepenses;
+  typesDepenses: TypeDepense[];
+}
+
+export default function DepensesStatCards({ resume, typesDepenses }: DepensesStatCardsProps) {
+  // Trouver le type le plus coûteux
+  const typePlusCouteux = typesDepenses.length > 0 
+    ? typesDepenses.reduce((max, type) => 
+        type.total_depenses > max.total_depenses ? type : max
+      )
+    : null;
+
+  return (
+    <div className="grid grid-cols-2 gap-4 p-4">
+      {/* StatCard 1 : Nombre et Total */}
+      <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+        <div className="flex items-center gap-2 mb-2">
+          <DollarSign className="text-blue-600" size={20} />
+          <span className="text-sm text-gray-600 font-medium">Dépenses</span>
+        </div>
+        <div className="space-y-1">
+          <div>
+            <div className="text-2xl font-bold text-gray-800">
+              {resume.nb_depenses}
+            </div>
+            <div className="text-xs text-gray-500">Nombre de dépenses</div>
+          </div>
+          <div className="pt-2 border-t">
+            <div className="text-xl font-semibold text-blue-600">
+              {resume.total_depenses.toLocaleString('fr-FR')} FCFA
+            </div>
+            <div className="text-xs text-gray-500">Total dépensé</div>
+          </div>
+        </div>
+      </div>
+
+      {/* StatCard 2 : Type le plus coûteux */}
+      <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+        <div className="flex items-center gap-2 mb-2">
+          <TrendingUp className="text-orange-600" size={20} />
+          <span className="text-sm text-gray-600 font-medium">Type + coûteux</span>
+        </div>
+        {typePlusCouteux ? (
+          <div className="space-y-1">
+            <div className="text-lg font-bold text-gray-800 truncate">
+              {typePlusCouteux.nom_type}
+            </div>
+            <div className="text-xl font-semibold text-orange-600">
+              {typePlusCouteux.total_depenses.toLocaleString('fr-FR')} FCFA
+            </div>
+            <div className="text-xs text-gray-500">
+              {typePlusCouteux.nb_depenses} dépense(s) • {typePlusCouteux.pourcentage_total}%
+            </div>
+          </div>
+        ) : (
+          <div className="text-sm text-gray-400">Aucune dépense</div>
+        )}
+      </div>
+    </div>
+  );
+}
+```
+
+### 3. Barre de Recherche
+
+```tsx
+// components/depenses/DepensesSearchBar.tsx
+import { Search, Filter, RefreshCw } from 'lucide-react';
+import { useState } from 'react';
+
+interface DepensesSearchBarProps {
+  onSearch: (query: string) => void;
+  onOpenFilters: () => void;
+  onRefresh: () => void;
+  isLoading?: boolean;
+}
+
+export default function DepensesSearchBar({ 
+  onSearch, 
+  onOpenFilters, 
+  onRefresh,
+  isLoading = false 
+}: DepensesSearchBarProps) {
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setSearchQuery(value);
+    onSearch(value);
+  };
+
+  return (
+    <div className="p-4 bg-white shadow-sm">
+      <div className="grid grid-cols-[1fr_auto_auto] gap-3 items-center">
+        {/* Champ de recherche */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+          <input
+            type="text"
+            placeholder="Rechercher une dépense..."
+            value={searchQuery}
+            onChange={handleSearch}
+            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          />
+        </div>
+
+        {/* Bouton Filtres */}
+        <button
+          onClick={onOpenFilters}
+          className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
+          title="Filtres avancés"
+        >
+          <Filter size={20} className="text-gray-600" />
+        </button>
+
+        {/* Bouton Actualiser */}
+        <button
+          onClick={onRefresh}
+          disabled={isLoading}
+          className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition disabled:opacity-50"
+          title="Actualiser"
+        >
+          <RefreshCw 
+            size={20} 
+            className={`text-gray-600 ${isLoading ? 'animate-spin' : ''}`} 
+          />
+        </button>
+      </div>
+    </div>
+  );
+}
+```
+
+### 4. Carte de Dépense
+
+```tsx
+// components/depenses/DepenseCard.tsx
+import { Calendar, Edit, Trash2, Tag, Clock } from 'lucide-react';
+import type { Depense } from '@/types/depense.types';
+
+interface DepenseCardProps {
+  depense: Depense;
+  onEdit: (depense: Depense) => void;
+  onDelete: (depense: Depense) => void;
+}
+
+export default function DepenseCard({ depense, onEdit, onDelete }: DepenseCardProps) {
+  const formatDate = (dateStr: string) => {
+    return new Date(dateStr).toLocaleDateString('fr-FR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    });
+  };
+
+  const formatDateTime = (dateStr: string) => {
+    return new Date(dateStr).toLocaleString('fr-FR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  return (
+    <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 hover:shadow-md transition">
+      {/* Header : Date + Type + Actions */}
+      <div className="flex items-start justify-between mb-3">
+        <div className="flex-1">
+          <div className="flex items-center gap-2 mb-1">
+            <Calendar size={16} className="text-gray-400" />
+            <span className="text-sm font-medium text-gray-700">
+              {formatDate(depense.date_depense)}
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Tag size={16} className="text-blue-600" />
+            <span className="text-sm font-semibold text-blue-600">
+              {depense.nom_type}
+            </span>
+          </div>
+        </div>
+        
+        <div className="flex gap-2">
+          <button
+            onClick={() => onEdit(depense)}
+            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition"
+            title="Modifier"
+          >
+            <Edit size={18} />
+          </button>
+          <button
+            onClick={() => onDelete(depense)}
+            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"
+            title="Supprimer"
+          >
+            <Trash2 size={18} />
+          </button>
+        </div>
+      </div>
+
+      {/* Description */}
+      <p className="text-sm text-gray-600 mb-3 line-clamp-2">
+        {depense.description}
+      </p>
+
+      {/* Footer : Montant + Mise à jour */}
+      <div className="flex items-center justify-between pt-3 border-t border-gray-100">
+        <div className="text-xl font-bold text-green-600">
+          {depense.montant.toLocaleString('fr-FR')} FCFA
+        </div>
+        <div className="flex items-center gap-1 text-xs text-gray-400">
+          <Clock size={12} />
+          <span>{formatDateTime(depense.tms_update)}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+```
+
+### 5. Modal Ajout/Édition de Dépense
+
+```tsx
+// components/depenses/AddEditDepenseModal.tsx
+'use client';
+
+import { useState, useEffect } from 'react';
+import { X } from 'lucide-react';
+import type { Depense, TypeDepense, DepenseFormData } from '@/types/depense.types';
+
+interface AddEditDepenseModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSubmit: (data: DepenseFormData, depenseId?: number) => Promise<void>;
+  depense?: Depense | null;
+  typesDepenses: TypeDepense[];
+}
+
+export default function AddEditDepenseModal({
+  isOpen,
+  onClose,
+  onSubmit,
+  depense,
+  typesDepenses
+}: AddEditDepenseModalProps) {
+  const [formData, setFormData] = useState<DepenseFormData>({
+    date_depense: new Date().toISOString().split('T')[0],
+    id_type_depense: 0,
+    montant: 0,
+    description: ''
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Initialiser le formulaire en mode édition
+  useEffect(() => {
+    if (depense) {
+      setFormData({
+        date_depense: depense.date_depense,
+        id_type_depense: depense.id_type_depense,
+        montant: depense.montant,
+        description: depense.description
+      });
+    } else {
+      setFormData({
+        date_depense: new Date().toISOString().split('T')[0],
+        id_type_depense: typesDepenses[0]?.id_type_depense || 0,
+        montant: 0,
+        description: ''
+      });
+    }
+    setError(null);
+  }, [depense, typesDepenses, isOpen]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // Validation
+    if (!formData.date_depense) {
+      setError('La date est requise');
+      return;
+    }
+    if (formData.id_type_depense === 0) {
+      setError('Veuillez sélectionner un type de dépense');
+      return;
+    }
+    if (formData.montant <= 0) {
+      setError('Le montant doit être supérieur à 0');
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      setError(null);
+      await onSubmit(formData, depense?.id_depense);
+      onClose();
+    } catch (err: any) {
+      setError(err.message || 'Erreur lors de l\'enregistrement');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+        {/* Header */}
+        <div className="flex items-center justify-between p-6 border-b">
+          <h2 className="text-xl font-bold text-gray-800">
+            {depense ? 'Modifier la dépense' : 'Nouvelle dépense'}
+          </h2>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600 transition"
+          >
+            <X size={24} />
+          </button>
+        </div>
+
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          {error && (
+            <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm">
+              {error}
+            </div>
+          )}
+
+          {/* Date */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Date de la dépense *
+            </label>
+            <input
+              type="date"
+              value={formData.date_depense}
+              onChange={(e) => setFormData({ ...formData, date_depense: e.target.value })}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              required
+            />
+          </div>
+
+          {/* Type de dépense */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Type de dépense *
+            </label>
+            <select
+              value={formData.id_type_depense}
+              onChange={(e) => setFormData({ ...formData, id_type_depense: parseInt(e.target.value) })}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              required
+            >
+              <option value={0}>Sélectionnez un type</option>
+              {typesDepenses.map((type) => (
+                <option key={type.id_type_depense} value={type.id_type_depense}>
+                  {type.nom_type}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Montant */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Montant (FCFA) *
+            </label>
+            <input
+              type="number"
+              value={formData.montant || ''}
+              onChange={(e) => setFormData({ ...formData, montant: parseFloat(e.target.value) || 0 })}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="0"
+              min="0"
+              step="0.01"
+              required
+            />
+          </div>
+
+          {/* Description */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Description
+            </label>
+            <textarea
+              value={formData.description}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+              rows={3}
+              placeholder="Détails de la dépense..."
+            />
+          </div>
+
+          {/* Actions */}
+          <div className="flex gap-3 pt-4">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition"
+            >
+              Annuler
+            </button>
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isSubmitting ? 'Enregistrement...' : (depense ? 'Modifier' : 'Ajouter')}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+```
+
+---
+
+## 📄 PAGE PRINCIPALE
+
+```tsx
+// app/dashboard/depenses/page.tsx
+'use client';
+
+import { useState, useEffect, useMemo } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
+import { DepenseService } from '@/services/depense.service';
+import type { DepensesData, Depense, DepenseFormData } from '@/types/depense.types';
+
+import DepensesHeader from '@/components/depenses/DepensesHeader';
+import DepensesStatCards from '@/components/depenses/DepensesStatCards';
+import DepensesSearchBar from '@/components/depenses/DepensesSearchBar';
+import DepensesPagination from '@/components/depenses/DepensesPagination';
+import DepensesList from '@/components/depenses/DepensesList';
+import AddEditDepenseModal from '@/components/depenses/AddEditDepenseModal';
+import DeleteDepenseModal from '@/components/depenses/DeleteDepenseModal';
+import GererTypesModal from '@/components/depenses/GererTypesModal';
+import { Plus, Settings } from 'lucide-react';
+
+const ITEMS_PER_PAGE = 10;
+
+export default function DepensesPage() {
+  const { userData } = useAuth();
+  const [data, setData] = useState<DepensesData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  
+  // États des modals
+  const [isAddEditModalOpen, setIsAddEditModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isTypesModalOpen, setIsTypesModalOpen] = useState(false);
+  const [selectedDepense, setSelectedDepense] = useState<Depense | null>(null);
+  
+  // États de recherche et pagination
+  const [searchQuery, setSearchQuery] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  
+  const depenseService = new DepenseService();
+
+  // Charger les données
+  useEffect(() => {
+    if (userData?.id_structure) {
+      chargerDepenses();
+    }
+  }, [userData]);
+
+  const chargerDepenses = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const result = await depenseService.getListeDepenses(
+        userData!.id_structure,
+        new Date().getFullYear(),
+        'annee'
+      );
+      
+      setData(result);
+    } catch (err: any) {
+      console.error('Erreur chargement dépenses:', err);
+      setError(err.message || 'Impossible de charger les dépenses');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Filtrer les dépenses par recherche
+  const depensesFiltrees = useMemo(() => {
+    if (!data?.liste_depenses) return [];
+    
+    if (!searchQuery) return data.liste_depenses;
+    
+    const query = searchQuery.toLowerCase();
+    return data.liste_depenses.filter((depense) =>
+      depense.nom_type.toLowerCase().includes(query) ||
+      depense.description.toLowerCase().includes(query) ||
+      depense.montant.toString().includes(query)
+    );
+  }, [data, searchQuery]);
+
+  // Pagination
+  const totalPages = Math.ceil(depensesFiltrees.length / ITEMS_PER_PAGE);
+  const depensesPaginees = useMemo(() => {
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    return depensesFiltrees.slice(start, start + ITEMS_PER_PAGE);
+  }, [depensesFiltrees, currentPage]);
+
+  // Handlers
+  const handleAjouterDepense = () => {
+    setSelectedDepense(null);
+    setIsAddEditModalOpen(true);
+  };
+
+  const handleEditerDepense = (depense: Depense) => {
+    setSelectedDepense(depense);
+    setIsAddEditModalOpen(true);
+  };
+
+  const handleSupprimerDepense = (depense: Depense) => {
+    setSelectedDepense(depense);
+    setIsDeleteModalOpen(true);
+  };
+
+  const handleSubmitDepense = async (formData: DepenseFormData, depenseId?: number) => {
+    try {
+      if (depenseId) {
+        await depenseService.modifierDepense(userData!.id_structure, depenseId, formData);
+      } else {
+        await depenseService.ajouterDepense(userData!.id_structure, formData);
+      }
+      await chargerDepenses();
+      setIsAddEditModalOpen(false);
+    } catch (error) {
+      throw error;
+    }
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!selectedDepense) return;
+    
+    try {
+      await depenseService.supprimerDepense(
+        userData!.id_structure,
+        selectedDepense.id_depense
+      );
+      await chargerDepenses();
+      setIsDeleteModalOpen(false);
+      setSelectedDepense(null);
+    } catch (error: any) {
+      alert(error.message || 'Erreur lors de la suppression');
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Chargement...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !data) {
+    return (
+      <div className="p-4">
+        <div className="bg-red-50 text-red-600 p-4 rounded-lg">
+          {error || 'Erreur de chargement'}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <DepensesHeader />
+
+      <DepensesStatCards 
+        resume={data.resume_depenses}
+        typesDepenses={data.depenses_par_type}
+      />
+
+      <DepensesSearchBar
+        onSearch={setSearchQuery}
+        onOpenFilters={() => {/* TODO: Implémenter filtres */}}
+        onRefresh={chargerDepenses}
+        isLoading={loading}
+      />
+
+      <DepensesPagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={setCurrentPage}
+        totalItems={depensesFiltrees.length}
+      />
+
+      <DepensesList
+        depenses={depensesPaginees}
+        onEdit={handleEditerDepense}
+        onDelete={handleSupprimerDepense}
+      />
+
+      {/* Boutons d'action flottants */}
+      <div className="fixed bottom-6 right-6 flex flex-col gap-3">
+        <button
+          onClick={() => setIsTypesModalOpen(true)}
+          className="bg-gray-600 text-white p-4 rounded-full shadow-lg hover:bg-gray-700 transition"
+          title="Gérer les types"
+        >
+          <Settings size={24} />
+        </button>
+        <button
+          onClick={handleAjouterDepense}
+          className="bg-blue-600 text-white p-4 rounded-full shadow-lg hover:bg-blue-700 transition"
+          title="Nouvelle dépense"
+        >
+          <Plus size={24} />
+        </button>
+      </div>
+
+      {/* Modals */}
+      <AddEditDepenseModal
+        isOpen={isAddEditModalOpen}
+        onClose={() => setIsAddEditModalOpen(false)}
+        onSubmit={handleSubmitDepense}
+        depense={selectedDepense}
+        typesDepenses={data.depenses_par_type}
+      />
+
+      <DeleteDepenseModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirm={handleConfirmDelete}
+        depense={selectedDepense}
+      />
+
+      <GererTypesModal
+        isOpen={isTypesModalOpen}
+        onClose={() => setIsTypesModalOpen(false)}
+        structureId={userData!.id_structure}
+        onTypesUpdated={chargerDepenses}
+      />
+    </div>
+  );
+}
+```
+
+---
+
+## ✅ CHECKLIST DE VALIDATION
+
+Avant de soumettre ton code, vérifie que :
+
+- [ ] Communication via DatabaseService + XML uniquement
+- [ ] Types TypeScript complets et exportés
+- [ ] Gestion d'erreurs robuste (try/catch partout)
+- [ ] Loading states affichés pendant les requêtes
+- [ ] Modals pour toutes les actions d'édition/suppression
+- [ ] Pagination fonctionnelle (10 items par page)
+- [ ] Recherche en temps réel opérationnelle
+- [ ] Format des montants avec toLocaleString('fr-FR')
+- [ ] Validation des formulaires côté client
+- [ ] Messages de confirmation avant suppression
+- [ ] Boutons désactivés pendant les opérations async
+- [ ] Responsive design (mobile-first)
+- [ ] Aucun hardcoding de données
+- [ ] Code commenté en français
+- [ ] Utilisation de extractSingleDataFromResult
+
+---
+
+## 🚫 INTERDICTIONS ABSOLUES
+
+1. ❌ NE JAMAIS utiliser fetch direct
+2. ❌ NE JAMAIS créer de mock data
+3. ❌ NE JAMAIS ignorer les erreurs API
+4. ❌ NE JAMAIS hardcoder les IDs
+5. ❌ NE JAMAIS oublier les types TypeScript
+6. ❌ NE JAMAIS modifier le format XML de requête
+7. ❌ NE JAMAIS supprimer sans confirmation
+8. ❌ NE JAMAIS oublier la validation des formulaires
+
+---
+
+## 🎯 OBJECTIF FINAL
+
+Un module complet et fonctionnel de gestion des dépenses permettant :
+- ✅ Visualiser toutes les dépenses avec statistiques
+- ✅ Ajouter de nouvelles dépenses via modal
+- ✅ Modifier des dépenses existantes via modal
+- ✅ Supprimer des dépenses avec confirmation
+- ✅ Gérer les types de dépenses
+- ✅ Rechercher et filtrer les dépenses
+- ✅ Paginer les résultats
+- ✅ Expérience utilisateur fluide et professionnelle
+
+**Commence par créer les types TypeScript, puis le service, puis les composants UI, et enfin la page principale. Teste chaque fonctionnalité au fur et à mesure de l'implémentation.**

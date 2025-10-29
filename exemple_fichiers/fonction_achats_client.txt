@@ -1,0 +1,252 @@
+-- DROP FUNCTION public.get_list_clients(int4, varchar);
+
+CREATE OR REPLACE FUNCTION public.get_list_clients(pid_structure integer, ptelephone_client character varying DEFAULT ''::character varying)
+ RETURNS json
+ LANGUAGE plpgsql
+AS $function$
+DECLARE
+    v_clients_json json;
+    v_stats_globales json;
+    v_result_json json;
+BEGIN
+    -- Validation des paramètres d'entrée
+    IF pid_structure IS NULL OR pid_structure <= 0 THEN
+        RETURN json_build_object(
+            'success', false,
+            'error', 'L''ID structure doit être un entier positif valide'
+        );
+    END IF;
+
+    -- Vérifier que la structure existe
+    IF NOT EXISTS (SELECT 1 FROM public.structures s WHERE s.id_structure = pid_structure) THEN
+        RETURN json_build_object(
+            'success', false,
+            'error', 'La structure avec l''ID ' || pid_structure || ' n''existe pas'
+        );
+    END IF;
+
+    -- Construire le JSON avec tous les clients et leurs données
+    SELECT COALESCE(
+        json_agg(
+            json_build_object(
+                'client', json_build_object(
+                    'id_client', cf.id_client,
+                    'nom_client', cf.nom_client,
+                    'tel_client', cf.tel_client,
+                    'adresse', cf.adresse,
+                    'date_creation', cf.date_creation,
+                    'date_modification', cf.date_modification
+                ),
+                'statistiques_factures', json_build_object(
+                    'nombre_factures', COALESCE(stats.nombre_factures, 0),
+                    'montant_total_factures', COALESCE(stats.montant_total, 0),
+                    'montant_paye', COALESCE(stats.montant_paye, 0),
+                    'montant_impaye', COALESCE(stats.montant_impaye, 0),
+                    'nombre_factures_payees', COALESCE(stats.nombre_payees, 0),
+                    'nombre_factures_impayees', COALESCE(stats.nombre_impayees, 0),
+                    'pourcentage_paiement', CASE 
+                        WHEN COALESCE(stats.montant_total, 0) > 0 
+                        THEN ROUND((COALESCE(stats.montant_paye, 0) * 100.0 / stats.montant_total), 2)
+                        ELSE 0 
+                    END,
+                    'date_premiere_facture', stats.date_premiere_facture,
+                    'date_derniere_facture', stats.date_derniere_facture
+                ),
+                'factures', COALESCE(
+                    (
+                        SELECT json_agg(
+                            json_build_object(
+                                'id_facture', lfc.id_facture,
+                                'num_facture', lfc.num_facture,
+                                'date_facture', lfc.date_facture,
+                                'description', lfc.description,
+                                'montant', lfc.montant,
+                                'mt_remise', lfc.mt_remise,
+                                'mt_acompte', lfc.mt_acompte,
+                                'mt_restant', lfc.mt_restant,
+                                'libelle_etat', lfc.libelle_etat,
+                                'periode', lfc.periode,
+                                'nombre_articles', COALESCE((
+                                    SELECT COUNT(*)
+                                    FROM list_detailventes ldv
+                                    WHERE ldv.id_facture = lfc.id_facture
+                                ), 0),
+                                'details_articles', COALESCE((
+                                    SELECT json_agg(
+                                        json_build_object(
+                                            'nom_produit', ldv.nom_produit,
+                                            'quantite', ldv.quantite,
+                                            'prix', ldv.prix,
+                                            'sous_total', ldv.quantite * ldv.prix,
+                                            'marge', ldv.marge,
+                                            'nom_categorie', ldv.nom_categorie
+                                        )
+                                    )
+                                    FROM list_detailventes ldv
+                                    WHERE ldv.id_facture = lfc.id_facture
+                                ), '[]'::json)
+                            )
+                            ORDER BY lfc.date_facture DESC
+                        )
+                        FROM list_factures_com lfc
+                        WHERE lfc.tel_client = cf.tel_client 
+                          AND lfc.id_structure = pid_structure
+                    ),
+                    '[]'::json
+                )
+            )
+            ORDER BY cf.nom_client
+        ),
+        '[]'::json
+    ) INTO v_clients_json
+    FROM public.client_facture cf
+    LEFT JOIN (
+        -- Sous-requête pour calculer les statistiques par client
+        SELECT 
+            lfc.tel_client,
+            COUNT(lfc.id_facture) as nombre_factures,
+            SUM(lfc.montant) as montant_total,
+            SUM(lfc.montant - lfc.mt_restant) as montant_paye,
+            SUM(lfc.mt_restant) as montant_impaye,
+            COUNT(CASE WHEN lfc.id_etat = 2 THEN 1 END) as nombre_payees,
+            COUNT(CASE WHEN lfc.id_etat = 1 THEN 1 END) as nombre_impayees,
+            MIN(lfc.date_facture) as date_premiere_facture,
+            MAX(lfc.date_facture) as date_derniere_facture
+        FROM list_factures_com lfc
+        WHERE lfc.id_structure = pid_structure
+        GROUP BY lfc.tel_client
+    ) stats ON cf.tel_client = stats.tel_client
+    WHERE cf.id_structure = pid_structure
+    -- Filtrer par téléphone si le paramètre est fourni
+    AND (ptelephone_client = '' OR cf.tel_client = ptelephone_client);
+
+    -- Calculer les statistiques globales (seulement si pas de filtre téléphone)
+    IF ptelephone_client = '' THEN
+        SELECT json_build_object(
+            'nombre_total_clients', (
+                SELECT COUNT(*)
+                FROM client_facture cf
+                WHERE cf.id_structure = pid_structure
+            ),
+            'clients_avec_factures', (
+                SELECT COUNT(DISTINCT lfc.tel_client)
+                FROM list_factures_com lfc
+                WHERE lfc.id_structure = pid_structure
+            ),
+            'clients_sans_factures', (
+                SELECT COUNT(*)
+                FROM client_facture cf
+                WHERE cf.id_structure = pid_structure
+                  AND NOT EXISTS (
+                      SELECT 1 FROM list_factures_com lfc 
+                      WHERE lfc.tel_client = cf.tel_client 
+                        AND lfc.id_structure = pid_structure
+                  )
+            ),
+            'clients_nouveaux_aujourd_hui', (
+                SELECT COUNT(*)
+                FROM client_facture cf
+                WHERE cf.date_creation = CURRENT_DATE
+                  AND cf.id_structure = pid_structure
+            ),
+            'clients_modifies_aujourd_hui', (
+                SELECT COUNT(*)
+                FROM client_facture cf
+                WHERE cf.date_modification = CURRENT_DATE 
+                  AND cf.date_modification != cf.date_creation
+                  AND cf.id_structure = pid_structure
+            ),
+            'total_factures_structure', (
+                SELECT COUNT(*)
+                FROM list_factures_com lfc
+                WHERE lfc.id_structure = pid_structure
+            ),
+            'montant_total_structure', (
+                SELECT COALESCE(SUM(lfc.montant), 0)
+                FROM list_factures_com lfc
+                WHERE lfc.id_structure = pid_structure
+            ),
+            'montant_paye_structure', (
+                SELECT COALESCE(SUM(lfc.montant - lfc.mt_restant), 0)
+                FROM list_factures_com lfc
+                WHERE lfc.id_structure = pid_structure
+            ),
+            'montant_impaye_structure', (
+                SELECT COALESCE(SUM(lfc.mt_restant), 0)
+                FROM list_factures_com lfc
+                WHERE lfc.id_structure = pid_structure
+            ),
+            'factures_payees_structure', (
+                SELECT COUNT(*)
+                FROM list_factures_com lfc
+                WHERE lfc.id_structure = pid_structure AND lfc.id_etat = 2
+            ),
+            'factures_impayees_structure', (
+                SELECT COUNT(*)
+                FROM list_factures_com lfc
+                WHERE lfc.id_structure = pid_structure AND lfc.id_etat = 1
+            ),
+            'client_top_montant', (
+                SELECT json_build_object(
+                    'nom_client', cf.nom_client,
+                    'tel_client', cf.tel_client,
+                    'montant_total', stats.montant_total
+                )
+                FROM client_facture cf
+                INNER JOIN (
+                    SELECT 
+                        lfc.tel_client,
+                        SUM(lfc.montant) as montant_total
+                    FROM list_factures_com lfc
+                    WHERE lfc.id_structure = pid_structure
+                    GROUP BY lfc.tel_client
+                    ORDER BY montant_total DESC
+                    LIMIT 1
+                ) stats ON cf.tel_client = stats.tel_client
+            ),
+            'client_top_factures', (
+                SELECT json_build_object(
+                    'nom_client', cf.nom_client,
+                    'tel_client', cf.tel_client,
+                    'nombre_factures', stats.nombre_factures
+                )
+                FROM client_facture cf
+                INNER JOIN (
+                    SELECT 
+                        lfc.tel_client,
+                        COUNT(lfc.id_facture) as nombre_factures
+                    FROM list_factures_com lfc
+                    WHERE lfc.id_structure = pid_structure
+                    GROUP BY lfc.tel_client
+                    ORDER BY nombre_factures DESC
+                    LIMIT 1
+                ) stats ON cf.tel_client = stats.tel_client
+            )
+        ) INTO v_stats_globales;
+    ELSE
+        -- Si filtre téléphone, pas de statistiques globales
+        v_stats_globales := NULL;
+    END IF;
+
+    -- Construire le résultat final
+    SELECT json_build_object(
+        'success', true,
+        'structure_id', pid_structure,
+        'clients', v_clients_json,
+        'statistiques_globales', v_stats_globales,
+        'filtre_telephone', CASE WHEN ptelephone_client = '' THEN NULL ELSE ptelephone_client END,
+        'timestamp_generation', NOW()
+    ) INTO v_result_json;
+
+    RETURN v_result_json;
+
+EXCEPTION
+    WHEN OTHERS THEN
+        RETURN json_build_object(
+            'success', false,
+            'error', 'Erreur lors de la récupération des clients: ' || SQLERRM,
+            'timestamp', NOW()
+        );
+END;
+$function$
+;
