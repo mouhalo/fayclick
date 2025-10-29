@@ -165,12 +165,24 @@ class PaymentWalletEnhancedService {
         pnom_structure: context.facture.nom_structure || 'FAYCLICK',
       };
 
-      console.log('🔄 Création de paiement wallet amélioré:', {
-        method,
-        facture: context.facture.num_facture,
-        montant: context.montant_acompte,
-        telephone: request.pClientTel
-      });
+      // ===== LOGS DÉTAILLÉS DU PAYLOAD =====
+      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      console.log('📦 PAYLOAD DE PAIEMENT WALLET');
+      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      console.log('🔹 Méthode:', method);
+      console.log('🔹 Endpoint:', `${this.API_BASE_URL}/add_payement`);
+      console.log('🔹 Payload complet:', JSON.stringify(request, null, 2));
+      console.log('');
+      console.log('📋 Détails du payload:');
+      console.log('  • pAppName:', request.pAppName);
+      console.log('  • pMethode:', request.pMethode);
+      console.log('  • pReference:', request.pReference, `(longueur: ${request.pReference.length} caractères)`);
+      console.log('  • pClientTel:', request.pClientTel);
+      console.log('  • pMontant:', request.pMontant, 'FCFA');
+      console.log('  • pServiceName:', request.pServiceName);
+      console.log('  • pNomClient:', request.pNomClient);
+      console.log('  • pnom_structure:', request.pnom_structure);
+      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 
       const response = await fetch(`${this.API_BASE_URL}/add_payement`, {
         method: 'POST',
@@ -183,8 +195,19 @@ class PaymentWalletEnhancedService {
         signal: AbortSignal.timeout(30000) // Timeout de 30 secondes
       });
 
+      console.log('📡 Réponse HTTP reçue:', {
+        status: response.status,
+        statusText: response.statusText,
+        headers: Object.fromEntries(response.headers.entries())
+      });
+
       if (!response.ok) {
         const errorData = await response.json().catch(() => null);
+        console.error('❌ Erreur de l\'API:', {
+          status: response.status,
+          statusText: response.statusText,
+          errorData: errorData
+        });
         throw new Error(
           errorData?.message || `Erreur HTTP: ${response.status}`
         );
@@ -192,17 +215,27 @@ class PaymentWalletEnhancedService {
 
       const data: CreatePaymentResponse = await response.json();
 
+      // ===== LOGS DÉTAILLÉS DE LA RÉPONSE =====
+      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      console.log('✅ RÉPONSE DE L\'API');
+      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      console.log('🔹 Réponse complète:', JSON.stringify(data, null, 2));
+      console.log('');
+      console.log('📋 Détails de la réponse:');
+      console.log('  • UUID:', data.uuid);
+      console.log('  • Statut:', data.status);
+      console.log('  • QR Code présent:', !!data.qrCode);
+      console.log('  • Payment URL:', data.payment_url || 'N/A');
+      console.log('  • OM Deeplink:', data.om || 'N/A');
+      console.log('  • MaxIt URL:', data.maxit || 'N/A');
+      console.log('  • Message:', data.message || 'N/A');
+      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+
       // Ajouter au cache
       this.addToCache(cacheKey, data);
 
       // Émettre un événement
       this.emitPaymentEvent('created', data);
-
-      console.log('✅ Paiement créé avec succès:', {
-        uuid: data.uuid,
-        status: data.status,
-        hasQR: !!data.qrCode
-      });
 
       return data;
     } catch (error) {

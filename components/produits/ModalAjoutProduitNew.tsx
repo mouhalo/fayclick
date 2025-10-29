@@ -165,7 +165,7 @@ export function ModalAjoutProduitNew({
         nom_categorie: produitToEdit.nom_categorie || '',
         description: produitToEdit.description || '',
         presente_au_public: produitToEdit.presente_au_public || false,
-        code_barres: produitToEdit.code_barres || ''
+        code_barres: produitToEdit.code_barre || ''
       });
       setStockForm({
         quantite: 0,

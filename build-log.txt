@@ -1,0 +1,22 @@
+
+> fayclick@2.5.0 prebuild
+> node scripts/inject-build-info.mjs
+
+🔧 [BUILD] Injection du timestamp dans le Service Worker...
+✅ [BUILD] Date de build injectée dans .env.local
+✅ [BUILD] Timestamp mis à jour: 2025-10-18T23:17:38.681Z
+🎉 [BUILD] Service Worker prêt pour le déploiement
+   Fichier: d:\React_Prj\fayclick\public\service-worker.js
+   Taille: 10156 octets
+
+📋 [BUILD] Copie des fichiers critiques vers out/...
+✅ [BUILD] Copié: .htaccess
+✅ [BUILD] Copié: upload-logo.php
+🎉 [BUILD] Fichiers critiques copiés avec succès
+
+> fayclick@2.5.0 build
+> next build
+
+
+> Build error occurred
+[TypeError: generate is not a function]

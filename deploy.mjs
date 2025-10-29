@@ -15,7 +15,7 @@
  *   1. Pages factures publiques testées localement
  *   2. ConditionalAuthProvider validé (pages publiques SANS auth)
  *   3. Tests URLs critiques: /facture?token=XXX
- *   4. Configuration next.config.ts: output:'export'
+ *   4. Configuration next.config.mjs: output:'export'
  *
  * 🌐 Tests post-déploiement obligatoires:
  *   - https://v2.fayclick.net (site principal)
@@ -153,7 +153,9 @@ ${colors.green}✨ Développé avec expertise pour FayClick V2${colors.reset}
     }
     
     // Vérifier configuration Next.js
-    if (!existsSync(join(__dirname, 'next.config.ts')) && !existsSync(join(__dirname, 'next.config.js'))) {
+    if (!existsSync(join(__dirname, 'next.config.ts')) &&
+        !existsSync(join(__dirname, 'next.config.js')) &&
+        !existsSync(join(__dirname, 'next.config.mjs'))) {
       throw new Error('Configuration Next.js non trouvée');
     }
     
@@ -458,7 +460,7 @@ ${colors.green}✨ Développé avec expertise pour FayClick V2${colors.reset}
     Logger.info('✅ Points critiques à vérifier:');
     Logger.info('  - Pages factures publiques testées: /facture?token=XXX');
     Logger.info('  - ConditionalAuthProvider validé (pas d\'auth sur pages publiques)');
-    Logger.info('  - Configuration next.config.ts: output:\'export\'');
+    Logger.info('  - Configuration next.config.mjs: output:\'export\'');
     Logger.info('  - Tests post-déploiement prêts');
     Logger.info('');
     Logger.success('💡 Ces guides vous éviteront les erreurs de déploiement courantes !');

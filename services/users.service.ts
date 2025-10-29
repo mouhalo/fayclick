@@ -93,12 +93,13 @@ class UsersService {
       const escapedTelephone = params.telephone.replace(/'/g, "''");
 
       // Construction de la requête SQL
+      // Pour la création, PostgreSQL attend 0 au lieu de NULL
       const query = `SELECT * FROM add_edit_utilisateur(
         ${params.id_structure},
         ${params.id_profil},
         '${escapedUsername}',
         '${escapedTelephone}',
-        ${params.id_user || 'NULL'}
+        ${params.id_user || 0}
       );`;
 
       console.log('🔧 [USERS SERVICE] Requête SQL:', {
@@ -149,6 +150,67 @@ class UsersService {
   async getAdminUser(id_structure: number): Promise<UtilisateurData | null> {
     const response = await this.getListUtilisateurs(id_structure);
     return response.data.find(user => user.profil.id_profil === UserProfilIds.ADMIN) || null;
+  }
+
+  /**
+   * Supprime un caissier (id_profil = 9)
+   * Appelle delete_caissier(p_id_user)
+   *
+   * @param id_user - ID de l'utilisateur caissier à supprimer
+   * @returns Résultat de l'opération avec détails
+   * @throws Error si la suppression échoue
+   */
+  async deleteCaissier(id_user: number): Promise<{ success: boolean; message: string; username?: string }> {
+    try {
+      console.log('🗑️ [USERS SERVICE] Suppression caissier:', { id_user });
+
+      const query = `SELECT * FROM delete_caissier(${id_user});`;
+      const results = await DatabaseService.query(query);
+
+      console.log('📊 [USERS SERVICE] Résultat suppression:', results);
+
+      // Parser la réponse
+      let response: any;
+
+      if (Array.isArray(results) && results.length > 0) {
+        const firstResult = results[0];
+        if (typeof firstResult === 'string') {
+          response = JSON.parse(firstResult);
+        } else if (firstResult.delete_caissier) {
+          const dataStr = firstResult.delete_caissier;
+          response = typeof dataStr === 'string' ? JSON.parse(dataStr) : dataStr;
+        } else {
+          response = firstResult;
+        }
+      } else if (typeof results === 'object') {
+        response = results;
+      } else {
+        throw new Error('Format de réponse invalide');
+      }
+
+      if (!response.success) {
+        throw new Error(response.message || 'Erreur lors de la suppression');
+      }
+
+      console.log('✅ [USERS SERVICE] Caissier supprimé:', {
+        id_user,
+        username: response.caissier?.username
+      });
+
+      return {
+        success: true,
+        message: response.message,
+        username: response.caissier?.username
+      };
+
+    } catch (error) {
+      console.error('❌ [USERS SERVICE] Erreur suppression caissier:', error);
+      throw new Error(
+        `Impossible de supprimer le caissier: ${
+          error instanceof Error ? error.message : 'Erreur inconnue'
+        }`
+      );
+    }
   }
 
   /**
