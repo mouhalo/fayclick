@@ -332,11 +332,17 @@ class RecuService {
 
       console.log('🧾 [RECU-SERVICE] Résultat reçu:', recuResult);
 
+      // Récupérer les données facture pour un message d'erreur plus explicite
+      const factureData = factureResult?.datas?.[0];
+
       if (!recuResult?.datas || recuResult.datas.length === 0) {
-        throw new Error('Aucun reçu trouvé pour cette facture');
+        // Vérifier si c'est une facture non payée ou si le reçu n'a pas été généré
+        if (factureData?.libelle_etat !== 'PAYEE') {
+          throw new Error(`Cette facture n'est pas encore payée (statut: ${factureData?.libelle_etat || 'INCONNU'})`);
+        }
+        throw new Error('Aucun reçu n\'a été généré pour cette facture. Le paiement n\'a peut-être pas été enregistré correctement.');
       }
 
-      const factureData = factureResult?.datas?.[0];
       const recuData = recuResult?.datas?.[0];
 
       console.log('🧾 [RECU-SERVICE] FactureData:', factureData);

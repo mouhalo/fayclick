@@ -40,12 +40,59 @@ class FacturePubliqueService {
         id_facture
       });
 
-      // Import dynamique du service database
-      const database = (await import('./database.service')).default;
-      
-      // Utiliser le service database pour appeler la fonction PostgreSQL
+      // Import dynamique de l'API config
+      const { API_CONFIG } = await import('@/config/env');
+
+      // Construire la requête SQL
       const query = `SELECT * FROM get_my_facture(${id_structure}, ${id_facture})`;
-      const data = await database.query(query);
+
+      // Construire le XML pour l'API
+      const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<request>
+    <application>fayclick</application>
+    <requete_sql>${query.replace(/\n/g, ' ').trim()}</requete_sql>
+</request>`;
+
+      console.log('📤 [FACTURE-PUBLIQUE] Requête:', query);
+      console.log('🌐 [FACTURE-PUBLIQUE] URL:', API_CONFIG.ENDPOINT);
+
+      // Appel direct à l'API
+      const response = await fetch(API_CONFIG.ENDPOINT, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/xml',
+          'Accept': 'application/json',
+          'User-Agent': 'FayClick-V2/1.0'
+        },
+        body: xml
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const responseText = await response.text();
+      console.log('📥 [FACTURE-PUBLIQUE] Réponse brute:', responseText);
+
+      let apiResponse;
+      try {
+        apiResponse = JSON.parse(responseText);
+      } catch (parseError) {
+        console.error('❌ [FACTURE-PUBLIQUE] Erreur parsing JSON:', parseError);
+        throw new Error('Réponse API invalide');
+      }
+
+      // Extraire les données selon le format de réponse
+      let data;
+      if (apiResponse.datas !== undefined) {
+        data = apiResponse.datas;
+      } else if (apiResponse.data !== undefined) {
+        data = apiResponse.data;
+      } else if (apiResponse.result?.datas !== undefined) {
+        data = apiResponse.result.datas;
+      } else {
+        data = apiResponse;
+      }
       
       console.log('📦 Données reçues de la DB:', JSON.stringify(data, null, 2).substring(0, 500));
       
