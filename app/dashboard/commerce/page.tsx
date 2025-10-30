@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
+import { Eye, EyeOff } from 'lucide-react';
 import { authService } from '@/services/auth.service';
 import { useDashboardData } from '@/hooks/useDashboardData';
 import MainMenu from '@/components/layout/MainMenu';
@@ -22,6 +23,7 @@ export default function CommerceDashboard() {
   const [showCoffreModal, setShowCoffreModal] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [notifications, setNotifications] = useState(3);
+  const [showValeurStock, setShowValeurStock] = useState(false); // Masqué par défaut
   const { ToastComponent } = useToast();
 
   // Hook pour charger les vraies données depuis l'API
@@ -228,15 +230,33 @@ export default function CommerceDashboard() {
             <motion.div
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              className="bg-white rounded-xl p-3 shadow-md border-l-4 border-green-500 cursor-pointer"
+              className="bg-white rounded-xl p-3 shadow-md border-l-4 border-green-500 cursor-pointer relative"
               onClick={() => router.push('/dashboard/commerce/inventaire')}
             >
+              {/* Bouton Œil en haut à droite */}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowValeurStock(!showValeurStock);
+                }}
+                className="absolute top-2 right-2 p-1 hover:bg-gray-100 rounded-full transition-colors z-10"
+                aria-label={showValeurStock ? "Masquer le montant" : "Afficher le montant"}
+              >
+                {showValeurStock ? (
+                  <Eye className="w-4 h-4 text-gray-600" />
+                ) : (
+                  <EyeOff className="w-4 h-4 text-gray-400" />
+                )}
+              </button>
+
               <span className="text-2xl mb-2 block">💰</span>
               <div className="text-lg font-bold text-gray-800 mb-1">
                 {loadingStats ? (
                   <div className="w-10 h-5 bg-gray-200 animate-pulse rounded"></div>
+                ) : showValeurStock ? (
+                  `${(statsCardData?.totalAmount || 0).toLocaleString('fr-FR')} FCFA`
                 ) : (
-                  formatAmount(statsCardData?.totalAmount || 0)
+                  '••••••'
                 )}
               </div>
               <div className="text-xs text-gray-600 font-semibold uppercase tracking-wide">Valeur Stock</div>
@@ -309,7 +329,7 @@ export default function CommerceDashboard() {
               >
                 ⚡
               </motion.span>
-              <h3 className="text-sm font-bold text-white">Vente Flash</h3>
+              <h3 className="text-sm font-bold text-white">Vente Flash (Scan code barre)</h3>
             </div>
           </motion.div>
 
