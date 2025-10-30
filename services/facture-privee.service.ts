@@ -3,7 +3,7 @@
  * API: rechercher_multifacturecom au format XML
  */
 
-import { API_CONFIG } from '@/lib/api-config';
+import { API_CONFIG } from '@/config/env';
 import { FacturePriveeData, PaiementHistorique } from '@/types/facture-privee';
 import { authService } from './auth.service';
 
@@ -15,7 +15,7 @@ export interface SupprimerFactureResponse {
 }
 
 class FacturePriveeService {
-  private baseUrl = API_CONFIG.baseUrl;
+  private baseUrl = API_CONFIG.ENDPOINT;
   private authService = authService;
 
   /**

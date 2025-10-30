@@ -3,7 +3,7 @@
  * Utilise la méthodologie DatabaseService avec requêtes SQL et XML
  */
 
-import { API_CONFIG } from '@/lib/api-config';
+import { API_CONFIG } from '@/config/env';
 import { RecuDetails, RecuGenere } from '@/types/recu';
 import { WalletType } from '@/components/facture/ModalPaiementWalletNew';
 import { authService } from './auth.service';
@@ -52,7 +52,7 @@ export interface HistoriqueRecusParams {
 }
 
 class RecuService {
-  private baseUrl = API_CONFIG.baseUrl;
+  private baseUrl = API_CONFIG.ENDPOINT;
   private authService = authService;
 
   /**
