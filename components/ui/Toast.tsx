@@ -6,10 +6,10 @@
 'use client';
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { Check, AlertCircle, Info, X } from 'lucide-react';
+import { Check, AlertCircle, Info, X, AlertTriangle } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
-export type ToastType = 'success' | 'error' | 'info';
+export type ToastType = 'success' | 'error' | 'info' | 'warning';
 
 interface ToastProps {
   isVisible: boolean;
@@ -34,6 +34,12 @@ const toastConfig = {
     textClass: 'text-white',
     borderClass: 'border-red-600'
   },
+  warning: {
+    icon: AlertTriangle,
+    bgClass: 'bg-orange-500',
+    textClass: 'text-white',
+    borderClass: 'border-orange-600'
+  },
   info: {
     icon: Info,
     bgClass: 'bg-blue-500',
@@ -51,7 +57,8 @@ export function Toast({
   onClose,
   className = ''
 }: ToastProps) {
-  const config = toastConfig[type];
+  // Fallback vers 'info' si type invalide
+  const config = toastConfig[type] || toastConfig.info;
   const Icon = config.icon;
 
   useEffect(() => {
@@ -143,6 +150,7 @@ export function useToast() {
 
   const success = (title: string, message?: string) => showToast('success', title, message);
   const error = (title: string, message?: string) => showToast('error', title, message);
+  const warning = (title: string, message?: string) => showToast('warning', title, message);
   const info = (title: string, message?: string) => showToast('info', title, message);
 
   return {
@@ -151,6 +159,7 @@ export function useToast() {
     hideToast,
     success,
     error,
+    warning,
     info,
     ToastComponent: () => (
       <Toast
