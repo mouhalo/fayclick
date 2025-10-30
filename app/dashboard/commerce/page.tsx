@@ -309,12 +309,7 @@ export default function CommerceDashboard() {
               >
                 ⚡
               </motion.span>
-              <div className="flex-1 text-left">
-                <h3 className="text-lg font-bold text-white mb-0.5">Vente Flash</h3>
-                <p className="text-xs text-white/90">
-                  Scan code-barre • Recherche rapide • Vente instantanée
-                </p>
-              </div>
+              <h3 className="text-lg font-bold text-white">Vente Flash</h3>
             </div>
           </motion.div>
 
