@@ -410,7 +410,7 @@ export default function FacturesGlassPage() {
           isOpen={modalRecuGenere.isOpen}
           onClose={() => setModalRecuGenere({ isOpen: false, facture: null, paiement: null })}
           factureId={modalRecuGenere.facture.facture.id_facture}
-          walletUsed={modalRecuGenere.paiement.methode_paiement || 'OM'}
+          walletUsed={modalRecuGenere.paiement.methode_paiement || 'CASH'}
           montantPaye={modalRecuGenere.paiement.montant_paye || modalRecuGenere.facture.facture.montant}
           numeroRecu={modalRecuGenere.facture.facture.numrecu}
           dateTimePaiement={modalRecuGenere.paiement.date_paiement}

@@ -15,20 +15,18 @@ import { VenteFlash, VenteFlashStats, DetailVente } from '@/types/venteflash.typ
 import { User } from '@/types/auth';
 import { usePanierStore } from '@/stores/panierStore';
 import { useToast } from '@/components/ui/Toast';
-import { useFactureSuccessStore } from '@/hooks/useFactureSuccess';
 import { VenteFlashHeader } from '@/components/venteflash/VenteFlashHeader';
 import { VenteFlashStatsCards } from '@/components/venteflash/VenteFlashStatsCards';
 import { VenteFlashListeVentes } from '@/components/venteflash/VenteFlashListeVentes';
-import { ModalPanier } from '@/components/panier/ModalPanier';
-import { ModalFactureSuccess } from '@/components/panier/ModalFactureSuccess';
+import { PanierVenteFlash } from '@/components/venteflash/PanierVenteFlash';
+import { ModalRecuGenere } from '@/components/recu/ModalRecuGenere';
 import { ModalRefresh } from '@/components/venteflash/ModalRefresh';
 import MainMenu from '@/components/layout/MainMenu';
 
 export default function VenteFlashPage() {
   const router = useRouter();
   const { showToast, ToastComponent } = useToast();
-  const { addArticle } = usePanierStore();
-  const { isOpen: isFactureSuccessOpen } = useFactureSuccessStore();
+  const { addArticle, getTotalItems } = usePanierStore();
 
   const [user, setUser] = useState<User | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
@@ -49,6 +47,15 @@ export default function VenteFlashPage() {
 
   // État pour le modal de refresh
   const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // États pour le panier et le reçu
+  const [showPanier, setShowPanier] = useState(false);
+  const [showRecu, setShowRecu] = useState(false);
+  const [recuData, setRecuData] = useState<{
+    idFacture: number;
+    numFacture: string;
+    montantTotal: number;
+  } | null>(null);
 
   /**
    * Charger tous les produits de la structure
@@ -330,16 +337,6 @@ export default function VenteFlashPage() {
     }
   }, [user, loadProduits, loadVentesJour]);
 
-  // Recharger ventes quand modal facture success se ferme
-  useEffect(() => {
-    if (!isFactureSuccessOpen && user) {
-      // Petite pause pour laisser la facture s'enregistrer
-      setTimeout(() => {
-        loadVentesJour();
-      }, 500);
-    }
-  }, [isFactureSuccessOpen, user, loadVentesJour]);
-
   /**
    * Rafraîchir manuellement les données
    */
@@ -485,6 +482,7 @@ export default function VenteFlashPage() {
           produits={produits}
           onAddToPanier={handleAddToPanier}
           onRefresh={handleRefresh}
+          onOpenPanier={() => setShowPanier(true)}
         />
 
         {/* Section 2: StatCards */}
@@ -503,13 +501,36 @@ export default function VenteFlashPage() {
         />
       </div>
 
-      {/* Modal Panier (réutilisation existante) */}
-      <ModalPanier />
+      {/* Panier Vente Flash */}
+      <PanierVenteFlash
+        isOpen={showPanier}
+        onClose={() => setShowPanier(false)}
+        onSuccess={() => loadVentesJour()}
+        onShowRecu={(idFacture, numFacture, montantTotal) => {
+          setRecuData({ idFacture, numFacture, montantTotal });
+          setShowRecu(true);
+        }}
+      />
 
-      {/* Modal Facture Success (réutilisation existante) */}
-      <ModalFactureSuccess />
+      {/* Modal Reçu */}
+      {recuData && (
+        <ModalRecuGenere
+          isOpen={showRecu}
+          onClose={() => {
+            setShowRecu(false);
+            setRecuData(null);
+          }}
+          factureId={recuData.idFacture}
+          numeroRecu={recuData.numFacture}
+          montantPaye={recuData.montantTotal}
+          montantFactureTotal={recuData.montantTotal}
+          typePaiement="COMPLET"
+          dateTimePaiement={new Date().toISOString()}
+          walletUsed="CASH"
+        />
+      )}
 
-      {/* Modal Refresh - Auto-refresh toutes les 30 secondes */}
+      {/* Modal Refresh */}
       <ModalRefresh isOpen={isRefreshing} />
 
       {/* Menu Principal */}
