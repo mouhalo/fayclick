@@ -429,7 +429,7 @@ export default function ProduitsCommercePage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#9c9125d9] via-[#203e2b] to-[#166534]">
-      <div className="max-w-md mx-auto min-h-screen relative">
+      <div className="max-w-md md:max-w-full md:px-6 lg:px-8 xl:px-12 mx-auto min-h-screen relative">
         
         {/* Header avec design glassmorphism */}
         <GlassHeader
