@@ -470,13 +470,16 @@ export default function VenteFlashPage() {
             date_facture: detail.date_facture || vente.date_facture,
             nom_produit: detail.nom_produit || 'Produit inconnu',
             quantite: detail.quantite || 0,
-            sous_total: detail.sous_total || 0
+            sous_total: detail.total || detail.sous_total || 0
           });
         });
       }
     });
 
     console.log('📊 [VENTE FLASH] Détails extraits:', detailsVentes.length, 'lignes');
+    if (detailsVentes.length > 0) {
+      console.log('🔍 [VENTE FLASH] Premier détail:', detailsVentes[0]);
+    }
 
     // Créer le contenu HTML du rapport
     const dateJour = new Date().toLocaleDateString('fr-FR', {
