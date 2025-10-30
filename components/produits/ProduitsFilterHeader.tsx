@@ -6,13 +6,13 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Search, Filter, Grid, List, LayoutGrid, RefreshCw, Camera } from 'lucide-react';
+import { Search, Filter, Grid, LayoutList, LayoutGrid, RefreshCw, Camera } from 'lucide-react';
 
 interface ProduitsFilterHeaderProps {
   searchTerm: string;
   onSearchChange: (value: string) => void;
-  viewMode: 'grid' | 'list' | 'compact';
-  onViewModeChange: (mode: 'grid' | 'list' | 'compact') => void;
+  viewMode: 'grid' | 'table' | 'compact';
+  onViewModeChange: (mode: 'grid' | 'table' | 'compact') => void;
   showFilters: boolean;
   onToggleFilters: () => void;
   onRefresh: () => void;
@@ -87,16 +87,16 @@ export function ProduitsFilterHeader({
             <LayoutGrid className="w-4 h-4" />
           </motion.button>
 
-          {/* Vue Liste */}
+          {/* Vue Tableau */}
           <motion.button
             whileTap={{ scale: 0.95 }}
-            onClick={() => onViewModeChange('list')}
+            onClick={() => onViewModeChange('table')}
             className={`p-2 rounded-md transition-colors ${
-              viewMode === 'list' ? 'bg-white text-green-600' : 'text-white hover:bg-white/20'
+              viewMode === 'table' ? 'bg-white text-green-600' : 'text-white hover:bg-white/20'
             }`}
-            title="Vue liste"
+            title="Vue tableau"
           >
-            <List className="w-4 h-4" />
+            <LayoutList className="w-4 h-4" />
           </motion.button>
         </div>
 
