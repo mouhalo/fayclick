@@ -447,6 +447,118 @@ export default function VenteFlashPage() {
     showToast('info', 'Facture', 'Fonctionnalité à implémenter');
   };
 
+  /**
+   * Imprimer le rapport des ventes du jour
+   */
+  const handlePrintRapport = () => {
+    console.log('🖨️ [VENTE FLASH] Impression rapport du jour');
+
+    // Créer le contenu HTML du rapport
+    const dateJour = new Date().toLocaleDateString('fr-FR', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+
+    const rapportHTML = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Rapport Ventes Flash - ${dateJour}</title>
+        <style>
+          @page { size: A4; margin: 20mm; }
+          body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+          h1 { color: #059669; text-align: center; border-bottom: 3px solid #059669; padding-bottom: 10px; }
+          .header { text-align: center; margin-bottom: 30px; }
+          .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin: 30px 0; }
+          .stat-card { background: #f0fdf4; padding: 15px; border-radius: 8px; text-align: center; border-left: 4px solid #059669; }
+          .stat-value { font-size: 24px; font-weight: bold; color: #059669; }
+          .stat-label { color: #666; font-size: 14px; margin-top: 5px; }
+          table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+          th { background: #059669; color: white; padding: 12px; text-align: left; }
+          td { padding: 10px; border-bottom: 1px solid #ddd; }
+          tr:nth-child(even) { background: #f9f9f9; }
+          .footer { margin-top: 40px; text-align: center; color: #666; font-size: 12px; border-top: 1px solid #ddd; padding-top: 20px; }
+          .caissier { font-weight: bold; color: #059669; margin-top: 10px; }
+          @media print {
+            body { padding: 0; }
+            .no-print { display: none; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h1>⚡ Rapport Ventes Flash</h1>
+          <p style="font-size: 16px; color: #666;">${dateJour}</p>
+          <p class="caissier">Caissier: ${user.nom_utilisateur}</p>
+        </div>
+
+        <div class="stats">
+          <div class="stat-card">
+            <div class="stat-value">${stats.nb_ventes}</div>
+            <div class="stat-label">Nombre de ventes</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">${stats.total_ventes.toLocaleString('fr-FR')} FCFA</div>
+            <div class="stat-label">Total ventes</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">${stats.ca_jour.toLocaleString('fr-FR')} FCFA</div>
+            <div class="stat-label">CA du jour</div>
+          </div>
+        </div>
+
+        <h2 style="color: #059669; margin-top: 30px;">Détail des ventes (${ventesJour.length})</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Heure</th>
+              <th>N° Facture</th>
+              <th>Client</th>
+              <th>Montant</th>
+              <th>État</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${ventesJour.map((vente, index) => `
+              <tr>
+                <td>${index + 1}</td>
+                <td>${new Date(vente.date_facture).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</td>
+                <td>${vente.num_facture}</td>
+                <td>${vente.nom_client}</td>
+                <td style="font-weight: bold;">${vente.montant.toLocaleString('fr-FR')} FCFA</td>
+                <td><span style="color: ${vente.libelle_etat === 'PAYEE' ? '#059669' : '#dc2626'};">${vente.libelle_etat}</span></td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+
+        <div class="footer">
+          <p>Document généré le ${new Date().toLocaleString('fr-FR')}</p>
+          <p>FayClick - La Super App des Marchands</p>
+        </div>
+      </body>
+      </html>
+    `;
+
+    // Ouvrir une nouvelle fenêtre et imprimer
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(rapportHTML);
+      printWindow.document.close();
+      printWindow.focus();
+
+      // Attendre le chargement puis déclencher l'impression
+      printWindow.onload = () => {
+        printWindow.print();
+      };
+    } else {
+      showToast('error', 'Erreur', 'Impossible d\'ouvrir la fenêtre d\'impression');
+    }
+  };
+
   // Loading initial
   if (isAuthLoading || !user) {
     return (
@@ -461,12 +573,23 @@ export default function VenteFlashPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-green-50 via-emerald-50 to-teal-50 pb-20">
-      {/* Header App (optionnel si besoin) */}
+      {/* Header App */}
       <div className="bg-gradient-to-r from-green-600 via-emerald-600 to-teal-600 text-white p-4 safe-top flex items-center justify-between">
-        <div>
-          <div className="text-sm opacity-90">Bonjour,</div>
-          <div className="font-bold">{user.nom_utilisateur}</div>
-        </div>
+        {/* Bouton Retour */}
+        <button
+          onClick={() => router.push('/dashboard/commerce')}
+          className="flex items-center gap-2 p-2 bg-white/20 backdrop-blur-sm rounded-xl hover:bg-white/30 transition-colors"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+          </svg>
+          <span className="font-semibold">Retour</span>
+        </button>
+
+        {/* Nom utilisateur */}
+        <div className="font-bold">{user.nom_utilisateur}</div>
+
+        {/* Menu hamburger */}
         <button
           onClick={() => setShowMenu(true)}
           className="p-2 bg-white/20 backdrop-blur-sm rounded-xl hover:bg-white/30 transition-colors"
@@ -483,6 +606,7 @@ export default function VenteFlashPage() {
           onAddToPanier={handleAddToPanier}
           onRefresh={handleRefresh}
           onOpenPanier={() => setShowPanier(true)}
+          onPrint={handlePrintRapport}
         />
 
         {/* Section 2: StatCards */}

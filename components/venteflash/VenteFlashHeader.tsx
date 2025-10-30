@@ -9,7 +9,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  ArrowLeft, ShoppingCart, Search, Zap, X, RefreshCw
+  ArrowLeft, ShoppingCart, Search, Zap, X, RefreshCw, Printer
 } from 'lucide-react';
 import { usePanierStore } from '@/stores/panierStore';
 import { ScanCodeBarre } from '@/components/shared/ScanCodeBarre';
@@ -25,13 +25,16 @@ interface VenteFlashHeaderProps {
   onRefresh?: () => void;
   /** Callback pour ouvrir le panier */
   onOpenPanier?: () => void;
+  /** Callback pour imprimer le rapport du jour */
+  onPrint?: () => void;
 }
 
 export function VenteFlashHeader({
   produits,
   onAddToPanier,
   onRefresh,
-  onOpenPanier
+  onOpenPanier,
+  onPrint
 }: VenteFlashHeaderProps) {
   const router = useRouter();
   const { getTotalItems } = usePanierStore();
@@ -96,19 +99,20 @@ export function VenteFlashHeader({
 
   return (
     <div className="bg-gradient-to-r from-green-500 via-emerald-600 to-teal-600 rounded-2xl p-4 shadow-xl mb-4">
-      {/* Ligne 1: Retour + Titre + Panier */}
+      {/* Ligne 1: Imprimer + Titre + Panier */}
       <div className="flex items-center justify-between mb-4">
-        {/* Bouton Retour */}
+        {/* Bouton Imprimer */}
         <motion.button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
-          onClick={() => router.push('/dashboard/commerce')}
+          onClick={() => onPrint?.()}
           className="
             w-10 h-10 bg-white/20 backdrop-blur-sm rounded-full
             flex items-center justify-center hover:bg-white/30 transition-colors
           "
+          title="Imprimer le rapport du jour"
         >
-          <ArrowLeft className="w-5 h-5 text-white" />
+          <Printer className="w-5 h-5 text-white" />
         </motion.button>
 
         {/* Titre centré */}
