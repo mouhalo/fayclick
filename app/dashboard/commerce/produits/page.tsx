@@ -42,7 +42,7 @@ export default function ProduitsCommercePage() {
   // États locaux
   const [user, setUser] = useState<User | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
-  const [viewMode, setViewMode] = useState<'grid' | 'list' | 'compact'>('grid');
+  const [viewMode, setViewMode] = useState<'grid' | 'table' | 'compact'>('grid');
   const [showFilters, setShowFilters] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -353,6 +353,26 @@ export default function ProduitsCommercePage() {
     setCurrentPage(1); // Reset à la première page
   };
 
+  // Handlers pour la vue tableau
+  const handleProduitClickTable = (produit: Produit) => {
+    // Clic sur une ligne du tableau = Éditer le produit
+    handleEditProduit(produit);
+  };
+
+  const handleVendreClick = (produit: Produit) => {
+    // Bouton Vendre = Ajouter au panier
+    const stock = produit.niveau_stock || 0;
+    if (stock > 0) {
+      addArticle({
+        ...produit,
+        quantity: 1 // Quantité par défaut
+      });
+      showToast('success', 'Produit ajouté', `${produit.nom_produit} ajouté au panier`);
+    } else {
+      showToast('error', 'Stock épuisé', 'Ce produit n\'est plus disponible');
+    }
+  };
+
   // Loading state
   if (isAuthLoading || !user) {
     return (
@@ -385,14 +405,14 @@ export default function ProduitsCommercePage() {
       );
     }
 
-    // Vues grille et liste : utilise CarteProduit classique
+    // Vues grille et table : utilise CarteProduit classique
     return (
       <CarteProduit
         produit={produit}
         onEdit={handleEditProduit}
         onDelete={handleDeleteProduit}
         typeStructure="COMMERCIALE"
-        compactMode={viewMode === 'list'}
+        compactMode={false}
       />
     );
   };
@@ -403,8 +423,8 @@ export default function ProduitsCommercePage() {
       return <CarteProduitReduitSkeleton key={index} />;
     }
 
-    // Skeleton pour vues grille et liste
-    return <CarteProduitSkeleton key={index} compactMode={viewMode === 'list'} />;
+    // Skeleton pour vues grille et table
+    return <CarteProduitSkeleton key={index} compactMode={false} />;
   };
 
   return (
@@ -496,6 +516,8 @@ export default function ProduitsCommercePage() {
             searchTerm={searchTerm}
             hasFilters={Object.keys(filtres).length > 0}
             skeletonCount={itemsPerPage}
+            onProduitClick={handleProduitClickTable}
+            onVendreClick={handleVendreClick}
           />
         </div>
 

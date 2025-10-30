@@ -9,11 +9,12 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Package, Plus } from 'lucide-react';
 import { ItemsList } from '@/components/ui/ItemsList';
 import { Produit } from '@/types/produit';
+import { TableProduits, TableProduitsSkeleton } from './TableProduits';
 
 interface ProduitsListProps {
   items: Produit[];
   loading?: boolean;
-  viewMode: 'grid' | 'list' | 'compact';
+  viewMode: 'grid' | 'table' | 'compact';
   renderItem: (item: Produit, index: number) => React.ReactNode;
   renderSkeleton?: (index: number) => React.ReactNode;
   onAddProduit: () => void;
@@ -23,6 +24,8 @@ interface ProduitsListProps {
   searchTerm?: string;
   hasFilters?: boolean;
   skeletonCount?: number;
+  onProduitClick?: (produit: Produit) => void;
+  onVendreClick?: (produit: Produit) => void;
 }
 
 export function ProduitsList({
@@ -37,7 +40,9 @@ export function ProduitsList({
   hasNoResults = false,
   searchTerm = '',
   hasFilters = false,
-  skeletonCount = 6
+  skeletonCount = 6,
+  onProduitClick,
+  onVendreClick
 }: ProduitsListProps) {
 
   // Classes de grille selon le mode de vue
@@ -59,6 +64,11 @@ export function ProduitsList({
 
   // Si chargement, affichage des skeletons
   if (loading) {
+    // Vue tableau a son propre skeleton
+    if (viewMode === 'table') {
+      return <TableProduitsSkeleton />;
+    }
+
     return (
       <div className={gridClassName}>
         {Array.from({ length: skeletonCount }, (_, i) => (
@@ -147,7 +157,23 @@ export function ProduitsList({
     );
   }
 
-  // Affichage des produits avec animations stagger
+  // Vue tableau - Rendu spécial
+  if (viewMode === 'table') {
+    if (!onProduitClick || !onVendreClick) {
+      console.warn('onProduitClick et onVendreClick sont requis pour la vue tableau');
+      return null;
+    }
+
+    return (
+      <TableProduits
+        produits={items}
+        onProduitClick={onProduitClick}
+        onVendreClick={onVendreClick}
+      />
+    );
+  }
+
+  // Affichage des produits avec animations stagger (vues grille/compact)
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -161,7 +187,7 @@ export function ProduitsList({
             initial={{ opacity: 0, y: 20, scale: 0.9 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, scale: 0.8, y: -10 }}
-            transition={{ 
+            transition={{
               delay: index * 0.05,
               type: "spring" as const,
               stiffness: 100,
