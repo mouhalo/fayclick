@@ -38,11 +38,11 @@ export function TableProduits({
     <div className="bg-white/80 backdrop-blur-sm rounded-2xl overflow-hidden shadow-lg">
       {/* En-tête du tableau */}
       <div className="bg-gradient-to-r from-green-500 to-green-600 text-white">
-        <div className="grid grid-cols-12 gap-4 px-6 py-4 font-semibold text-sm">
-          <div className="col-span-2">#</div>
-          <div className="col-span-5">Nom produit</div>
-          <div className="col-span-3 text-center">Stock dispo</div>
-          <div className="col-span-2 text-center">Action</div>
+        <div className="grid grid-cols-12 gap-4 md:gap-6 px-4 md:px-6 py-4 font-semibold text-sm">
+          <div className="col-span-2 md:col-span-1">#</div>
+          <div className="col-span-5 md:col-span-6">Nom produit</div>
+          <div className="col-span-3 md:col-span-3 text-center">Stock dispo</div>
+          <div className="col-span-2 md:col-span-2 text-center">Action</div>
         </div>
       </div>
 
@@ -63,10 +63,10 @@ export function TableProduits({
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.03 }}
                 onClick={() => onProduitClick(produit)}
-                className="grid grid-cols-12 gap-4 px-6 py-4 hover:bg-green-50/50 transition-colors cursor-pointer group"
+                className="grid grid-cols-12 gap-4 md:gap-6 px-4 md:px-6 py-4 hover:bg-green-50/50 transition-colors cursor-pointer group"
               >
                 {/* Colonne # : Image + Catégorie */}
-                <div className="col-span-2 flex flex-col items-center gap-2">
+                <div className="col-span-2 md:col-span-1 flex flex-col items-center gap-2">
                   <div className="w-16 h-16 rounded-full overflow-hidden bg-gray-100 border-2 border-gray-200 group-hover:border-green-400 transition-colors flex items-center justify-center">
                     <img
                       src="/images/logofayclick.png"
@@ -80,7 +80,7 @@ export function TableProduits({
                 </div>
 
                 {/* Colonne Nom produit */}
-                <div className="col-span-5 flex flex-col justify-center">
+                <div className="col-span-5 md:col-span-6 flex flex-col justify-center">
                   <h3 className="font-semibold text-gray-900 group-hover:text-green-600 transition-colors">
                     {produit.nom_produit}
                   </h3>
@@ -102,14 +102,14 @@ export function TableProduits({
                 </div>
 
                 {/* Colonne Stock dispo */}
-                <div className="col-span-3 flex items-center justify-center">
+                <div className="col-span-3 md:col-span-3 flex items-center justify-center">
                   <div className={`px-4 py-2 rounded-full font-semibold text-sm ${stockLevel.color}`}>
                     {stockLevel.label}
                   </div>
                 </div>
 
                 {/* Colonne Action : Bouton Vendre */}
-                <div className="col-span-2 flex items-center justify-center">
+                <div className="col-span-2 md:col-span-2 flex items-center justify-center">
                   <motion.button
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.95 }}
