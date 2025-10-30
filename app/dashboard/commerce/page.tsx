@@ -278,7 +278,7 @@ export default function CommerceDashboard() {
             </div>
           </motion.div>
 
-          {/* Bouton Vente Flash - Pleine largeur */}
+          {/* Bouton Vente Flash - Hauteur réduite */}
           <motion.div
             initial={{ y: 30, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
@@ -288,7 +288,7 @@ export default function CommerceDashboard() {
             onClick={() => router.push('/dashboard/commerce/venteflash')}
             className="
               bg-gradient-to-br from-green-400 via-emerald-500 to-teal-600
-              rounded-2xl p-6 cursor-pointer shadow-xl hover:shadow-2xl
+              rounded-2xl p-4 cursor-pointer shadow-xl hover:shadow-2xl
               transition-all border-2 border-white/20 mb-4
               relative overflow-hidden
             "
@@ -301,18 +301,20 @@ export default function CommerceDashboard() {
               }} />
             </div>
 
-            <div className="relative z-10 text-center">
+            <div className="relative z-10 flex items-center gap-4">
               <motion.span
-                className="text-6xl mb-3 block"
+                className="text-4xl"
                 animate={{ rotate: [0, 10, -10, 0] }}
                 transition={{ duration: 2, repeat: Infinity }}
               >
                 ⚡
               </motion.span>
-              <h3 className="text-2xl font-bold text-white mb-1">Vente Flash</h3>
-              <p className="text-sm text-white/90">
-                Scan code-barre • Recherche rapide • Vente instantanée
-              </p>
+              <div className="flex-1 text-left">
+                <h3 className="text-lg font-bold text-white mb-0.5">Vente Flash</h3>
+                <p className="text-xs text-white/90">
+                  Scan code-barre • Recherche rapide • Vente instantanée
+                </p>
+              </div>
             </div>
           </motion.div>
 
