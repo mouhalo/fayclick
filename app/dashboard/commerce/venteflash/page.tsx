@@ -99,20 +99,48 @@ export default function VenteFlashPage() {
 
     setIsLoadingProduits(true);
     try {
-      console.log('📦 [VENTE FLASH] Chargement produits...');
+      console.log('📦 [VENTE FLASH] === CHARGEMENT PRODUITS ===');
+      console.log('👤 [VENTE FLASH] ID Structure:', user.id_structure);
 
       const query = `SELECT * FROM get_mes_produits(${user.id_structure}, NULL)`;
+      console.log('📝 [VENTE FLASH] Requête SQL:', query);
+
       const results = await database.query(query);
+      console.log('📦 [VENTE FLASH] Résultats bruts:', results);
 
       if (results && results.length > 0) {
         const response = results[0].get_mes_produits;
+        console.log('🔍 [VENTE FLASH] Réponse get_mes_produits (type):', typeof response);
+
         const parsedResponse = typeof response === 'string'
           ? JSON.parse(response)
           : response;
+        console.log('🔍 [VENTE FLASH] Réponse parsée:', parsedResponse);
 
         if (parsedResponse.success && parsedResponse.data) {
           console.log(`✅ [VENTE FLASH] ${parsedResponse.data.length} produits chargés`);
+
+          // LOG DU PREMIER PRODUIT POUR VOIR SA STRUCTURE
+          if (parsedResponse.data.length > 0) {
+            console.log('📄 [VENTE FLASH] Premier produit (structure):', {
+              id_produit: parsedResponse.data[0].id_produit,
+              nom_produit: parsedResponse.data[0].nom_produit,
+              prix_vente: parsedResponse.data[0].prix_vente,
+              niveau_stock: parsedResponse.data[0].niveau_stock,
+              stock: parsedResponse.data[0].stock,
+              quantite: parsedResponse.data[0].quantite,
+              quantite_disponible: parsedResponse.data[0].quantite_disponible,
+              champs_stock_possibles: Object.keys(parsedResponse.data[0]).filter(k =>
+                k.toLowerCase().includes('stock') ||
+                k.toLowerCase().includes('quantit') ||
+                k.toLowerCase().includes('dispo')
+              ),
+              produit_complet: parsedResponse.data[0]
+            });
+          }
+
           setProduits(parsedResponse.data);
+          console.log('✅ [VENTE FLASH] Produits stockés en mémoire');
         }
       }
     } catch (error) {
@@ -228,15 +256,27 @@ export default function VenteFlashPage() {
    * Ajouter un produit au panier
    */
   const handleAddToPanier = useCallback((produit: Produit) => {
-    console.log('🛒 [VENTE FLASH] Ajout panier:', produit.nom_produit);
+    console.log('🛒 [VENTE FLASH] === AJOUT PRODUIT AU PANIER ===');
+    console.log('📦 [VENTE FLASH] Produit:', {
+      id_produit: produit.id_produit,
+      nom_produit: produit.nom_produit,
+      prix_vente: produit.prix_vente,
+      niveau_stock: produit.niveau_stock,
+      stock_disponible: produit.niveau_stock || 0,
+      produit_complet: produit
+    });
 
     // Vérifier stock disponible
     const stockDisponible = produit.niveau_stock || 0;
+    console.log('📊 [VENTE FLASH] Stock disponible calculé:', stockDisponible);
+
     if (stockDisponible <= 0) {
+      console.warn('⚠️ [VENTE FLASH] Stock insuffisant détecté');
       showToast('warning', 'Stock insuffisant', `${produit.nom_produit} n'est plus en stock`);
       return;
     }
 
+    console.log('✅ [VENTE FLASH] Stock OK, ajout au panier...');
     addArticle(produit);
     showToast('success', 'Ajouté au panier', produit.nom_produit);
   }, [addArticle, showToast]);
