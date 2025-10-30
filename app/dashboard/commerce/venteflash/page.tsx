@@ -516,7 +516,7 @@ export default function VenteFlashPage() {
           body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
           h1 { color: #059669; text-align: center; border-bottom: 3px solid #059669; padding-bottom: 10px; }
           .header { text-align: center; margin-bottom: 30px; }
-          .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin: 30px 0; }
+          .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin: 30px 0; }
           .stat-card { background: #f0fdf4; padding: 15px; border-radius: 8px; text-align: center; border-left: 4px solid #059669; }
           .stat-value { font-size: 24px; font-weight: bold; color: #059669; }
           .stat-label { color: #666; font-size: 14px; margin-top: 5px; }
@@ -543,6 +543,10 @@ export default function VenteFlashPage() {
           <div class="stat-card">
             <div class="stat-value">${stats.nb_ventes}</div>
             <div class="stat-label">Nombre de ventes</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">${detailsVentes.length}</div>
+            <div class="stat-label">Articles uniques</div>
           </div>
           <div class="stat-card">
             <div class="stat-value">${stats.total_ventes.toLocaleString('fr-FR')} FCFA</div>
