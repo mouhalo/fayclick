@@ -9,7 +9,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  ArrowLeft, ShoppingCart, Search, Zap, X
+  ArrowLeft, ShoppingCart, Search, Zap, X, RefreshCw
 } from 'lucide-react';
 import { usePanierStore } from '@/stores/panierStore';
 import { ScanCodeBarre } from '@/components/shared/ScanCodeBarre';
@@ -21,11 +21,14 @@ interface VenteFlashHeaderProps {
   produits: Produit[];
   /** Callback ajout produit au panier */
   onAddToPanier: (produit: Produit) => void;
+  /** Callback pour rafraîchir les données */
+  onRefresh?: () => void;
 }
 
 export function VenteFlashHeader({
   produits,
-  onAddToPanier
+  onAddToPanier,
+  onRefresh
 }: VenteFlashHeaderProps) {
   const router = useRouter();
   const { getTotalItems, setModalOpen } = usePanierStore();
@@ -140,8 +143,8 @@ export function VenteFlashHeader({
         </motion.button>
       </div>
 
-      {/* Ligne 2: Recherche + Scan (Grid 2x1) */}
-      <div className="grid grid-cols-[1fr_auto] gap-2" ref={searchRef}>
+      {/* Ligne 2: Recherche + Actualiser + Scan (Grid flexible) */}
+      <div className="grid grid-cols-[1fr_auto_auto] gap-2" ref={searchRef}>
         {/* Champ Recherche avec dropdown */}
         <div className="relative">
           <div className="relative">
@@ -225,13 +228,30 @@ export function VenteFlashHeader({
           </AnimatePresence>
         </div>
 
-        {/* Bouton Scanner */}
+        {/* Bouton Actualiser */}
+        {onRefresh && (
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95, rotate: 180 }}
+            onClick={onRefresh}
+            className="
+              w-12 h-12 bg-white/20 backdrop-blur-sm rounded-full
+              flex items-center justify-center hover:bg-white/30 transition-all
+              border-2 border-white/50
+            "
+            title="Actualiser les données"
+          >
+            <RefreshCw className="w-5 h-5 text-white" />
+          </motion.button>
+        )}
+
+        {/* Bouton Scanner (icon only) */}
         <ScanCodeBarre
           onScanSuccess={handleScanSuccess}
           context="venteflash"
           variant="primary"
           size="md"
-          className="whitespace-nowrap"
+          iconOnly={true}
         />
       </div>
     </div>

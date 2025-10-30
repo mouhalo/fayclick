@@ -55,13 +55,16 @@ class DatabaseService {
     return appConfig;
   }
 
-  async envoyerRequeteApi(application_name: string, requeteSql: string) {
+  async envoyerRequeteApi(application_name: string, requeteSql: string, customTimeout?: number) {
     try {
       console.log('🚀 [DATABASE] === DÉBUT ENVOI REQUÊTE API ===');
 
       // Valider l'application
       const appConfig = this.validerApplication(application_name);
       console.log('✅ [DATABASE] Application validée:', appConfig.name);
+
+      // Utiliser le timeout personnalisé ou celui par défaut
+      const timeout = customTimeout || API_CONFIG.TIMEOUT;
 
       // Log sécurisé (masqué en production)
       SecurityService.secureLog('log', `Exécution requête SQL pour l'application '${appConfig.name}'`, {
@@ -81,7 +84,7 @@ class DatabaseService {
       // Log de l'URL utilisée pour debug
       SecurityService.secureLog('log', `Envoi requête vers: ${API_CONFIG.ENDPOINT}`, {
         endpoint: API_CONFIG.ENDPOINT,
-        timeout: API_CONFIG.TIMEOUT
+        timeout: timeout
       });
 
       console.log('🌐 [DATABASE] Configuration endpoint:', {
@@ -89,12 +92,12 @@ class DatabaseService {
         application: appConfig.name,
         requestMethod: 'POST',
         contentType: 'application/xml',
-        timeout: API_CONFIG.TIMEOUT
+        timeout: timeout
       });
-      
+
       // Utiliser fetch avec configuration timeout
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), API_CONFIG.TIMEOUT);
+      const timeoutId = setTimeout(() => controller.abort(), timeout);
 
       const response = await fetch(API_CONFIG.ENDPOINT, {
         method: 'POST',
@@ -201,8 +204,9 @@ class DatabaseService {
       // Gestion des erreurs avec détails
       if (error instanceof Error) {
         if (error.name === 'AbortError') {
-          SecurityService.secureLog('error', `Timeout requête API (${API_CONFIG.TIMEOUT}ms)`);
-          throw new Error(`Timeout de la requête (${API_CONFIG.TIMEOUT}ms)`);
+          const timeoutUsed = customTimeout || API_CONFIG.TIMEOUT;
+          SecurityService.secureLog('error', `Timeout requête API (${timeoutUsed}ms)`);
+          throw new Error(`Timeout de la requête (${timeoutUsed}ms)`);
         }
         
         if (error.message.includes('fetch') || error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
@@ -235,8 +239,8 @@ class DatabaseService {
   }
 
   // Méthode de compatibilité pour l'ancienne signature
-  async query(requeteSql: string) {
-    return this.envoyerRequeteApi(API_CONFIG.APPLICATION_NAME, requeteSql);
+  async query(requeteSql: string, customTimeout?: number) {
+    return this.envoyerRequeteApi(API_CONFIG.APPLICATION_NAME, requeteSql, customTimeout);
   }
 
   // Méthodes utilitaires pour les requêtes courantes

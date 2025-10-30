@@ -7,12 +7,11 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { motion } from 'framer-motion';
 import { Loader2 } from 'lucide-react';
 import { authService } from '@/services/auth.service';
 import database from '@/services/database.service';
 import { Produit } from '@/types/produit';
-import { VenteFlash, VenteFlashStats } from '@/types/venteflash.types';
+import { VenteFlash, VenteFlashStats, DetailVente } from '@/types/venteflash.types';
 import { User } from '@/types/auth';
 import { usePanierStore } from '@/stores/panierStore';
 import { useToast } from '@/components/ui/Toast';
@@ -22,6 +21,7 @@ import { VenteFlashStatsCards } from '@/components/venteflash/VenteFlashStatsCar
 import { VenteFlashListeVentes } from '@/components/venteflash/VenteFlashListeVentes';
 import { ModalPanier } from '@/components/panier/ModalPanier';
 import { ModalFactureSuccess } from '@/components/panier/ModalFactureSuccess';
+import { ModalRefresh } from '@/components/venteflash/ModalRefresh';
 import MainMenu from '@/components/layout/MainMenu';
 
 export default function VenteFlashPage() {
@@ -47,54 +47,14 @@ export default function VenteFlashPage() {
   const [isLoadingProduits, setIsLoadingProduits] = useState(true);
   const [isLoadingVentes, setIsLoadingVentes] = useState(true);
 
-  // Vérification authentification
-  useEffect(() => {
-    const checkAuthentication = () => {
-      if (!authService.isAuthenticated()) {
-        console.log('❌ [VENTE FLASH] Utilisateur non authentifié');
-        router.push('/login');
-        return;
-      }
-
-      const userData = authService.getUser();
-      if (!userData || userData.type_structure !== 'COMMERCIALE') {
-        console.log('⚠️ [VENTE FLASH] Type structure incorrect');
-        router.push('/dashboard');
-        return;
-      }
-
-      console.log('✅ [VENTE FLASH] Authentification validée');
-      setUser(userData);
-      setIsAuthLoading(false);
-    };
-
-    const timer = setTimeout(checkAuthentication, 100);
-    return () => clearTimeout(timer);
-  }, [router]);
-
-  // Charger produits au montage
-  useEffect(() => {
-    if (user) {
-      loadProduits();
-      loadVentesJour();
-    }
-  }, [user]);
-
-  // Recharger ventes quand modal facture success se ferme
-  useEffect(() => {
-    if (!isFactureSuccessOpen && user) {
-      // Petite pause pour laisser la facture s'enregistrer
-      setTimeout(() => {
-        loadVentesJour();
-      }, 500);
-    }
-  }, [isFactureSuccessOpen, user]);
+  // État pour le modal de refresh
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   /**
    * Charger tous les produits de la structure
    * Stockage local pour éviter va-et-vient serveur
    */
-  const loadProduits = async () => {
+  const loadProduits = useCallback(async () => {
     if (!user) return;
 
     setIsLoadingProduits(true);
@@ -145,17 +105,16 @@ export default function VenteFlashPage() {
       }
     } catch (error) {
       console.error('❌ [VENTE FLASH] Erreur chargement produits:', error);
-      showToast('error', 'Erreur', 'Impossible de charger les produits');
     } finally {
       setIsLoadingProduits(false);
     }
-  };
+  }, [user]);
 
   /**
    * Charger les factures du jour
    * Filtrage côté client pour ventes du jour uniquement
    */
-  const loadVentesJour = async () => {
+  const loadVentesJour = useCallback(async () => {
     if (!user) {
       console.warn('⚠️ [VENTE FLASH] Pas d\'utilisateur connecté, abandon chargement ventes');
       return;
@@ -171,7 +130,8 @@ export default function VenteFlashPage() {
       console.log('📝 [VENTE FLASH] Requête SQL:', query);
 
       console.log('🔄 [VENTE FLASH] Envoi requête à database.query()...');
-      const results = await database.query(query);
+      // Timeout augmenté à 60 secondes pour get_my_factures (requête lourde)
+      const results = await database.query(query, 60000);
       console.log('📦 [VENTE FLASH] Résultats bruts reçus:', JSON.stringify(results, null, 2));
 
       if (results && results.length > 0) {
@@ -184,16 +144,57 @@ export default function VenteFlashPage() {
           : response;
         console.log('🔍 [VENTE FLASH] Réponse parsée:', parsedResponse);
 
-        if (parsedResponse.success && parsedResponse.data) {
-          console.log(`📋 [VENTE FLASH] ${parsedResponse.data.length} factures au total`);
+        // Gérer différents formats de réponse possibles
+        let facturesData: unknown[] = [];
 
+        if (parsedResponse.factures && Array.isArray(parsedResponse.factures)) {
+          // Format: { factures: [ { facture: {...}, details: [...] } ] }
+          console.log('📋 [VENTE FLASH] Format détecté: parsedResponse.factures');
+          facturesData = parsedResponse.factures.map((item: { facture?: unknown; details?: unknown[] }) => {
+            // Si item contient {facture: {...}, details: [...]}, on fusionne
+            if (item.facture && typeof item.facture === 'object') {
+              return {
+                ...(item.facture as Record<string, unknown>),
+                details: item.details || []
+              };
+            }
+            return item;
+          });
+        } else if (parsedResponse.data && Array.isArray(parsedResponse.data)) {
+          // Format: { success: true, data: [...] }
+          console.log('📋 [VENTE FLASH] Format détecté: parsedResponse.data');
+          facturesData = parsedResponse.data;
+        } else if (Array.isArray(parsedResponse)) {
+          // Format: tableau direct
+          console.log('📋 [VENTE FLASH] Format détecté: tableau direct');
+          facturesData = parsedResponse;
+        }
+
+        console.log(`📋 [VENTE FLASH] ${facturesData.length} factures extraites au total`);
+        if (facturesData.length > 0) {
+          console.log('📄 [VENTE FLASH] Première facture brute:', facturesData[0]);
+          const premiereFact = facturesData[0] as Record<string, unknown>;
+          console.log('🔍 [VENTE FLASH] Détails dans première facture?', Array.isArray(premiereFact.details), 'Nombre:', Array.isArray(premiereFact.details) ? premiereFact.details.length : 0);
+        }
+
+        if (facturesData.length > 0) {
           // Filtrer uniquement les ventes du jour
           const today = new Date().toISOString().split('T')[0];
           console.log('📅 [VENTE FLASH] Date du jour (ISO):', today);
 
-          const ventesAujourdhui = parsedResponse.data.filter((facture: any) => {
-            const factureDate = new Date(facture.date_facture).toISOString().split('T')[0];
-            return factureDate === today;
+          const ventesAujourdhui = facturesData.filter((item: unknown) => {
+            const facture = item as Record<string, unknown>;
+            // Extraire la date selon la structure
+            const dateFacture = (facture.date_facture as string) || (facture.date as string) || '';
+            console.log('🔍 [VENTE FLASH] Facture date brute:', dateFacture, '| Facture:', facture.num_facture || facture.id_facture);
+
+            if (!dateFacture) return false;
+
+            const factureDate = new Date(dateFacture).toISOString().split('T')[0];
+            const isToday = factureDate === today;
+            console.log('📅 [VENTE FLASH] Comparaison:', factureDate, '===', today, '?', isToday);
+
+            return isToday;
           });
 
           console.log(`✅ [VENTE FLASH] ${ventesAujourdhui.length} ventes du jour filtrées`);
@@ -202,20 +203,65 @@ export default function VenteFlashPage() {
           }
 
           // Mapper au format VenteFlash
-          const ventesFormatees: VenteFlash[] = ventesAujourdhui.map((f: any) => ({
-            id_facture: f.id_facture,
-            num_facture: f.num_facture,
-            date_facture: f.date_facture,
-            montant_total: f.montant_total || 0,
-            montant_paye: f.montant_paye || 0,
-            montant_impaye: f.montant_impaye || 0,
-            mode_paiement: f.mode_paiement || 'ESPECES',
-            nom_client: f.nom_client || 'CLIENT ANONYME',
-            tel_client: f.tel_client || '',
-            nom_caissier: f.nom_caissier || user.nom_utilisateur,
-            id_utilisateur: f.id_utilisateur,
-            statut: f.statut
-          }));
+          const ventesFormatees: VenteFlash[] = ventesAujourdhui.map((item: unknown) => {
+            const f = item as Record<string, unknown>;
+            const nomCaissier = (f.nom_caissier as string) ||
+                               (user.nom && user.prenom ? `${user.prenom} ${user.nom}` : user.login);
+
+            // Les champs peuvent avoir des noms différents selon la structure
+            const montantTotal = (f.montant as number) || (f.montant_total as number) || 0;
+            const montantPaye = (f.mt_acompte as number) || (f.montant_paye as number) || 0;
+            const montantImpaye = (f.mt_restant as number) || (f.montant_impaye as number) || 0;
+            const modePaiement = (f.mode_paiement as string) || (f.libelle_etat as string) || 'ESPECES';
+
+            // Extraire les détails déjà présents dans la structure
+            const detailsArray = Array.isArray(f.details) ? f.details : [];
+            console.log('📦 [VENTE FLASH] Détails bruts pour facture', f.num_facture, ':', detailsArray.length, 'items');
+            if (detailsArray.length > 0) {
+              console.log('🔍 [VENTE FLASH] Premier détail brut:', detailsArray[0]);
+            }
+
+            const detailsFormates: DetailVente[] = detailsArray.map((item: unknown) => {
+              const d = item as Record<string, unknown>;
+              const detailFormatte = {
+                id_detail: d.id_detail as number,
+                id_produit: d.id_produit as number,
+                nom_produit: (d.nom_produit as string) || '',
+                quantite: (d.quantite as number) || 0,
+                prix_unitaire: (d.prix as number) || 0,
+                total: (d.sous_total as number) || 0
+              };
+              console.log('✨ [VENTE FLASH] Détail formaté:', detailFormatte);
+              return detailFormatte;
+            });
+
+            console.log('💰 [VENTE FLASH] Mapping facture:', {
+              num_facture: f.num_facture,
+              montant: f.montant,
+              mt_acompte: f.mt_acompte,
+              mt_restant: f.mt_restant,
+              montantTotal,
+              montantPaye,
+              montantImpaye,
+              nb_details: detailsFormates.length
+            });
+
+            return {
+              id_facture: f.id_facture as number,
+              num_facture: (f.num_facture as string) || '',
+              date_facture: (f.date_facture as string) || '',
+              montant_total: montantTotal,
+              montant_paye: montantPaye,
+              montant_impaye: montantImpaye,
+              mode_paiement: modePaiement,
+              nom_client: (f.nom_client as string) || 'CLIENT ANONYME',
+              tel_client: (f.tel_client as string) || '',
+              nom_caissier: nomCaissier,
+              id_utilisateur: f.id_utilisateur as number,
+              statut: (f.libelle_etat as string) || (f.statut as string) || '',
+              details: detailsFormates
+            };
+          });
 
           console.log('🎯 [VENTE FLASH] Ventes formatées:', ventesFormatees.length);
           setVentesJour(ventesFormatees);
@@ -245,12 +291,85 @@ export default function VenteFlashPage() {
       console.error('❌ [VENTE FLASH] Message:', error instanceof Error ? error.message : String(error));
       console.error('❌ [VENTE FLASH] Stack:', error instanceof Error ? error.stack : 'N/A');
       console.error('❌ [VENTE FLASH] Objet erreur complet:', error);
-      showToast('error', 'Erreur', 'Impossible de charger les ventes');
     } finally {
       setIsLoadingVentes(false);
       console.log('🏁 [VENTE FLASH] Fin du bloc loadVentesJour');
     }
-  };
+  }, [user]);
+
+  // Vérification authentification
+  useEffect(() => {
+    const checkAuthentication = () => {
+      if (!authService.isAuthenticated()) {
+        console.log('❌ [VENTE FLASH] Utilisateur non authentifié');
+        router.push('/login');
+        return;
+      }
+
+      const userData = authService.getUser();
+      if (!userData || userData.type_structure !== 'COMMERCIALE') {
+        console.log('⚠️ [VENTE FLASH] Type structure incorrect');
+        router.push('/dashboard');
+        return;
+      }
+
+      console.log('✅ [VENTE FLASH] Authentification validée');
+      setUser(userData);
+      setIsAuthLoading(false);
+    };
+
+    const timer = setTimeout(checkAuthentication, 100);
+    return () => clearTimeout(timer);
+  }, [router]);
+
+  // Charger produits au montage
+  useEffect(() => {
+    if (user) {
+      loadProduits();
+      loadVentesJour();
+    }
+  }, [user, loadProduits, loadVentesJour]);
+
+  // Recharger ventes quand modal facture success se ferme
+  useEffect(() => {
+    if (!isFactureSuccessOpen && user) {
+      // Petite pause pour laisser la facture s'enregistrer
+      setTimeout(() => {
+        loadVentesJour();
+      }, 500);
+    }
+  }, [isFactureSuccessOpen, user, loadVentesJour]);
+
+  /**
+   * Rafraîchir manuellement les données
+   */
+  const handleRefresh = useCallback(async () => {
+    console.log('🔄 [VENTE FLASH] Rafraîchissement manuel déclenché');
+    setIsRefreshing(true);
+
+    // Timeout de sécurité : masquer le modal après 35s MAX (même si erreur)
+    const safetyTimeout = setTimeout(() => {
+      console.warn('⚠️ [VENTE FLASH] Timeout de sécurité - fermeture forcée du modal (manuel)');
+      setIsRefreshing(false);
+    }, 35000);
+
+    try {
+      await Promise.all([
+        loadProduits(),
+        loadVentesJour()
+      ]);
+      console.log('✅ [VENTE FLASH] Rafraîchissement manuel terminé');
+    } catch (error) {
+      console.error('❌ [VENTE FLASH] Erreur rafraîchissement manuel:', error);
+    } finally {
+      // Annuler le timeout de sécurité
+      clearTimeout(safetyTimeout);
+
+      setTimeout(() => {
+        setIsRefreshing(false);
+      }, 1000);
+    }
+  }, [loadProduits, loadVentesJour]);
 
   /**
    * Ajouter un produit au panier
@@ -365,6 +484,7 @@ export default function VenteFlashPage() {
         <VenteFlashHeader
           produits={produits}
           onAddToPanier={handleAddToPanier}
+          onRefresh={handleRefresh}
         />
 
         {/* Section 2: StatCards */}
@@ -388,6 +508,9 @@ export default function VenteFlashPage() {
 
       {/* Modal Facture Success (réutilisation existante) */}
       <ModalFactureSuccess />
+
+      {/* Modal Refresh - Auto-refresh toutes les 30 secondes */}
+      <ModalRefresh isOpen={isRefreshing} />
 
       {/* Menu Principal */}
       <MainMenu

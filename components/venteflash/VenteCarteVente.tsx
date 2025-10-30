@@ -9,11 +9,10 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  ChevronDown, ChevronUp, Eye, Trash2, FileText, Receipt, Loader2
+  ChevronDown, ChevronUp, Trash2, FileText, Receipt
 } from 'lucide-react';
 import { VenteFlash, DetailVente } from '@/types/venteflash.types';
 import { useUserProfile } from '@/hooks/useUserProfile';
-import database from '@/services/database.service';
 
 interface VenteCarteVenteProps {
   vente: VenteFlash;
@@ -30,37 +29,17 @@ export function VenteCarteVente({
 }: VenteCarteVenteProps) {
   const { isAdmin } = useUserProfile();
   const [isExpanded, setIsExpanded] = useState(false);
-  const [details, setDetails] = useState<DetailVente[]>([]);
-  const [isLoadingDetails, setIsLoadingDetails] = useState(false);
 
-  // Charger les détails au premier déploiement
-  const handleToggleDetails = async () => {
-    if (!isExpanded && details.length === 0) {
-      setIsLoadingDetails(true);
-      try {
-        // Appel fonction PostgreSQL get_facture_details
-        const query = `SELECT * FROM get_facture_details(${vente.id_facture})`;
-        const results = await database.query(query);
+  // Utiliser directement les détails passés dans vente (déjà chargés avec la facture)
+  const details = vente.details || [];
 
-        // Parser la réponse
-        if (results && results.length > 0) {
-          const response = results[0].get_facture_details;
-          const parsedResponse = typeof response === 'string'
-            ? JSON.parse(response)
-            : response;
+  // Log de débogage
+  console.log('🎴 [CARTE VENTE] Facture:', vente.num_facture, '| Détails reçus:', details.length, '| Details:', details);
 
-          if (parsedResponse.success && parsedResponse.data) {
-            setDetails(parsedResponse.data);
-          }
-        }
-      } catch (error) {
-        console.error('❌ [VENTE CARTE] Erreur chargement détails:', error);
-      } finally {
-        setIsLoadingDetails(false);
-      }
-    }
-
+  // Simple toggle - pas besoin de charger les détails
+  const handleToggleDetails = () => {
     setIsExpanded(!isExpanded);
+    console.log('🔄 [CARTE VENTE] Toggle détails pour', vente.num_facture, '| isExpanded:', !isExpanded, '| Nb détails:', details.length);
   };
 
   // Badge mode paiement
@@ -204,12 +183,7 @@ export function VenteCarteVente({
             className="overflow-hidden"
           >
             <div className="mt-4 pt-4 border-t border-gray-200">
-              {isLoadingDetails ? (
-                <div className="flex items-center justify-center py-4">
-                  <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
-                  <span className="ml-2 text-sm text-gray-600">Chargement...</span>
-                </div>
-              ) : details.length > 0 ? (
+              {details.length > 0 ? (
                 <div className="space-y-2">
                   <h4 className="text-sm font-semibold text-gray-700 mb-3">Articles vendus</h4>
                   {details.map((detail, index) => (
