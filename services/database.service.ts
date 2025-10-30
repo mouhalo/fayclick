@@ -57,29 +57,39 @@ class DatabaseService {
 
   async envoyerRequeteApi(application_name: string, requeteSql: string) {
     try {
+      console.log('🚀 [DATABASE] === DÉBUT ENVOI REQUÊTE API ===');
+
       // Valider l'application
       const appConfig = this.validerApplication(application_name);
-      
+      console.log('✅ [DATABASE] Application validée:', appConfig.name);
+
       // Log sécurisé (masqué en production)
       SecurityService.secureLog('log', `Exécution requête SQL pour l'application '${appConfig.name}'`, {
         application: appConfig.name,
         queryLength: requeteSql.length,
         query: SecurityService.maskSensitiveData({ sql: requeteSql })
       });
-      
+
+      // LOG COMPLET DE LA REQUÊTE SQL
+      console.log('📝 [DATABASE] Requête SQL complète:', requeteSql);
+      console.log('📏 [DATABASE] Longueur requête SQL:', requeteSql.length, 'caractères');
+
       const xml = this.construireXml(appConfig.name, requeteSql);
-      
+      console.log('📦 [DATABASE] XML construit:', xml);
+      console.log('📏 [DATABASE] Longueur XML:', xml.length, 'caractères');
+
       // Log de l'URL utilisée pour debug
       SecurityService.secureLog('log', `Envoi requête vers: ${API_CONFIG.ENDPOINT}`, {
         endpoint: API_CONFIG.ENDPOINT,
         timeout: API_CONFIG.TIMEOUT
       });
-      
+
       console.log('🌐 [DATABASE] Configuration endpoint:', {
         endpoint: API_CONFIG.ENDPOINT,
         application: appConfig.name,
         requestMethod: 'POST',
-        contentType: 'application/xml'
+        contentType: 'application/xml',
+        timeout: API_CONFIG.TIMEOUT
       });
       
       // Utiliser fetch avec configuration timeout
