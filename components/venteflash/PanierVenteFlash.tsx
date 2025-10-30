@@ -85,12 +85,12 @@ export function PanierVenteFlash({
     setIsProcessing(true);
 
     try {
-      console.log('💰 [PANIER VENTE FLASH] === DÉBUT CRÉATION FACTURE + ENCAISSEMENT ===');
+      console.log('💰 [PANIER VENTE FLASH] === DÉBUT CRÉATION FACTURE + ENCAISSEMENT + REÇU ===');
       console.log('📦 [PANIER VENTE FLASH] Articles:', articles.length);
       console.log('💵 [PANIER VENTE FLASH] Total:', total, 'FCFA');
 
       // Étape 1 : Créer la facture avec le service existant
-      console.log('📝 [PANIER VENTE FLASH] Étape 1/2 : Création facture...');
+      console.log('📝 [PANIER VENTE FLASH] Étape 1/3 : Création facture...');
 
       const factureResult = await factureService.createFacture(
         articles,
@@ -119,7 +119,7 @@ export function PanierVenteFlash({
       });
 
       // Étape 2 : Enregistrer l'encaissement CASH avec add_acompte_facture
-      console.log('💵 [PANIER VENTE FLASH] Étape 2/2 : Encaissement CASH...');
+      console.log('💵 [PANIER VENTE FLASH] Étape 2/3 : Encaissement CASH...');
 
       // Générer transaction_id au format: CASH-{id_structure}-{timestamp}
       const transactionId = `CASH-${user.id_structure}-${Date.now()}`;
@@ -156,6 +156,34 @@ export function PanierVenteFlash({
       }
 
       console.log('✅ [PANIER VENTE FLASH] === VENTE COMPLÉTÉE AVEC SUCCÈS ===');
+
+      // Étape 3 : Créer le reçu de paiement
+      console.log('🧾 [PANIER VENTE FLASH] Étape 3/3 : Création reçu...');
+
+      try {
+        const { recuService } = await import('@/services/recu.service');
+        const numeroRecu = `REC-${user.id_structure}-${idFacture}-${Date.now()}`;
+
+        const recuResponse = await recuService.creerRecu({
+          id_facture: idFacture,
+          id_structure: user.id_structure,
+          methode_paiement: 'CASH',
+          montant_paye: total,
+          numero_recu: numeroRecu,
+          reference_transaction: transactionId,
+          date_paiement: new Date().toISOString()
+        });
+
+        if (recuResponse.success) {
+          console.log('✅ [PANIER VENTE FLASH] Reçu créé:', recuResponse);
+        } else {
+          console.warn('⚠️ [PANIER VENTE FLASH] Reçu non créé mais vente OK');
+        }
+      } catch (recuError) {
+        console.error('❌ [PANIER VENTE FLASH] Erreur création reçu:', recuError);
+        // Ne pas bloquer la vente si le reçu échoue
+        console.warn('⚠️ [PANIER VENTE FLASH] Vente OK mais sans reçu');
+      }
 
       // Vider le panier
       clearPanier();
