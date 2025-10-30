@@ -453,32 +453,49 @@ export default function VenteFlashPage() {
   const handlePrintRapport = () => {
     console.log('🖨️ [VENTE FLASH] Impression rapport du jour');
 
-    // Extraire tous les détails des ventes (produits vendus)
-    const detailsVentes: Array<{
-      num: number;
-      date_facture: string;
+    // Regrouper les articles identiques et totaliser
+    const produitsGroupes = new Map<string, {
       nom_produit: string;
-      quantite: number;
-      sous_total: number;
-    }> = [];
+      quantite_totale: number;
+      prix_unitaire: number;
+      total: number;
+    }>();
 
     ventesJour.forEach((vente) => {
       if (vente.details && Array.isArray(vente.details)) {
         vente.details.forEach((detail: any) => {
-          detailsVentes.push({
-            num: detailsVentes.length + 1,
-            date_facture: detail.date_facture || vente.date_facture,
-            nom_produit: detail.nom_produit || 'Produit inconnu',
-            quantite: detail.quantite || 0,
-            sous_total: detail.total || detail.sous_total || 0
-          });
+          const nomProduit = detail.nom_produit || 'Produit inconnu';
+          const quantite = detail.quantite || 0;
+          const prixUnitaire = detail.prix_unitaire || 0;
+
+          if (produitsGroupes.has(nomProduit)) {
+            const existing = produitsGroupes.get(nomProduit)!;
+            existing.quantite_totale += quantite;
+            existing.total += (quantite * prixUnitaire);
+          } else {
+            produitsGroupes.set(nomProduit, {
+              nom_produit: nomProduit,
+              quantite_totale: quantite,
+              prix_unitaire: prixUnitaire,
+              total: quantite * prixUnitaire
+            });
+          }
         });
       }
     });
 
-    console.log('📊 [VENTE FLASH] Détails extraits:', detailsVentes.length, 'lignes');
+    // Convertir en tableau pour l'affichage
+    const detailsVentes = Array.from(produitsGroupes.values()).map((produit, index) => ({
+      num: index + 1,
+      nom_produit: produit.nom_produit,
+      quantite: produit.quantite_totale,
+      prix_unitaire: produit.prix_unitaire,
+      total: produit.total
+    }));
+
+    console.log('📊 [VENTE FLASH] Produits regroupés:', detailsVentes.length, 'articles uniques');
     if (detailsVentes.length > 0) {
-      console.log('🔍 [VENTE FLASH] Premier détail:', detailsVentes[0]);
+      console.log('🔍 [VENTE FLASH] Premier produit:', detailsVentes[0]);
     }
 
     // Créer le contenu HTML du rapport
@@ -537,25 +554,25 @@ export default function VenteFlashPage() {
           </div>
         </div>
 
-        <h2 style="color: #059669; margin-top: 30px;">Détail des ventes (${detailsVentes.length} articles vendus)</h2>
+        <h2 style="color: #059669; margin-top: 30px;">Détail des ventes (${detailsVentes.length} articles uniques)</h2>
         <table>
           <thead>
             <tr>
-              <th style="width: 5%;">N°</th>
-              <th style="width: 15%;">Date</th>
-              <th style="width: 45%;">Nom Produit</th>
-              <th style="width: 15%; text-align: center;">Quantité</th>
-              <th style="width: 20%; text-align: right;">Sous-total</th>
+              <th style="width: 8%;">N°</th>
+              <th style="width: 40%;">Nom Produit</th>
+              <th style="width: 17%; text-align: center;">Quantité</th>
+              <th style="width: 17%; text-align: right;">Prix Unit.</th>
+              <th style="width: 18%; text-align: right;">Total</th>
             </tr>
           </thead>
           <tbody>
             ${detailsVentes.map((detail) => `
               <tr>
                 <td>${detail.num}</td>
-                <td>${new Date(detail.date_facture).toLocaleDateString('fr-FR')}</td>
                 <td><strong>${detail.nom_produit}</strong></td>
                 <td style="text-align: center; font-weight: bold; color: #059669;">${detail.quantite}</td>
-                <td style="text-align: right; font-weight: bold;">${detail.sous_total.toLocaleString('fr-FR')} FCFA</td>
+                <td style="text-align: right;">${detail.prix_unitaire.toLocaleString('fr-FR')} FCFA</td>
+                <td style="text-align: right; font-weight: bold;">${detail.total.toLocaleString('fr-FR')} FCFA</td>
               </tr>
             `).join('')}
           </tbody>
