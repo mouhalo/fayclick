@@ -44,6 +44,13 @@ const WALLET_CONFIG = {
     color: 'text-green-600',
     bgColor: 'bg-green-50',
     icon: '🟢'
+  },
+  CASH: {
+    name: 'Espèces',
+    displayName: '💵 Espèces',
+    color: 'text-emerald-600',
+    bgColor: 'bg-emerald-50',
+    icon: '💵'
   }
 };
 
@@ -254,7 +261,7 @@ export function ModalRecuGenere({
   };
 
   const styles = getResponsiveStyles();
-  const walletInfo = WALLET_CONFIG[walletUsed] || WALLET_CONFIG.OM;
+  const walletInfo = WALLET_CONFIG[walletUsed] || WALLET_CONFIG.CASH;
 
   if (!isOpen) return null;
 

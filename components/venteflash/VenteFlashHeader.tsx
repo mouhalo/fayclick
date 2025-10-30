@@ -23,15 +23,18 @@ interface VenteFlashHeaderProps {
   onAddToPanier: (produit: Produit) => void;
   /** Callback pour rafraîchir les données */
   onRefresh?: () => void;
+  /** Callback pour ouvrir le panier */
+  onOpenPanier?: () => void;
 }
 
 export function VenteFlashHeader({
   produits,
   onAddToPanier,
-  onRefresh
+  onRefresh,
+  onOpenPanier
 }: VenteFlashHeaderProps) {
   const router = useRouter();
-  const { getTotalItems, setModalOpen } = usePanierStore();
+  const { getTotalItems } = usePanierStore();
   const [searchTerm, setSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState<Produit[]>([]);
   const [showDropdown, setShowDropdown] = useState(false);
@@ -118,7 +121,7 @@ export function VenteFlashHeader({
         <motion.button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
-          onClick={() => setModalOpen(true)}
+          onClick={() => onOpenPanier?.()}
           className="
             relative w-10 h-10 bg-white/20 backdrop-blur-sm rounded-full
             flex items-center justify-center hover:bg-white/30 transition-colors
