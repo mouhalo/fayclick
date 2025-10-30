@@ -453,6 +453,31 @@ export default function VenteFlashPage() {
   const handlePrintRapport = () => {
     console.log('🖨️ [VENTE FLASH] Impression rapport du jour');
 
+    // Extraire tous les détails des ventes (produits vendus)
+    const detailsVentes: Array<{
+      num: number;
+      date_facture: string;
+      nom_produit: string;
+      quantite: number;
+      sous_total: number;
+    }> = [];
+
+    ventesJour.forEach((vente) => {
+      if (vente.details && Array.isArray(vente.details)) {
+        vente.details.forEach((detail: any) => {
+          detailsVentes.push({
+            num: detailsVentes.length + 1,
+            date_facture: detail.date_facture || vente.date_facture,
+            nom_produit: detail.nom_produit || 'Produit inconnu',
+            quantite: detail.quantite || 0,
+            sous_total: detail.sous_total || 0
+          });
+        });
+      }
+    });
+
+    console.log('📊 [VENTE FLASH] Détails extraits:', detailsVentes.length, 'lignes');
+
     // Créer le contenu HTML du rapport
     const dateJour = new Date().toLocaleDateString('fr-FR', {
       weekday: 'long',
@@ -509,27 +534,25 @@ export default function VenteFlashPage() {
           </div>
         </div>
 
-        <h2 style="color: #059669; margin-top: 30px;">Détail des ventes (${ventesJour.length})</h2>
+        <h2 style="color: #059669; margin-top: 30px;">Détail des ventes (${detailsVentes.length} articles vendus)</h2>
         <table>
           <thead>
             <tr>
-              <th>#</th>
-              <th>Heure</th>
-              <th>N° Facture</th>
-              <th>Client</th>
-              <th>Montant</th>
-              <th>État</th>
+              <th style="width: 5%;">N°</th>
+              <th style="width: 15%;">Date</th>
+              <th style="width: 45%;">Nom Produit</th>
+              <th style="width: 15%; text-align: center;">Quantité</th>
+              <th style="width: 20%; text-align: right;">Sous-total</th>
             </tr>
           </thead>
           <tbody>
-            ${ventesJour.map((vente, index) => `
+            ${detailsVentes.map((detail) => `
               <tr>
-                <td>${index + 1}</td>
-                <td>${new Date(vente.date_facture).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</td>
-                <td>${vente.num_facture || 'N/A'}</td>
-                <td>${vente.nom_client || 'CLIENT_ANONYME'}</td>
-                <td style="font-weight: bold;">${(vente.montant || 0).toLocaleString('fr-FR')} FCFA</td>
-                <td><span style="color: ${vente.libelle_etat === 'PAYEE' ? '#059669' : '#dc2626'};">${vente.libelle_etat || 'INCONNU'}</span></td>
+                <td>${detail.num}</td>
+                <td>${new Date(detail.date_facture).toLocaleDateString('fr-FR')}</td>
+                <td><strong>${detail.nom_produit}</strong></td>
+                <td style="text-align: center; font-weight: bold; color: #059669;">${detail.quantite}</td>
+                <td style="text-align: right; font-weight: bold;">${detail.sous_total.toLocaleString('fr-FR')} FCFA</td>
               </tr>
             `).join('')}
           </tbody>
