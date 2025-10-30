@@ -278,7 +278,7 @@ export default function CommerceDashboard() {
             </div>
           </motion.div>
 
-          {/* Bouton Vente Flash - Hauteur réduite */}
+          {/* Bouton Vente Flash - Ultra compact */}
           <motion.div
             initial={{ y: 30, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
@@ -288,8 +288,8 @@ export default function CommerceDashboard() {
             onClick={() => router.push('/dashboard/commerce/venteflash')}
             className="
               bg-gradient-to-br from-green-400 via-emerald-500 to-teal-600
-              rounded-2xl p-4 cursor-pointer shadow-xl hover:shadow-2xl
-              transition-all border-2 border-white/20 mb-4
+              rounded-xl p-2.5 cursor-pointer shadow-lg hover:shadow-xl
+              transition-all border border-white/20 mb-3
               relative overflow-hidden
             "
           >
@@ -297,33 +297,28 @@ export default function CommerceDashboard() {
             <div className="absolute inset-0 opacity-10">
               <div className="absolute inset-0" style={{
                 backgroundImage: 'radial-gradient(circle at 20% 50%, white 2px, transparent 2px)',
-                backgroundSize: '30px 30px'
+                backgroundSize: '20px 20px'
               }} />
             </div>
 
-            <div className="relative z-10 flex items-center gap-4">
+            <div className="relative z-10 flex items-center gap-2.5">
               <motion.span
-                className="text-4xl"
+                className="text-2xl"
                 animate={{ rotate: [0, 10, -10, 0] }}
                 transition={{ duration: 2, repeat: Infinity }}
               >
                 ⚡
               </motion.span>
-              <h3 className="text-lg font-bold text-white">Vente Flash</h3>
+              <h3 className="text-sm font-bold text-white">Vente Flash</h3>
             </div>
           </motion.div>
 
-          {/* Quick Actions - Réduit de 1/3 */}
+          {/* Quick Actions */}
           <motion.div
             initial={{ y: 30, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.9 }}
           >
-            <div className="bg-white rounded-xl p-3 mb-3 shadow-md flex items-center gap-2">
-              <span className="text-xl">🚀</span>
-              <h2 className="text-base font-bold text-gray-800">Actions rapides</h2>
-            </div>
-
             <div className="grid grid-cols-2 gap-3">
               {[
                 { icon: '📦', title: 'Liste Produits', subtitle: 'Gérer votre stock', color: 'orange', path: '/produits' },
