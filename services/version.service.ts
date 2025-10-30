@@ -3,7 +3,7 @@
  * Gestion des mises à jour automatiques et notifications utilisateur
  */
 
-import { API_CONFIG } from '@/lib/api-config';
+import { API_CONFIG } from '@/config/env';
 
 export interface VersionInfo {
   version: string;
@@ -240,7 +240,7 @@ class VersionService {
     }
 
     // En production, utiliser l'endpoint de production
-    const baseUrl = API_CONFIG.baseUrl;
+    const baseUrl = API_CONFIG.ENDPOINT;
     return `${baseUrl.replace('/backend', '')}/api/version/latest`;
   }
 
