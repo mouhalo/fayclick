@@ -21,6 +21,8 @@ interface ScanCodeBarreProps {
   buttonText?: string;
   /** Taille du bouton */
   size?: 'sm' | 'md' | 'lg';
+  /** Afficher uniquement l'icône sans texte */
+  iconOnly?: boolean;
   /** Classes CSS additionnelles */
   className?: string;
 }
@@ -31,6 +33,7 @@ export function ScanCodeBarre({
   variant = 'primary',
   buttonText,
   size = 'md',
+  iconOnly = false,
   className = ''
 }: ScanCodeBarreProps) {
   const [showScanModal, setShowScanModal] = useState(false);
@@ -48,8 +51,12 @@ export function ScanCodeBarre({
     minimal: 'bg-blue-100 text-blue-600 hover:bg-blue-200'
   };
 
-  // Styles selon taille
-  const sizeStyles = {
+  // Styles selon taille (différent si iconOnly)
+  const sizeStyles = iconOnly ? {
+    sm: 'w-9 h-9',
+    md: 'w-12 h-12',
+    lg: 'w-14 h-14'
+  } : {
     sm: 'px-3 py-2 text-sm',
     md: 'px-4 py-3 text-base',
     lg: 'px-6 py-4 text-lg'
@@ -78,13 +85,14 @@ export function ScanCodeBarre({
         className={`
           ${variantStyles[variant]}
           ${sizeStyles[size]}
-          rounded-xl font-medium transition-all
+          ${iconOnly ? 'rounded-full' : 'rounded-xl'}
+          font-medium transition-all
           flex items-center justify-center gap-2
           ${className}
         `}
       >
         <Camera className={iconSizes[size]} />
-        <span>{defaultText}</span>
+        {!iconOnly && <span>{defaultText}</span>}
       </motion.button>
 
       {/* Modal Scanner */}

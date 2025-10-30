@@ -16,6 +16,7 @@ export interface VenteFlash {
   nom_caissier?: string;
   id_utilisateur?: number;
   statut?: string;
+  details?: DetailVente[];  // Détails déjà chargés avec la facture
 }
 
 export interface VenteFlashStats {
