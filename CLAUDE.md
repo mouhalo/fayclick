@@ -183,6 +183,7 @@ The project is in Phase 2 development with:
 - ✅ **Gestion des clients** avec fonction PostgreSQL get_list_clients()
 - ✅ **Gestion des abonnements** (MENSUEL/ANNUEL) avec paiement wallet
 - ✅ **Système de paiement wallet** (OM/WAVE/FREE) pour factures et abonnements
+- ✅ **VenteFlash (Ventes Rapides)** avec client anonyme et encaissement CASH immédiat
 
 ### Production Environment
 - **Live URL**: https://v2.fayclick.net
@@ -222,6 +223,9 @@ Tous les services suivent un pattern singleton avec gestion d'erreurs centralis�
 
 - **`produits.service.ts`** : Gestion produits/articles
 - **`facture.service.ts`** : Création/gestion factures
+  - `createFacture(articles, clientInfo, montants, avecFrais)` : Création facture + détails en une requête
+  - Validation automatique : articles, montants, remise ≤ sous-total, acompte ≤ montant_net
+  - Retourne : `{ success, id_facture, message }`
 - **`dashboard.service.ts`** : Statistiques par type de structure
 - **`subscription.service.ts`** : Gestion abonnements structures (MENSUEL/ANNUEL)
 - **`payment-wallet.service.ts`** : Paiements mobiles (OM/WAVE/FREE)
@@ -242,6 +246,17 @@ SELECT calculer_montant_abonnement(type, date_debut);
 SELECT add_abonnement_structure(id_structure, type, methode, ...);
 SELECT renouveler_abonnement(id_structure, type, methode);
 SELECT * FROM historique_abonnements_structure(id_structure, limite);
+
+-- Encaissement CASH (VenteFlash)
+-- ⚠️ Format CRITIQUE : add_acompte_facture(pid_structure, pid_facture, pmontant_acompte, ptransactionid, puuid)
+-- Exemple : add_acompte_facture(183, 731, 475, 'CASH-183-301020251245', 'face2face')
+SELECT * FROM add_acompte_facture(
+  pid_structure,      -- INTEGER : ID structure
+  pid_facture,        -- INTEGER : ID facture créée
+  pmontant_acompte,   -- NUMERIC : Montant payé
+  ptransactionid,     -- VARCHAR : 'CASH-{id_structure}-{timestamp}'
+  puuid              -- VARCHAR : 'face2face' pour paiement direct
+);
 ```
 
 ## Composants Clés
@@ -251,6 +266,15 @@ SELECT * FROM historique_abonnements_structure(id_structure, limite);
   - Label client avec bouton éditer
   - Bouton Annuler (rouge) + Commander (bleu) en grille 2×1
   - Réinitialisation auto si articles supprimés
+
+- **`PanierVenteFlash.tsx`** : Panier simplifié pour ventes ultra-rapides
+  - **Client anonyme par défaut** (pas de sélection client nécessaire)
+  - Affichage articles + contrôles quantité + remise
+  - Sous-total et total calculés automatiquement
+  - **Workflow 2 étapes** : `factureService.createFacture()` + `add_acompte_facture()` pour CASH
+  - Affiche reçu (`ModalRecuGenere`) au lieu de facture
+  - Sidebar avec animation slide-in (Framer Motion)
+  - Boutons : Annuler (rouge - vider + fermer) / Sauver (vert - créer vente)
 
 - **`ModalRechercheClient.tsx`** : Recherche intelligente client
   - Auto-recherche à 9 chiffres saisis
@@ -441,6 +465,63 @@ if (method === 'OM') {
 - **Renouvellement** : date_debut = date_fin ancien + 1 jour
 - **Calcul montant** : 100 FCFA/jour (tarification dynamique)
 
+## Système VenteFlash (Ventes Rapides)
+
+### Architecture VenteFlash
+Module dédié aux ventes ultra-rapides avec client anonyme et encaissement CASH immédiat.
+
+**Composants** :
+- `app/dashboard/commerce/venteflash/page.tsx` - Page principale VenteFlash
+- `components/venteflash/VenteFlashHeader.tsx` - Header avec panier + actions
+- `components/venteflash/PanierVenteFlash.tsx` - Panier simplifié client anonyme
+- `components/venteflash/VenteFlashStatsCards.tsx` - Statistiques jour en 3×1
+- `components/venteflash/VenteFlashListeVentes.tsx` - Liste ventes du jour
+- `components/venteflash/VenteCarteVente.tsx` - Carte vente individuelle
+
+### Workflow Vente Flash
+```typescript
+1. Scan/Recherche produits → Ajout panier (panierStore)
+2. Clic panier → PanierVenteFlash s'ouvre (sidebar right)
+3. Ajuster quantités + saisir remise optionnelle
+4. Clic "Sauver" → 2 étapes séquentielles :
+
+   // Étape 1 : Créer facture avec factureService
+   const result = await factureService.createFacture(
+     articles,
+     {
+       nom_client_payeur: 'CLIENT_ANONYME',
+       tel_client: '000000000',
+       description: 'Vente Flash'
+     },
+     { remise: remise || 0, acompte: 0 },
+     false // Sans frais
+   );
+
+   // Étape 2 : Enregistrer encaissement CASH avec add_acompte_facture
+   const transactionId = `CASH-${id_structure}-${Date.now()}`;
+   await database.query(`
+     SELECT * FROM add_acompte_facture(
+       ${id_structure},
+       ${id_facture},
+       ${montant_total},
+       '${transactionId}',
+       'face2face'
+     )
+   `);
+
+5. Panier se ferme → ModalRecuGenere s'affiche
+6. Liste ventes se rafraîchit automatiquement
+```
+
+### Points Critiques VenteFlash
+- ⚠️ **Ne PAS utiliser `ModalPanier`** standard (trop complexe avec client)
+- ⚠️ **Toujours client anonyme** : `CLIENT_ANONYME` / `000000000`
+- ⚠️ **Transaction ID format strict** : `CASH-{id_structure}-{timestamp}`
+- ⚠️ **UUID fixe** : `'face2face'` pour paiements directs
+- ⚠️ **2 étapes obligatoires** : createFacture() puis add_acompte_facture()
+- ✅ **Afficher reçu** (pas facture) pour ventes flash
+- ✅ **Auto-refresh** liste après chaque vente
+
 ## Notes Importantes
 
 ### À NE PAS FAIRE
@@ -451,6 +532,8 @@ if (method === 'OM') {
 - ❌ **Ne JAMAIS modifier `createPayment()` pour gérer les abonnements** - Utiliser `createSubscriptionPaymentDirect()`
 - ❌ **Ne pas dépasser 19 caractères** pour les références de paiement (pReference)
 - ❌ **Ne pas oublier les 2 boutons OM** (app + web) lors d'ajout de modals paiement
+- ❌ **Ne PAS créer de fonctions dupliquées** - Toujours vérifier l'existant avant (approche Senior Developer)
+- ❌ **Ne PAS utiliser mauvais format `add_acompte_facture`** - Respecter signature PostgreSQL
 
 ### À TOUJOURS FAIRE
 - ✅ Mettre à jour `CACHE_NAME` dans Service Worker si changements UI majeurs
@@ -458,3 +541,5 @@ if (method === 'OM') {
 - ✅ Tester en navigation privée après déploiement
 - ✅ Utiliser `rm -rf .next` avant `npm run deploy:build` si cache suspect
 - ✅ Commit avec messages descriptifs suivant format emoji (✨, 🔧, 🐛, etc.)
+- ✅ **Chercher fonctions existantes** (Grep/Glob) avant d'en créer de nouvelles
+- ✅ **Vérifier signatures PostgreSQL** avant d'appeler fonctions DB
