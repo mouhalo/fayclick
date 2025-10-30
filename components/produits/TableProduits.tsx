@@ -7,7 +7,6 @@
 
 import { motion } from 'framer-motion';
 import { ShoppingCart } from 'lucide-react';
-import Image from 'next/image';
 import { Produit } from '@/types/produit';
 
 interface TableProduitsProps {
@@ -68,12 +67,11 @@ export function TableProduits({
               >
                 {/* Colonne # : Image + Catégorie */}
                 <div className="col-span-2 flex flex-col items-center gap-2">
-                  <div className="relative w-16 h-16 rounded-lg overflow-hidden bg-gray-100 border-2 border-gray-200 group-hover:border-green-400 transition-colors">
-                    <Image
+                  <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-100 border-2 border-gray-200 group-hover:border-green-400 transition-colors flex items-center justify-center">
+                    <img
                       src="/logofayclick.png"
                       alt="Logo FayClick"
-                      fill
-                      className="object-contain p-1"
+                      className="w-full h-full object-contain p-1"
                     />
                   </div>
                   <span className="text-xs text-gray-600 font-medium text-center">
@@ -113,7 +111,7 @@ export function TableProduits({
                 {/* Colonne Action : Bouton Vendre */}
                 <div className="col-span-2 flex items-center justify-center">
                   <motion.button
-                    whileHover={{ scale: 1.05 }}
+                    whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.95 }}
                     onClick={(e) => {
                       e.stopPropagation();
@@ -121,7 +119,7 @@ export function TableProduits({
                     }}
                     disabled={!produit.niveau_stock || produit.niveau_stock === 0}
                     className={`
-                      px-4 py-2 rounded-lg font-medium flex items-center gap-2
+                      p-3 rounded-lg font-medium flex items-center justify-center
                       transition-all shadow-md hover:shadow-lg
                       ${!produit.niveau_stock || produit.niveau_stock === 0
                         ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
@@ -130,8 +128,7 @@ export function TableProduits({
                     `}
                     title={!produit.niveau_stock || produit.niveau_stock === 0 ? 'Stock épuisé' : 'Ajouter au panier'}
                   >
-                    <ShoppingCart className="w-4 h-4" />
-                    <span>Vendre</span>
+                    <ShoppingCart className="w-5 h-5" />
                   </motion.button>
                 </div>
               </motion.div>
