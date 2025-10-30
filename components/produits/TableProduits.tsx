@@ -67,7 +67,7 @@ export function TableProduits({
               >
                 {/* Colonne # : Image + Catégorie */}
                 <div className="col-span-2 flex flex-col items-center gap-2">
-                  <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-100 border-2 border-gray-200 group-hover:border-green-400 transition-colors flex items-center justify-center">
+                  <div className="w-16 h-16 rounded-full overflow-hidden bg-gray-100 border-2 border-gray-200 group-hover:border-green-400 transition-colors flex items-center justify-center">
                     <img
                       src="/images/logofayclick.png"
                       alt="Logo FayClick"
