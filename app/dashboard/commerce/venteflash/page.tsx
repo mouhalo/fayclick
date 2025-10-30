@@ -526,10 +526,10 @@ export default function VenteFlashPage() {
               <tr>
                 <td>${index + 1}</td>
                 <td>${new Date(vente.date_facture).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</td>
-                <td>${vente.num_facture}</td>
-                <td>${vente.nom_client}</td>
-                <td style="font-weight: bold;">${vente.montant.toLocaleString('fr-FR')} FCFA</td>
-                <td><span style="color: ${vente.libelle_etat === 'PAYEE' ? '#059669' : '#dc2626'};">${vente.libelle_etat}</span></td>
+                <td>${vente.num_facture || 'N/A'}</td>
+                <td>${vente.nom_client || 'CLIENT_ANONYME'}</td>
+                <td style="font-weight: bold;">${(vente.montant || 0).toLocaleString('fr-FR')} FCFA</td>
+                <td><span style="color: ${vente.libelle_etat === 'PAYEE' ? '#059669' : '#dc2626'};">${vente.libelle_etat || 'INCONNU'}</span></td>
               </tr>
             `).join('')}
           </tbody>
