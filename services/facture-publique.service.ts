@@ -44,7 +44,7 @@ class FacturePubliqueService {
       const { API_CONFIG } = await import('@/config/env');
 
       // Construire la requête SQL
-      const query = `SELECT * FROM get_my_facture(${id_structure}, ${id_facture})`;
+      const query = `SELECT * FROM get_my_factures(${id_structure}, ${id_facture})`;
 
       // Construire le XML pour l'API
       const xml = `<?xml version="1.0" encoding="UTF-8"?>
@@ -108,7 +108,7 @@ class FacturePubliqueService {
         // Si c'est un tableau, prendre le premier élément
         const firstRow = data[0];
         // La colonne peut s'appeler 'get_my_facture' ou être directement l'objet
-        factureData = firstRow.get_my_facture || firstRow;
+        factureData = firstRow.get_my_factures || firstRow;
       } else {
         factureData = data;
       }

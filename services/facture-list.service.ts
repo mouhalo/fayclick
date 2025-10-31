@@ -57,7 +57,7 @@ class FactureListService {
       });
 
       // Appel de la fonction PostgreSQL get_my_facture
-      const query = `SELECT * FROM get_my_facture(${user.id_structure}, ${id_facture})`;
+      const query = `SELECT * FROM get_my_factures(${user.id_structure}, ${id_facture})`;
 
       const result = await DatabaseService.query(query);
 
@@ -94,7 +94,7 @@ class FactureListService {
       console.log('🔍 [FACTURE-LIST] Première ligne:', firstRow);
 
       // Structure réelle: result[0].get_my_facture.factures
-      let factureData = firstRow.get_my_facture || firstRow;
+      let factureData = firstRow.get_my_factures || firstRow;
 
       console.log('📦 [FACTURE-LIST] Données facture extraites:', {
         type: typeof factureData,
