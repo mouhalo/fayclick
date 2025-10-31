@@ -29,6 +29,7 @@ export default function VenteFlashPage() {
   const { addArticle, getTotalItems } = usePanierStore();
 
   const [user, setUser] = useState<User | null>(null);
+  const [structure, setStructure] = useState<any | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [showMenu, setShowMenu] = useState(false);
 
@@ -322,6 +323,14 @@ export default function VenteFlashPage() {
 
       console.log('✅ [VENTE FLASH] Authentification validée');
       setUser(userData);
+
+      // Charger les données complètes incluant la structure
+      const completeData = authService.getCompleteAuthData();
+      if (completeData && completeData.structure) {
+        setStructure(completeData.structure);
+        console.log('✅ [VENTE FLASH] Structure chargée:', completeData.structure.nom_structure);
+      }
+
       setIsAuthLoading(false);
     };
 
@@ -534,7 +543,9 @@ export default function VenteFlashPage() {
       </head>
       <body>
         <div class="header">
+          ${structure?.logo ? `<img src="${structure.logo}" alt="Logo" style="max-width: 120px; max-height: 80px; margin: 0 auto 15px; display: block;" />` : ''}
           <h1>⚡ Rapport Ventes Flash</h1>
+          <p style="font-size: 18px; font-weight: bold; color: #059669; margin: 8px 0;">${structure?.nom_structure || 'Structure'}</p>
           <p style="font-size: 16px; color: #666;">${dateJour}</p>
           <p class="caissier">Caissier: ${user.nom_utilisateur}</p>
         </div>
