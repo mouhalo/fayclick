@@ -24,6 +24,52 @@ class DatabaseService {
     return this.instance;
   }
 
+  /**
+   * Détecte le navigateur actuel pour un meilleur diagnostic des erreurs
+   * @returns Chaîne décrivant le navigateur détecté
+   */
+  private detectBrowser(): string {
+    if (typeof window === 'undefined' || typeof navigator === 'undefined') {
+      return 'Server-Side';
+    }
+
+    const userAgent = navigator.userAgent;
+
+    // iOS Safari
+    if (/iPad|iPhone|iPod/.test(userAgent) && !(window as unknown as { MSStream?: unknown }).MSStream) {
+      if (/CriOS/.test(userAgent)) return 'Chrome iOS';
+      if (/FxiOS/.test(userAgent)) return 'Firefox iOS';
+      return 'Safari iOS';
+    }
+
+    // Safari Desktop
+    if (/^((?!chrome|android).)*safari/i.test(userAgent)) {
+      return 'Safari Desktop';
+    }
+
+    // Firefox
+    if (/Firefox/.test(userAgent)) {
+      return 'Firefox';
+    }
+
+    // Edge
+    if (/Edg/.test(userAgent)) {
+      return 'Edge';
+    }
+
+    // Chrome
+    if (/Chrome/.test(userAgent)) {
+      return 'Chrome';
+    }
+
+    // Opera
+    if (/OPR/.test(userAgent) || /Opera/.test(userAgent)) {
+      return 'Opera';
+    }
+
+    return 'Unknown Browser';
+  }
+
   private construireXml = (application_name: string, requeteSql: string) => {
     const sql_text = requeteSql.replace(/\n/g, ' ').trim();
     const xml = `<?xml version="1.0" encoding="UTF-8"?>
@@ -99,15 +145,27 @@ class DatabaseService {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), timeout);
 
+      // Configuration cross-browser compatible
+      // Note: 'User-Agent' est un "forbidden header" que les navigateurs bloquent
+      // On utilise un header personnalisé X-Client-App à la place
+      const headers: HeadersInit = {
+        'Content-Type': 'application/xml',
+        'Accept': 'application/json',
+        'X-Client-App': 'FayClick-V2/1.0',
+        'X-Requested-With': 'XMLHttpRequest'
+      };
+
       const response = await fetch(API_CONFIG.ENDPOINT, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/xml',
-          'Accept': 'application/json',
-          'User-Agent': 'FayClick-V2/1.0'
-        },
+        headers,
         body: xml,
-        signal: controller.signal
+        signal: controller.signal,
+        // Mode CORS explicite pour Firefox/Safari
+        mode: 'cors',
+        // Inclure les credentials pour les cookies de session si nécessaires
+        credentials: 'same-origin',
+        // Cache control pour éviter les problèmes de cache navigateur
+        cache: 'no-cache'
       });
 
       clearTimeout(timeoutId);
@@ -201,39 +259,82 @@ class DatabaseService {
       }
       
     } catch (error) {
-      // Gestion des erreurs avec détails
+      // Gestion des erreurs avec détails - Compatible tous navigateurs
       if (error instanceof Error) {
+        // Timeout (AbortError)
         if (error.name === 'AbortError') {
           const timeoutUsed = customTimeout || API_CONFIG.TIMEOUT;
           SecurityService.secureLog('error', `Timeout requête API (${timeoutUsed}ms)`);
           throw new Error(`Timeout de la requête (${timeoutUsed}ms)`);
         }
-        
-        if (error.message.includes('fetch') || error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+
+        // Détection erreurs réseau cross-browser
+        // Chrome: "Failed to fetch"
+        // Firefox: "NetworkError when attempting to fetch resource"
+        // Safari/iOS: "Load failed" ou "The Internet connection appears to be offline"
+        const networkErrorPatterns = [
+          'fetch',
+          'Failed to fetch',
+          'NetworkError',
+          'Load failed',
+          'Network request failed',
+          'The Internet connection appears to be offline',
+          'A server with the specified hostname could not be found',
+          'The network connection was lost',
+          'ERR_',
+          'CORS'
+        ];
+
+        const isNetworkError = networkErrorPatterns.some(pattern =>
+          error.message.toLowerCase().includes(pattern.toLowerCase()) ||
+          error.name.toLowerCase().includes(pattern.toLowerCase())
+        );
+
+        // Détection erreur TypeError (Firefox lance parfois TypeError au lieu de NetworkError)
+        const isTypeError = error.name === 'TypeError' && (
+          error.message.includes('fetch') ||
+          error.message.includes('NetworkError') ||
+          error.message.includes('Failed')
+        );
+
+        if (isNetworkError || isTypeError) {
+          // Détecter le navigateur pour un message d'erreur plus précis
+          const browserInfo = this.detectBrowser();
+
           SecurityService.secureLog('error', 'Erreur réseau lors de la connexion à l\'API', {
             endpoint: API_CONFIG.ENDPOINT,
             application: application_name,
             error: error.message,
-            errorType: error.name || 'Unknown'
+            errorType: error.name || 'Unknown',
+            browser: browserInfo
           });
-          
+
           console.error('🔴 [DATABASE] Détails erreur réseau:', {
             endpoint: API_CONFIG.ENDPOINT,
             errorMessage: error.message,
             errorName: error.name,
+            browser: browserInfo,
             stack: error.stack
           });
-          
-          throw new Error(`Impossible de contacter l'API: ${API_CONFIG.ENDPOINT}. Erreur: ${error.message}`);
+
+          // Message d'erreur utilisateur plus explicite
+          let userMessage = `Impossible de contacter le serveur.`;
+          if (browserInfo.includes('Safari') || browserInfo.includes('iOS')) {
+            userMessage += ` Vérifiez votre connexion internet et réessayez.`;
+          } else if (browserInfo.includes('Firefox')) {
+            userMessage += ` Si le problème persiste, essayez de vider le cache du navigateur.`;
+          }
+
+          throw new Error(userMessage);
         }
       }
-      
+
       SecurityService.secureLog('error', `Erreur API pour l'application '${application_name}'`, {
         application: application_name,
         endpoint: API_CONFIG.ENDPOINT,
         error: error instanceof Error ? error.message : 'Erreur inconnue'
       });
-      
+
       throw new Error(`Erreur base de données: ${error instanceof Error ? error.message : 'Erreur inconnue'}`);
     }
   }
