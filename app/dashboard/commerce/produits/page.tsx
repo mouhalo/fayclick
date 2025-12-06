@@ -13,11 +13,13 @@ import {
   RefreshCw,
   Package,
   AlertCircle,
-  Trash2
+  Trash2,
+  Printer
 } from 'lucide-react';
 import { authService } from '@/services/auth.service';
 import { produitsService, ProduitsApiException } from '@/services/produits.service';
 import { useProduits, useProduitsUI } from '@/hooks/useProduits';
+import { useSubscriptionStatus } from '@/contexts/AuthContext';
 import { StatsCardsNouveaux, StatsCardsNouveauxLoading } from '@/components/produits/StatsCardsNouveaux';
 import { CarteProduit, CarteProduitSkeleton } from '@/components/produits/CarteProduit';
 import { CarteProduitReduit } from '@/components/produits/CarteProduitReduit';
@@ -34,7 +36,9 @@ import { GlassPagination, usePagination } from '@/components/ui/GlassPagination'
 import { Produit, AddEditProduitResponse } from '@/types/produit';
 import { User } from '@/types/auth';
 import { ModalScanCodeBarre } from '@/components/produits/ModalScanCodeBarre';
+import { ModalImpressionProduits } from '@/components/produits/ModalImpressionProduits';
 import { usePanierStore } from '@/stores/panierStore';
+import { ModalAbonnementExpire, useModalAbonnementExpire } from '@/components/subscription/ModalAbonnementExpire';
 
 export default function ProduitsCommercePage() {
   const router = useRouter();
@@ -58,6 +62,9 @@ export default function ProduitsCommercePage() {
   // État pour le scanner de code-barres
   const [showScanModal, setShowScanModal] = useState(false);
 
+  // État pour le modal d'impression
+  const [showPrintModal, setShowPrintModal] = useState(false);
+
   // Configuration pagination
   const itemsPerPage = 10;
 
@@ -80,6 +87,17 @@ export default function ProduitsCommercePage() {
   } = useProduits();
 
   const { ToastComponent, showToast } = useToast();
+
+  // Hook état abonnement pour bloquer les fonctionnalités si expiré
+  const { canAccessFeature } = useSubscriptionStatus();
+
+  // Hook pour le modal d'abonnement expiré
+  const {
+    isOpen: isAbonnementModalOpen,
+    featureName: abonnementFeatureName,
+    showModal: showAbonnementModal,
+    hideModal: hideAbonnementModal
+  } = useModalAbonnementExpire();
 
   // Store panier
   const addArticle = usePanierStore(state => state.addArticle);
@@ -238,6 +256,11 @@ export default function ProduitsCommercePage() {
   };
 
   const handleAddProduit = () => {
+    // Vérifier l'abonnement avant d'autoriser l'ajout
+    if (!canAccessFeature('Ajout produit')) {
+      showAbonnementModal('Ajout de produit');
+      return;
+    }
     setProduitSelectionne(null);
     setModeEdition(false);
     setModalAjoutOpen(true);
@@ -308,6 +331,13 @@ export default function ProduitsCommercePage() {
   const handleScanSuccess = (code: string) => {
     console.log('📸 [PRODUITS COMMERCE] Code-barres scanné:', code);
 
+    // Vérifier l'abonnement avant d'autoriser l'ajout au panier
+    if (!canAccessFeature('Vente produit')) {
+      setShowScanModal(false);
+      showAbonnementModal('Vente de produit');
+      return;
+    }
+
     // Rechercher le produit par code-barres dans la liste filtrée
     // Note: L'API retourne 'code_barre' (sans 's')
     const produitTrouve = produitsFiltered.find(p => p.code_barre === code);
@@ -336,6 +366,12 @@ export default function ProduitsCommercePage() {
 
   // Note: La gestion du panier est maintenant dans CarteProduit via le store Zustand
 
+  // Gestion du modal d'impression
+  const handlePrint = () => {
+    console.log('🖨️ [PRODUITS COMMERCE] Ouverture modal d\'impression');
+    setShowPrintModal(true);
+  };
+
   // Gestion de la pagination
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
@@ -360,6 +396,12 @@ export default function ProduitsCommercePage() {
   };
 
   const handleVendreClick = (produit: Produit) => {
+    // Vérifier l'abonnement avant d'autoriser la vente
+    if (!canAccessFeature('Vente produit')) {
+      showAbonnementModal('Vente de produit');
+      return;
+    }
+
     // Bouton Vendre = Ajouter au panier
     const stock = produit.niveau_stock || 0;
     if (stock > 0) {
@@ -401,6 +443,7 @@ export default function ProduitsCommercePage() {
           onEdit={handleEditProduit}
           onDelete={handleDeleteProduit}
           typeStructure="COMMERCIALE"
+          onSubscriptionRequired={showAbonnementModal}
         />
       );
     }
@@ -413,6 +456,7 @@ export default function ProduitsCommercePage() {
         onDelete={handleDeleteProduit}
         typeStructure="COMMERCIALE"
         compactMode={false}
+        onSubscriptionRequired={showAbonnementModal}
       />
     );
   };
@@ -449,6 +493,7 @@ export default function ProduitsCommercePage() {
               onRefresh={handleRefresh}
               refreshing={refreshing}
               onScanClick={() => setShowScanModal(true)}
+              onPrintClick={handlePrint}
             />
           }
         />
@@ -643,8 +688,23 @@ export default function ProduitsCommercePage() {
         context="panier"
       />
 
+      {/* Modal d'impression */}
+      <ModalImpressionProduits
+        isOpen={showPrintModal}
+        onClose={() => setShowPrintModal(false)}
+        produits={produitsFiltered}
+        nomStructure={user.nom_structure}
+      />
+
       {/* Toast Component */}
       <ToastComponent />
+
+      {/* Modal abonnement expiré */}
+      <ModalAbonnementExpire
+        isOpen={isAbonnementModalOpen}
+        onClose={hideAbonnementModal}
+        featureName={abonnementFeatureName}
+      />
     </div>
   );
 }

@@ -66,13 +66,32 @@ export interface HistoriqueAbonnement {
 }
 
 /**
+ * État de l'abonnement retourné par get_une_structure()
+ * Contient toutes les informations de l'abonnement actuel avec jours_restants calculé par PostgreSQL
+ */
+export interface EtatAbonnement {
+  id_abonnement: number;
+  statut: SubscriptionStatus;
+  type_abonnement: SubscriptionType;
+  date_debut: string; // Format ISO YYYY-MM-DD
+  date_fin: string; // Format ISO YYYY-MM-DD
+  montant: number;
+  methode: 'OM' | 'WAVE' | 'FREE';
+  jours_restants: number; // Calculé directement par PostgreSQL
+}
+
+/**
  * État actuel de l'abonnement de la structure
- * (déjà présent dans StructureDetails mais redéfini pour clarté)
+ * Mis à jour pour utiliser les données de get_une_structure()
  */
 export interface CurrentSubscriptionState {
   etat_abonnement: SubscriptionStatus;
-  date_limite_abonnement: string; // Date ISO
+  date_limite_abonnement: string; // Date ISO (date_fin)
   type_abonnement: SubscriptionType | null;
+  jours_restants?: number; // Nouveau: directement depuis PostgreSQL
+  id_abonnement?: number;
+  montant?: number;
+  methode?: 'OM' | 'WAVE' | 'FREE';
 }
 
 // ========================================

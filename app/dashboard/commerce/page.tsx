@@ -14,6 +14,8 @@ import { ModalPanier } from '@/components/panier/ModalPanier';
 import { ModalFactureSuccess } from '@/components/panier/ModalFactureSuccess';
 import { useToast } from '@/components/ui/Toast';
 import ModalCoffreFort from '@/components/coffre-fort/ModalCoffreFort';
+import { useSubscriptionStatus } from '@/contexts/AuthContext';
+import { ModalAbonnementExpire, useModalAbonnementExpire } from '@/components/subscription/ModalAbonnementExpire';
 
 
 export default function CommerceDashboard() {
@@ -25,6 +27,17 @@ export default function CommerceDashboard() {
   const [notifications, setNotifications] = useState(3);
   const [showValeurStock, setShowValeurStock] = useState(false); // Masqué par défaut
   const { ToastComponent } = useToast();
+
+  // Hook état abonnement pour bloquer les fonctionnalités si expiré
+  const { canAccessFeature } = useSubscriptionStatus();
+
+  // Hook pour le modal d'abonnement expiré
+  const {
+    isOpen: isAbonnementModalOpen,
+    featureName: abonnementFeatureName,
+    showModal: showAbonnementModal,
+    hideModal: hideAbonnementModal
+  } = useModalAbonnementExpire();
 
   // Hook pour charger les vraies données depuis l'API
   const {
@@ -231,7 +244,13 @@ export default function CommerceDashboard() {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               className="bg-white rounded-xl p-3 shadow-md border-l-4 border-green-500 cursor-pointer relative"
-              onClick={() => router.push('/dashboard/commerce/inventaire')}
+              onClick={() => {
+                if (!canAccessFeature('Inventaires')) {
+                  showAbonnementModal('Gestion des inventaires');
+                  return;
+                }
+                router.push('/dashboard/commerce/inventaire');
+              }}
             >
               {/* Bouton Œil en haut à droite */}
               <button
@@ -305,7 +324,13 @@ export default function CommerceDashboard() {
             transition={{ delay: 0.8 }}
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
-            onClick={() => router.push('/dashboard/commerce/venteflash')}
+            onClick={() => {
+              if (!canAccessFeature('Vente Flash')) {
+                showAbonnementModal('Vente Flash');
+                return;
+              }
+              router.push('/dashboard/commerce/venteflash');
+            }}
             className="
               bg-gradient-to-br from-green-400 via-emerald-500 to-teal-600
               rounded-xl p-2.5 cursor-pointer shadow-lg hover:shadow-xl
@@ -409,6 +434,13 @@ export default function CommerceDashboard() {
 
       {/* Toast Component */}
       <ToastComponent />
+
+      {/* Modal abonnement expiré */}
+      <ModalAbonnementExpire
+        isOpen={isAbonnementModalOpen}
+        onClose={hideAbonnementModal}
+        featureName={abonnementFeatureName}
+      />
 
       {/* Menu principal */}
       <MainMenu

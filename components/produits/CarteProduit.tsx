@@ -23,6 +23,7 @@ import {
 import { Produit } from '@/types/produit';
 import { usePanierStore } from '@/stores/panierStore';
 import { useToast } from '@/components/ui/Toast';
+import { useSubscriptionStatus } from '@/contexts/AuthContext';
 
 interface CarteProduitProps {
   produit: Produit;
@@ -30,16 +31,20 @@ interface CarteProduitProps {
   onDelete: (produit: Produit) => void;
   typeStructure: string;
   compactMode?: boolean;
+  /** Callback appelé quand l'abonnement est requis */
+  onSubscriptionRequired?: (featureName?: string) => void;
 }
 
-export function CarteProduit({ 
-  produit, 
-  onEdit, 
-  onDelete, 
+export function CarteProduit({
+  produit,
+  onEdit,
+  onDelete,
+  onSubscriptionRequired
 }: CarteProduitProps) {
   const [quantity, setQuantity] = useState(1);
   const { addArticle } = usePanierStore();
   const { success: showSuccessToast } = useToast();
+  const { canAccessFeature } = useSubscriptionStatus();
 
   // Calculs des données
   const prixVente = produit?.prix_vente || 0;
@@ -61,20 +66,28 @@ export function CarteProduit({
 
   // Actions
   const handleAddToCart = () => {
+    // Vérifier l'abonnement avant d'autoriser l'ajout au panier
+    if (!canAccessFeature('Vente produit')) {
+      if (onSubscriptionRequired) {
+        onSubscriptionRequired('Vente de produit');
+      }
+      return;
+    }
+
     if (quantity > 0 && quantity <= niveauStock) {
       // Le produit est déjà au bon format pour ArticlePanier
-      
+
       // Ajouter au panier via le store
       for (let i = 0; i < quantity; i++) {
         addArticle(produit);
       }
-      
+
       // Toast de succès
       showSuccessToast(
-        'Article ajouté !', 
+        'Article ajouté !',
         `${quantity} x ${produit.nom_produit} ajouté${quantity > 1 ? 's' : ''} au panier`
       );
-      
+
       // Reset de la quantité
       setQuantity(1);
     }

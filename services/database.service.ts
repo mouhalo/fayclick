@@ -318,16 +318,51 @@ class DatabaseService {
   }
 
   /**
-   * Récupération des détails complets d'une structure
+   * Récupération des détails complets d'une structure avec état abonnement
+   * Utilise get_une_structure() qui retourne aussi etat_abonnement avec jours_restants
    * @param id_structure - ID de la structure
    */
   async getStructureDetails(id_structure: number): Promise<unknown[]> {
-    const query = `SELECT * FROM list_structures WHERE id_structure = ${id_structure};`;
-    console.log('🏢 [DATABASE] Récupération détails structure:', {
-      id_structure,
-      query
+    const query = `SELECT get_une_structure(${id_structure});`;
+    console.log('🏢 [DATABASE] Récupération détails structure via get_une_structure:', {
+      id_structure
     });
-    return this.query(query);
+
+    try {
+      const results = await this.query(query);
+
+      if (results && results.length > 0) {
+        const response = results[0];
+
+        // Extraire la réponse JSON de la fonction PostgreSQL
+        let parsedData;
+        if (response.get_une_structure) {
+          parsedData = typeof response.get_une_structure === 'string'
+            ? JSON.parse(response.get_une_structure)
+            : response.get_une_structure;
+        } else {
+          parsedData = response;
+        }
+
+        // La fonction retourne {success: true, data: {...}}
+        if (parsedData.success && parsedData.data) {
+          console.log('🏢 [DATABASE] Structure récupérée avec etat_abonnement:', {
+            id_structure: parsedData.data.id_structure,
+            nom_structure: parsedData.data.nom_structure,
+            etat_abonnement: parsedData.data.etat_abonnement
+          });
+          return [parsedData.data];
+        }
+
+        console.warn('🏢 [DATABASE] Réponse inattendue de get_une_structure:', parsedData);
+        return [];
+      }
+
+      return [];
+    } catch (error) {
+      console.error('🏢 [DATABASE] Erreur get_une_structure:', error);
+      throw error;
+    }
   }
 
   /**

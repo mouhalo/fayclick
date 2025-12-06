@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   User,
@@ -14,6 +14,16 @@ import {
 import { authService, ApiException } from '@/services/auth.service';
 import { getUserRedirectRoute } from '@/types/auth';
 import { hasRight, hasAllRights, hasAnyRight } from '@/utils/permissions';
+import { EtatAbonnement, SubscriptionStatus } from '@/types/subscription.types';
+
+// Interface pour l'état de l'abonnement
+export interface SubscriptionState {
+  isActive: boolean;
+  status: SubscriptionStatus;
+  joursRestants: number;
+  dateFin: string | null;
+  typeAbonnement: string | null;
+}
 
 // Interface pour les méthodes du contexte
 interface AuthContextType extends AuthState {
@@ -35,6 +45,12 @@ interface AuthContextType extends AuthState {
   hasRight: (functionalityName: string) => boolean;
   hasAllRights: (functionalityNames: string[]) => boolean;
   hasAnyRight: (functionalityNames: string[]) => boolean;
+
+  // 🆕 Gestion de l'état de l'abonnement
+  subscriptionState: SubscriptionState;
+  isSubscriptionActive: () => boolean;
+  isSubscriptionExpiringSoon: () => boolean;
+  getSubscriptionDaysRemaining: () => number;
 }
 
 // Création du contexte
@@ -343,6 +359,56 @@ export function AuthProvider({ children }: AuthProviderProps) {
     return hasAnyRight(authState.rights, functionalityNames);
   }, [authState.rights]);
 
+  // 🆕 Calcul de l'état de l'abonnement depuis structure.etat_abonnement
+  const subscriptionState: SubscriptionState = useMemo(() => {
+    const etatAbonnement = authState.structure?.etat_abonnement;
+
+    if (!etatAbonnement) {
+      return {
+        isActive: false,
+        status: 'EXPIRE' as SubscriptionStatus,
+        joursRestants: 0,
+        dateFin: null,
+        typeAbonnement: null
+      };
+    }
+
+    return {
+      isActive: etatAbonnement.statut === 'ACTIF' && etatAbonnement.jours_restants > 0,
+      status: etatAbonnement.statut,
+      joursRestants: etatAbonnement.jours_restants,
+      dateFin: etatAbonnement.date_fin,
+      typeAbonnement: etatAbonnement.type_abonnement
+    };
+  }, [authState.structure?.etat_abonnement]);
+
+  // 🆕 Vérifier si l'abonnement est actif
+  const isSubscriptionActive = useCallback(() => {
+    return subscriptionState.isActive;
+  }, [subscriptionState.isActive]);
+
+  // 🆕 Vérifier si l'abonnement expire bientôt (dans les 7 jours)
+  const isSubscriptionExpiringSoon = useCallback(() => {
+    return subscriptionState.isActive && subscriptionState.joursRestants <= 7;
+  }, [subscriptionState.isActive, subscriptionState.joursRestants]);
+
+  // 🆕 Obtenir le nombre de jours restants
+  const getSubscriptionDaysRemaining = useCallback(() => {
+    return subscriptionState.joursRestants;
+  }, [subscriptionState.joursRestants]);
+
+  // Log de l'état de l'abonnement pour debug
+  useEffect(() => {
+    if (authState.isAuthenticated && authState.structure) {
+      console.log('📋 [AUTH CONTEXT] État abonnement:', {
+        isActive: subscriptionState.isActive,
+        status: subscriptionState.status,
+        joursRestants: subscriptionState.joursRestants,
+        dateFin: subscriptionState.dateFin
+      });
+    }
+  }, [authState.isAuthenticated, authState.structure, subscriptionState]);
+
   // Valeurs du contexte
   const contextValue: AuthContextType = {
     ...authState,
@@ -356,7 +422,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
     canAccessRoute,
     hasRight: hasRightCallback, // 🆕
     hasAllRights: hasAllRightsCallback, // 🆕
-    hasAnyRight: hasAnyRightCallback // 🆕
+    hasAnyRight: hasAnyRightCallback, // 🆕
+    // 🆕 État abonnement
+    subscriptionState,
+    isSubscriptionActive,
+    isSubscriptionExpiringSoon,
+    getSubscriptionDaysRemaining
   };
 
   return (
@@ -387,11 +458,97 @@ export function useAuth(): AuthContextType {
  */
 export function useAuthState() {
   const { isAuthenticated, isLoading, isHydrated } = useAuth();
-  
+
   return {
     isAuthenticated,
     isLoading,
     isHydrated,
     isReady: isHydrated && !isLoading
+  };
+}
+
+/**
+ * 🆕 Hook pour vérifier l'état de l'abonnement
+ * Permet de facilement vérifier si l'abonnement est actif et bloquer des fonctionnalités
+ *
+ * @example
+ * const { isActive, isExpiringSoon, joursRestants, canAccessFeature } = useSubscriptionStatus();
+ *
+ * if (!canAccessFeature('VENTE')) {
+ *   return <AbonnementExpireModal />;
+ * }
+ */
+export function useSubscriptionStatus() {
+  const {
+    subscriptionState,
+    isSubscriptionActive,
+    isSubscriptionExpiringSoon,
+    getSubscriptionDaysRemaining,
+    isAuthenticated,
+    isHydrated
+  } = useAuth();
+
+  /**
+   * Vérifie si l'utilisateur peut accéder à une fonctionnalité
+   * Retourne true si abonnement actif, false sinon
+   */
+  const canAccessFeature = useCallback((featureName?: string) => {
+    // Si pas encore hydraté, on autorise temporairement (pour éviter le flash)
+    if (!isHydrated) return true;
+
+    // Si pas authentifié, pas d'accès
+    if (!isAuthenticated) return false;
+
+    // Vérifier l'abonnement
+    return subscriptionState.isActive;
+  }, [isHydrated, isAuthenticated, subscriptionState.isActive]);
+
+  /**
+   * Message à afficher selon l'état de l'abonnement
+   */
+  const getSubscriptionMessage = useCallback(() => {
+    if (!subscriptionState.isActive) {
+      return {
+        type: 'error' as const,
+        title: 'Abonnement expiré',
+        message: 'Votre abonnement a expiré. Veuillez renouveler pour continuer à utiliser cette fonctionnalité.'
+      };
+    }
+
+    if (subscriptionState.joursRestants <= 3) {
+      return {
+        type: 'warning' as const,
+        title: 'Abonnement bientôt expiré',
+        message: `Votre abonnement expire dans ${subscriptionState.joursRestants} jour(s). Pensez à le renouveler.`
+      };
+    }
+
+    if (subscriptionState.joursRestants <= 7) {
+      return {
+        type: 'info' as const,
+        title: 'Renouvellement recommandé',
+        message: `Il vous reste ${subscriptionState.joursRestants} jours d'abonnement.`
+      };
+    }
+
+    return null;
+  }, [subscriptionState]);
+
+  return {
+    // État direct
+    ...subscriptionState,
+
+    // Méthodes utilitaires
+    isActive: subscriptionState.isActive,
+    isExpiringSoon: isSubscriptionExpiringSoon(),
+    joursRestants: subscriptionState.joursRestants,
+    status: subscriptionState.status,
+
+    // Vérification d'accès
+    canAccessFeature,
+    getSubscriptionMessage,
+
+    // État de chargement
+    isReady: isHydrated && isAuthenticated
   };
 }
