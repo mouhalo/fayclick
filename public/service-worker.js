@@ -1,9 +1,9 @@
 // Service Worker FayClick V2 - PWA Complète
-// Version: 2.5.0 - 2025-10-03 - Cache busting agressif sur logout
-// Build: 2025-10-30T21:40:29.684Z - Force upload fix for ftp-deploy size comparison bug
+// Version: 2.6.0 - 2025-12-06 - Fix compatibilité cross-browser (Firefox, Safari iOS)
+// Build: 2025-12-06T00:31:21.506Z - Force upload fix for ftp-deploy size comparison bug
 
-const CACHE_NAME = 'fayclick-v2-cache-v2.5-20251003';
-const DYNAMIC_CACHE_NAME = 'fayclick-v2-dynamic-v2.5-20251003';
+const CACHE_NAME = 'fayclick-v2-cache-v2.6-20251206';
+const DYNAMIC_CACHE_NAME = 'fayclick-v2-dynamic-v2.6-20251206';
 const OFFLINE_PAGE_URL = '/offline';
 
 // Assets essentiels à mettre en cache lors de l'installation
@@ -41,7 +41,7 @@ const CRITICAL_JS_PATTERNS = [
 
 // Installation du Service Worker
 self.addEventListener('install', (event) => {
-  console.log('[Service Worker] Installation v2.5.0...');
+  console.log('[Service Worker] Installation v2.6.0 (cross-browser fix)...');
 
   event.waitUntil(
     // D'abord, supprimer TOUS les anciens caches
@@ -71,7 +71,7 @@ self.addEventListener('install', (event) => {
       });
 
       await Promise.allSettled(cachePromises);
-      console.log('[Service Worker] Installation v2.5.0 terminée');
+      console.log('[Service Worker] Installation v2.6.0 terminée');
     })
   );
 
@@ -100,8 +100,8 @@ self.addEventListener('activate', (event) => {
         clients.forEach(client => {
           client.postMessage({
             type: 'SW_UPDATED',
-            version: '2.5.0',
-            message: 'Service Worker mis à jour, rechargement recommandé'
+            version: '2.6.0',
+            message: 'Service Worker mis à jour (fix cross-browser), rechargement recommandé'
           });
         });
       });
@@ -136,9 +136,20 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Ignorer les requêtes API (toujours network-first)
-  if (url.hostname.includes('api') || url.pathname.startsWith('/api')) {
-    event.respondWith(networkFirst(request));
+  // ===== FIX CROSS-BROWSER: Ignorer COMPLÈTEMENT les requêtes API =====
+  // Sur iOS Safari et Firefox, le Service Worker peut interférer avec les requêtes API
+  // On laisse le navigateur gérer ces requêtes directement sans intervention du SW
+  const isAPIRequest =
+    url.hostname.includes('api') ||  // api.icelabsoft.com
+    url.hostname.includes('icelabsoft') ||
+    url.pathname.startsWith('/api') ||
+    request.headers.get('Content-Type')?.includes('xml') ||
+    request.headers.get('Accept')?.includes('json');
+
+  if (isAPIRequest) {
+    // NE PAS appeler event.respondWith() - laisser le navigateur gérer nativement
+    // C'est crucial pour la compatibilité iOS Safari et Firefox
+    console.log('[Service Worker] Requête API ignorée (passthrough natif):', url.pathname);
     return;
   }
 
