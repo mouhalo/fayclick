@@ -6,7 +6,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Search, Filter, Grid, LayoutList, LayoutGrid, RefreshCw, Camera } from 'lucide-react';
+import { Search, Filter, Grid, LayoutList, LayoutGrid, RefreshCw, Camera, Printer } from 'lucide-react';
 
 interface ProduitsFilterHeaderProps {
   searchTerm: string;
@@ -18,6 +18,7 @@ interface ProduitsFilterHeaderProps {
   onRefresh: () => void;
   refreshing?: boolean;
   onScanClick?: () => void;
+  onPrintClick?: () => void;
 }
 
 export function ProduitsFilterHeader({
@@ -29,7 +30,8 @@ export function ProduitsFilterHeader({
   onToggleFilters,
   onRefresh,
   refreshing = false,
-  onScanClick
+  onScanClick,
+  onPrintClick
 }: ProduitsFilterHeaderProps) {
   return (
     <div className="space-y-4">
@@ -101,6 +103,18 @@ export function ProduitsFilterHeader({
         </div>
 
         <div className="flex items-center gap-2">
+          {/* Bouton Impression */}
+          {onPrintClick && (
+            <motion.button
+              whileTap={{ scale: 0.95 }}
+              onClick={onPrintClick}
+              className="p-2 bg-white/20 backdrop-blur-sm rounded-lg hover:bg-white/30 transition-colors"
+              title="Imprimer la liste des produits"
+            >
+              <Printer className="w-5 h-5 text-white" />
+            </motion.button>
+          )}
+
           <motion.button
             whileTap={{ scale: 0.95 }}
             onClick={onRefresh}
