@@ -4,10 +4,15 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import dynamic from 'next/dynamic'
 import LogoFayclick from '@/components/ui/LogoFayclick'
 import { ModalPasswordRecovery } from '@/components/auth/ModalPasswordRecovery'
 import { useAuth } from '@/contexts/AuthContext'
 import { authService } from '@/services/auth.service'
+
+const FloatingWhatsAppButton = dynamic(() => import('@/components/ui/FloatingWhatsAppButton'), {
+  ssr: false
+})
 
 export default function LoginPage() {
   const router = useRouter()
@@ -242,10 +247,13 @@ export default function LoginPage() {
       </div>
 
       {/* Modal récupération mot de passe */}
-      <ModalPasswordRecovery 
+      <ModalPasswordRecovery
         isOpen={showPasswordRecovery}
         onClose={() => setShowPasswordRecovery(false)}
       />
+
+      {/* Bouton WhatsApp flottant */}
+      <FloatingWhatsAppButton />
     </div>
   )
 }

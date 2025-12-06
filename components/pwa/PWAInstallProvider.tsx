@@ -72,7 +72,7 @@ export function PWAInstallProvider({ children }: { children: React.ReactNode }) 
       // Créer un petit indicateur discret si l'app n'est pas installée
       const indicator = document.createElement('div');
       indicator.id = 'pwa-install-indicator';
-      indicator.className = 'fixed top-4 right-4 z-50';
+      indicator.className = 'fixed bottom-4 left-4 z-50';
       indicator.innerHTML = `
         <button
           class="bg-gradient-to-r from-blue-600 to-orange-500 text-white text-xs px-3 py-1.5 rounded-full shadow-lg hover:shadow-xl transition-all transform hover:scale-105"

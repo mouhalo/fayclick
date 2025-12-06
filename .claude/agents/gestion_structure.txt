@@ -1,0 +1,10 @@
+Pour afficher les infos completes d'une structure
+on va utiliser la fonction get_une_structure(pid_structure) en remplaçant l'utilisation de la 
+requete SELECT * from list_structures WHERE id_structure = $id_structure;
+
+Exemple:
+SELECT get_une_structure(203);
+résultat:
+{"success" : true, "data" : {"id_structure" : 203, "code_structure" : "MCKIO", "nom_structure" : "COSMÉTIQUE GUEYE", "adresse" : "Liberté 6 cité Alioune Sow CSE", "mobile_om" : "784332261", "mobile_wave" : "764845591", "numautorisatioon" : "", "nummarchand" : "BOPOIEDIG", "email" : "", "id_localite" : 1, "actif" : true, "logo" : "https://fayclick.net/uploads/logo-1759922999580-cvn6h4vd.png", "createdat" : "2025-10-08T11:30:20.509907", "updatedat" : "2025-10-08T11:30:20.509907+00:00", "id_type" : 2, "type_structure" : "COMMERCIALE", "num_unik_reversement" : "", "etat_abonnement" : {"id_abonnement" : 36, "statut" : "ACTIF", "type_abonnement" : "MENSUEL", "date_debut" : "2025-12-01", "date_fin" : "2025-12-31", "montant" : 3100.00, "methode" : "WAVE", "jours_restants" : 26}}}
+
+dans le champ etat_abonnement, nous pourrons récuperer l'état actuel de l'abonnement et le nombre de jours_restants
