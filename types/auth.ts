@@ -1,3 +1,5 @@
+import { EtatAbonnement } from './subscription.types';
+
 // Types pour l'authentification et les structures
 export interface LoginCredentials {
   login: string;
@@ -64,7 +66,7 @@ export interface Structure {
   num_unik_reversement: string;
 }
 
-// Interface complète pour les détails de structure depuis list_structures
+// Interface complète pour les détails de structure depuis get_une_structure()
 export interface StructureDetails extends Structure {
   // Informations supplémentaires qui pourraient être dans la DB
   description?: string;
@@ -74,6 +76,8 @@ export interface StructureDetails extends Structure {
   // Métadonnées de timing
   created_at: string;
   updated_at: string;
+  // État de l'abonnement (depuis get_une_structure())
+  etat_abonnement?: EtatAbonnement | null;
 }
 
 // Énumération des permissions disponibles

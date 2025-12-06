@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { usePanierStore } from '@/stores/panierStore';
 import { useToast } from '@/components/ui/Toast';
+import { useSubscriptionStatus } from '@/contexts/AuthContext';
 import { Produit } from '@/types/produit';
 
 interface CarteProduitReduitProps {
@@ -34,6 +35,8 @@ interface CarteProduitReduitProps {
   onQrCode?: (produit: Produit) => void;
   /** Type de structure */
   typeStructure?: string;
+  /** Callback appelé quand l'abonnement est requis */
+  onSubscriptionRequired?: (featureName?: string) => void;
 }
 
 export function CarteProduitReduit({
@@ -41,10 +44,12 @@ export function CarteProduitReduit({
   onEdit,
   onDelete,
   onQrCode,
-  typeStructure = 'COMMERCIALE'
+  typeStructure = 'COMMERCIALE',
+  onSubscriptionRequired
 }: CarteProduitReduitProps) {
   const { addArticle, articles } = usePanierStore();
   const { success: showSuccessToast } = useToast();
+  const { canAccessFeature } = useSubscriptionStatus();
   const [quantite, setQuantite] = useState(1);
   const [showMenu, setShowMenu] = useState(false);
 
@@ -67,6 +72,14 @@ export function CarteProduitReduit({
 
   // Ajout au panier - COPIE EXACTE de CarteProduit
   const handleVendre = () => {
+    // Vérifier abonnement actif
+    if (!canAccessFeature('Vente produit')) {
+      if (onSubscriptionRequired) {
+        onSubscriptionRequired('Vente de produit');
+      }
+      return;
+    }
+
     const niveauStock = produit?.niveau_stock || 0;
 
     if (quantite > 0 && quantite <= niveauStock) {

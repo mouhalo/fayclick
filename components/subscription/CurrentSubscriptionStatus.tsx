@@ -46,11 +46,13 @@ function getStatusIcon(statut: SubscriptionStatus) {
 }
 
 /**
- * Message selon le statut et la date
+ * Message selon le statut et les jours restants
+ * Utilise jours_restants directement depuis PostgreSQL (get_une_structure)
  */
 function getStatusMessage(
   statut: SubscriptionStatus,
-  dateLimite: string
+  dateLimite: string,
+  joursRestants?: number
 ): { text: string; color: string } {
   if (statut === 'EXPIRE') {
     return {
@@ -73,8 +75,8 @@ function getStatusMessage(
     };
   }
 
-  // ACTIF
-  const daysRemaining = getDaysRemaining(dateLimite);
+  // ACTIF - Utiliser jours_restants depuis PostgreSQL ou calculer en fallback
+  const daysRemaining = joursRestants !== undefined ? joursRestants : getDaysRemaining(dateLimite);
 
   if (daysRemaining < 0) {
     return {
@@ -113,12 +115,17 @@ function getStatusMessage(
 export default function CurrentSubscriptionStatus({
   subscription
 }: CurrentSubscriptionStatusProps) {
+  // Utiliser jours_restants depuis PostgreSQL ou calculer en fallback
+  const joursRestants = subscription.jours_restants !== undefined
+    ? subscription.jours_restants
+    : (subscription.date_limite_abonnement ? getDaysRemaining(subscription.date_limite_abonnement) : 0);
+
   const expiringSoon = subscription.date_limite_abonnement
     ? isExpiringSoon(subscription.date_limite_abonnement)
     : false;
 
   const statusMessage = subscription.date_limite_abonnement
-    ? getStatusMessage(subscription.etat_abonnement, subscription.date_limite_abonnement)
+    ? getStatusMessage(subscription.etat_abonnement, subscription.date_limite_abonnement, subscription.jours_restants)
     : { text: 'Aucun abonnement actif', color: 'text-gray-700' };
 
   return (
@@ -171,8 +178,8 @@ export default function CurrentSubscriptionStatus({
             {getStatusIcon(subscription.etat_abonnement)}
             <p className="text-xs text-gray-600 font-medium">État</p>
           </div>
-          <p className={`font-bold ${STATUS_COLORS[subscription.etat_abonnement].replace('bg-', 'text-').replace('/100', '-700')}`}>
-            {subscription.etat_abonnement}
+          <p className={`font-bold ${(STATUS_COLORS[subscription.etat_abonnement] || 'text-gray-700').replace('bg-', 'text-').replace('/100', '-700')}`}>
+            {subscription.etat_abonnement || 'AUCUN'}
           </p>
         </div>
 
@@ -190,7 +197,7 @@ export default function CurrentSubscriptionStatus({
           </p>
           {subscription.date_limite_abonnement && subscription.etat_abonnement === 'ACTIF' && (
             <p className="text-xs text-gray-600 mt-1">
-              {getDaysRemaining(subscription.date_limite_abonnement)} jours restants
+              {joursRestants} jours restants
             </p>
           )}
         </div>

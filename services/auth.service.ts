@@ -66,10 +66,16 @@ export class AuthService {
         description: (structureData.description as string) || undefined,
         website: (structureData.website as string) || undefined,
         siret: (structureData.siret as string) || undefined,
-        responsable: (structureData.responsable as string) || undefined
+        responsable: (structureData.responsable as string) || undefined,
+        // État abonnement depuis get_une_structure()
+        etat_abonnement: structureData.etat_abonnement as StructureDetails['etat_abonnement'] || null
       };
 
-      console.log('✅ [AUTH] Détails structure récupérés:', structure.nom_structure);
+      console.log('✅ [AUTH] Détails structure récupérés:', {
+        nom_structure: structure.nom_structure,
+        etat_abonnement: structure.etat_abonnement?.statut,
+        jours_restants: structure.etat_abonnement?.jours_restants
+      });
       return structure;
 
     } catch (error) {

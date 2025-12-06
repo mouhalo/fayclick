@@ -35,7 +35,7 @@ import ModalPaiementAbonnement from '@/components/subscription/ModalPaiementAbon
 import SubscriptionHistory from '@/components/subscription/SubscriptionHistory';
 import CurrentSubscriptionStatus from '@/components/subscription/CurrentSubscriptionStatus';
 import subscriptionService from '@/services/subscription.service';
-import { HistoriqueAbonnement, CurrentSubscriptionState } from '@/types/subscription.types';
+import { HistoriqueAbonnement, CurrentSubscriptionState, EtatAbonnement } from '@/types/subscription.types';
 
 interface StructureData {
   id_structure: number;
@@ -68,9 +68,8 @@ interface RawStructureData {
   logo: string;
   id_type: number;
   actif: boolean;
-  etat_abonnement?: string;
-  date_limite_abonnement?: string;
-  type_abonnement?: string | null;
+  // État abonnement depuis get_une_structure() - objet complet avec jours_restants
+  etat_abonnement?: EtatAbonnement | null;
   [key: string]: unknown;
 }
 
@@ -921,12 +920,16 @@ export default function StructureEditPage() {
                     </button>
                   </motion.div>
 
-                  {/* Section 2: État actuel abonnement */}
+                  {/* Section 2: État actuel abonnement - données depuis get_une_structure() */}
                   <CurrentSubscriptionStatus
                     subscription={{
-                      etat_abonnement: currentStructureData?.etat_abonnement || 'EXPIRE',
-                      date_limite_abonnement: currentStructureData?.date_limite_abonnement || '',
-                      type_abonnement: currentStructureData?.type_abonnement || null
+                      etat_abonnement: currentStructureData?.etat_abonnement?.statut || 'EXPIRE',
+                      date_limite_abonnement: currentStructureData?.etat_abonnement?.date_fin || '',
+                      type_abonnement: currentStructureData?.etat_abonnement?.type_abonnement || null,
+                      jours_restants: currentStructureData?.etat_abonnement?.jours_restants,
+                      id_abonnement: currentStructureData?.etat_abonnement?.id_abonnement,
+                      montant: currentStructureData?.etat_abonnement?.montant,
+                      methode: currentStructureData?.etat_abonnement?.methode
                     } as CurrentSubscriptionState}
                   />
 
