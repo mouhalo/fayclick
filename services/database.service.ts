@@ -145,14 +145,13 @@ class DatabaseService {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), timeout);
 
-      // Configuration cross-browser compatible
-      // Note: 'User-Agent' est un "forbidden header" que les navigateurs bloquent
-      // On utilise un header personnalisé X-Client-App à la place
+      // Configuration cross-browser compatible - Headers CORS-safe uniquement
+      // Note: Les headers personnalisés (X-Client-App, X-Requested-With) déclenchent
+      // une requête preflight CORS que le serveur API peut rejeter.
+      // On utilise uniquement les headers standards autorisés par CORS.
       const headers: HeadersInit = {
         'Content-Type': 'application/xml',
-        'Accept': 'application/json',
-        'X-Client-App': 'FayClick-V2/1.0',
-        'X-Requested-With': 'XMLHttpRequest'
+        'Accept': 'application/json'
       };
 
       const response = await fetch(API_CONFIG.ENDPOINT, {
@@ -162,8 +161,6 @@ class DatabaseService {
         signal: controller.signal,
         // Mode CORS explicite pour Firefox/Safari
         mode: 'cors',
-        // Inclure les credentials pour les cookies de session si nécessaires
-        credentials: 'same-origin',
         // Cache control pour éviter les problèmes de cache navigateur
         cache: 'no-cache'
       });
