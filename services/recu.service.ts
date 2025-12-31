@@ -426,11 +426,7 @@ class RecuService {
       let whereClause = `WHERE r.id_structure = ${id_structure}`;
 
       if (date_debut) {
-        whereClause += ` AND r.date_paiement >= '${date_debut}'`;
-      }
-
-      if (date_fin) {
-        whereClause += ` AND r.date_paiement <= '${date_fin}'`;
+        whereClause += ` AND r.date_paiement between '${date_debut}' and '${date_fin}'`;
       }
 
       const requete = `
