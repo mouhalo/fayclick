@@ -124,6 +124,11 @@ export default function FacturesGlassPage() {
     loadFactures();
   }, [loadFactures]);
 
+  // Réinitialiser la pagination quand les filtres changent
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filtres]);
+
   // Filtrer et trier les factures
   const facturesFiltreesEtTriees = useMemo(() => {
     if (!facturesResponse?.factures) return [];
@@ -131,7 +136,7 @@ export default function FacturesGlassPage() {
     let resultat = [...facturesResponse.factures];
 
     // Filtrage par statut
-    if (filtres.statut !== 'TOUS') {
+    if (filtres.statut && filtres.statut !== 'TOUS') {
       resultat = resultat.filter(f => {
         // Support des deux formats possibles
         const statut = f.facture?.libelle_etat || (f as any).libelle_etat;
@@ -139,15 +144,52 @@ export default function FacturesGlassPage() {
       });
     }
 
-    // Recherche
+    // Filtrage par période (dates début et fin)
+    if (filtres.periode?.debut && filtres.periode?.fin) {
+      const dateDebut = new Date(filtres.periode.debut);
+      dateDebut.setHours(0, 0, 0, 0);
+      const dateFin = new Date(filtres.periode.fin);
+      dateFin.setHours(23, 59, 59, 999);
+
+      resultat = resultat.filter(f => {
+        const dateFacture = f.facture?.date_facture || (f as any).date_facture;
+        if (!dateFacture) return false;
+        const date = new Date(dateFacture);
+        return date >= dateDebut && date <= dateFin;
+      });
+    }
+
+    // Filtrage par nom client spécifique
+    if (filtres.nom_client) {
+      const recherche = filtres.nom_client.toLowerCase().trim();
+      resultat = resultat.filter(f => {
+        const nomClient = f.facture?.nom_client || (f as any).nom_client || '';
+        return nomClient.toLowerCase().includes(recherche);
+      });
+    }
+
+    // Filtrage par téléphone client
+    if (filtres.tel_client) {
+      // Nettoyer le numéro (enlever espaces, tirets, etc.)
+      const telRecherche = filtres.tel_client.replace(/[\s\-\.]/g, '');
+      resultat = resultat.filter(f => {
+        const telClient = f.facture?.tel_client || (f as any).tel_client || '';
+        const telNettoye = telClient.replace(/[\s\-\.]/g, '');
+        return telNettoye.includes(telRecherche);
+      });
+    }
+
+    // Recherche générale (numéro facture ou client)
     if (filtres.searchTerm) {
-      const recherche = filtres.searchTerm.toLowerCase();
+      const recherche = filtres.searchTerm.toLowerCase().trim();
       resultat = resultat.filter(f => {
         // Support des deux formats possibles
         const nomClient = f.facture?.nom_client || (f as any).nom_client || '';
         const numFacture = f.facture?.num_facture || (f as any).num_facture || '';
+        const telClient = f.facture?.tel_client || (f as any).tel_client || '';
         return nomClient.toLowerCase().includes(recherche) ||
-               numFacture.toLowerCase().includes(recherche);
+               numFacture.toLowerCase().includes(recherche) ||
+               telClient.includes(recherche);
       });
     }
 
@@ -234,7 +276,25 @@ export default function FacturesGlassPage() {
     setModalConfirmation({ isOpen: false, message: '', onConfirm: () => {} });
   };
 
-  // Actions sur les paiements
+  // Action pour voir le reçu depuis une carte de facture (factures PAYÉES)
+  const handleVoirRecuFacture = (facture: FactureComplete) => {
+    // Construire un objet paiement à partir des données de la facture
+    const paiementSimule = {
+      id_facture: facture.facture.id_facture,
+      montant_paye: facture.facture.montant,
+      date_paiement: facture.facture.date_facture,
+      methode_paiement: 'CASH', // Par défaut, peut être amélioré si on a l'info
+      reference_transaction: facture.facture.numrecu || ''
+    };
+
+    setModalRecuGenere({
+      isOpen: true,
+      facture: facture,
+      paiement: paiementSimule
+    });
+  };
+
+  // Actions sur les paiements (onglet Paiements)
   const handleViewRecu = (paiement: any) => {
     // Ouvrir le modal de reçu avec les données du paiement
     const factureAssociee = facturesResponse?.factures.find(
@@ -288,18 +348,27 @@ export default function FacturesGlassPage() {
     );
   }
 
+  // Vérifier si des filtres sont actifs (pour recalculer les stats)
+  const hasActiveFilters = !!(
+    filtres.searchTerm ||
+    filtres.periode?.debut ||
+    filtres.nom_client ||
+    filtres.tel_client ||
+    (filtres.statut && filtres.statut !== 'TOUS')
+  );
+
   // Contenu de l'onglet Factures
   const facturesContent = (
     <>
-      {/* Statistiques */}
+      {/* Statistiques - basées sur les factures filtrées si filtres actifs */}
       {facturesResponse && (
         <StatsCardsFacturesGlass
-          factures={facturesResponse.factures}
-          resumeGlobal={facturesResponse.resume_global}
-          totalFactures={facturesResponse.total_factures}
-          montantTotal={facturesResponse.montant_total}
-          montantPaye={facturesResponse.montant_paye}
-          montantImpaye={facturesResponse.montant_impaye}
+          factures={facturesFiltreesEtTriees}
+          resumeGlobal={hasActiveFilters ? undefined : facturesResponse.resume_global}
+          totalFactures={facturesFiltreesEtTriees.length}
+          montantTotal={facturesFiltreesEtTriees.reduce((sum, f) => sum + (f.facture?.montant || 0), 0)}
+          montantPaye={facturesFiltreesEtTriees.reduce((sum, f) => sum + (f.facture?.mt_acompte || 0), 0)}
+          montantImpaye={facturesFiltreesEtTriees.reduce((sum, f) => sum + (f.facture?.mt_restant || 0), 0)}
         />
       )}
 
@@ -327,7 +396,9 @@ export default function FacturesGlassPage() {
         onVoirDetailsModal={handleViewFacture}
         onAjouterAcompte={handlePayFacture}
         onPartager={handleShareFacture}
+        onVoirRecu={handleVoirRecuFacture}
         onSupprimer={handleDeleteFacture}
+        userProfileId={user?.id_profil}
       />
     </>
   );

@@ -18,6 +18,7 @@ interface FacturesListProps {
   onPartager?: (facture: FactureComplete) => void;
   onVoirRecu?: (facture: FactureComplete) => void;
   onSupprimer?: (facture: FactureComplete) => void;
+  userProfileId?: number; // ID du profil utilisateur (1 = ADMIN)
 }
 
 // Variants pour le container avec stagger
@@ -66,7 +67,8 @@ export const FacturesList = ({
   onAjouterAcompte,
   onPartager,
   onVoirRecu,
-  onSupprimer
+  onSupprimer,
+  userProfileId
 }: FacturesListProps) => {
 
   // État de loading
@@ -149,6 +151,7 @@ export const FacturesList = ({
               onVoirRecu={onVoirRecu}
               onSupprimer={onSupprimer}
               delay={index * 0.05} // Délai plus court pour la fluidité
+              userProfileId={userProfileId}
             />
           </motion.div>
         ))}

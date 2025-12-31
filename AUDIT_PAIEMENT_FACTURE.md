@@ -98,7 +98,7 @@ const createPaymentContext = (): PaymentContext | null => {
   "pReference": "FCT-2025-001",
   "pClientTel": "771234567",
   "pMontant": 50000,
-  "pServiceName": "orange-money-senegal",
+  "pServiceName": "OFMS",
   "pNomClient": "Amadou Diallo",
   "pnom_structure": "Mon Commerce SARL"    // ✅ PRÉSENT
 }
@@ -112,7 +112,7 @@ const createPaymentContext = (): PaymentContext | null => {
   "pReference": "FCT-2025-001",
   "pClientTel": "771234567",
   "pMontant": 50000,
-  "pServiceName": "orange-money-senegal",
+  "pServiceName": "OFMS",
   "pNomClient": "Amadou Diallo",
   "pnom_structure": undefined              // ❌ MANQUANT !
 }
