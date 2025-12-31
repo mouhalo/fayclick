@@ -1,6 +1,6 @@
 // Service Worker FayClick V2 - PWA Complète
 // Version: 2.6.0 - 2025-12-06 - Fix compatibilité cross-browser (Firefox, Safari iOS)
-// Build: 2025-12-06T00:42:48.319Z - Force upload fix for ftp-deploy size comparison bug
+// Build: 2025-12-31T12:57:38.359Z - Force upload fix for ftp-deploy size comparison bug
 
 const CACHE_NAME = 'fayclick-v2-cache-v2.6-20251206';
 const DYNAMIC_CACHE_NAME = 'fayclick-v2-dynamic-v2.6-20251206';

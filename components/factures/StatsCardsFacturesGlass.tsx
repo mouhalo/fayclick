@@ -9,7 +9,6 @@
 import { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Receipt, DollarSign, CreditCard, TrendingUp } from 'lucide-react';
-import { GlassCard } from '@/components/ui/GlassCard';
 import { FactureComplete, ResumeGlobal } from '@/types/facture';
 
 interface StatsCardsFacturesGlassProps {
@@ -180,39 +179,40 @@ export function StatsCardsFacturesGlass({
           key={card.id}
           initial={{ opacity: 0, y: 20, scale: 0.9 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{ 
-            delay: card.delay, 
-            duration: 0.5, 
+          transition={{
+            delay: card.delay,
+            duration: 0.5,
             type: 'spring',
-            stiffness: 100 
+            stiffness: 100
           }}
           whileHover={{ scale: 1.02 }}
         >
           <div className="bg-green-800/90 backdrop-blur-sm rounded-2xl p-3 border border-green-700/50 hover:scale-[1.02] transition-transform duration-200">
-            <div className="space-y-2">
-              {/* Icône en haut */}
+            {/* Layout horizontal : Icône à gauche, infos à droite */}
+            <div className="flex items-center gap-3">
+              {/* Icône à gauche */}
               <div className={`
-                w-8 h-8 ${card.iconBg}
-                rounded-lg flex items-center justify-center
-                shadow-lg
+                w-12 h-12 ${card.iconBg}
+                rounded-xl flex items-center justify-center
+                shadow-lg flex-shrink-0
               `}>
-                <card.icon className={`w-4 h-4 ${card.iconColor}`} />
+                <card.icon className={`w-6 h-6 ${card.iconColor}`} />
               </div>
 
-              {/* Contenu textuel */}
-              <div className="space-y-1">
+              {/* Contenu textuel à droite */}
+              <div className="flex-1 min-w-0">
                 {/* Titre */}
-                <p className="text-white text-[10px] font-medium leading-tight">
+                <p className="text-white/80 text-xs font-medium leading-tight">
                   {card.title}
                 </p>
 
                 {/* Valeur principale */}
-                <p className="text-white text-sm font-bold leading-tight break-words">
+                <p className="text-white text-lg font-bold leading-tight truncate">
                   {card.value}
                 </p>
 
                 {/* Sous-titre */}
-                <p className="text-white/70 text-[9px] leading-tight">
+                <p className="text-white/60 text-[10px] leading-tight">
                   {card.subtitle}
                 </p>
               </div>
@@ -235,16 +235,18 @@ export function StatsCardsFacturesGlassLoading() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: i * 0.1 }}
         >
-          <GlassCard className="p-4 animate-pulse">
-            <div className="flex items-start justify-between">
+          <div className="bg-green-800/90 backdrop-blur-sm rounded-2xl p-3 border border-green-700/50 animate-pulse">
+            <div className="flex items-center gap-3">
+              {/* Icône skeleton */}
+              <div className="w-12 h-12 bg-white/20 rounded-xl flex-shrink-0"></div>
+              {/* Texte skeleton */}
               <div className="flex-1">
                 <div className="h-3 bg-white/20 rounded mb-2 w-3/4"></div>
                 <div className="h-5 bg-white/30 rounded mb-1 w-1/2"></div>
                 <div className="h-2 bg-white/20 rounded w-2/3"></div>
               </div>
-              <div className="w-10 h-10 bg-white/20 rounded-xl flex-shrink-0 ml-2"></div>
             </div>
-          </GlassCard>
+          </div>
         </motion.div>
       ))}
     </div>
