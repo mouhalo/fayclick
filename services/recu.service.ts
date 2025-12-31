@@ -176,19 +176,9 @@ class RecuService {
         date_paiement: datePaiement
       });
 
-      // Première tentative : INSERT avec RETURNING
-      const requeteInsert = `
-        INSERT INTO public.recus_paiement (
-          id_facture,
-          id_structure,
-          numero_recu,
-          methode_paiement,
-          montant_paye,
-          reference_transaction,
-          numero_telephone,
-          date_paiement,
-          date_creation
-        ) VALUES (
+      // Utiliser la fonction PostgreSQL add_new_recupaiement (INSERT direct bloqué par module sécurité)
+      const requeteFonction = `
+        SELECT public.add_new_recupaiement(
           ${id_facture},
           ${id_structure},
           '${numRecu}',
@@ -196,27 +186,45 @@ class RecuService {
           ${montant_paye},
           ${reference_transaction ? `'${reference_transaction}'` : 'NULL'},
           ${numero_telephone ? `'${numero_telephone}'` : 'NULL'},
-          '${datePaiement}',
-          NOW()
-        ) RETURNING id_recu
+          '${datePaiement}'::TIMESTAMP
+        )
       `;
 
-      const insertResult = await this.executerRequete(requeteInsert);
-      console.log('📤 [RECU-SERVICE] Résultat INSERT:', insertResult);
+      const insertResult = await this.executerRequete(requeteFonction);
+      console.log('📤 [RECU-SERVICE] Résultat add_new_recupaiement:', insertResult);
 
-      // Vérifier si on a récupéré l'ID depuis le RETURNING
-      if (insertResult?.datas && insertResult.datas.length > 0 && insertResult.datas[0].id_recu) {
-        console.log('✅ [RECU-SERVICE] Reçu créé avec ID:', insertResult.datas[0].id_recu);
+      // Extraire le résultat JSON de la fonction PostgreSQL
+      // Format réponse: {"success": true, "code": "RECEIPT_CREATED", "message": "...", "data": {"new_id": 2410}}
+      let functionResponse = null;
+
+      if (insertResult?.datas && insertResult.datas.length > 0) {
+        const rawResult = insertResult.datas[0];
+        // La réponse peut être dans add_new_recupaiement ou dans une autre clé
+        const jsonString = rawResult.add_new_recupaiement || Object.values(rawResult)[0];
+
+        if (typeof jsonString === 'string') {
+          try {
+            functionResponse = JSON.parse(jsonString);
+          } catch {
+            console.log('⚠️ [RECU-SERVICE] Réponse non-JSON:', jsonString);
+          }
+        } else if (typeof jsonString === 'object') {
+          functionResponse = jsonString;
+        }
+      }
+
+      if (functionResponse?.success && functionResponse?.data?.new_id) {
+        console.log('✅ [RECU-SERVICE] Reçu créé avec ID:', functionResponse.data.new_id);
         return {
           success: true,
           message: 'Reçu créé avec succès',
-          id_recu: insertResult.datas[0].id_recu,
+          id_recu: functionResponse.data.new_id,
           numero_recu: numRecu
         };
       }
 
-      // Si pas d'ID retourné, essayer de récupérer le reçu créé
-      console.log('⚠️ [RECU-SERVICE] Pas d\'ID retourné, tentative de récupération du reçu créé');
+      // Fallback : vérifier si le reçu existe malgré une réponse inattendue
+      console.log('⚠️ [RECU-SERVICE] Réponse inattendue, vérification existence du reçu');
 
       const requeteSelect = `
         SELECT id_recu, numero_recu
