@@ -82,8 +82,7 @@ class RecuService {
       method: 'POST',
       headers: {
         'Content-Type': 'application/xml',
-        'Accept': 'application/json',
-        'User-Agent': 'FayClick-V2/1.0'
+        'Accept': 'application/json'
       },
       body: xmlBody
     });
@@ -418,49 +417,57 @@ class RecuService {
 
   /**
    * Récupérer l'historique des reçus pour une structure
+   * Utilise la fonction PostgreSQL get_historic_recu()
    */
   async getHistoriqueRecus(params: HistoriqueRecusParams): Promise<RecuGenere[]> {
     try {
       const { id_structure, date_debut, date_fin, limite = 50 } = params;
 
-      let whereClause = `WHERE r.id_structure = ${id_structure}`;
+      // Construire l'appel dynamiquement selon les paramètres fournis
+      let requete: string;
 
-      if (date_debut) {
-        whereClause += ` AND r.date_paiement between '${date_debut}' and '${date_fin}'`;
+      if (date_debut && date_fin) {
+        // Avec filtre de date + limite
+        requete = `SELECT public.get_historic_recu(${id_structure}, '${date_debut}', '${date_fin}', ${limite})`;
+      } else if (limite !== 50) {
+        // Sans date mais avec limite personnalisée - passer les dates vides
+        requete = `SELECT public.get_historic_recu(${id_structure}, NULL, NULL, ${limite})`;
+      } else {
+        // Appel simple avec juste id_structure (utilise défauts PostgreSQL)
+        requete = `SELECT public.get_historic_recu(${id_structure})`;
       }
 
-      const requete = `
-        SELECT
-          f.id_facture,
-          f.num_facture,
-          f.id_structure,
-          f.nom_structure,
-          f.date_facture,
-          f.nom_client,
-          f.tel_client,
-          f.montant,
-          f.libelle_etat ,
-          f.description,
-          f.mt_remise,
-          f.mt_acompte,
-          f.mt_restant,
-          f.logo,
-          r.numero_recu,
-          r.methode_paiement,
-          r.montant_paye,
-          r.reference_transaction,
-          r.numero_telephone,
-          r.date_paiement
-        FROM public.list_factures_com f
-        LEFT JOIN public.recus_paiement r ON f.id_facture = r.id_facture
-        ${whereClause}
-        ORDER BY r.date_paiement DESC
-        LIMIT ${limite}
-      `;
+      console.log('🧾 [RECU-SERVICE] Appel get_historic_recu:', { id_structure, date_debut, date_fin, limite, requete });
 
       const result = await this.executerRequete(requete);
 
-      return result?.datas || [];
+      // Extraire la réponse JSON de la fonction PostgreSQL
+      // Format attendu : { success, code, message, total, data: [...] }
+      let functionResponse = null;
+
+      if (result?.datas && result.datas.length > 0) {
+        const rawResult = result.datas[0];
+        const jsonData = rawResult.get_historic_recu || Object.values(rawResult)[0];
+
+        if (typeof jsonData === 'string') {
+          try {
+            functionResponse = JSON.parse(jsonData);
+          } catch {
+            console.error('❌ [RECU-SERVICE] Erreur parsing JSON get_historic_recu');
+          }
+        } else if (typeof jsonData === 'object') {
+          functionResponse = jsonData;
+        }
+      }
+
+      console.log('📊 [RECU-SERVICE] Réponse get_historic_recu:', {
+        success: functionResponse?.success,
+        total: functionResponse?.total,
+        dataLength: functionResponse?.data?.length
+      });
+
+      // Retourner le tableau data de la réponse
+      return functionResponse?.data || [];
 
     } catch (error: unknown) {
       console.error('❌ [RECU-SERVICE] Erreur historique reçus:', error);

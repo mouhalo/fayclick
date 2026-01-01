@@ -253,7 +253,7 @@ export function FilterHeaderPaiementsGlass({
                 <option value="orange-money">OM</option>
                 <option value="wave">Wave</option>
                 <option value="free-money">Free</option>
-                <option value="CASH">Cash</option>
+                <option value="espèces">Espèces</option>
               </select>
             </div>
 
