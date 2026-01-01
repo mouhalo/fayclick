@@ -209,13 +209,18 @@ export function ListePaiements({
         icon: <Smartphone className="w-4 h-4" />,
         color: 'from-green-500 to-green-600'
       },
+      'espèces': {
+        label: 'Espèces',
+        icon: <DollarSign className="w-4 h-4" />,
+        color: 'from-gray-500 to-gray-600'
+      },
       'CASH': {
         label: 'Espèces',
         icon: <DollarSign className="w-4 h-4" />,
         color: 'from-gray-500 to-gray-600'
       }
     };
-    return methodes[methode] || methodes['CASH'];
+    return methodes[methode] || methodes['espèces'];
   };
 
   if (loading) {
