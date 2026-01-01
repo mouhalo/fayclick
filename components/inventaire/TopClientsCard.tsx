@@ -1,34 +1,42 @@
 'use client';
 
-import { motion } from 'framer-motion';
-import { Users, Phone, Crown, Star, Award } from 'lucide-react';
+import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Users, Phone, Crown, Star, User, ChevronDown } from 'lucide-react';
 import type { TopClient } from '@/types/inventaire.types';
 
 interface TopClientsCardProps {
   clients: TopClient[];
+  defaultExpanded?: boolean;
 }
 
 /**
- * Carte affichant le top 5 des meilleurs clients
+ * Carte dépliable affichant le top 5 des meilleurs clients
+ * Design compact en zone répétée pour une meilleure lisibilité
  */
-export default function TopClientsCard({ clients }: TopClientsCardProps) {
+export default function TopClientsCard({ clients, defaultExpanded = true }: TopClientsCardProps) {
+  const [isExpanded, setIsExpanded] = useState(defaultExpanded);
+
+  // Calcul du total pour l'aperçu replié
+  const totalMontant = clients?.reduce((acc, c) => acc + c.montant_total, 0) || 0;
+
   // Badge de statut client
   const getStatutBadge = (statut: 'VIP' | 'Premium' | 'Standard') => {
     const styles = {
       VIP: {
-        bg: 'bg-gradient-to-r from-amber-400 to-amber-600',
-        text: 'text-white',
-        icon: <Crown className="w-3 h-3" />
+        bg: 'bg-amber-100',
+        text: 'text-amber-700',
+        icon: <Crown className="w-2.5 h-2.5" />
       },
       Premium: {
-        bg: 'bg-gradient-to-r from-purple-400 to-purple-600',
-        text: 'text-white',
-        icon: <Star className="w-3 h-3" />
+        bg: 'bg-purple-100',
+        text: 'text-purple-700',
+        icon: <Star className="w-2.5 h-2.5" />
       },
       Standard: {
         bg: 'bg-gray-100',
-        text: 'text-gray-700',
-        icon: <Award className="w-3 h-3" />
+        text: 'text-gray-600',
+        icon: <User className="w-2.5 h-2.5" />
       }
     };
     return styles[statut];
@@ -38,11 +46,11 @@ export default function TopClientsCard({ clients }: TopClientsCardProps) {
   const getRangeBadgeColor = (rang: number) => {
     switch (rang) {
       case 1:
-        return 'bg-gradient-to-br from-amber-400 to-amber-600 text-white shadow-lg';
+        return 'bg-gradient-to-br from-amber-400 to-amber-500 text-white';
       case 2:
-        return 'bg-gradient-to-br from-gray-300 to-gray-500 text-white shadow-md';
+        return 'bg-gradient-to-br from-gray-300 to-gray-400 text-white';
       case 3:
-        return 'bg-gradient-to-br from-orange-400 to-orange-600 text-white shadow-md';
+        return 'bg-gradient-to-br from-orange-400 to-orange-500 text-white';
       default:
         return 'bg-emerald-100 text-emerald-700';
     }
@@ -65,73 +73,117 @@ export default function TopClientsCard({ clients }: TopClientsCardProps) {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.4 }}
-      className="bg-white rounded-2xl p-6 shadow-lg"
+      className="bg-white rounded-2xl shadow-lg overflow-hidden"
     >
-      {/* Header */}
-      <div className="flex items-center gap-3 mb-4">
-        <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center">
-          <Users className="w-6 h-6 text-emerald-600" />
+      {/* Header cliquable */}
+      <button
+        onClick={() => setIsExpanded(!isExpanded)}
+        className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors"
+      >
+        <div className="flex items-center gap-2">
+          <Users className="w-5 h-5 text-emerald-600" />
+          <h3 className="text-base font-bold text-gray-800">Meilleurs clients</h3>
+          <span className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
+            {clients?.length || 0}
+          </span>
         </div>
-        <h3 className="text-lg font-bold text-gray-800">Meilleurs clients</h3>
-      </div>
-
-      {/* Liste des clients */}
-      {clients && clients.length > 0 ? (
-        <div className="space-y-3">
-          {clients.map((client, index) => {
-            const statutStyle = getStatutBadge(client.statut);
-
-            return (
-              <motion.div
-                key={client.rang}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.1 * index }}
-                className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 transition-colors"
-              >
-                {/* Badge de rang */}
-                <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${getRangeBadgeColor(client.rang)}`}>
-                  {client.rang}
-                </div>
-
-                {/* Initiales client */}
-                <div className={`flex-shrink-0 w-12 h-12 rounded-full ${getInitialsBgColor(client.rang)} flex items-center justify-center`}>
-                  <span className="text-white font-bold text-sm">{client.initiales}</span>
-                </div>
-
-                {/* Informations client */}
-                <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-gray-800 truncate">{client.nom_client}</p>
-                  <div className="flex items-center gap-2 mt-1">
-                    <Phone className="w-3 h-3 text-gray-400" />
-                    <span className="text-xs text-gray-500">{client.tel_client}</span>
-                  </div>
-                  {/* Badge statut */}
-                  <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold mt-1 ${statutStyle.bg} ${statutStyle.text}`}>
-                    {statutStyle.icon}
-                    <span>{client.statut}</span>
-                  </div>
-                </div>
-
-                {/* Montant et commandes */}
-                <div className="text-right flex-shrink-0">
-                  <p className="font-bold text-emerald-600 text-sm">
-                    {client.montant_total.toLocaleString('fr-FR')} FCFA
-                  </p>
-                  <p className="text-xs text-gray-500 mt-1">
-                    {client.nombre_factures} {client.nombre_factures > 1 ? 'commandes' : 'commande'}
-                  </p>
-                </div>
-              </motion.div>
-            );
-          })}
+        <div className="flex items-center gap-2">
+          {!isExpanded && (
+            <span className="text-xs text-emerald-600 font-semibold">
+              {totalMontant.toLocaleString('fr-FR')} F
+            </span>
+          )}
+          <motion.div
+            animate={{ rotate: isExpanded ? 180 : 0 }}
+            transition={{ duration: 0.2 }}
+          >
+            <ChevronDown className="w-5 h-5 text-gray-400" />
+          </motion.div>
         </div>
-      ) : (
-        <div className="flex flex-col items-center justify-center py-12 text-gray-500">
-          <Users className="w-16 h-16 mb-3 opacity-30" />
-          <p className="text-sm">Aucun client sur cette période</p>
-        </div>
-      )}
+      </button>
+
+      {/* Liste des clients - Zone répétée dépliable */}
+      <AnimatePresence>
+        {isExpanded && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="overflow-hidden"
+          >
+            {clients && clients.length > 0 ? (
+              <div className="divide-y divide-gray-50 px-4 pb-4">
+                {clients.map((client, index) => {
+                  const statutStyle = getStatutBadge(client.statut);
+
+                  return (
+                    <motion.div
+                      key={client.rang}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.05 * index }}
+                      className="py-2.5 first:pt-0 last:pb-0"
+                    >
+                      {/* Ligne principale */}
+                      <div className="flex items-center gap-2">
+                        {/* Badge rang compact */}
+                        <div className={`flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center font-bold text-xs ${getRangeBadgeColor(client.rang)}`}>
+                          {client.rang}
+                        </div>
+
+                        {/* Initiales client - compact */}
+                        <div className={`flex-shrink-0 w-7 h-7 rounded-full ${getInitialsBgColor(client.rang)} flex items-center justify-center`}>
+                          <span className="text-white font-bold text-xs">{client.initiales}</span>
+                        </div>
+
+                        {/* Nom client - prend tout l'espace */}
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-gray-800 text-sm leading-tight" title={client.nom_client}>
+                            {client.nom_client}
+                          </p>
+                        </div>
+
+                        {/* Montant */}
+                        <div className="flex-shrink-0 text-right">
+                          <p className="font-bold text-emerald-600 text-sm whitespace-nowrap">
+                            {client.montant_total.toLocaleString('fr-FR')} F
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Ligne secondaire - détails */}
+                      <div className="flex items-center justify-between mt-1 ml-8">
+                        <div className="flex items-center gap-2">
+                          {/* Téléphone */}
+                          <span className="flex items-center gap-1 text-xs text-gray-500">
+                            <Phone className="w-2.5 h-2.5" />
+                            {client.tel_client}
+                          </span>
+                          {/* Badge statut */}
+                          <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium ${statutStyle.bg} ${statutStyle.text}`}>
+                            {statutStyle.icon}
+                            {client.statut}
+                          </span>
+                        </div>
+                        {/* Commandes */}
+                        <span className="text-xs text-gray-400">
+                          {client.nombre_factures} cmd{client.nombre_factures > 1 ? 's' : ''}
+                        </span>
+                      </div>
+                    </motion.div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-8 text-gray-500">
+                <Users className="w-10 h-10 mb-2 opacity-30" />
+                <p className="text-xs">Aucun client sur cette période</p>
+              </div>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }
