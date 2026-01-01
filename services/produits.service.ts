@@ -8,7 +8,6 @@ import database from './database.service';
 import SecurityService from './security.service';
 import {
   Produit,
-  ProduitFormData,
   ProduitFormDataNew,
   MouvementStockForm,
   AddEditProduitResponse,
@@ -188,155 +187,6 @@ export class ProduitsService {
   }
 
   /**
-   * Créer un nouveau produit
-   */
-  async createProduit(produitData: ProduitFormData): Promise<ProduitApiResponse> {
-    try {
-      const user = authService.getUser();
-      if (!user) {
-        throw new ProduitsApiException('Utilisateur non authentifié', 401);
-      }
-
-      // Validation des données
-      if (!produitData.nom_produit?.trim()) {
-        throw new ProduitsApiException('Le nom du produit est requis', 400);
-      }
-
-      if (produitData.prix_vente < 0 || produitData.cout_revient < 0) {
-        throw new ProduitsApiException('Les prix ne peuvent pas être négatifs', 400);
-      }
-
-      // Construction de la requête INSERT
-      const query = `
-        INSERT INTO produit_service (
-          nom_produit, 
-          cout_revient, 
-          prix_vente, 
-          id_structure,
-          description,
-          code_produit,
-          nom_categorie
-        ) VALUES (
-          '${produitData.nom_produit.replace(/'/g, "''")}',
-          ${produitData.cout_revient},
-          ${produitData.prix_vente},
-          ${user.id_structure},
-          ${produitData.description ? `'${produitData.description.replace(/'/g, "''")}'` : 'NULL'},
-          ${produitData.code_produit ? `'${produitData.code_produit}'` : 'NULL'},
-          ${produitData.nom_categorie ? `'${produitData.nom_categorie}'` : 'NULL'}
-        ) RETURNING id_produit
-      `;
-
-      const results = await database.query(query);
-      const nouveauProduit = Array.isArray(results) && results.length > 0 ? results[0] : null;
-
-      SecurityService.secureLog('log', 'Produit créé avec succès', {
-        id_produit: nouveauProduit.id_produit,
-        nom: produitData.nom_produit
-      });
-
-      // Récupérer le produit créé avec toutes ses données calculées
-      const produitCree = await this.getProduitById(nouveauProduit.id_produit);
-      
-      return {
-        success: true,
-        data: produitCree.data
-      };
-
-    } catch (error) {
-      SecurityService.secureLog('error', 'Erreur création produit', error);
-      
-      if (error instanceof ProduitsApiException) {
-        throw error;
-      }
-      
-      throw new ProduitsApiException(
-        'Impossible de créer le produit',
-        500,
-        error
-      );
-    }
-  }
-
-  /**
-   * Mettre à jour un produit existant
-   */
-  async updateProduit(id_produit: number, produitData: Partial<ProduitFormData>): Promise<ProduitApiResponse> {
-    try {
-      const user = authService.getUser();
-      if (!user) {
-        throw new ProduitsApiException('Utilisateur non authentifié', 401);
-      }
-
-      // Vérifier que le produit existe et appartient à la structure
-      const produitExistant = await this.getProduitById(id_produit);
-      if (!produitExistant.success) {
-        throw new ProduitsApiException(`Produit ${id_produit} non trouvé`, 404);
-      }
-
-      // Construction de la requête UPDATE
-      const setClause: string[] = [];
-      
-      if (produitData.nom_produit !== undefined) {
-        setClause.push(`nom_produit = '${produitData.nom_produit.replace(/'/g, "''")}'`);
-      }
-      if (produitData.cout_revient !== undefined) {
-        setClause.push(`cout_revient = ${produitData.cout_revient}`);
-      }
-      if (produitData.prix_vente !== undefined) {
-        setClause.push(`prix_vente = ${produitData.prix_vente}`);
-      }
-      if (produitData.description !== undefined) {
-        setClause.push(`description = ${produitData.description ? `'${produitData.description.replace(/'/g, "''")}'` : 'NULL'}`);
-      }
-      if (produitData.code_produit !== undefined) {
-        setClause.push(`code_produit = ${produitData.code_produit ? `'${produitData.code_produit}'` : 'NULL'}`);
-      }
-      if (produitData.nom_categorie !== undefined) {
-        setClause.push(`nom_categorie = ${produitData.nom_categorie ? `'${produitData.nom_categorie}'` : 'NULL'}`);
-      }
-
-      if (setClause.length === 0) {
-        throw new ProduitsApiException('Aucune donnée à mettre à jour', 400);
-      }
-
-      const query = `
-        UPDATE produit_service 
-        SET ${setClause.join(', ')}
-        WHERE id_produit = ${id_produit} AND id_structure = ${user.id_structure}
-      `;
-
-      await database.query(query);
-
-      SecurityService.secureLog('log', 'Produit mis à jour', {
-        id_produit,
-        modifications: Object.keys(produitData)
-      });
-
-      // Récupérer le produit mis à jour
-      const produitMisAJour = await this.getProduitById(id_produit);
-
-      return {
-        success: true,
-        data: produitMisAJour.data
-      };
-
-    } catch (error) {
-      SecurityService.secureLog('error', 'Erreur mise à jour produit', { id_produit, error });
-      
-      if (error instanceof ProduitsApiException) {
-        throw error;
-      }
-      
-      throw new ProduitsApiException(
-        'Impossible de mettre à jour le produit',
-        500,
-        error
-      );
-    }
-  }
-
-  /**
    * Supprimer un produit avec la fonction PostgreSQL supprimer_produit
    */
   async deleteProduit(id_produit: number): Promise<{ success: boolean; message: string }> {
@@ -429,7 +279,7 @@ export class ProduitsService {
   }
 
   /**
-   * Ajouter un mouvement de stock
+   * Ajouter un mouvement de stock via fonction PostgreSQL add_mouvement_stock
    */
   async addMouvementStock(mouvement: Omit<MouvementStock, 'id' | 'tms_create'>): Promise<{ success: boolean; data: MouvementStock }> {
     try {
@@ -453,39 +303,54 @@ export class ProduitsService {
         throw new ProduitsApiException(`Produit ${mouvement.id_produit} non trouvé`, 404);
       }
 
-      // Insérer le mouvement de stock
+      // Utiliser la fonction PostgreSQL add_mouvement_stock (INSERT direct bloqué par module sécurité)
       const query = `
-        INSERT INTO mouvement_stock (
-          id_produit,
-          id_structure, 
-          type_mouvement,
-          quantite,
-          description,
-          created_by,
-          tms_create
-        ) VALUES (
+        SELECT public.add_mouvement_stock(
           ${mouvement.id_produit},
           ${user.id_structure},
           '${mouvement.type_mouvement}',
           ${mouvement.quantite},
           ${mouvement.description ? `'${mouvement.description.replace(/'/g, "''")}'` : 'NULL'},
-          ${user.id},
-          NOW()
-        ) RETURNING *
+          ${user.id}
+        )
       `;
 
       const results = await database.query(query);
-      const nouveauMouvement = Array.isArray(results) && results.length > 0 ? results[0] : null;
+
+      // Parser la réponse JSON de la fonction PostgreSQL
+      let functionResponse = null;
+      if (Array.isArray(results) && results.length > 0) {
+        const rawResult = results[0];
+        const jsonString = rawResult.add_mouvement_stock || Object.values(rawResult)[0];
+
+        if (typeof jsonString === 'string') {
+          try {
+            functionResponse = JSON.parse(jsonString);
+          } catch {
+            console.log('⚠️ [PRODUITS-SERVICE] Réponse non-JSON:', jsonString);
+          }
+        } else if (typeof jsonString === 'object') {
+          functionResponse = jsonString;
+        }
+      }
+
+      if (!functionResponse?.success) {
+        throw new ProduitsApiException(
+          functionResponse?.message || 'Erreur lors de l\'ajout du mouvement',
+          400
+        );
+      }
 
       SecurityService.secureLog('log', 'Mouvement stock ajouté', {
         id_produit: mouvement.id_produit,
         type: mouvement.type_mouvement,
-        quantite: mouvement.quantite
+        quantite: mouvement.quantite,
+        id_mouvement: functionResponse.data?.id_mouvement
       });
 
       return {
         success: true,
-        data: nouveauMouvement
+        data: functionResponse.data
       };
 
     } catch (error) {
@@ -1074,13 +939,39 @@ export class ProduitsService {
         throw new ProduitsApiException('Utilisateur non authentifié', 401);
       }
 
+      // Utiliser la fonction PostgreSQL del_produit_photo (DELETE direct bloqué par module sécurité)
       const query = `
-        DELETE FROM produit_photos
-        WHERE id_photo = ${id_photo}
-          AND id_structure = ${user.id_structure}
+        SELECT public.del_produit_photo(
+          ${id_photo},
+          ${user.id_structure}
+        )
       `;
 
-      await database.query(query);
+      const results = await database.query(query);
+
+      // Parser la réponse JSON de la fonction PostgreSQL
+      let functionResponse = null;
+      if (Array.isArray(results) && results.length > 0) {
+        const rawResult = results[0];
+        const jsonString = rawResult.del_produit_photo || Object.values(rawResult)[0];
+
+        if (typeof jsonString === 'string') {
+          try {
+            functionResponse = JSON.parse(jsonString);
+          } catch {
+            console.log('⚠️ [PRODUITS-SERVICE] Réponse non-JSON:', jsonString);
+          }
+        } else if (typeof jsonString === 'object') {
+          functionResponse = jsonString;
+        }
+      }
+
+      if (!functionResponse?.success) {
+        throw new ProduitsApiException(
+          functionResponse?.message || 'Erreur lors de la suppression de la photo',
+          400
+        );
+      }
 
       SecurityService.secureLog('log', 'Photo supprimée', { id_photo });
       return true;
