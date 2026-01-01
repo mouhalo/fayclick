@@ -1,7 +1,12 @@
 /**
  * Service pour la gestion des statistiques d'inventaire
  * Utilise DatabaseService avec requêtes SQL directes
- * Appelle la fonction PostgreSQL: get_inventaire(pid_structure, pannee, pperiode)
+ * Appelle la fonction PostgreSQL: get_inventaire_periodique(pid_structure, pannee, pmois, psemaine, pjour)
+ *
+ * Logique des paramètres selon l'onglet sélectionné:
+ * - Onglet Année:   get_inventaire_periodique(id, annee, 0, 0, 0)
+ * - Onglet Mois:    get_inventaire_periodique(id, annee, mois, 0, 0)
+ * - Onglet Semaine: get_inventaire_periodique(id, annee, 0, semaine, 0)
  */
 
 import DatabaseService from './database.service';
@@ -23,21 +28,61 @@ class InventaireService {
   }
 
   /**
-   * Récupère les statistiques d'inventaire pour une période donnée
-   * @param structureId - ID de la structure
-   * @param annee - Année à analyser
-   * @param periode - Type de période (semaine, mois, annee)
-   * @returns Données complètes des statistiques
+   * Récupère les statistiques d'inventaire pour une période donnée (ancienne méthode)
+   * @deprecated Utiliser getStatistiquesPeriodiques à la place
    */
   async getStatistiques(
     structureId: number,
     annee: number,
     periode: PeriodeType
   ): Promise<InventaireData> {
+    // Convertir vers la nouvelle méthode avec valeurs par défaut
+    const currentDate = new Date();
+    const mois = currentDate.getMonth() + 1;
+    const semaine = this.getWeekNumber(currentDate);
+    const jour = currentDate.getDate();
+    return this.getStatistiquesPeriodiques(structureId, annee, mois, semaine, jour, periode);
+  }
+
+  /**
+   * Calcule le numéro de semaine pour une date
+   */
+  private getWeekNumber(date: Date): number {
+    const firstDayOfYear = new Date(date.getFullYear(), 0, 1);
+    const pastDaysOfYear = (date.getTime() - firstDayOfYear.getTime()) / 86400000;
+    return Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7);
+  }
+
+  /**
+   * Récupère les statistiques d'inventaire pour une période spécifique
+   * @param structureId - ID de la structure
+   * @param annee - Année à analyser (2024-2030), obligatoire
+   * @param mois - Mois à analyser (1-12), 0 = non filtré
+   * @param semaine - Semaine à analyser (1-52), 0 = non filtré
+   * @param jour - Jour à analyser (1-31), 0 = non filtré
+   * @param periode - Type de vue (semaine, mois, annee) - utilisé côté client pour l'affichage
+   * @returns Données complètes des statistiques
+   *
+   * Logique des paramètres selon l'onglet:
+   * - Onglet Année:   (id, annee, 0, 0, 0)
+   * - Onglet Mois:    (id, annee, mois, 0, 0)
+   * - Onglet Semaine: (id, annee, 0, semaine, 0)
+   */
+  async getStatistiquesPeriodiques(
+    structureId: number,
+    annee: number,
+    mois: number,
+    semaine: number,
+    jour: number,
+    periode: PeriodeType = 'semaine'
+  ): Promise<InventaireData> {
     try {
-      console.log('📊 [InventaireService] Récupération statistiques:', {
+      console.log('📊 [InventaireService] Récupération statistiques périodiques:', {
         structureId,
         annee,
+        mois,
+        semaine,
+        jour,
         periode
       });
 
@@ -50,20 +95,33 @@ class InventaireService {
         throw new Error('Année invalide');
       }
 
-      if (!['semaine', 'mois', 'annee'].includes(periode)) {
-        throw new Error('Période invalide (attendu: semaine, mois, annee)');
+      // Mois, semaine et jour peuvent être 0 (non filtré) ou une valeur valide
+      if (mois < 0 || mois > 12) {
+        throw new Error('Mois invalide (attendu: 0-12)');
       }
 
-      // Construction de la requête SQL
-      const requeteSql = `SELECT * FROM get_inventaire(${structureId}, ${annee}, '${periode}')`;
+      if (semaine < 0 || semaine > 52) {
+        throw new Error('Semaine invalide (attendu: 0-52)');
+      }
+
+      if (jour < 0 || jour > 31) {
+        throw new Error('Jour invalide (attendu: 0-31)');
+      }
+
+      // Construction de la requête SQL avec get_inventaire_periodique
+      // Signature: get_inventaire_periodique(pid_structure, pannee, pmois, psemaine, pjour)
+      // Tous les paramètres sont de type INTEGER
+      const requeteSql = `SELECT * FROM get_inventaire_periodique(${structureId}, ${annee}, ${mois}, ${semaine}, ${jour})`;
 
       console.log('📝 [InventaireService] Requête SQL complète:', {
         requete: requeteSql,
         parametres: {
           structureId,
           annee,
-          periode,
-          typesPeriode: typeof periode
+          mois,
+          semaine,
+          jour,
+          periode
         }
       });
 
@@ -83,11 +141,11 @@ class InventaireService {
 
       if (!result || result.length === 0) {
         console.error('❌ [InventaireService] Résultat vide ou null');
-        throw new Error('Aucune donnée retournée par la fonction get_inventaire');
+        throw new Error('Aucune donnée retournée par la fonction get_inventaire_periodique');
       }
 
       // Extraire les données du résultat
-      const data = this.extractInventaireData(result[0]);
+      const data = this.extractInventaireData(result[0], 'get_inventaire_periodique');
 
       console.log('📦 [InventaireService] Données extraites:', {
         success: data.success,
@@ -112,12 +170,15 @@ class InventaireService {
   /**
    * Extrait les données d'inventaire depuis le résultat PostgreSQL
    * Gère différentes structures de réponse possibles
+   * @param rawData - Données brutes du résultat
+   * @param functionKey - Clé de la fonction PostgreSQL (get_inventaire ou get_inventaire_periodique)
    */
-  private extractInventaireData(rawData: unknown): InventaireData {
+  private extractInventaireData(rawData: unknown, functionKey: string = 'get_inventaire'): InventaireData {
     try {
       console.log('🔍 [extractInventaireData] Début extraction:', {
         typeRawData: typeof rawData,
         isString: typeof rawData === 'string',
+        functionKey,
         rawDataPreview: typeof rawData === 'string' ? rawData.substring(0, 200) : rawData
       });
 
@@ -144,21 +205,28 @@ class InventaireService {
       // Cast vers un objet indexable
       const dataObj = data as Record<string, unknown>;
 
-      // Chercher la clé contenant "get_inventaire"
+      // Chercher la clé contenant la fonction (get_inventaire ou get_inventaire_periodique)
       let inventaireData: unknown;
 
-      if ('get_inventaire' in dataObj) {
-        console.log('🔑 [extractInventaireData] Clé "get_inventaire" trouvée');
-        inventaireData = dataObj.get_inventaire;
-        console.log('📝 [extractInventaireData] Type de get_inventaire:', typeof inventaireData);
+      if (functionKey in dataObj) {
+        console.log(`🔑 [extractInventaireData] Clé "${functionKey}" trouvée`);
+        inventaireData = dataObj[functionKey];
+        console.log(`📝 [extractInventaireData] Type de ${functionKey}:`, typeof inventaireData);
 
         // Si c'est une chaîne, la parser
         if (typeof inventaireData === 'string') {
-          console.log('🔄 [extractInventaireData] Parsing du contenu get_inventaire...');
+          console.log(`🔄 [extractInventaireData] Parsing du contenu ${functionKey}...`);
+          inventaireData = JSON.parse(inventaireData);
+        }
+      } else if ('get_inventaire' in dataObj) {
+        // Fallback vers get_inventaire si la clé spécifiée n'existe pas
+        console.log('🔑 [extractInventaireData] Fallback vers clé "get_inventaire"');
+        inventaireData = dataObj.get_inventaire;
+        if (typeof inventaireData === 'string') {
           inventaireData = JSON.parse(inventaireData);
         }
       } else {
-        console.log('⚠️ [extractInventaireData] Pas de clé "get_inventaire", utilisation data directement');
+        console.log('⚠️ [extractInventaireData] Pas de clé fonction trouvée, utilisation data directement');
         inventaireData = data;
       }
 
