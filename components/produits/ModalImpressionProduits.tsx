@@ -1,16 +1,40 @@
 /**
  * Modal d'impression de la liste des produits
- * Design glassmorphisme vert avec prévisualisation et statistiques
+ * Optimisé pour gérer 500+ produits avec progression temps réel
+ *
+ * Fonctionnalités :
+ * - Génération QR codes par lots avec progression
+ * - Sélection taille étiquettes (petites/moyennes/grandes)
+ * - Pagination automatique
+ * - Annulation possible
  */
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Printer, FileText, Package, AlertCircle, Tag, Check } from 'lucide-react';
+import {
+  X,
+  Printer,
+  FileText,
+  Package,
+  AlertCircle,
+  Tag,
+  Check,
+  XCircle,
+  AlertTriangle,
+  Grid3X3,
+  LayoutGrid,
+  Square
+} from 'lucide-react';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
+import { usePrintJob } from '@/hooks/usePrintJob';
 import { Produit } from '@/types/produit';
-import { printProduitsList, printQRStickers } from '@/services/produits-print.service';
+import { StickerSizeKey, STICKER_SIZES, LIST_CONFIG } from '@/types/print';
+
+// ============================================================================
+// TYPES
+// ============================================================================
 
 interface ModalImpressionProduitsProps {
   isOpen: boolean;
@@ -20,6 +44,145 @@ interface ModalImpressionProduitsProps {
   logoStructure?: string;
 }
 
+type ViewState = 'main' | 'qr-options';
+
+// ============================================================================
+// COMPOSANTS UI
+// ============================================================================
+
+/**
+ * Barre de progression avec animation
+ */
+function ProgressBar({
+  current,
+  total,
+  timeRemaining,
+  message
+}: {
+  current: number;
+  total: number;
+  timeRemaining?: string;
+  message: string;
+}) {
+  const percentage = total > 0 ? Math.round((current / total) * 100) : 0;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="bg-blue-50/80 backdrop-blur-sm rounded-xl p-4 mb-4 border border-blue-200"
+    >
+      <div className="flex justify-between text-sm text-blue-900 mb-2">
+        <span className="font-medium">{message}</span>
+        <span className="font-bold">{percentage}%</span>
+      </div>
+
+      <div className="h-3 bg-blue-200 rounded-full overflow-hidden">
+        <motion.div
+          className="h-full bg-gradient-to-r from-blue-500 to-cyan-500"
+          initial={{ width: 0 }}
+          animate={{ width: `${percentage}%` }}
+          transition={{ duration: 0.3, ease: 'easeOut' }}
+        />
+      </div>
+
+      {timeRemaining && (
+        <p className="text-xs text-blue-700 mt-2 text-center">
+          Temps restant estimé : {timeRemaining}
+        </p>
+      )}
+    </motion.div>
+  );
+}
+
+/**
+ * Sélecteur de taille d'étiquettes
+ */
+function StickerSizeSelector({
+  value,
+  onChange,
+  isMobile
+}: {
+  value: StickerSizeKey;
+  onChange: (size: StickerSizeKey) => void;
+  isMobile: boolean;
+}) {
+  const sizes: Array<{
+    key: StickerSizeKey;
+    label: string;
+    desc: string;
+    icon: typeof Grid3X3;
+  }> = [
+    { key: 'small', label: 'Petites', desc: '40/page', icon: Grid3X3 },
+    { key: 'medium', label: 'Moyennes', desc: '20/page', icon: LayoutGrid },
+    { key: 'large', label: 'Grandes', desc: '12/page', icon: Square }
+  ];
+
+  return (
+    <div className="mb-4">
+      <label className={`block font-semibold text-gray-800 mb-2 ${isMobile ? 'text-sm' : 'text-base'}`}>
+        Taille des étiquettes
+      </label>
+      <div className="grid grid-cols-3 gap-2">
+        {sizes.map((size) => (
+          <motion.button
+            key={size.key}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => onChange(size.key)}
+            className={`
+              p-3 rounded-xl border-2 transition-all
+              ${value === size.key
+                ? 'border-emerald-500 bg-emerald-50/80'
+                : 'border-gray-200 bg-white/60 hover:border-gray-300'
+              }
+            `}
+          >
+            <size.icon className={`
+              ${isMobile ? 'w-5 h-5' : 'w-6 h-6'} mx-auto mb-1
+              ${value === size.key ? 'text-emerald-600' : 'text-gray-500'}
+            `} />
+            <div className={`
+              font-semibold
+              ${isMobile ? 'text-xs' : 'text-sm'}
+              ${value === size.key ? 'text-emerald-700' : 'text-gray-700'}
+            `}>
+              {size.label}
+            </div>
+            <div className={`
+              ${isMobile ? 'text-[10px]' : 'text-xs'}
+              ${value === size.key ? 'text-emerald-600' : 'text-gray-500'}
+            `}>
+              {size.desc}
+            </div>
+          </motion.button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Alerte d'avertissement
+ */
+function WarningAlert({ message, isMobile }: { message: string; isMobile: boolean }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      className={`bg-amber-50 border border-amber-200 rounded-xl ${isMobile ? 'p-3' : 'p-4'} mb-4`}
+    >
+      <div className="flex items-start gap-2 text-amber-800">
+        <AlertTriangle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+        <span className={isMobile ? 'text-xs' : 'text-sm'}>{message}</span>
+      </div>
+    </motion.div>
+  );
+}
+
+// ============================================================================
+// COMPOSANT PRINCIPAL
+// ============================================================================
+
 export function ModalImpressionProduits({
   isOpen,
   onClose,
@@ -28,26 +191,43 @@ export function ModalImpressionProduits({
   logoStructure
 }: ModalImpressionProduitsProps) {
   const { isMobile, isMobileLarge } = useBreakpoint();
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [showQROptions, setShowQROptions] = useState(false);
+
+  // États locaux
+  const [viewState, setViewState] = useState<ViewState>('main');
+  const [stickerSize, setStickerSize] = useState<StickerSizeKey>('medium');
   const [qrOptions, setQrOptions] = useState({
     afficherNom: true,
     afficherPrix: true
   });
 
-  // Réinitialiser l'état à l'ouverture
+  // Hook d'impression
+  const {
+    job,
+    startPrint,
+    cancel,
+    reset,
+    isProcessing,
+    progressMessage,
+    timeRemaining,
+    warning
+  } = usePrintJob({
+    produits,
+    nomStructure,
+    logoStructure
+  });
+
+  // Réinitialiser à l'ouverture
   useEffect(() => {
     if (isOpen) {
-      setIsProcessing(false);
-      setError(null);
-      setShowQROptions(false);
+      reset();
+      setViewState('main');
+      setStickerSize('medium');
       setQrOptions({ afficherNom: true, afficherPrix: true });
     }
-  }, [isOpen]);
+  }, [isOpen, reset]);
 
   // Calculer statistiques
-  const stats = {
+  const stats = useMemo(() => ({
     totalProduits: produits.length,
     categories: new Set(produits.map(p => p.nom_categorie || 'Sans catégorie')).size,
     valeurStock: produits.reduce((sum, p) => {
@@ -55,81 +235,37 @@ export function ModalImpressionProduits({
       const prix = p.prix_vente || 0;
       return sum + (stock * prix);
     }, 0),
-    produitsEnStock: produits.filter(p => (p.niveau_stock || 0) > 0).length
-  };
+    produitsEnStock: produits.filter(p => (p.niveau_stock || 0) > 0).length,
+    pagesListe: Math.ceil(produits.length / LIST_CONFIG.itemsPerPage),
+    pagesStickers: Math.ceil(produits.length / STICKER_SIZES[stickerSize].perPage)
+  }), [produits, stickerSize]);
 
-  // Lancer l'impression liste complète
-  const handlePrint = async () => {
-    if (produits.length === 0) {
-      setError('Aucun produit à imprimer');
-      return;
-    }
-
-    setIsProcessing(true);
-    setError(null);
-
-    try {
-      console.log('🖨️ [MODAL IMPRESSION] Lancement impression...');
-
-      const success = await printProduitsList({
-        produits,
-        nomStructure,
-        logoStructure
-      });
-
-      if (success) {
-        console.log('✅ [MODAL IMPRESSION] Impression réussie');
-        // Fermer le modal après un court délai
-        setTimeout(() => {
-          onClose();
-        }, 500);
-      } else {
-        setError('Impossible d\'ouvrir la fenêtre d\'impression');
-      }
-    } catch (err) {
-      console.error('❌ [MODAL IMPRESSION] Erreur:', err);
-      setError('Une erreur est survenue lors de l\'impression');
-    } finally {
-      setIsProcessing(false);
+  // Handlers
+  const handlePrintList = async () => {
+    await startPrint({ format: 'list' });
+    if (job.status !== 'error') {
+      setTimeout(onClose, 500);
     }
   };
 
-  // Lancer l'impression des stickers QR codes
-  const handlePrintQRStickers = async () => {
-    if (produits.length === 0) {
-      setError('Aucun produit à imprimer');
-      return;
+  const handlePrintStickers = async () => {
+    await startPrint({
+      format: 'stickers',
+      stickerSize,
+      afficherNom: qrOptions.afficherNom,
+      afficherPrix: qrOptions.afficherPrix
+    });
+    if (job.status !== 'error') {
+      setTimeout(onClose, 500);
     }
+  };
 
-    setIsProcessing(true);
-    setError(null);
-
-    try {
-      console.log('🖨️ [MODAL IMPRESSION] Lancement impression stickers QR...');
-
-      const success = await printQRStickers({
-        produits,
-        nomStructure,
-        afficherNom: qrOptions.afficherNom,
-        afficherPrix: qrOptions.afficherPrix
-      });
-
-      if (success) {
-        console.log('✅ [MODAL IMPRESSION] Impression stickers réussie');
-        // Fermer le modal après un court délai
-        setTimeout(() => {
-          setShowQROptions(false);
-          onClose();
-        }, 500);
-      } else {
-        setError('Impossible d\'ouvrir la fenêtre d\'impression');
-      }
-    } catch (err) {
-      console.error('❌ [MODAL IMPRESSION] Erreur:', err);
-      setError('Une erreur est survenue lors de l\'impression');
-    } finally {
-      setIsProcessing(false);
-    }
+  const handleCancel = () => {
+    cancel();
+    setTimeout(() => {
+      reset();
+      onClose();
+    }, 500);
   };
 
   // Styles adaptatifs
@@ -182,7 +318,7 @@ export function ModalImpressionProduits({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           className={`fixed inset-0 bg-black/60 backdrop-blur-sm z-[110] flex items-center justify-center ${styles.padding}`}
-          onClick={onClose}
+          onClick={!isProcessing ? onClose : undefined}
         >
           <motion.div
             initial={{ scale: 0.8, y: 50 }}
@@ -217,13 +353,14 @@ export function ModalImpressionProduits({
                   </div>
                   <div>
                     <h2 className={`${styles.titleSize} font-bold`}>Impression Produits</h2>
-                    <p className={`text-emerald-100 ${styles.subtitleSize}`}>📦 Liste avec QR codes</p>
+                    <p className={`text-emerald-100 ${styles.subtitleSize}`}>
+                      {stats.totalProduits} produits
+                    </p>
                   </div>
                 </div>
                 <button
-                  onClick={onClose}
-                  disabled={isProcessing}
-                  className={`${isMobile ? 'w-7 h-7' : 'w-8 h-8'} bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-white/30 transition-colors disabled:opacity-50`}
+                  onClick={isProcessing ? handleCancel : onClose}
+                  className={`${isMobile ? 'w-7 h-7' : 'w-8 h-8'} bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-white/30 transition-colors`}
                 >
                   <X className={isMobile ? 'w-4 h-4' : 'w-5 h-5'} />
                 </button>
@@ -236,117 +373,137 @@ export function ModalImpressionProduits({
               <div className="flex justify-center mb-4">
                 <div className="bg-gradient-to-r from-emerald-500 to-green-600 text-white px-4 py-2 rounded-full text-sm font-bold flex items-center gap-2">
                   <Package className="w-4 h-4" />
-                  IMPRESSION PDF
+                  {isProcessing ? 'GÉNÉRATION EN COURS' : 'IMPRESSION PDF'}
                 </div>
               </div>
+
+              {/* Barre de progression */}
+              {isProcessing && (
+                <ProgressBar
+                  current={job.progress.current}
+                  total={job.progress.total}
+                  timeRemaining={timeRemaining}
+                  message={progressMessage}
+                />
+              )}
+
+              {/* Avertissement pour grandes listes */}
+              {warning && !isProcessing && (
+                <WarningAlert message={warning} isMobile={isMobile} />
+              )}
 
               {/* Statistiques */}
-              <div className={`bg-white/60 backdrop-blur-sm rounded-2xl ${isMobile ? 'p-3' : 'p-5'} mb-4 sm:mb-6 border border-emerald-100`}>
-                <h3 className={`font-bold text-gray-800 ${isMobile ? 'text-sm mb-3' : 'text-base mb-4'}`}>
-                  📊 Aperçu du document
-                </h3>
+              {!isProcessing && (
+                <div className={`bg-white/60 backdrop-blur-sm rounded-2xl ${isMobile ? 'p-3' : 'p-5'} mb-4 border border-emerald-100`}>
+                  <h3 className={`font-bold text-gray-800 ${isMobile ? 'text-sm mb-3' : 'text-base mb-4'}`}>
+                    Aperçu du document
+                  </h3>
 
-                <div className="grid grid-cols-2 gap-3">
-                  {/* Total produits */}
-                  <div className="bg-gradient-to-br from-emerald-50 to-green-50 p-3 rounded-xl border border-emerald-100">
-                    <div className={`${isMobile ? 'text-xs' : 'text-sm'} text-gray-600 mb-1`}>Total produits</div>
-                    <div className={`${isMobile ? 'text-lg' : 'text-2xl'} font-bold text-emerald-600`}>
-                      {stats.totalProduits}
+                  <div className="grid grid-cols-2 gap-3">
+                    {/* Total produits */}
+                    <div className="bg-gradient-to-br from-emerald-50 to-green-50 p-3 rounded-xl border border-emerald-100">
+                      <div className={`${isMobile ? 'text-xs' : 'text-sm'} text-gray-600 mb-1`}>Total produits</div>
+                      <div className={`${isMobile ? 'text-lg' : 'text-2xl'} font-bold text-emerald-600`}>
+                        {stats.totalProduits}
+                      </div>
                     </div>
-                  </div>
 
-                  {/* Catégories */}
-                  <div className="bg-gradient-to-br from-blue-50 to-cyan-50 p-3 rounded-xl border border-blue-100">
-                    <div className={`${isMobile ? 'text-xs' : 'text-sm'} text-gray-600 mb-1`}>Catégories</div>
-                    <div className={`${isMobile ? 'text-lg' : 'text-2xl'} font-bold text-blue-600`}>
-                      {stats.categories}
+                    {/* Catégories */}
+                    <div className="bg-gradient-to-br from-blue-50 to-cyan-50 p-3 rounded-xl border border-blue-100">
+                      <div className={`${isMobile ? 'text-xs' : 'text-sm'} text-gray-600 mb-1`}>Catégories</div>
+                      <div className={`${isMobile ? 'text-lg' : 'text-2xl'} font-bold text-blue-600`}>
+                        {stats.categories}
+                      </div>
                     </div>
-                  </div>
 
-                  {/* Produits en stock */}
-                  <div className="bg-gradient-to-br from-orange-50 to-amber-50 p-3 rounded-xl border border-orange-100">
-                    <div className={`${isMobile ? 'text-xs' : 'text-sm'} text-gray-600 mb-1`}>En stock</div>
-                    <div className={`${isMobile ? 'text-lg' : 'text-2xl'} font-bold text-orange-600`}>
-                      {stats.produitsEnStock}
+                    {/* Produits en stock */}
+                    <div className="bg-gradient-to-br from-orange-50 to-amber-50 p-3 rounded-xl border border-orange-100">
+                      <div className={`${isMobile ? 'text-xs' : 'text-sm'} text-gray-600 mb-1`}>En stock</div>
+                      <div className={`${isMobile ? 'text-lg' : 'text-2xl'} font-bold text-orange-600`}>
+                        {stats.produitsEnStock}
+                      </div>
                     </div>
-                  </div>
 
-                  {/* Valeur stock */}
-                  <div className="bg-gradient-to-br from-purple-50 to-pink-50 p-3 rounded-xl border border-purple-100">
-                    <div className={`${isMobile ? 'text-xs' : 'text-sm'} text-gray-600 mb-1`}>Valeur stock</div>
-                    <div className={`${isMobile ? 'text-xs' : 'text-sm'} font-bold text-purple-600`}>
-                      {stats.valeurStock.toLocaleString('fr-FR')} FCFA
+                    {/* Pages estimées */}
+                    <div className="bg-gradient-to-br from-purple-50 to-pink-50 p-3 rounded-xl border border-purple-100">
+                      <div className={`${isMobile ? 'text-xs' : 'text-sm'} text-gray-600 mb-1`}>
+                        Pages (stickers)
+                      </div>
+                      <div className={`${isMobile ? 'text-lg' : 'text-2xl'} font-bold text-purple-600`}>
+                        {stats.pagesStickers}
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
+              )}
 
               {/* Message d'erreur */}
-              {error && (
+              {job.status === 'error' && job.error && (
                 <div className={`bg-red-50 border border-red-200 rounded-xl ${isMobile ? 'p-3' : 'p-4'} mb-4`}>
                   <div className="flex items-center gap-2 text-red-800">
                     <AlertCircle className="w-5 h-5" />
-                    <span className={isMobile ? 'text-sm' : 'text-base'}>{error}</span>
+                    <span className={isMobile ? 'text-sm' : 'text-base'}>{job.error}</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Message d'annulation */}
+              {job.status === 'cancelled' && (
+                <div className={`bg-amber-50 border border-amber-200 rounded-xl ${isMobile ? 'p-3' : 'p-4'} mb-4`}>
+                  <div className="flex items-center gap-2 text-amber-800">
+                    <XCircle className="w-5 h-5" />
+                    <span className={isMobile ? 'text-sm' : 'text-base'}>Impression annulée</span>
                   </div>
                 </div>
               )}
 
               {/* Boutons d'action */}
-              {!showQROptions ? (
+              {!isProcessing && viewState === 'main' && (
                 <>
                   {/* Vue principale: Liste ou Stickers QR */}
                   <div className="grid grid-cols-2 gap-3">
                     {/* Imprimer Liste Complète */}
                     <motion.button
-                      whileHover={{ scale: isProcessing ? 1 : 1.02 }}
-                      whileTap={{ scale: isProcessing ? 1 : 0.98 }}
-                      onClick={handlePrint}
-                      disabled={isProcessing || produits.length === 0}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={handlePrintList}
+                      disabled={produits.length === 0}
                       className={`
                         bg-gradient-to-r from-emerald-500 to-green-600
                         text-white font-semibold ${styles.buttonPadding} rounded-xl
                         shadow-lg hover:shadow-xl transition-all
-                        flex items-center justify-center gap-2
+                        flex flex-col items-center justify-center gap-1
                         ${isMobile ? 'text-sm' : 'text-base'}
                         disabled:opacity-50 disabled:cursor-not-allowed
                       `}
                     >
-                      {isProcessing ? (
-                        <>
-                          <motion.div
-                            animate={{ rotate: 360 }}
-                            transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                            className={styles.iconSize}
-                          >
-                            <Printer className={styles.iconSize} />
-                          </motion.div>
-                          Génération...
-                        </>
-                      ) : (
-                        <>
-                          <FileText className={styles.iconSize} />
-                          Liste complète
-                        </>
-                      )}
+                      <FileText className={styles.iconSize} />
+                      <span>Liste complète</span>
+                      <span className={`${isMobile ? 'text-[10px]' : 'text-xs'} opacity-80`}>
+                        {stats.pagesListe} page{stats.pagesListe > 1 ? 's' : ''}
+                      </span>
                     </motion.button>
 
                     {/* Stickers QR Codes */}
                     <motion.button
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
-                      onClick={() => setShowQROptions(true)}
-                      disabled={isProcessing || produits.length === 0}
+                      onClick={() => setViewState('qr-options')}
+                      disabled={produits.length === 0}
                       className={`
                         bg-gradient-to-r from-blue-500 to-cyan-600
                         text-white font-semibold ${styles.buttonPadding} rounded-xl
                         shadow-lg hover:shadow-xl transition-all
-                        flex items-center justify-center gap-2
+                        flex flex-col items-center justify-center gap-1
                         ${isMobile ? 'text-sm' : 'text-base'}
                         disabled:opacity-50 disabled:cursor-not-allowed
                       `}
                     >
                       <Tag className={styles.iconSize} />
-                      Stickers QR
+                      <span>Étiquettes QR</span>
+                      <span className={`${isMobile ? 'text-[10px]' : 'text-xs'} opacity-80`}>
+                        {stats.pagesStickers} page{stats.pagesStickers > 1 ? 's' : ''}
+                      </span>
                     </motion.button>
                   </div>
 
@@ -355,7 +512,6 @@ export function ModalImpressionProduits({
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                     onClick={onClose}
-                    disabled={isProcessing}
                     className={`
                       mt-3 w-full
                       bg-white/60 backdrop-blur-sm border-2 border-gray-200
@@ -363,21 +519,29 @@ export function ModalImpressionProduits({
                       hover:bg-white/80 transition-all
                       flex items-center justify-center gap-2
                       ${isMobile ? 'text-sm' : 'text-base'}
-                      disabled:opacity-50 disabled:cursor-not-allowed
                     `}
                   >
                     <X className={styles.iconSize} />
                     Annuler
                   </motion.button>
                 </>
-              ) : (
+              )}
+
+              {/* Options Stickers QR */}
+              {!isProcessing && viewState === 'qr-options' && (
                 <>
-                  {/* Options Stickers QR */}
                   <div className={`bg-blue-50/80 backdrop-blur-sm rounded-2xl ${isMobile ? 'p-3' : 'p-5'} mb-4 border border-blue-200`}>
                     <h3 className={`font-bold text-blue-900 ${isMobile ? 'text-sm' : 'text-base'} mb-4 flex items-center gap-2`}>
                       <Tag className="w-5 h-5" />
-                      Options d'impression des stickers
+                      Options d'impression des étiquettes
                     </h3>
+
+                    {/* Sélecteur de taille */}
+                    <StickerSizeSelector
+                      value={stickerSize}
+                      onChange={setStickerSize}
+                      isMobile={isMobile}
+                    />
 
                     {/* Options checkboxes */}
                     <div className="space-y-3">
@@ -451,7 +615,8 @@ export function ModalImpressionProduits({
                     {/* Info format */}
                     <div className={`mt-4 bg-blue-100/60 rounded-lg ${isMobile ? 'p-2' : 'p-3'}`}>
                       <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-blue-800`}>
-                        <strong>Format:</strong> 4 stickers par ligne, découpage facile
+                        <strong>{STICKER_SIZES[stickerSize].perRow} étiquettes</strong> par ligne,{' '}
+                        <strong>{STICKER_SIZES[stickerSize].perPage}</strong> par page
                       </p>
                     </div>
                   </div>
@@ -462,15 +627,13 @@ export function ModalImpressionProduits({
                     <motion.button
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
-                      onClick={() => setShowQROptions(false)}
-                      disabled={isProcessing}
+                      onClick={() => setViewState('main')}
                       className={`
                         bg-white/60 backdrop-blur-sm border-2 border-gray-200
                         text-gray-700 font-semibold ${styles.buttonPadding} rounded-xl
                         hover:bg-white/80 transition-all
                         flex items-center justify-center gap-2
                         ${isMobile ? 'text-sm' : 'text-base'}
-                        disabled:opacity-50 disabled:cursor-not-allowed
                       `}
                     >
                       <X className={styles.iconSize} />
@@ -479,10 +642,10 @@ export function ModalImpressionProduits({
 
                     {/* Imprimer Stickers */}
                     <motion.button
-                      whileHover={{ scale: isProcessing ? 1 : 1.02 }}
-                      whileTap={{ scale: isProcessing ? 1 : 0.98 }}
-                      onClick={handlePrintQRStickers}
-                      disabled={isProcessing || produits.length === 0}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={handlePrintStickers}
+                      disabled={produits.length === 0}
                       className={`
                         bg-gradient-to-r from-blue-500 to-cyan-600
                         text-white font-semibold ${styles.buttonPadding} rounded-xl
@@ -492,32 +655,39 @@ export function ModalImpressionProduits({
                         disabled:opacity-50 disabled:cursor-not-allowed
                       `}
                     >
-                      {isProcessing ? (
-                        <>
-                          <motion.div
-                            animate={{ rotate: 360 }}
-                            transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                            className={styles.iconSize}
-                          >
-                            <Printer className={styles.iconSize} />
-                          </motion.div>
-                          Génération...
-                        </>
-                      ) : (
-                        <>
-                          <Printer className={styles.iconSize} />
-                          Imprimer
-                        </>
-                      )}
+                      <Printer className={styles.iconSize} />
+                      Imprimer
                     </motion.button>
                   </div>
                 </>
               )}
 
+              {/* Bouton Annuler pendant génération */}
+              {isProcessing && (
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={handleCancel}
+                  className={`
+                    w-full
+                    bg-gradient-to-r from-red-500 to-rose-600
+                    text-white font-semibold ${styles.buttonPadding} rounded-xl
+                    shadow-lg hover:shadow-xl transition-all
+                    flex items-center justify-center gap-2
+                    ${isMobile ? 'text-sm' : 'text-base'}
+                  `}
+                >
+                  <XCircle className={styles.iconSize} />
+                  Annuler la génération
+                </motion.button>
+              )}
+
               {/* Note */}
-              <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-gray-500 text-center mt-4`}>
-                💡 Les QR codes peuvent être découpés et collés sur vos produits
-              </p>
+              {!isProcessing && (
+                <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-gray-500 text-center mt-4`}>
+                  Les QR codes peuvent être découpés et collés sur vos produits
+                </p>
+              )}
             </div>
           </motion.div>
         </motion.div>
