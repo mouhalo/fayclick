@@ -1,7 +1,7 @@
 {
-  "name": "FayClick - La Super App des Marchands",
+  "name": "FayClick - La Super App des Marchands et Pro",
   "short_name": "FayClick",
-  "description": "Gérez votre commerce, école ou immobilier en toute simplicité avec FayClick",
+  "description": "Gérez votre Business en toute simplicité avec FayClick",
   "start_url": "/",
   "display": "standalone",
   "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
@@ -28,69 +28,77 @@
       "src": "/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
       "src": "/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-192-maskable.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icon-512-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ],
   "categories": ["business", "productivity", "finance", "education"],
   "screenshots": [
     {
-      "src": "/screenshots/dashboard.png",
+      "src": "/screenshots/dashboard-wide.png",
       "sizes": "1280x720",
       "type": "image/png",
-      "label": "Dashboard FayClick"
+      "form_factor": "wide",
+      "label": "Dashboard FayClick - Vue Desktop"
     },
     {
-      "src": "/screenshots/mobile.png",
+      "src": "/screenshots/dashboard-mobile.png",
       "sizes": "750x1334",
       "type": "image/png",
-      "label": "Version Mobile"
+      "form_factor": "narrow",
+      "label": "Dashboard FayClick - Vue Mobile"
     }
   ],
   "shortcuts": [
     {
-      "name": "Dashboard",
+      "name": "Tableau de bord",
       "short_name": "Dashboard",
-      "description": "Accéder au tableau de bord",
+      "description": "Accéder au tableau de bord principal",
       "url": "/dashboard",
       "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
     },
     {
-      "name": "Factures",
-      "short_name": "Factures",
-      "description": "Gérer les factures",
-      "url": "/factures",
+      "name": "Vente Flash",
+      "short_name": "VenteFlash",
+      "description": "Accès rapide aux ventes flash",
+      "url": "/dashboard/commerce/venteflash",
       "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
     },
     {
-      "name": "Clients",
-      "short_name": "Clients",
-      "description": "Gérer les clients",
-      "url": "/clients",
+      "name": "Mes Produits",
+      "short_name": "Produits",
+      "description": "Gérer les produits et stocks",
+      "url": "/dashboard/commerce/produits",
       "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
     }
   ],
-  "share_target": {
-    "action": "/share",
-    "method": "GET",
-    "params": {
-      "title": "title",
-      "text": "text",
-      "url": "url"
-    }
-  },
   "features": [
     "screen-wake-lock",
     "shortcuts",
-    "share",
     "file-upload"
   ],
   "edge_side_panel": {
     "preferred_width": 400
+  },
+  "handle_links": "preferred",
+  "launch_handler": {
+    "client_mode": "navigate-existing"
   }
 }

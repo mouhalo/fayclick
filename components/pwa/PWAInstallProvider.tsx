@@ -75,8 +75,8 @@ export function PWAInstallProvider({ children }: { children: React.ReactNode }) 
       indicator.className = 'fixed bottom-4 left-4 z-50';
       indicator.innerHTML = `
         <button
+          id="pwa-install-badge-btn"
           class="bg-gradient-to-r from-blue-600 to-orange-500 text-white text-xs px-3 py-1.5 rounded-full shadow-lg hover:shadow-xl transition-all transform hover:scale-105"
-          onclick="window.dispatchEvent(new Event('show-install-prompt'))"
         >
           📱 Installer l'app
         </button>
@@ -86,28 +86,34 @@ export function PWAInstallProvider({ children }: { children: React.ReactNode }) 
       setTimeout(() => {
         if (!document.getElementById('pwa-install-indicator') && !isPublicRoute) {
           document.body.appendChild(indicator);
+
+          // Ajouter le listener après l'ajout au DOM
+          const btn = document.getElementById('pwa-install-badge-btn');
+          if (btn) {
+            btn.addEventListener('click', () => {
+              // Appeler directement installApp via un événement custom
+              window.dispatchEvent(new Event('trigger-pwa-install'));
+            });
+          }
         }
       }, 5000);
 
-      // Écouter l'événement pour afficher le prompt
-      const handleShowPrompt = () => {
-        const prompt = document.querySelector('[data-install-prompt]');
-        if (prompt) {
-          (prompt as any).click();
-        }
+      // Écouter l'événement pour déclencher l'installation
+      const handleTriggerInstall = () => {
+        installApp();
       };
 
-      window.addEventListener('show-install-prompt', handleShowPrompt);
+      window.addEventListener('trigger-pwa-install', handleTriggerInstall);
 
       return () => {
         const element = document.getElementById('pwa-install-indicator');
         if (element) {
           element.remove();
         }
-        window.removeEventListener('show-install-prompt', handleShowPrompt);
+        window.removeEventListener('trigger-pwa-install', handleTriggerInstall);
       };
     }
-  }, [isLoading, isInstalled, isPublicRoute]);
+  }, [isLoading, isInstalled, isPublicRoute, installApp]);
 
   return (
     <>
@@ -119,18 +125,6 @@ export function PWAInstallProvider({ children }: { children: React.ReactNode }) 
           onDismiss={dismissPrompt}
         />
       )}
-      {/* Bouton caché pour déclencher le prompt manuellement */}
-      <button
-        data-install-prompt
-        className="hidden"
-        onClick={() => {
-          // Forcer l'affichage du prompt
-          if (!showInstallPrompt && !isInstalled) {
-            // Simuler l'événement
-            window.dispatchEvent(new Event('beforeinstallprompt'));
-          }
-        }}
-      />
     </>
   );
 }

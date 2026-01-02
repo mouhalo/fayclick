@@ -118,6 +118,12 @@ export function useInstallPrompt(): InstallPromptHook {
       return;
     }
 
+    // Vérifier que prompt() existe (l'événement doit être le vrai beforeinstallprompt)
+    if (typeof deferredPrompt.prompt !== 'function') {
+      console.warn('L\'événement d\'installation n\'a pas la méthode prompt(). Navigateur non supporté ou événement invalide.');
+      return;
+    }
+
     try {
       // Afficher le prompt natif
       await deferredPrompt.prompt();
