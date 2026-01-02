@@ -42,13 +42,17 @@ export function VenteFlashHeader({
 
   const totalItems = getTotalItems();
 
-  // Recherche produits (déclenchée dès le premier caractère)
+  // Recherche produits par nom OU code-barres (déclenchée dès le premier caractère)
   useEffect(() => {
     if (searchTerm.length >= 1) {
-      const term = searchTerm.toLowerCase();
-      const results = produits.filter(p =>
-        p.nom_produit.toLowerCase().includes(term)
-      ).slice(0, 10); // Max 10 résultats
+      const term = searchTerm.toLowerCase().trim();
+
+      // Recherche combinée : nom du produit OU code-barres
+      const results = produits.filter(p => {
+        const matchNom = p.nom_produit.toLowerCase().includes(term);
+        const matchCodeBarre = p.code_barre?.toLowerCase().includes(term) || false;
+        return matchNom || matchCodeBarre;
+      }).slice(0, 10); // Max 10 résultats
 
       setSearchResults(results);
       setShowDropdown(results.length > 0);
@@ -154,7 +158,7 @@ export function VenteFlashHeader({
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Rechercher un produit..."
+              placeholder="Nom produit ou code-barres..."
               className="
                 w-full pl-10 pr-10 py-3 rounded-xl
                 bg-white border-2 border-white/50
@@ -205,13 +209,21 @@ export function VenteFlashHeader({
                     "
                   >
                     <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <div className="font-semibold text-gray-900">{produit.nom_produit}</div>
-                        <div className="text-sm text-gray-500">
-                          Stock: {produit.niveau_stock || 0} • {produit.prix_vente.toLocaleString('fr-FR')} FCFA
+                      <div className="flex-1 min-w-0">
+                        <div className="font-semibold text-gray-900 truncate">{produit.nom_produit}</div>
+                        <div className="text-sm text-gray-500 flex flex-wrap gap-x-2">
+                          <span>Stock: {produit.niveau_stock || 0}</span>
+                          <span>•</span>
+                          <span>{produit.prix_vente.toLocaleString('fr-FR')} FCFA</span>
+                          {produit.code_barre && (
+                            <>
+                              <span>•</span>
+                              <span className="text-blue-600 font-mono text-xs">{produit.code_barre}</span>
+                            </>
+                          )}
                         </div>
                       </div>
-                      <div className="ml-3">
+                      <div className="ml-3 flex-shrink-0">
                         <span className={`
                           px-2 py-1 rounded-full text-xs font-medium
                           ${(produit.niveau_stock || 0) > 0

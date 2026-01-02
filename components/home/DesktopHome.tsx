@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ReactElement } from 'react';
 import { GlassCard } from '@/components/ui/GlassCard';
@@ -159,29 +160,16 @@ export default function DesktopHome() {
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -300 }}
                   transition={{ duration: 0.5 }}
-                  className="absolute inset-0 flex items-center justify-center p-8"
+                  className="absolute inset-4 rounded-2xl overflow-hidden shadow-xl"
                 >
-                  {/* Placeholder pour les images avec thème vert */}
-                  <div className="w-full h-full bg-gradient-to-br from-green-400 to-green-600 rounded-2xl flex items-center justify-center shadow-xl">
-                    <div className="text-center text-white">
-                      <div className="text-6xl mb-4">📱</div>
-                      <h3 className="text-3xl font-bold mb-2">
-                        Slide {currentSlide + 1}
-                      </h3>
-                      <p className="text-xl opacity-90">
-                        {slideTexts[currentSlide]}
-                      </p>
-                    </div>
-                  </div>
-                  {/* Remplacez le div ci-dessus par ceci quand vous aurez les images :
                   <Image
                     src={carouselImages[currentSlide]}
-                    alt={`FayClick Feature ${currentSlide + 1}`}
+                    alt={slideTexts[currentSlide] || `FayClick Feature ${currentSlide + 1}`}
                     fill
-                    className="object-contain"
-                    priority
+                    className="object-contain rounded-2xl"
+                    priority={currentSlide === 0}
+                    sizes="(max-width: 1280px) 100vw, 1200px"
                   />
-                  */}
                 </motion.div>
               </AnimatePresence>
 
