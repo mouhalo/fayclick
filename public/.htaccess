@@ -59,6 +59,14 @@ Header always set Content-Security-Policy "default-src 'self'; script-src 'self'
 # Activer le moteur de réécriture
 RewriteEngine On
 
+# IMPORTANT: Rediriger les dossiers avec trailing slash vers leur .html
+# Ex: /dashboard/commerce/ -> /dashboard/commerce.html
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteCond %{REQUEST_URI} ^(.+)/$
+RewriteCond %{DOCUMENT_ROOT}%1.html -f
+RewriteRule ^(.+)/$ /$1.html [L,R=302]
+
 # IMPORTANT: Gestion des factures avec token
 # Redirection des URLs /fay/XXX vers /facture?token=XXX
 RewriteRule ^fay/(.+)$ /facture?token=$1 [L,QSA,R=301]

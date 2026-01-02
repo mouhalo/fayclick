@@ -148,7 +148,11 @@ export default function RegisterPage() {
   const fetchStructureTypes = async () => {
     try {
       const types = await registrationService.getStructureTypes();
-      setStructureTypes(types);
+      // Filtrer IMMOBILIER et SCOLAIRE (non disponibles pour l'inscription publique)
+      const filteredTypes = types.filter(type =>
+        !['IMMOBILIER', 'SCOLAIRE'].includes(type.nom_type.toUpperCase())
+      );
+      setStructureTypes(filteredTypes);
     } catch (error) {
       console.error('Erreur chargement types:', error);
       setError('Impossible de charger les types de structure');
