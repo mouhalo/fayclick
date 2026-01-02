@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import { useInstallPrompt } from '@/hooks/useInstallPrompt';
 import { InstallPromptModal } from './InstallPromptModal';
+import { UpdateToast } from './UpdateToast';
 
 // Pages publiques où on ne propose pas l'installation
 const PUBLIC_ROUTES = [
@@ -51,9 +52,8 @@ export function PWAInstallProvider({ children }: { children: React.ReactNode }) 
               if (newWorker) {
                 newWorker.addEventListener('statechange', () => {
                   if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                    // Nouveau service worker disponible
+                    // Nouveau service worker disponible - UpdateToast gère l'affichage
                     console.log('Nouvelle version disponible');
-                    // TODO: Afficher une notification de mise à jour
                   }
                 });
               }
@@ -125,6 +125,8 @@ export function PWAInstallProvider({ children }: { children: React.ReactNode }) 
           onDismiss={dismissPrompt}
         />
       )}
+      {/* Toast de mise à jour - visible sur toutes les pages (y compris publiques) */}
+      <UpdateToast />
     </>
   );
 }
