@@ -80,7 +80,7 @@ export function VenteCarteVente({
           </div>
         </div>
 
-        {/* Montant + Mode */}
+        {/* Montant + Mode + Remise */}
         <div className="text-right">
           <div className="text-lg font-bold text-gray-900">
             {vente.montant_total.toLocaleString('fr-FR')} FCFA
@@ -88,6 +88,12 @@ export function VenteCarteVente({
           <div className="mt-1">
             {renderModePaiementBadge()}
           </div>
+          {/* Affichage remise si elle existe */}
+          {vente.mt_remise && vente.mt_remise > 0 && (
+            <div className="text-xs text-orange-600 font-medium mt-1">
+              (Remise : {vente.mt_remise.toLocaleString('fr-FR')} F)
+            </div>
+          )}
         </div>
       </div>
 

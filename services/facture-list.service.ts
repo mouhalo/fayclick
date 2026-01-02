@@ -42,7 +42,8 @@ class FactureListService {
   }
 
   /**
-   * Récupérer toutes les factures de la structure
+   * Récupérer les factures de la structure (mois en cours par défaut)
+   * Utilise get_my_factures1 avec filtrage par année/mois pour optimiser les performances
    */
   async getMyFactures(id_facture: number = 0): Promise<GetMyFactureResponse> {
     try {
@@ -51,13 +52,20 @@ class FactureListService {
         throw new FactureListApiException('Utilisateur non authentifié', 401);
       }
 
+      // Paramètres pour get_my_factures1: année et mois en cours
+      const currentDate = new Date();
+      const annee = currentDate.getFullYear();
+      const mois = currentDate.getMonth() + 1; // JavaScript months are 0-indexed
+
       console.log('📋 [FACTURE-LIST] Récupération factures pour structure:', {
         id_structure: user.id_structure,
+        annee,
+        mois,
         id_facture
       });
 
-      // Appel de la fonction PostgreSQL get_my_facture
-      const query = `SELECT * FROM get_my_factures(${user.id_structure}, ${id_facture})`;
+      // Appel de la fonction PostgreSQL get_my_factures1 (optimisée avec année/mois)
+      const query = `SELECT * FROM get_my_factures1(${user.id_structure}, ${annee}, ${mois}, ${id_facture})`;
 
       const result = await DatabaseService.query(query);
 
@@ -93,8 +101,8 @@ class FactureListService {
       const firstRow = result[0];
       console.log('🔍 [FACTURE-LIST] Première ligne:', firstRow);
 
-      // Structure réelle: result[0].get_my_facture.factures
-      let factureData = firstRow.get_my_factures || firstRow;
+      // Structure réelle: result[0].get_my_factures1.factures
+      let factureData = firstRow.get_my_factures1 || firstRow.get_my_factures || firstRow;
 
       console.log('📦 [FACTURE-LIST] Données facture extraites:', {
         type: typeof factureData,

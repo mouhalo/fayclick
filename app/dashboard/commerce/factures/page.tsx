@@ -473,6 +473,7 @@ export default function FacturesGlassPage() {
           isOpen={modalFacturePrivee.isOpen}
           onClose={() => setModalFacturePrivee({ isOpen: false, facture: null })}
           factureId={modalFacturePrivee.facture.facture.id_facture}
+          numFacture={modalFacturePrivee.facture.facture.num_facture}
         />
       )}
 

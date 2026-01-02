@@ -29,6 +29,8 @@ export interface FactureData {
   mt_remise: number;
   mt_acompte: number;
   avec_frais: boolean;
+  est_devis: boolean;        // Nouveau: true = devis, false = facture
+  id_utilisateur: number;    // Nouveau: ID de l'utilisateur qui crée la facture
 }
 
 // Interface pour les détails de facture
@@ -58,12 +60,20 @@ class FactureService {
 
   /**
    * Créer une nouvelle facture avec ses détails
+   * @param articles - Liste des articles du panier
+   * @param clientInfo - Informations client (tel, nom, description)
+   * @param montants - Montants (remise, acompte)
+   * @param avecFrais - Appliquer les frais de service
+   * @param estDevis - true = créer un devis, false = créer une facture (défaut)
+   * @param idUtilisateur - ID de l'utilisateur créateur (0 = utilisateur courant)
    */
   async createFacture(
     articles: ArticlePanier[],
     clientInfo: { tel_client?: string; nom_client_payeur?: string; description?: string },
     montants: { remise?: number; acompte?: number },
-    avecFrais: boolean = false
+    avecFrais: boolean = false,
+    estDevis: boolean = false,
+    idUtilisateur?: number
   ): Promise<CreateFactureResponse> {
     try {
       const user = authService.getUser();
@@ -95,16 +105,19 @@ class FactureService {
       }
 
       // Préparation des données de facture avec valeurs par défaut
+      // Note: On envoie sousTotal (montant brut), le backend gère la déduction de la remise
       const factureData: FactureData = {
         date_facture: new Date().toISOString().split('T')[0], // Format YYYY-MM-DD
         id_structure: user.id_structure,
         tel_client: clientInfo.tel_client || '771234567',
         nom_client_payeur: clientInfo.nom_client_payeur || 'CLIENT_ANONYME',
-        montant: montantNet,
+        montant: sousTotal,
         description: clientInfo.description || `Commande ${articles.length} article(s)`,
         mt_remise: remise,
         mt_acompte: acompte,
-        avec_frais: avecFrais
+        avec_frais: avecFrais,
+        est_devis: estDevis,
+        id_utilisateur: idUtilisateur ?? user.id ?? 0
       };
 
       // Approche senior: une seule requête atomique avec stored procedure
@@ -121,8 +134,13 @@ class FactureService {
       });
 
       // Appel de la fonction PostgreSQL atomique
+      // Signature: create_facture_complete(
+      //   p_date_facture, p_id_structure, p_tel_client, p_nom_client_payeur,
+      //   p_montant, p_description, p_articles_string,
+      //   p_mt_remise, p_mt_acompte, p_avec_frais, p_est_devis, p_id_utilisateur
+      // )
       const factureCompleteQuery = `
-        SELECT * FROM create_facture_complete(
+        SELECT * FROM create_facture_complete1(
           '${factureData.date_facture}',
           ${factureData.id_structure},
           '${factureData.tel_client}',
@@ -132,7 +150,9 @@ class FactureService {
           '${articlesString}',
           ${factureData.mt_remise},
           ${factureData.mt_acompte},
-          ${factureData.avec_frais}
+          ${factureData.avec_frais},
+          ${factureData.est_devis},
+          ${factureData.id_utilisateur}
         )
       `;
 
@@ -154,7 +174,8 @@ class FactureService {
         id_facture: factureResult.id_facture,
         nb_details: factureResult.nb_details,
         details_ids: factureResult.details_ids,
-        montant_total: montantNet
+        montant_brut: sousTotal,
+        remise: remise
       });
 
       return {

@@ -10,6 +10,7 @@ export interface VenteFlash {
   montant_total: number;
   montant_paye: number;
   montant_impaye?: number;
+  mt_remise?: number;  // Montant de la remise effectuée
   mode_paiement: 'OM' | 'WAVE' | 'FREE' | 'ESPECES' | 'CHEQUE' | 'CREDIT' | string;
   nom_client: string;
   tel_client: string;
@@ -23,6 +24,7 @@ export interface VenteFlashStats {
   nb_ventes: number;
   total_ventes: number;
   ca_jour: number;
+  total_remises: number;  // Total des remises accordées
 }
 
 export interface DetailVente {

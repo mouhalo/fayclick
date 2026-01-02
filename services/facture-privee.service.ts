@@ -32,14 +32,21 @@ class FacturePriveeService {
 
   /**
    * Récupère les détails d'une facture privée pour un commerçant
+   * Utilise rechercher_multifacturecom avec num_facture et id_facture
+   * @param idFacture - ID de la facture
+   * @param numFacture - Numéro de facture (optionnel mais recommandé pour performance)
    */
-  async getFacturePrivee(idFacture: number): Promise<FacturePriveeData> {
+  async getFacturePrivee(idFacture: number, numFacture?: string): Promise<FacturePriveeData> {
     try {
-      const requete = `SELECT * FROM public.rechercher_multifacturecom('', ${idFacture})`;
+      // Construire la requête avec rechercher_multifacturecom
+      // Paramètres: num_facture (string), id_facture (integer)
+      const numFactureParam = numFacture || '';
+      const requete = `SELECT * FROM public.rechercher_multifacturecom('${numFactureParam}', ${idFacture})`;
       const xmlBody = this.construireXml(requete);
 
       console.log('🔍 Appel API facture privée:', {
         idFacture,
+        numFacture: numFactureParam,
         requete,
         url: this.baseUrl
       });
@@ -73,12 +80,13 @@ class FacturePriveeService {
       console.log('📦 Données parsées:', parsedData);
 
       // La fonction retourne un objet avec le nom de la fonction comme clé
-      const functionResult = parsedData.rechercher_multifacturecom1 || parsedData.rechercher_multifacturecom;
+      const functionResult = parsedData.rechercher_multifacturecom1 || parsedData.rechercher_multifacturecom || parsedData;
 
       if (!functionResult || !functionResult.factures || functionResult.factures.length === 0) {
         throw new Error('Aucune facture trouvée dans la réponse');
       }
 
+      // Extraire la facture (format de rechercher_multifacturecom: { factures: [{...}] })
       const factureData = functionResult.factures[0];
 
       // Transformation pour correspondre au format attendu

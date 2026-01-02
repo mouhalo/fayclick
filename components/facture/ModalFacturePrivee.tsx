@@ -37,6 +37,7 @@ export function ModalFacturePrivee({
   isOpen,
   onClose,
   factureId,
+  numFacture,
   factureData,
   onFactureDeleted,
   onPaymentComplete
@@ -84,7 +85,8 @@ export function ModalFacturePrivee({
       setError(null);
 
       // Charger seulement les données principales de la facture
-      const factureResult = await facturePriveeService.getFacturePrivee(factureId);
+      // Passer le numFacture si disponible pour optimiser la recherche
+      const factureResult = await facturePriveeService.getFacturePrivee(factureId, numFacture);
 
       setFacture(factureResult);
       generateUrlPartage(factureResult);
@@ -337,8 +339,13 @@ export function ModalFacturePrivee({
                           {facture.libelle_etat === 'PAYEE' ? 'Payée' : 'En attente'}
                         </span>
                       </p>
+                      {facture.mt_remise > 0 && (
+                        <p><strong>Remise:</strong> <span className="text-orange-600">{formatMontant(facture.mt_remise)}</span></p>
+                      )}
                       <p><strong>Acompte:</strong> {formatMontant(facture.mt_acompte)}</p>
-                      <p><strong>Restant:</strong> {formatMontant(facture.mt_restant)}</p>
+                      {facture.libelle_etat !== 'PAYEE' && facture.mt_restant > 0 && (
+                        <p><strong>Restant:</strong> {formatMontant(facture.mt_restant)}</p>
+                      )}
                     </div>
                   </div>
                 </div>

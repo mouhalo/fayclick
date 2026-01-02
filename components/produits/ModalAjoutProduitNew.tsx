@@ -42,7 +42,6 @@ interface ModalAjoutProduitNewProps {
   onRequestStockAddition?: (produit: AddEditProduitResponse) => void;
   produitToEdit?: Produit | null;
   typeStructure: string;
-  defaultTab?: 'informations' | 'gestion-stock' | 'historique';
 }
 
 type OngletType = 'informations' | 'photos' | 'gestion-stock' | 'historique';
@@ -54,15 +53,15 @@ export function ModalAjoutProduitNew({
   onStockUpdate,
   onRequestStockAddition,
   produitToEdit,
-  typeStructure,
-  defaultTab = 'informations'
+  typeStructure
 }: ModalAjoutProduitNewProps) {
   // Hook pour vérifier si l'utilisateur est ADMIN
   const { isAdmin } = useUserProfile();
   const isEditMode = !!produitToEdit;
   const canEdit = isAdmin || !isEditMode; // ADMIN peut tout faire, les autres uniquement créer
 
-  const [ongletActif, setOngletActif] = useState<OngletType>(defaultTab);
+  // Toujours initialiser sur 'informations' - le useEffect gère le defaultTab si nécessaire
+  const [ongletActif, setOngletActif] = useState<OngletType>('informations');
   const [showScanModal, setShowScanModal] = useState(false);
   const [formData, setFormData] = useState<ProduitFormDataNew>({
     nom_produit: '',
@@ -175,8 +174,8 @@ export function ModalAjoutProduitNew({
       });
       // Charger les photos du produit
       loadPhotos(produitToEdit.id_produit);
-      // En édition: utiliser defaultTab pour flexibilité
-      setOngletActif(defaultTab);
+      // En édition: toujours commencer par 'informations' par défaut
+      setOngletActif('informations');
     } else if (isOpen) {
       // Reset pour nouveau produit
       setFormData({
@@ -204,7 +203,7 @@ export function ModalAjoutProduitNew({
     // Reset modal de confirmation de stock
     setShowStockSuccessModal(false);
     setLastStockMovement(null);
-  }, [produitToEdit, isOpen, typeStructure, defaultTab]);
+  }, [produitToEdit, isOpen, typeStructure]);
 
   // Charger l'historique quand on ouvre l'onglet
   useEffect(() => {

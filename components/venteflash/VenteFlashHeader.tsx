@@ -23,8 +23,6 @@ interface VenteFlashHeaderProps {
   onAddToPanier: (produit: Produit) => void;
   /** Callback pour rafraîchir les données */
   onRefresh?: () => void;
-  /** Callback pour ouvrir le panier */
-  onOpenPanier?: () => void;
   /** Callback pour imprimer le rapport du jour */
   onPrint?: () => void;
 }
@@ -33,7 +31,6 @@ export function VenteFlashHeader({
   produits,
   onAddToPanier,
   onRefresh,
-  onOpenPanier,
   onPrint
 }: VenteFlashHeaderProps) {
   const router = useRouter();
@@ -45,9 +42,9 @@ export function VenteFlashHeader({
 
   const totalItems = getTotalItems();
 
-  // Recherche produits (déclenchée après 3 caractères)
+  // Recherche produits (déclenchée dès le premier caractère)
   useEffect(() => {
-    if (searchTerm.length >= 3) {
+    if (searchTerm.length >= 1) {
       const term = searchTerm.toLowerCase();
       const results = produits.filter(p =>
         p.nom_produit.toLowerCase().includes(term)
@@ -98,7 +95,7 @@ export function VenteFlashHeader({
   };
 
   return (
-    <div className="bg-gradient-to-r from-green-500 via-emerald-600 to-teal-600 rounded-2xl p-4 shadow-xl mb-4">
+    <div className="bg-gradient-to-r from-green-500 via-emerald-600 to-teal-600 rounded-2xl p-4 shadow-xl">
       {/* Ligne 1: Imprimer + Titre + Panier */}
       <div className="flex items-center justify-between mb-4">
         {/* Bouton Imprimer */}
@@ -121,14 +118,11 @@ export function VenteFlashHeader({
           <h1 className="text-xl font-bold text-white">Vente Flash</h1>
         </div>
 
-        {/* Badge Panier flottant */}
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={() => onOpenPanier?.()}
+        {/* Indicateur Panier (le panier est affiché en inline sous le header) */}
+        <div
           className="
             relative w-10 h-10 bg-white/20 backdrop-blur-sm rounded-full
-            flex items-center justify-center hover:bg-white/30 transition-colors
+            flex items-center justify-center
           "
         >
           <ShoppingCart className="w-5 h-5 text-white" />
@@ -147,7 +141,7 @@ export function VenteFlashHeader({
               {totalItems}
             </motion.span>
           )}
-        </motion.button>
+        </div>
       </div>
 
       {/* Ligne 2: Recherche + Actualiser + Scan (Grid flexible) */}
