@@ -18,7 +18,7 @@ import { useToast } from '@/components/ui/Toast';
 import { VenteFlashHeader } from '@/components/venteflash/VenteFlashHeader';
 import { VenteFlashStatsCards } from '@/components/venteflash/VenteFlashStatsCards';
 import { VenteFlashListeVentes } from '@/components/venteflash/VenteFlashListeVentes';
-import { PanierVenteFlash } from '@/components/venteflash/PanierVenteFlash';
+import { PanierVenteFlashInline } from '@/components/venteflash/PanierVenteFlashInline';
 import { ModalRecuGenere } from '@/components/recu/ModalRecuGenere';
 import { ModalRefresh } from '@/components/venteflash/ModalRefresh';
 import MainMenu from '@/components/layout/MainMenu';
@@ -39,7 +39,8 @@ export default function VenteFlashPage() {
   const [stats, setStats] = useState<VenteFlashStats>({
     nb_ventes: 0,
     total_ventes: 0,
-    ca_jour: 0
+    ca_jour: 0,
+    total_remises: 0
   });
 
   // États de chargement
@@ -49,8 +50,7 @@ export default function VenteFlashPage() {
   // État pour le modal de refresh
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // États pour le panier et le reçu
-  const [showPanier, setShowPanier] = useState(false);
+  // États pour le reçu
   const [showRecu, setShowRecu] = useState(false);
   const [recuData, setRecuData] = useState<{
     idFacture: number;
@@ -119,8 +119,8 @@ export default function VenteFlashPage() {
   }, [user]);
 
   /**
-   * Charger les factures du jour
-   * Filtrage côté client pour ventes du jour uniquement
+   * Charger les factures du mois en cours
+   * Utilise get_my_factures1 avec filtrage par année/mois pour optimiser les performances
    */
   const loadVentesJour = useCallback(async () => {
     if (!user) {
@@ -134,18 +134,23 @@ export default function VenteFlashPage() {
       console.log('👤 [VENTE FLASH] ID Structure:', user.id_structure);
       console.log('👤 [VENTE FLASH] Nom structure:', user.nom_structure);
 
-      const query = `SELECT * FROM get_my_factures(${user.id_structure})`;
+      // Paramètres pour get_my_factures1: année et mois en cours
+      const currentDate = new Date();
+      const annee = currentDate.getFullYear();
+      const mois = currentDate.getMonth() + 1; // JavaScript months are 0-indexed
+
+      const query = `SELECT * FROM get_my_factures1(${user.id_structure}, ${annee}, ${mois}, 0)`;
       console.log('📝 [VENTE FLASH] Requête SQL:', query);
 
       console.log('🔄 [VENTE FLASH] Envoi requête à database.query()...');
-      // Timeout augmenté à 60 secondes pour get_my_factures (requête lourde)
-      const results = await database.query(query, 60000);
+      // Timeout réduit car la requête est maintenant optimisée
+      const results = await database.query(query, 30000);
       console.log('📦 [VENTE FLASH] Résultats bruts reçus:', JSON.stringify(results, null, 2));
 
       if (results && results.length > 0) {
-        console.log('✅ [VENTE FLASH] Résultats non vides, extraction get_my_factures...');
-        const response = results[0].get_my_factures;
-        console.log('🔍 [VENTE FLASH] Réponse brute get_my_factures:', typeof response, response);
+        console.log('✅ [VENTE FLASH] Résultats non vides, extraction get_my_factures1...');
+        const response = results[0].get_my_factures1;
+        console.log('🔍 [VENTE FLASH] Réponse brute get_my_factures1:', typeof response, response);
 
         const parsedResponse = typeof response === 'string'
           ? JSON.parse(response)
@@ -261,6 +266,7 @@ export default function VenteFlashPage() {
               montant_total: montantTotal,
               montant_paye: montantPaye,
               montant_impaye: montantImpaye,
+              mt_remise: (f.mt_remise as number) || 0,
               mode_paiement: modePaiement,
               nom_client: (f.nom_client as string) || 'CLIENT ANONYME',
               tel_client: (f.tel_client as string) || '',
@@ -278,7 +284,8 @@ export default function VenteFlashPage() {
           const statsCalculees: VenteFlashStats = {
             nb_ventes: ventesFormatees.length,
             total_ventes: ventesFormatees.reduce((sum, v) => sum + v.montant_total, 0),
-            ca_jour: ventesFormatees.reduce((sum, v) => sum + v.montant_paye, 0)
+            ca_jour: ventesFormatees.reduce((sum, v) => sum + v.montant_paye, 0),
+            total_remises: ventesFormatees.reduce((sum, v) => sum + (v.mt_remise || 0), 0)
           };
 
           console.log('📊 [VENTE FLASH] Statistiques calculées:', statsCalculees);
@@ -562,6 +569,7 @@ export default function VenteFlashPage() {
           <div class="stat-card">
             <div class="stat-value">${stats.total_ventes.toLocaleString('fr-FR')} FCFA</div>
             <div class="stat-label">Total ventes</div>
+            ${stats.total_remises > 0 ? `<div style="color: #d97706; font-size: 11px; font-weight: 500; margin-top: 4px;">(Remises: ${stats.total_remises.toLocaleString('fr-FR')} F)</div>` : ''}
           </div>
           <div class="stat-card">
             <div class="stat-value">${stats.ca_jour.toLocaleString('fr-FR')} FCFA</div>
@@ -663,11 +671,19 @@ export default function VenteFlashPage() {
           produits={produits}
           onAddToPanier={handleAddToPanier}
           onRefresh={handleRefresh}
-          onOpenPanier={() => setShowPanier(true)}
           onPrint={handlePrintRapport}
         />
 
-        {/* Section 2: StatCards */}
+        {/* Section 2: Panier Inline (s'affiche automatiquement quand articles ajoutés) */}
+        <PanierVenteFlashInline
+          onSuccess={() => loadVentesJour()}
+          onShowRecu={(idFacture: number, numFacture: string, montantTotal: number) => {
+            setRecuData({ idFacture, numFacture, montantTotal });
+            setShowRecu(true);
+          }}
+        />
+
+        {/* Section 3: StatCards */}
         <VenteFlashStatsCards
           stats={stats}
           isLoading={isLoadingVentes}
@@ -682,17 +698,6 @@ export default function VenteFlashPage() {
           onViewInvoice={handleViewInvoice}
         />
       </div>
-
-      {/* Panier Vente Flash */}
-      <PanierVenteFlash
-        isOpen={showPanier}
-        onClose={() => setShowPanier(false)}
-        onSuccess={() => loadVentesJour()}
-        onShowRecu={(idFacture, numFacture, montantTotal) => {
-          setRecuData({ idFacture, numFacture, montantTotal });
-          setShowRecu(true);
-        }}
-      />
 
       {/* Modal Reçu */}
       {recuData && (

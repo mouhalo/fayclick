@@ -23,6 +23,7 @@ export function VenteFlashStatsCards({
       id: 'nb_ventes',
       label: 'Nombre de ventes',
       value: stats.nb_ventes,
+      subValue: null,
       icon: Receipt,
       color: 'blue',
       gradient: 'from-blue-500 to-blue-600',
@@ -32,6 +33,7 @@ export function VenteFlashStatsCards({
       id: 'total_ventes',
       label: 'Total ventes',
       value: `${stats.total_ventes.toLocaleString('fr-FR')} FCFA`,
+      subValue: stats.total_remises > 0 ? `Remises: ${stats.total_remises.toLocaleString('fr-FR')} F` : null,
       icon: TrendingUp,
       color: 'green',
       gradient: 'from-green-500 to-green-600',
@@ -41,6 +43,7 @@ export function VenteFlashStatsCards({
       id: 'ca_jour',
       label: 'CA du jour',
       value: `${stats.ca_jour.toLocaleString('fr-FR')} FCFA`,
+      subValue: null,
       icon: DollarSign,
       color: 'orange',
       gradient: 'from-orange-500 to-orange-600',
@@ -98,6 +101,12 @@ export function VenteFlashStatsCards({
               <div className="text-base sm:text-lg font-bold text-gray-900 leading-tight">
                 {stat.value}
               </div>
+              {/* Affichage des remises si disponible */}
+              {stat.subValue && (
+                <div className="text-[10px] text-orange-600 font-medium mt-0.5">
+                  {stat.subValue}
+                </div>
+              )}
             </div>
           </motion.div>
         );

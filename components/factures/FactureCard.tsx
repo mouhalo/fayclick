@@ -107,7 +107,14 @@ export const FactureCard = ({
         <div className="mb-3 sm:mb-4 space-y-1 sm:space-y-2 text-white/80 text-xs sm:text-sm">
           <div className="flex items-center gap-2">
             <span className="w-3 h-3 sm:w-4 sm:h-4">👤</span>
-            <span className="font-medium truncate">{factureData.nom_client}</span>
+            <span className="font-medium truncate">
+              {factureData.nom_client}
+              {factureData.mt_remise > 0 && (
+                <span className="text-orange-300 ml-1">
+                  (Remise: {formatAmount(factureData.mt_remise)})
+                </span>
+              )}
+            </span>
           </div>
           <div className="flex items-center gap-2">
             <span className="w-3 h-3 sm:w-4 sm:h-4">📅</span>

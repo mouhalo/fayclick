@@ -53,6 +53,7 @@ export interface ModalFacturePriveeProps {
   isOpen: boolean;
   onClose: () => void;
   factureId?: number;
+  numFacture?: string;  // Numéro de facture pour optimiser la recherche
   factureData?: FacturePriveeData;
   onFactureDeleted?: (idFacture: number) => void;
   onPaymentComplete?: (factureId: number) => void;
