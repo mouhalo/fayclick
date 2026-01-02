@@ -289,16 +289,40 @@ SELECT * FROM add_acompte_facture(
 
 ### Système PWA
 - **Service Worker** (`public/service-worker.js`)
-  - Version actuelle : **v2.1.0 (2025-09-30)**
-  - Cache : `fayclick-v2-cache-v2-20250930`
+  - Version actuelle : **v2.7.0 (2026-01-02)**
+  - Cache : `fayclick-v2-cache-v2.7-20260102`
   - **IMPORTANT** : Mettre à jour la version cache lors de changements majeurs
   - Routes publiques exclues : `/facture`, `/fay`, `/login`, `/register`
+  - Icône : `/fayclick.ico` (plus `/favicon.ico`)
 
 - **Installation PWA** (`components/pwa/PWAInstallProvider.tsx`)
   - Prompt intelligent après 2s sur pages privées
   - Badge permanent après 5s si non installé
   - Max 3 fermetures, délai 7 jours entre prompts
   - Exclusion automatique des pages publiques
+
+- **Background Sync** (`hooks/useBackgroundSync.ts`)
+  - Synchronisation automatique des requêtes offline
+  - IndexedDB pour stockage des requêtes en attente
+  - Support factures et paiements
+  - Hook React : `useBackgroundSync()`
+  ```typescript
+  const { saveForSync, triggerSync, status } = useBackgroundSync();
+  // Sauvegarder une requête pour sync ultérieure
+  await saveForSync(createFactureRequest(apiUrl, data));
+  ```
+
+- **Headers de Sécurité** (`.htaccess`)
+  - CSP (Content Security Policy) configuré
+  - X-Content-Type-Options: nosniff
+  - X-Frame-Options: SAMEORIGIN
+  - Referrer-Policy: strict-origin-when-cross-origin
+  - Permissions-Policy pour caméra, géolocalisation
+
+- **Assets PWA Requis** (voir `public/PWA-ASSETS-GUIDE.md`)
+  - `icon-192-maskable.png` et `icon-512-maskable.png` (à créer)
+  - `screenshots/dashboard-wide.png` (1280x720) (à créer)
+  - `screenshots/dashboard-mobile.png` (750x1334) (à créer)
 
 ## Gestion du Cache & Déploiement
 
@@ -308,7 +332,7 @@ Quand les utilisateurs ne voient pas les changements après déploiement :
 1. **Mettre à jour Service Worker version** :
 ```javascript
 // public/service-worker.js
-const CACHE_NAME = 'fayclick-v2-cache-v2-YYYYMMDD';
+const CACHE_NAME = 'fayclick-v2-cache-v2.7-YYYYMMDD';
 ```
 
 2. **Rebuild + déploiement** :

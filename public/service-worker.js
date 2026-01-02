@@ -1,10 +1,14 @@
 // Service Worker FayClick V2 - PWA Complète
-// Version: 2.6.0 - 2025-12-06 - Fix compatibilité cross-browser (Firefox, Safari iOS)
-// Build: 2026-01-02T00:16:32.392Z - Force upload fix for ftp-deploy size comparison bug
+// Version: 2.7.0 - 2026-01-02 - Audit PWA + Background Sync + Icons fix
+// Build: 2026-01-02T12:00:00.000Z
 
-const CACHE_NAME = 'fayclick-v2-cache-v2.6-20251206';
-const DYNAMIC_CACHE_NAME = 'fayclick-v2-dynamic-v2.6-20251206';
+const CACHE_NAME = 'fayclick-v2-cache-v2.7-20260102';
+const DYNAMIC_CACHE_NAME = 'fayclick-v2-dynamic-v2.7-20260102';
 const OFFLINE_PAGE_URL = '/offline';
+
+// Nom de l'IndexedDB pour les requêtes en attente (Background Sync)
+const PENDING_REQUESTS_DB = 'fayclick-pending-requests';
+const PENDING_REQUESTS_STORE = 'requests';
 
 // Assets essentiels à mettre en cache lors de l'installation
 // Note: On ne met pas '/' car il sera caché dynamiquement (évite erreurs lors de l'install)
@@ -41,7 +45,7 @@ const CRITICAL_JS_PATTERNS = [
 
 // Installation du Service Worker
 self.addEventListener('install', (event) => {
-  console.log('[Service Worker] Installation v2.6.0 (cross-browser fix)...');
+  console.log('[Service Worker] Installation v2.7.0 (Audit PWA + Background Sync)...');
 
   event.waitUntil(
     // D'abord, supprimer TOUS les anciens caches
@@ -71,7 +75,7 @@ self.addEventListener('install', (event) => {
       });
 
       await Promise.allSettled(cachePromises);
-      console.log('[Service Worker] Installation v2.6.0 terminée');
+      console.log('[Service Worker] Installation v2.7.0 terminée');
     })
   );
 
@@ -100,8 +104,8 @@ self.addEventListener('activate', (event) => {
         clients.forEach(client => {
           client.postMessage({
             type: 'SW_UPDATED',
-            version: '2.6.0',
-            message: 'Service Worker mis à jour (fix cross-browser), rechargement recommandé'
+            version: '2.7.0',
+            message: 'Service Worker mis à jour (Audit PWA + Background Sync), rechargement recommandé'
           });
         });
       });
@@ -275,18 +279,229 @@ self.addEventListener('message', (event) => {
   }
 });
 
-// Gestion de la synchronisation en arrière-plan
+// ========== BACKGROUND SYNC ==========
+// Gestion de la synchronisation en arrière-plan pour les opérations offline
+
+// Ouvrir/créer la base IndexedDB pour les requêtes en attente
+function openPendingRequestsDB() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(PENDING_REQUESTS_DB, 1);
+
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => resolve(request.result);
+
+    request.onupgradeneeded = (event) => {
+      const db = event.target.result;
+      if (!db.objectStoreNames.contains(PENDING_REQUESTS_STORE)) {
+        const store = db.createObjectStore(PENDING_REQUESTS_STORE, { keyPath: 'id', autoIncrement: true });
+        store.createIndex('type', 'type', { unique: false });
+        store.createIndex('timestamp', 'timestamp', { unique: false });
+      }
+    };
+  });
+}
+
+// Sauvegarder une requête en attente
+async function savePendingRequest(requestData) {
+  try {
+    const db = await openPendingRequestsDB();
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction([PENDING_REQUESTS_STORE], 'readwrite');
+      const store = transaction.objectStore(PENDING_REQUESTS_STORE);
+
+      const data = {
+        ...requestData,
+        timestamp: Date.now(),
+        retryCount: 0
+      };
+
+      const request = store.add(data);
+      request.onsuccess = () => {
+        console.log('[Background Sync] Requête sauvegardée pour synchronisation:', data.type);
+        resolve(request.result);
+      };
+      request.onerror = () => reject(request.error);
+    });
+  } catch (error) {
+    console.error('[Background Sync] Erreur sauvegarde requête:', error);
+  }
+}
+
+// Récupérer toutes les requêtes en attente
+async function getPendingRequests() {
+  try {
+    const db = await openPendingRequestsDB();
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction([PENDING_REQUESTS_STORE], 'readonly');
+      const store = transaction.objectStore(PENDING_REQUESTS_STORE);
+      const request = store.getAll();
+
+      request.onsuccess = () => resolve(request.result || []);
+      request.onerror = () => reject(request.error);
+    });
+  } catch (error) {
+    console.error('[Background Sync] Erreur lecture requêtes:', error);
+    return [];
+  }
+}
+
+// Supprimer une requête après synchronisation réussie
+async function deletePendingRequest(id) {
+  try {
+    const db = await openPendingRequestsDB();
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction([PENDING_REQUESTS_STORE], 'readwrite');
+      const store = transaction.objectStore(PENDING_REQUESTS_STORE);
+      const request = store.delete(id);
+
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error);
+    });
+  } catch (error) {
+    console.error('[Background Sync] Erreur suppression requête:', error);
+  }
+}
+
+// Gestion de l'événement sync
 self.addEventListener('sync', (event) => {
-  if (event.tag === 'sync-data') {
-    event.waitUntil(syncData());
+  console.log('[Background Sync] Événement sync reçu:', event.tag);
+
+  if (event.tag === 'sync-factures') {
+    event.waitUntil(syncFactures());
+  } else if (event.tag === 'sync-paiements') {
+    event.waitUntil(syncPaiements());
+  } else if (event.tag === 'sync-all') {
+    event.waitUntil(syncAllPendingRequests());
   }
 });
 
-async function syncData() {
-  // Synchroniser les données en attente
-  console.log('[Service Worker] Synchronisation des données...');
-  // TODO: Implémenter la synchronisation des factures, paiements, etc.
+// Synchroniser les factures en attente
+async function syncFactures() {
+  console.log('[Background Sync] Synchronisation des factures...');
+  const pendingRequests = await getPendingRequests();
+  const factureRequests = pendingRequests.filter(r => r.type === 'facture');
+
+  for (const request of factureRequests) {
+    try {
+      const response = await fetch(request.url, {
+        method: request.method,
+        headers: request.headers,
+        body: JSON.stringify(request.body)
+      });
+
+      if (response.ok) {
+        await deletePendingRequest(request.id);
+        console.log('[Background Sync] Facture synchronisée:', request.id);
+
+        // Notifier le client du succès
+        const clients = await self.clients.matchAll();
+        clients.forEach(client => {
+          client.postMessage({
+            type: 'SYNC_SUCCESS',
+            requestType: 'facture',
+            requestId: request.id
+          });
+        });
+      }
+    } catch (error) {
+      console.error('[Background Sync] Erreur sync facture:', error);
+    }
+  }
 }
+
+// Synchroniser les paiements en attente
+async function syncPaiements() {
+  console.log('[Background Sync] Synchronisation des paiements...');
+  const pendingRequests = await getPendingRequests();
+  const paiementRequests = pendingRequests.filter(r => r.type === 'paiement');
+
+  for (const request of paiementRequests) {
+    try {
+      const response = await fetch(request.url, {
+        method: request.method,
+        headers: request.headers,
+        body: JSON.stringify(request.body)
+      });
+
+      if (response.ok) {
+        await deletePendingRequest(request.id);
+        console.log('[Background Sync] Paiement synchronisé:', request.id);
+
+        // Notifier le client
+        const clients = await self.clients.matchAll();
+        clients.forEach(client => {
+          client.postMessage({
+            type: 'SYNC_SUCCESS',
+            requestType: 'paiement',
+            requestId: request.id
+          });
+        });
+      }
+    } catch (error) {
+      console.error('[Background Sync] Erreur sync paiement:', error);
+    }
+  }
+}
+
+// Synchroniser toutes les requêtes en attente
+async function syncAllPendingRequests() {
+  console.log('[Background Sync] Synchronisation de toutes les requêtes en attente...');
+
+  const pendingRequests = await getPendingRequests();
+  console.log(`[Background Sync] ${pendingRequests.length} requête(s) en attente`);
+
+  let successCount = 0;
+  let failCount = 0;
+
+  for (const request of pendingRequests) {
+    try {
+      const response = await fetch(request.url, {
+        method: request.method,
+        headers: request.headers,
+        body: request.body ? JSON.stringify(request.body) : undefined
+      });
+
+      if (response.ok) {
+        await deletePendingRequest(request.id);
+        successCount++;
+        console.log(`[Background Sync] ✓ Synchronisé: ${request.type} #${request.id}`);
+      } else {
+        failCount++;
+        console.warn(`[Background Sync] ✗ Échec: ${request.type} #${request.id} - Status ${response.status}`);
+      }
+    } catch (error) {
+      failCount++;
+      console.error(`[Background Sync] ✗ Erreur: ${request.type} #${request.id}`, error.message);
+    }
+  }
+
+  // Notifier les clients du résultat
+  const clients = await self.clients.matchAll();
+  clients.forEach(client => {
+    client.postMessage({
+      type: 'SYNC_COMPLETE',
+      success: successCount,
+      failed: failCount,
+      total: pendingRequests.length
+    });
+  });
+
+  console.log(`[Background Sync] Terminé: ${successCount}/${pendingRequests.length} synchronisées`);
+}
+
+// Écouter les messages pour sauvegarder des requêtes offline
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SAVE_PENDING_REQUEST') {
+    savePendingRequest(event.data.request).then(() => {
+      // Enregistrer une sync si supporté
+      if ('sync' in self.registration) {
+        self.registration.sync.register('sync-all').catch(err => {
+          console.warn('[Background Sync] Impossible d\'enregistrer sync:', err);
+        });
+      }
+    });
+  }
+});
 
 // Gestion des notifications push
 self.addEventListener('push', (event) => {

@@ -12,11 +12,48 @@ Options -Indexes
   Header set Expires "0"
 </FilesMatch>
 
-# Service Worker : toujours recharger
+# Service Worker : toujours recharger + scope
 <Files "service-worker.js">
   Header set Cache-Control "no-cache, no-store, must-revalidate, max-age=0"
   Header set Pragma "no-cache"
   Header set Expires "0"
+  Header set Service-Worker-Allowed "/"
+</Files>
+
+# ========== HEADERS DE SÉCURITÉ PWA ==========
+# Ces headers améliorent la sécurité et la compatibilité PWA
+
+# Protection contre le sniffing de type MIME
+Header always set X-Content-Type-Options "nosniff"
+
+# Protection contre le clickjacking (iframes)
+Header always set X-Frame-Options "SAMEORIGIN"
+
+# Politique de référent
+Header always set Referrer-Policy "strict-origin-when-cross-origin"
+
+# Permissions Policy (anciennement Feature-Policy)
+Header always set Permissions-Policy "camera=*, microphone=(), geolocation=(self), payment=(self)"
+
+# Cross-Origin Resource Policy
+Header always set Cross-Origin-Resource-Policy "same-origin"
+
+# Cross-Origin Opener Policy (pour isolation)
+Header always set Cross-Origin-Opener-Policy "same-origin-allow-popups"
+
+# Content Security Policy (CSP) - Adaptée pour FayClick
+# Note: 'unsafe-inline' et 'unsafe-eval' sont nécessaires pour Next.js
+Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' https://api.icelabsoft.com https://*.fayclick.net wss: ws:; frame-ancestors 'self'; form-action 'self'; base-uri 'self'; manifest-src 'self'"
+
+# ========== CACHE POUR ASSETS STATIQUES ==========
+# Les images et fonts peuvent être cachés longtemps
+<FilesMatch "\.(png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$">
+  Header set Cache-Control "public, max-age=31536000, immutable"
+</FilesMatch>
+
+# Le manifest peut être caché mais doit être revalidé
+<Files "manifest.json">
+  Header set Cache-Control "public, max-age=86400, must-revalidate"
 </Files>
 
 # Activer le moteur de réécriture
