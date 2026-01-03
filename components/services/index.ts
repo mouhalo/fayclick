@@ -9,6 +9,7 @@ export { CarteService } from './CarteService';
 // Devis
 export { CarteDevis } from './CarteDevis';
 export { ModalNouveauDevis } from './ModalNouveauDevis';
+export { ModalEditDevis } from './ModalEditDevis';
 
 // Factures depuis Devis
 export { ModalCreerFacture } from './ModalCreerFacture';

@@ -342,10 +342,10 @@ export class PrestationService {
    * Utilise la fonction PostgreSQL add_new_devis_complet
    *
    * Signature: add_new_devis_complet(
-   *   p_date_devis, p_id_structure, p_tel_client, p_nom_client_payeur,
-   *   p_montant, p_services_string, p_lignes_equipements, p_id_utilisateur
+   *   p_date_devis, p_id_structure, p_tel_client, p_nom_client_payeur, p_adresse_client,
+   *   p_montant, p_articles_string, p_lignes_equipements, p_id_utilisateur
    * )
-   * p_services_string format: id_service-qte-prix#id_service2-qte2-prix2
+   * p_articles_string format: id_service-qte-prix#id_service2-qte2-prix2
    */
   async createDevis(data: DevisFormData): Promise<DevisApiResponse> {
     try {
@@ -368,6 +368,7 @@ export class PrestationService {
       SecurityService.secureLog('log', 'Création devis', {
         id_structure: user.id_structure,
         nom_client: data.nom_client,
+        adresse_client: data.adresse_client,
         montant_services: montantServices,
         services_string: servicesString,
         nb_services: data.lignes_services?.length || 0,
@@ -387,12 +388,13 @@ export class PrestationService {
         : 'NULL';
 
       // Appeler la fonction PostgreSQL add_new_devis_complet
-      // Ordre: date_devis, id_structure, tel_client, nom_client, montant, services_string, equipements, id_utilisateur
+      // Ordre: date_devis, id_structure, tel_client, nom_client, adresse_client, montant, articles_string, equipements, id_utilisateur
       const query = `SELECT public.add_new_devis_complet(
         '${data.date_devis}'::date,
         ${user.id_structure},
         '${data.tel_client.replace(/'/g, "''")}',
         '${data.nom_client.replace(/'/g, "''")}',
+        '${(data.adresse_client || '').replace(/'/g, "''")}',
         ${montantServices},
         '${servicesString}',
         ${lignesEquipementsJson},
@@ -648,6 +650,132 @@ export class PrestationService {
 
       throw new PrestationApiException(
         'Impossible de supprimer le devis',
+        500,
+        error
+      );
+    }
+  }
+
+  /**
+   * Mettre à jour un devis existant
+   * Utilise la fonction PostgreSQL maj_devis(
+   *   p_date_devis, p_id_structure, p_tel_client, p_nom_client_payeur, p_adresse_client,
+   *   p_montant, p_services_string, p_lignes_equipements, p_id_utilisateur, pid_devis
+   * )
+   * p_services_string format: id_service-qte-prix#id_service2-qte2-prix2
+   */
+  async updateDevis(idDevis: number, data: DevisFormData): Promise<DevisApiResponse> {
+    try {
+      const user = authService.getUser();
+      if (!user) {
+        throw new PrestationApiException('Utilisateur non authentifié', 401);
+      }
+
+      // Calculer le montant total des services
+      const montantServices = (data.lignes_services || []).reduce(
+        (sum, s) => sum + (s.cout * (s.quantite || 1)),
+        0
+      );
+
+      // Construire la chaîne des services: id_service-qte-prix#id_service2-qte2-prix2
+      const servicesString = (data.lignes_services || [])
+        .map(s => `${s.id_service || 0}-${s.quantite || 1}-${s.cout}`)
+        .join('#');
+
+      SecurityService.secureLog('log', 'Mise à jour devis', {
+        id_devis: idDevis,
+        id_structure: user.id_structure,
+        nom_client: data.nom_client,
+        adresse_client: data.adresse_client,
+        montant_services: montantServices,
+        services_string: servicesString,
+        nb_services: data.lignes_services?.length || 0,
+        nb_equipements: data.lignes_equipements?.length || 0
+      });
+
+      // Préparer les lignes d'équipements en JSON
+      // Format attendu: [{"designation": "...", "qte": X, "pu": Y}]
+      const lignesEquipements = (data.lignes_equipements || []).map(eq => ({
+        designation: eq.designation,
+        marque: eq.marque || '',
+        pu: eq.prix_unitaire,
+        qte: eq.quantite
+      }));
+      const lignesEquipementsJson = lignesEquipements.length > 0
+        ? `'${JSON.stringify(lignesEquipements).replace(/'/g, "''")}'::JSONB`
+        : 'NULL';
+
+      // Appeler la fonction PostgreSQL maj_devis
+      const query = `SELECT public.maj_devis(
+        '${data.date_devis}'::date,
+        ${user.id_structure},
+        '${data.tel_client.replace(/'/g, "''")}',
+        '${data.nom_client.replace(/'/g, "''")}',
+        '${(data.adresse_client || '').replace(/'/g, "''")}',
+        ${montantServices},
+        '${servicesString}',
+        ${lignesEquipementsJson},
+        ${user.id},
+        ${idDevis}
+      ) as result`;
+
+      const result = await database.query(query);
+      const rawResult = Array.isArray(result) ? result[0] : result;
+
+      // Parser le résultat JSON
+      let response: { success: boolean; code: string; message: string; data?: unknown };
+      if (typeof rawResult?.result === 'string') {
+        response = JSON.parse(rawResult.result);
+      } else if (rawResult?.result) {
+        response = rawResult.result;
+      } else if (rawResult?.maj_devis) {
+        response = typeof rawResult.maj_devis === 'string'
+          ? JSON.parse(rawResult.maj_devis)
+          : rawResult.maj_devis;
+      } else {
+        throw new PrestationApiException('Réponse invalide de la fonction', 500);
+      }
+
+      SecurityService.secureLog('log', 'Devis mis à jour', response);
+
+      if (!response.success) {
+        throw new PrestationApiException(response.message || 'Erreur lors de la mise à jour', 400);
+      }
+
+      // Calculer le montant total des équipements
+      const montantEquipements = (data.lignes_equipements || []).reduce(
+        (sum, eq) => sum + (eq.prix_unitaire * eq.quantite),
+        0
+      );
+
+      return {
+        success: true,
+        data: {
+          id_devis: idDevis,
+          id_structure: user.id_structure,
+          date_devis: data.date_devis,
+          tel_client: data.tel_client,
+          nom_client: data.nom_client,
+          montant_services: montantServices,
+          montant_equipements: montantEquipements,
+          montant_total: montantServices + montantEquipements,
+          statut: 'BROUILLON',
+          lignes_services: data.lignes_services,
+          lignes_equipements: data.lignes_equipements
+        },
+        message: response.message || 'Devis mis à jour avec succès',
+        id_devis: idDevis
+      };
+
+    } catch (error) {
+      SecurityService.secureLog('error', 'Erreur mise à jour devis', error);
+
+      if (error instanceof PrestationApiException) {
+        throw error;
+      }
+
+      throw new PrestationApiException(
+        'Impossible de mettre à jour le devis',
         500,
         error
       );

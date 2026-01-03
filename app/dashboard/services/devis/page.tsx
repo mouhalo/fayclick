@@ -25,6 +25,7 @@ import { DevisFromDB, FiltreDevis, GetMyDevisResponse } from '@/types/prestation
 import { User } from '@/types/auth';
 import { CarteDevis } from '@/components/services/CarteDevis';
 import { ModalNouveauDevis } from '@/components/services/ModalNouveauDevis';
+import { ModalEditDevis } from '@/components/services/ModalEditDevis';
 import { ModalCreerFacture, FactureFromDevisData } from '@/components/services/ModalCreerFacture';
 import PopMessage from '@/components/ui/PopMessage';
 
@@ -46,6 +47,10 @@ export default function ListeDevisPage() {
   // Modal nouveau devis
   const [showModalDevis, setShowModalDevis] = useState(false);
   const [selectedDevis, setSelectedDevis] = useState<DevisFromDB | null>(null);
+
+  // Modal édition devis
+  const [showModalEditDevis, setShowModalEditDevis] = useState(false);
+  const [devisToEdit, setDevisToEdit] = useState<DevisFromDB | null>(null);
 
   // Modal créer facture depuis devis
   const [showModalFacture, setShowModalFacture] = useState(false);
@@ -128,11 +133,16 @@ export default function ListeDevisPage() {
     setShowModalDevis(true);
   };
 
-  // Voir détails devis
+  // Voir/Éditer détails devis
   const handleViewDevis = (devis: DevisFromDB) => {
-    setSelectedDevis(devis);
-    // TODO: Ouvrir modal de détails ou naviguer vers page détail
-    console.log('Voir devis:', devis);
+    setDevisToEdit(devis);
+    setShowModalEditDevis(true);
+  };
+
+  // Callback succès édition devis
+  const handleDevisUpdated = () => {
+    loadDevis();
+    showMessage('success', 'Devis mis à jour avec succès');
   };
 
   // Callback succès modal devis
@@ -366,6 +376,17 @@ export default function ListeDevisPage() {
         isOpen={showModalDevis}
         onClose={() => setShowModalDevis(false)}
         onSuccess={handleDevisCreated}
+      />
+
+      {/* Modal Édition Devis */}
+      <ModalEditDevis
+        isOpen={showModalEditDevis}
+        onClose={() => {
+          setShowModalEditDevis(false);
+          setDevisToEdit(null);
+        }}
+        onSuccess={handleDevisUpdated}
+        devisData={devisToEdit}
       />
 
       {/* Modal Créer Facture depuis Devis */}

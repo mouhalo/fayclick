@@ -48,6 +48,7 @@ export interface Devis {
   date_devis: string;
   tel_client: string;
   nom_client: string;
+  adresse_client?: string;
 
   // Montants
   montant_services: number;      // Total des services (main d'oeuvre) = comptabilisé CA
@@ -88,6 +89,7 @@ export interface DevisFormData {
   date_devis: string;
   tel_client: string;
   nom_client: string;
+  adresse_client?: string;
   montant_services: number;
   lignes_services: DevisLigneService[];
   lignes_equipements: LigneEquipement[];
@@ -148,6 +150,7 @@ export interface DevisFromDB {
     mois: number;
     tel_client: string;
     nom_client_payeur: string;
+    adresse_client?: string;
     montant: number;                    // Montant des services/produits
     lignes_equipements: LigneEquipement[];
     montant_equipement: number;

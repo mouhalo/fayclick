@@ -12,6 +12,7 @@ import {
   FileText,
   User,
   Phone,
+  MapPin,
   Wrench,
   Package,
   Plus,
@@ -41,6 +42,7 @@ export function ModalNouveauDevis({
   // États du formulaire
   const [nomClient, setNomClient] = useState('');
   const [telClient, setTelClient] = useState('');
+  const [adresseClient, setAdresseClient] = useState('');
 
   // Services
   const [servicesDisponibles, setServicesDisponibles] = useState<Service[]>([]);
@@ -97,6 +99,7 @@ export function ModalNouveauDevis({
       // Reset form
       setNomClient('');
       setTelClient('');
+      setAdresseClient('');
       setServicesSelectionnes([]);
       setEquipements([]);
       setExpandedSection('services');
@@ -214,6 +217,7 @@ export function ModalNouveauDevis({
         date_devis: new Date().toISOString().split('T')[0],
         nom_client: nomClient.trim(),
         tel_client: telClient.replace(/\s/g, ''),
+        adresse_client: adresseClient.trim(),
         montant_services: totalServices,
         lignes_services: servicesSelectionnes,
         lignes_equipements: equipements
@@ -303,6 +307,20 @@ export function ModalNouveauDevis({
                       value={telClient}
                       onChange={(e) => setTelClient(e.target.value.replace(/\D/g, '').slice(0, 9))}
                       placeholder="77 123 45 67"
+                      className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm text-gray-600 mb-1">Adresse</label>
+                  <div className="relative">
+                    <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <input
+                      type="text"
+                      value={adresseClient}
+                      onChange={(e) => setAdresseClient(e.target.value)}
+                      placeholder="Ex: Dakar, Médina Rue 10"
                       className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400"
                     />
                   </div>
