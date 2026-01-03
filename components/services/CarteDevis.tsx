@@ -11,6 +11,7 @@ import {
   FileText,
   User,
   Phone,
+  Home,
   Calendar,
   Wrench,
   Package,
@@ -110,34 +111,38 @@ export function CarteDevis({
               <Phone className="w-3 h-3" />
               {formatPhone(devis.tel_client)}
             </p>
+            {devis.adresse_client && (
+              <p className="text-sm text-gray-500 flex items-center gap-1 mt-0.5">
+                <Home className="w-3 h-3" />
+                <span className="truncate">{devis.adresse_client}</span>
+              </p>
+            )}
           </div>
         </div>
 
-        {/* Résumé des montants */}
-        <div className="space-y-2">
+        {/* Résumé des montants - Grid 2 colonnes */}
+        <div className="grid grid-cols-2 gap-4">
           {/* Services */}
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-gray-600 flex items-center gap-1.5">
+          <div>
+            <span className="text-gray-600 flex items-center gap-1.5 text-sm">
               <Wrench className="w-4 h-4 text-orange-500" />
               Services ({resume.nb_produits})
             </span>
-            <span className="font-semibold text-orange-600">
+            <p className="font-semibold text-orange-600 mt-0.5">
               {formatMontant(resume.montant_produits)}
-            </span>
+            </p>
           </div>
 
           {/* Équipements */}
-          {resume.nb_equipements > 0 && (
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-gray-600 flex items-center gap-1.5">
-                <Package className="w-4 h-4 text-purple-500" />
-                Équipements ({resume.nb_equipements})
-              </span>
-              <span className="font-semibold text-purple-600">
-                {formatMontant(resume.montant_equipements)}
-              </span>
-            </div>
-          )}
+          <div>
+            <span className="text-gray-600 flex items-center gap-1.5 text-sm">
+              <Package className="w-4 h-4 text-purple-500" />
+              Équipements ({resume.nb_equipements})
+            </span>
+            <p className="font-semibold text-purple-600 mt-0.5">
+              {formatMontant(resume.montant_equipements)}
+            </p>
+          </div>
         </div>
 
         {/* Total */}
