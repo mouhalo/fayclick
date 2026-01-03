@@ -16,12 +16,11 @@ import {
   Loader2,
   RefreshCw,
   Filter,
-  Calendar,
   TrendingUp
 } from 'lucide-react';
 import { authService } from '@/services/auth.service';
 import { prestationService } from '@/services/prestation.service';
-import { DevisFromDB, FiltreDevis, GetMyDevisResponse } from '@/types/prestation';
+import { DevisFromDB, FiltreDevis } from '@/types/prestation';
 import { User } from '@/types/auth';
 import { CarteDevis } from '@/components/services/CarteDevis';
 import { ModalNouveauDevis } from '@/components/services/ModalNouveauDevis';
@@ -38,11 +37,21 @@ export default function ListeDevisPage() {
   const [user, setUser] = useState<User | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [devisList, setDevisList] = useState<DevisFromDB[]>([]);
-  const [resume, setResume] = useState<GetMyDevisResponse['resume_global'] | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedPeriode, setSelectedPeriode] = useState<PeriodeFilter>('mois');
   const [showFilters, setShowFilters] = useState(false);
+
+  // Calcul des stats à partir de la liste des devis affichés (se met à jour avec les filtres)
+  const computedStats = {
+    nombre_devis: devisList.length,
+    montant_total: devisList.reduce((sum, d) => {
+      // Montant services/produits + équipements
+      const montantProduits = d.devis.montant || 0;
+      const montantEquipements = d.devis.montant_equipement || 0;
+      return sum + montantProduits + montantEquipements;
+    }, 0)
+  };
 
   // Modal nouveau devis
   const [showModalDevis, setShowModalDevis] = useState(false);
@@ -105,7 +114,6 @@ export default function ListeDevisPage() {
 
       if (response.success) {
         setDevisList(response.data);
-        setResume(response.resume || null);
       }
     } catch (error) {
       console.error('Erreur chargement devis:', error);
@@ -291,30 +299,28 @@ export default function ListeDevisPage() {
 
         {/* Contenu */}
         <div className="p-4 pb-24">
-          {/* Stats rapides */}
-          {resume && (
-            <motion.div
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              className="grid grid-cols-2 gap-3 mb-4"
-            >
-              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-4 border border-blue-100">
-                <div className="flex items-center gap-2 mb-1">
-                  <FileText className="w-4 h-4 text-blue-600" />
-                  <span className="text-xs text-gray-600">Devis</span>
-                </div>
-                <p className="text-2xl font-bold text-blue-700">{resume.nombre_devis}</p>
+          {/* Stats rapides - Calculées dynamiquement depuis la liste filtrée */}
+          <motion.div
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            className="grid grid-cols-2 gap-3 mb-4"
+          >
+            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-4 border border-blue-100">
+              <div className="flex items-center gap-2 mb-1">
+                <FileText className="w-4 h-4 text-blue-600" />
+                <span className="text-xs text-gray-600">Devis</span>
               </div>
+              <p className="text-2xl font-bold text-blue-700">{computedStats.nombre_devis}</p>
+            </div>
 
-              <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-2xl p-4 border border-green-100">
-                <div className="flex items-center gap-2 mb-1">
-                  <TrendingUp className="w-4 h-4 text-green-600" />
-                  <span className="text-xs text-gray-600">Montant total</span>
-                </div>
-                <p className="text-lg font-bold text-green-700">{formatMontant(resume.montant_total)}</p>
+            <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-2xl p-4 border border-green-100">
+              <div className="flex items-center gap-2 mb-1">
+                <TrendingUp className="w-4 h-4 text-green-600" />
+                <span className="text-xs text-gray-600">Montant total</span>
               </div>
-            </motion.div>
-          )}
+              <p className="text-lg font-bold text-green-700">{formatMontant(computedStats.montant_total)}</p>
+            </div>
+          </motion.div>
 
           {/* Liste des devis */}
           {isLoading ? (

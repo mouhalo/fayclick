@@ -27,6 +27,9 @@ import {
 import { Service, DevisLigneService, LigneEquipement, DevisFormData } from '@/types/prestation';
 import { prestationService } from '@/services/prestation.service';
 import PopMessage from '@/components/ui/PopMessage';
+import { MicrophoneButton } from '@/components/voice/MicrophoneButton';
+import { useVoiceInputClient, useVoiceInputService, useVoiceInputEquipement } from '@/hooks/useVoiceInput';
+import { ExtractedClientData, ExtractedServiceData, ExtractedEquipementData } from '@/types/voice-input';
 
 interface ModalNouveauDevisProps {
   isOpen: boolean;
@@ -76,6 +79,11 @@ export function ModalNouveauDevis({
     type: 'info',
     message: ''
   });
+
+  // Hooks de capture vocale
+  const voiceClient = useVoiceInputClient();
+  const voiceService = useVoiceInputService();
+  const voiceEquipement = useVoiceInputEquipement();
 
   // Charger les services disponibles
   const loadServices = useCallback(async () => {
@@ -192,6 +200,84 @@ export function ModalNouveauDevis({
     setPopMessage({ show: true, type, title, message });
   };
 
+  // Handler capture vocale Client
+  const handleVoiceClient = async () => {
+    if (voiceClient.state === 'recording') {
+      const result = await voiceClient.stopAndProcess();
+      if (result?.success && result.data) {
+        const data = result.data as ExtractedClientData;
+        if (data.nom_client) setNomClient(data.nom_client);
+        if (data.tel_client) setTelClient(data.tel_client);
+        if (data.adresse_client) setAdresseClient(data.adresse_client);
+        showMessage('success', 'Informations client extraites avec succès');
+      } else {
+        showMessage('error', result?.error || 'Erreur lors de l\'extraction client');
+      }
+    } else if (voiceClient.state === 'idle' || voiceClient.state === 'error') {
+      voiceClient.reset();
+      await voiceClient.startCapture();
+    }
+  };
+
+  // Handler capture vocale Service (recherche)
+  const handleVoiceService = async () => {
+    if (voiceService.state === 'recording') {
+      const result = await voiceService.stopAndProcess();
+      if (result?.success && result.data) {
+        const data = result.data as ExtractedServiceData;
+        const searchTerm = data.search_term.toLowerCase();
+
+        // Filtrer les services disponibles
+        const matchingServices = servicesDisponibles.filter(s =>
+          s.nom_service.toLowerCase().includes(searchTerm) ||
+          (s.description && s.description.toLowerCase().includes(searchTerm))
+        );
+
+        if (matchingServices.length === 1) {
+          // Un seul résultat -> ajouter directement
+          handleAddService(matchingServices[0]);
+          showMessage('success', `Service "${matchingServices[0].nom_service}" ajouté`);
+        } else if (matchingServices.length > 1) {
+          // Plusieurs résultats -> ouvrir le sélecteur
+          setShowServiceSelector(true);
+          showMessage('info', `${matchingServices.length} services trouvés pour "${data.search_term}"`);
+        } else {
+          showMessage('warning', `Aucun service trouvé pour "${data.search_term}"`);
+        }
+      } else {
+        showMessage('error', result?.error || 'Erreur lors de la recherche de service');
+      }
+    } else if (voiceService.state === 'idle' || voiceService.state === 'error') {
+      voiceService.reset();
+      await voiceService.startCapture();
+    }
+  };
+
+  // Handler capture vocale Équipement
+  const handleVoiceEquipement = async () => {
+    if (voiceEquipement.state === 'recording') {
+      const result = await voiceEquipement.stopAndProcess();
+      if (result?.success && result.data) {
+        const data = result.data as ExtractedEquipementData;
+        setNouvelEquipement({
+          designation: data.designation || '',
+          marque: data.marque || '',
+          prix_unitaire: data.prix_unitaire || 0,
+          quantite: data.quantite || 1,
+          total: (data.prix_unitaire || 0) * (data.quantite || 1)
+        });
+        setShowEquipementForm(true);
+        setExpandedSection('equipements');
+        showMessage('success', 'Équipement extrait - Vérifiez et validez');
+      } else {
+        showMessage('error', result?.error || 'Erreur lors de l\'extraction équipement');
+      }
+    } else if (voiceEquipement.state === 'idle' || voiceEquipement.state === 'error') {
+      voiceEquipement.reset();
+      await voiceEquipement.startCapture();
+    }
+  };
+
   // Soumettre le devis
   const handleSubmit = async () => {
     // Validation
@@ -281,10 +367,19 @@ export function ModalNouveauDevis({
           <div className="p-5 overflow-y-auto max-h-[calc(90vh-180px)] space-y-4">
             {/* Section Client */}
             <div className="bg-gray-50 rounded-2xl p-4">
-              <h4 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
-                <User className="w-5 h-5 text-blue-500" />
-                Client
-              </h4>
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="font-semibold text-gray-800 flex items-center gap-2">
+                  <User className="w-5 h-5 text-blue-500" />
+                  Client
+                </h4>
+                <MicrophoneButton
+                  context="client"
+                  state={voiceClient.state}
+                  onClick={handleVoiceClient}
+                  size="md"
+                  disabled={!voiceClient.isSupported}
+                />
+              </div>
 
               <div className="space-y-3">
                 <div>
@@ -330,23 +425,33 @@ export function ModalNouveauDevis({
 
             {/* Section Services */}
             <div className="bg-orange-50 rounded-2xl overflow-hidden">
-              <button
-                onClick={() => setExpandedSection(expandedSection === 'services' ? null : 'services')}
-                className="w-full p-4 flex items-center justify-between"
-              >
-                <h4 className="font-semibold text-gray-800 flex items-center gap-2">
-                  <Wrench className="w-5 h-5 text-orange-500" />
-                  Services ({servicesSelectionnes.length})
-                </h4>
-                <div className="flex items-center gap-2">
-                  <span className="text-orange-600 font-bold">{formatMontant(totalServices)}</span>
-                  {expandedSection === 'services' ? (
-                    <ChevronUp className="w-5 h-5 text-gray-400" />
-                  ) : (
-                    <ChevronDown className="w-5 h-5 text-gray-400" />
-                  )}
-                </div>
-              </button>
+              <div className="w-full p-4 flex items-center justify-between">
+                <button
+                  onClick={() => setExpandedSection(expandedSection === 'services' ? null : 'services')}
+                  className="flex-1 flex items-center justify-between"
+                >
+                  <h4 className="font-semibold text-gray-800 flex items-center gap-2">
+                    <Wrench className="w-5 h-5 text-orange-500" />
+                    Services ({servicesSelectionnes.length})
+                  </h4>
+                  <div className="flex items-center gap-2">
+                    <span className="text-orange-600 font-bold">{formatMontant(totalServices)}</span>
+                    {expandedSection === 'services' ? (
+                      <ChevronUp className="w-5 h-5 text-gray-400" />
+                    ) : (
+                      <ChevronDown className="w-5 h-5 text-gray-400" />
+                    )}
+                  </div>
+                </button>
+                <MicrophoneButton
+                  context="service"
+                  state={voiceService.state}
+                  onClick={handleVoiceService}
+                  size="sm"
+                  disabled={!voiceService.isSupported}
+                  className="ml-2"
+                />
+              </div>
 
               <AnimatePresence>
                 {expandedSection === 'services' && (
@@ -437,23 +542,33 @@ export function ModalNouveauDevis({
 
             {/* Section Équipements */}
             <div className="bg-purple-50 rounded-2xl overflow-hidden">
-              <button
-                onClick={() => setExpandedSection(expandedSection === 'equipements' ? null : 'equipements')}
-                className="w-full p-4 flex items-center justify-between"
-              >
-                <h4 className="font-semibold text-gray-800 flex items-center gap-2">
-                  <Package className="w-5 h-5 text-purple-500" />
-                  Équipements ({equipements.length})
-                </h4>
-                <div className="flex items-center gap-2">
-                  <span className="text-purple-600 font-bold">{formatMontant(totalEquipements)}</span>
-                  {expandedSection === 'equipements' ? (
-                    <ChevronUp className="w-5 h-5 text-gray-400" />
-                  ) : (
-                    <ChevronDown className="w-5 h-5 text-gray-400" />
-                  )}
-                </div>
-              </button>
+              <div className="w-full p-4 flex items-center justify-between">
+                <button
+                  onClick={() => setExpandedSection(expandedSection === 'equipements' ? null : 'equipements')}
+                  className="flex-1 flex items-center justify-between"
+                >
+                  <h4 className="font-semibold text-gray-800 flex items-center gap-2">
+                    <Package className="w-5 h-5 text-purple-500" />
+                    Équipements ({equipements.length})
+                  </h4>
+                  <div className="flex items-center gap-2">
+                    <span className="text-purple-600 font-bold">{formatMontant(totalEquipements)}</span>
+                    {expandedSection === 'equipements' ? (
+                      <ChevronUp className="w-5 h-5 text-gray-400" />
+                    ) : (
+                      <ChevronDown className="w-5 h-5 text-gray-400" />
+                    )}
+                  </div>
+                </button>
+                <MicrophoneButton
+                  context="equipement"
+                  state={voiceEquipement.state}
+                  onClick={handleVoiceEquipement}
+                  size="sm"
+                  disabled={!voiceEquipement.isSupported}
+                  className="ml-2"
+                />
+              </div>
 
               <AnimatePresence>
                 {expandedSection === 'equipements' && (

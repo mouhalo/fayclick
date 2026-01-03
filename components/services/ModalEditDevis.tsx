@@ -5,8 +5,9 @@
 
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import Image from 'next/image';
 import {
   X,
   FileText,
@@ -31,6 +32,8 @@ import { authService } from '@/services/auth.service';
 import { Service, DevisLigneService, LigneEquipement, DevisFormData, DevisFromDB } from '@/types/prestation';
 import { prestationService } from '@/services/prestation.service';
 import PopMessage from '@/components/ui/PopMessage';
+import { jsPDF } from 'jspdf';
+import { nombreEnLettres } from '@/lib/nombre-en-lettres';
 
 interface ModalEditDevisProps {
   isOpen: boolean;
@@ -71,6 +74,8 @@ export function ModalEditDevis({
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingServices, setIsLoadingServices] = useState(false);
   const [expandedSection, setExpandedSection] = useState<'services' | 'equipements' | null>('services');
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
 
   // Messages
   const [popMessage, setPopMessage] = useState<{
@@ -244,6 +249,306 @@ export function ModalEditDevis({
 
     const whatsappUrl = `https://wa.me/?text=${message}`;
     window.open(whatsappUrl, '_blank');
+    setShowShareModal(false);
+  };
+
+  // Helper pour charger une image et la convertir en base64
+  const loadImageAsBase64 = async (url: string): Promise<string | null> => {
+    // Méthode 1: Essayer via fetch (meilleure pour les images distantes)
+    try {
+      const response = await fetch(url, { mode: 'cors' });
+      if (response.ok) {
+        const blob = await response.blob();
+        return new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.onerror = () => resolve(null);
+          reader.readAsDataURL(blob);
+        });
+      }
+    } catch {
+      console.log('Fetch CORS failed, trying Image approach...');
+    }
+
+    // Méthode 2: Essayer via Image avec crossOrigin
+    return new Promise((resolve) => {
+      const img = new window.Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        try {
+          const canvas = document.createElement('canvas');
+          canvas.width = img.width;
+          canvas.height = img.height;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.drawImage(img, 0, 0);
+            resolve(canvas.toDataURL('image/png'));
+          } else {
+            resolve(null);
+          }
+        } catch {
+          resolve(null);
+        }
+      };
+      img.onerror = () => {
+        console.log('Image load failed for:', url);
+        resolve(null);
+      };
+      img.src = url;
+    });
+  };
+
+  // Générer et télécharger le PDF du devis
+  const generatePDF = async () => {
+    if (!devisData) return;
+
+    setIsGeneratingPdf(true);
+
+    // Helper pour formater les montants avec espace comme séparateur de milliers
+    const formatMontant = (n: number) => n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+
+    try {
+      const { devis } = devisData;
+      const structure = authService.getStructureDetails();
+      const user = authService.getUser();
+      const totalDevisActuel = totalServices + totalEquipements;
+
+      const dateFormatee = new Date(dateDevis || devis.date_devis).toLocaleDateString('fr-FR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+      });
+
+      // Fusionner équipements + services dans un seul tableau
+      const allItems: Array<{ qte: number; designation: string; pu: number; total: number }> = [];
+
+      // D'abord les équipements
+      equipements.forEach(eq => {
+        allItems.push({
+          qte: eq.quantite,
+          designation: eq.designation + (eq.marque ? ` (${eq.marque})` : ''),
+          pu: eq.prix_unitaire,
+          total: eq.total
+        });
+      });
+
+      // Ensuite les services
+      servicesSelectionnes.forEach(s => {
+        allItems.push({
+          qte: s.quantite || 1,
+          designation: s.nom_service,
+          pu: s.cout,
+          total: s.cout * (s.quantite || 1)
+        });
+      });
+
+      // Créer le PDF
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a5'
+      });
+
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const margin = 10;
+      let yPos = margin;
+
+      // Couleurs
+      const blueColor: [number, number, number] = [30, 64, 175];
+      const grayColor: [number, number, number] = [100, 100, 100];
+      const blackColor: [number, number, number] = [0, 0, 0];
+
+      // DEVIS box (right side - position fixe en haut)
+      pdf.setFillColor(...blueColor);
+      pdf.rect(pageWidth - 45, yPos, 35, 8, 'F');
+      pdf.setTextColor(255, 255, 255);
+      pdf.setFontSize(12);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text('DEVIS', pageWidth - 38, yPos + 5.5);
+
+      // Numéro devis
+      pdf.setDrawColor(...blueColor);
+      pdf.setFillColor(232, 240, 254);
+      pdf.rect(pageWidth - 50, yPos + 10, 40, 6, 'FD');
+      pdf.setTextColor(...blueColor);
+      pdf.setFontSize(8);
+      pdf.text(`N° ${devis.num_devis}`, pageWidth - 48, yPos + 14);
+
+      // Logo CENTRÉ horizontalement (entre nom structure à gauche et DEVIS à droite)
+      if (structure?.logo) {
+        console.log('Logo URL:', structure.logo);
+        try {
+          const logoBase64 = await loadImageAsBase64(structure.logo);
+          console.log('Logo base64 loaded:', logoBase64 ? 'YES (' + logoBase64.substring(0, 50) + '...)' : 'NO');
+          if (logoBase64) {
+            const logoWidth = 20;
+            const logoHeight = 12;
+            // Centrer le logo horizontalement sur la page
+            const logoX = (pageWidth - logoWidth) / 2;
+            pdf.addImage(logoBase64, 'PNG', logoX, yPos, logoWidth, logoHeight);
+            console.log('Logo added to PDF at position:', logoX);
+          } else {
+            console.log('Logo base64 is null - loading failed');
+          }
+        } catch (e) {
+          console.log('Logo non chargé:', e);
+        }
+      }
+
+      // Header - Nom structure (toujours à gauche)
+      pdf.setFontSize(14);
+      pdf.setTextColor(...blueColor);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text(structure?.nom_structure || 'Entreprise', margin, yPos + 5);
+
+      pdf.setFontSize(9);
+      pdf.setFont('helvetica', 'normal');
+      pdf.setTextColor(...grayColor);
+      // Utiliser le téléphone de l'utilisateur connecté
+      const telAffiche = user?.telephone || structure?.telephone || '';
+      pdf.text(`Tél: ${telAffiche}`, margin, yPos + 10);
+      if (structure?.adresse) {
+        pdf.text(structure.adresse, margin, yPos + 14);
+      }
+
+      yPos += 25;
+
+      // Ligne séparatrice
+      pdf.setDrawColor(...blueColor);
+      pdf.setLineWidth(0.5);
+      pdf.line(margin, yPos, pageWidth - margin, yPos);
+
+      yPos += 5;
+
+      // Infos client
+      pdf.setTextColor(...blueColor);
+      pdf.setFontSize(9);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text(`Date: ${dateFormatee}`, margin, yPos);
+      pdf.text(`Client: ${nomClient || devis.nom_client_payeur}`, margin + 40, yPos);
+
+      yPos += 5;
+      pdf.text(`Tél: ${telClient || devis.tel_client}`, margin, yPos);
+      if (adresseClient || devis.adresse_client) {
+        pdf.text(`Adresse: ${adresseClient || devis.adresse_client}`, margin + 40, yPos);
+      }
+
+      yPos += 8;
+
+      // Tableau des articles
+      // En-tête du tableau
+      const colWidths = [12, 60, 25, 25];
+      const tableWidth = colWidths.reduce((a, b) => a + b, 0);
+      const tableX = (pageWidth - tableWidth) / 2;
+
+      pdf.setFillColor(...blueColor);
+      pdf.rect(tableX, yPos, tableWidth, 7, 'F');
+      pdf.setTextColor(255, 255, 255);
+      pdf.setFontSize(8);
+      pdf.setFont('helvetica', 'bold');
+
+      let xPos = tableX + 2;
+      pdf.text('QTÉ', xPos + 3, yPos + 4.5);
+      xPos += colWidths[0];
+      pdf.text('DÉSIGNATION', xPos + 2, yPos + 4.5);
+      xPos += colWidths[1];
+      pdf.text('P. UNIT.', xPos + 2, yPos + 4.5);
+      xPos += colWidths[2];
+      pdf.text('P. TOTAL', xPos + 2, yPos + 4.5);
+
+      yPos += 7;
+
+      // Lignes du tableau
+      pdf.setFont('helvetica', 'normal');
+      pdf.setFontSize(8);
+
+      allItems.forEach((item, index) => {
+        const rowHeight = 6;
+        const isEven = index % 2 === 0;
+
+        if (isEven) {
+          pdf.setFillColor(248, 249, 250);
+          pdf.rect(tableX, yPos, tableWidth, rowHeight, 'F');
+        }
+
+        pdf.setDrawColor(200, 200, 200);
+        pdf.rect(tableX, yPos, tableWidth, rowHeight, 'S');
+
+        pdf.setTextColor(...blackColor);
+        let xPos = tableX + 2;
+
+        // QTÉ (centré)
+        pdf.text(item.qte.toString(), xPos + 5, yPos + 4);
+        xPos += colWidths[0];
+
+        // DÉSIGNATION
+        const designation = item.designation.length > 35 ? item.designation.substring(0, 35) + '...' : item.designation;
+        pdf.text(designation, xPos + 2, yPos + 4);
+        xPos += colWidths[1];
+
+        // P. UNIT. (aligné droite)
+        pdf.text(`${formatMontant(item.pu)} F`, xPos + 2, yPos + 4);
+        xPos += colWidths[2];
+
+        // P. TOTAL (aligné droite, gras)
+        pdf.setFont('helvetica', 'bold');
+        pdf.text(`${formatMontant(item.total)} F`, xPos + 2, yPos + 4);
+        pdf.setFont('helvetica', 'normal');
+
+        yPos += rowHeight;
+      });
+
+      // Ligne TOTAL
+      pdf.setFillColor(...blueColor);
+      pdf.rect(tableX, yPos, tableWidth, 7, 'F');
+      pdf.setTextColor(255, 255, 255);
+      pdf.setFontSize(9);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text('MONTANT TOTAL', tableX + colWidths[0] + colWidths[1] - 5, yPos + 5);
+      pdf.text(`${formatMontant(totalDevisActuel)} F`, tableX + colWidths[0] + colWidths[1] + colWidths[2] + 2, yPos + 5);
+
+      yPos += 12;
+
+      // Footer - Arrêté du devis
+      pdf.setTextColor(...grayColor);
+      pdf.setFontSize(8);
+      pdf.setFont('helvetica', 'normal');
+      pdf.text(`Arrêté le présent devis à la somme de: ${formatMontant(totalDevisActuel)} FCFA`, margin, yPos);
+
+      // Montant en lettres
+      yPos += 4;
+      pdf.setFontSize(7);
+      pdf.setFont('helvetica', 'italic');
+      const montantLettres = nombreEnLettres(totalDevisActuel);
+      pdf.text(`(${montantLettres} francs CFA)`, margin, yPos);
+
+      // Responsable (signature)
+      yPos += 8;
+      pdf.setFontSize(8);
+      pdf.setFont('helvetica', 'bold');
+      pdf.setTextColor(...blueColor);
+      if (user?.username) {
+        pdf.text(`Le Responsable: ${user.username}`, pageWidth - margin, yPos, { align: 'right' });
+      }
+
+      // Signature FayClick
+      yPos += 8;
+      pdf.setFont('helvetica', 'normal');
+      pdf.setFontSize(7);
+      pdf.setTextColor(...grayColor);
+      pdf.text('FayClick - La Super App des Marchands', pageWidth / 2, yPos, { align: 'center' });
+
+      // Télécharger le PDF
+      pdf.save(`Devis_${devis.num_devis}.pdf`);
+
+      showMessage('success', 'PDF téléchargé avec succès');
+      setShowShareModal(false);
+    } catch (error) {
+      console.error('Erreur génération PDF:', error);
+      showMessage('error', 'Erreur lors de la génération du PDF');
+    } finally {
+      setIsGeneratingPdf(false);
+    }
   };
 
   // Imprimer le devis
@@ -308,7 +613,7 @@ export function ModalEditDevis({
             ${structure?.logo ? `<img src="${structure.logo}" alt="Logo" />` : ''}
             <h2>${structure?.nom_structure || 'Entreprise'}</h2>
             <p>${structure?.adresse || ''}</p>
-            <p>${structure?.telephone || ''}</p>
+            <p>Tél: ${user?.telephone || structure?.telephone || ''}</p>
           </div>
           <div class="devis-info">
             <h1>📋 DEVIS</h1>
@@ -388,12 +693,13 @@ export function ModalEditDevis({
         </div>
 
         <div class="validite">
-          ⚠️ Ce devis est valable 30 jours à compter de sa date d'émission.
+          <p style="margin: 0 0 5px 0;"><strong>Arrêté le présent devis à la somme de: ${totalDevisActuel.toLocaleString('fr-FR')} FCFA</strong></p>
+          <p style="margin: 0; font-style: italic; font-size: 11px;">(${nombreEnLettres(totalDevisActuel)} francs CFA)</p>
         </div>
 
         <div class="footer">
+          <p style="text-align: right; font-weight: bold; color: #4f46e5; margin-bottom: 10px;">Le Responsable: ${user?.username || 'Responsable'}</p>
           <p>Document généré le ${new Date().toLocaleString('fr-FR')}</p>
-          <p>Établi par: ${user?.nom_utilisateur || 'Utilisateur'}</p>
           <p style="color: #4f46e5; font-weight: bold; margin-top: 8px;">FayClick - La Super App des Marchands</p>
         </div>
       </body>
@@ -418,6 +724,7 @@ export function ModalEditDevis({
 
     const { devis } = devisData;
     const structure = authService.getStructureDetails();
+    const user = authService.getUser();
     const totalDevisActuel = totalServices + totalEquipements;
 
     const dateFormatee = new Date(dateDevis || devis.date_devis).toLocaleDateString('fr-FR', {
@@ -494,7 +801,7 @@ export function ModalEditDevis({
           <div class="logo-section">
             ${structure?.logo ? `<img src="${structure.logo}" alt="Logo" />` : ''}
             <h2>${structure?.nom_structure || 'Entreprise'}</h2>
-            <p>Tél: ${structure?.telephone || ''}</p>
+            <p>Tél: ${user?.telephone || structure?.telephone || ''}</p>
             ${structure?.adresse ? `<p>${structure.adresse}</p>` : ''}
           </div>
           <div class="devis-info">
@@ -540,6 +847,8 @@ export function ModalEditDevis({
 
         <div class="footer">
           <p>Arrêté le présent devis à la somme de: <strong>${totalDevisActuel.toLocaleString('fr-FR')} FCFA</strong></p>
+          <p style="font-style: italic; font-size: 9px; margin: 3px 0;">(${nombreEnLettres(totalDevisActuel)} francs CFA)</p>
+          <p style="text-align: right; margin-top: 10px; font-weight: bold; color: #1e40af;">Le Responsable: ${user?.username || ''}</p>
           <p style="margin-top: 8px; color: #1e40af;">FayClick - La Super App des Marchands</p>
         </div>
       </body>
@@ -664,9 +973,9 @@ export function ModalEditDevis({
                   <motion.button
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.9 }}
-                    onClick={shareWhatsApp}
+                    onClick={() => setShowShareModal(true)}
                     className="w-10 h-10 bg-gradient-to-br from-cyan-400 to-cyan-500 rounded-full flex items-center justify-center shadow-md hover:shadow-lg transition-all"
-                    title="Partager via WhatsApp"
+                    title="Partager le devis"
                   >
                     <Share2 className="w-5 h-5 text-white" />
                   </motion.button>
@@ -1051,6 +1360,95 @@ export function ModalEditDevis({
         message={popMessage.message}
         onClose={() => setPopMessage({ ...popMessage, show: false })}
       />
+
+      {/* Modal de partage */}
+      <AnimatePresence>
+        {showShareModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[120] p-4"
+            onClick={() => setShowShareModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.8, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white rounded-3xl w-full max-w-sm p-6 shadow-2xl"
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+                  <Share2 className="w-5 h-5 text-cyan-500" />
+                  Partager le devis
+                </h3>
+                <button
+                  onClick={() => setShowShareModal(false)}
+                  className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center hover:bg-gray-200 transition-colors"
+                >
+                  <X className="w-4 h-4 text-gray-500" />
+                </button>
+              </div>
+
+              {/* Options de partage */}
+              <div className="grid grid-cols-2 gap-4">
+                {/* Option PDF */}
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={generatePDF}
+                  disabled={isGeneratingPdf}
+                  className="flex flex-col items-center gap-3 p-5 bg-gradient-to-br from-red-50 to-orange-50 rounded-2xl border-2 border-red-100 hover:border-red-300 transition-all disabled:opacity-50"
+                >
+                  <div className="w-16 h-16 bg-white rounded-xl shadow-md flex items-center justify-center p-2">
+                    <Image
+                      src="/images/pdf_logo.png"
+                      alt="PDF"
+                      width={48}
+                      height={48}
+                      className="object-contain"
+                    />
+                  </div>
+                  <span className="font-semibold text-gray-800">
+                    {isGeneratingPdf ? 'Génération...' : 'Télécharger PDF'}
+                  </span>
+                  {isGeneratingPdf && (
+                    <Loader2 className="w-4 h-4 animate-spin text-red-500" />
+                  )}
+                </motion.button>
+
+                {/* Option WhatsApp */}
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={shareWhatsApp}
+                  className="flex flex-col items-center gap-3 p-5 bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl border-2 border-green-100 hover:border-green-300 transition-all"
+                >
+                  <div className="w-16 h-16 bg-white rounded-xl shadow-md flex items-center justify-center p-2">
+                    <Image
+                      src="/images/whatsapp.png"
+                      alt="WhatsApp"
+                      width={48}
+                      height={48}
+                      className="object-contain"
+                    />
+                  </div>
+                  <span className="font-semibold text-gray-800">
+                    WhatsApp
+                  </span>
+                </motion.button>
+              </div>
+
+              {/* Info */}
+              <p className="text-xs text-gray-500 text-center mt-4">
+                Choisissez comment partager le devis {devisData?.devis.num_devis}
+              </p>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </AnimatePresence>
   );
 }
