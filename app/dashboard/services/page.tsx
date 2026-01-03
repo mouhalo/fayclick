@@ -249,96 +249,99 @@ export default function ServicesDashboard() {
             </motion.div>
           </motion.div>
 
-          {/* Clients info section */}
+          {/* Accès rapides - Catalogue & Devis */}
           <motion.div
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.7 }}
-            className="bg-white rounded-2xl p-4 mb-4 shadow-lg"
+            className="grid grid-cols-2 gap-4 mb-4"
           >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <span className="text-2xl">👥</span>
-                <div>
-                  <div className="text-xl font-bold text-gray-800">
-                    {loadingStats ? (
-                      <div className="w-8 h-5 bg-gray-200 animate-pulse rounded"></div>
-                    ) : (
-                      <AnimatedCounter value={stats?.total_clients || 0} />
-                    )}
-                  </div>
-                  <div className="text-xs text-gray-600 font-semibold uppercase">Clients actifs</div>
+            {/* Catalogue Services */}
+            <motion.div
+              whileHover={{ scale: 1.03, y: -3 }}
+              whileTap={{ scale: 0.97 }}
+              className="bg-gradient-to-br from-orange-400 to-orange-500 rounded-2xl p-5 cursor-pointer shadow-lg hover:shadow-xl transition-all relative overflow-hidden"
+              onClick={() => router.push('/dashboard/services/services')}
+            >
+              <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2" />
+              <div className="relative z-10 text-white">
+                <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center mb-3">
+                  <span className="text-2xl">🛠️</span>
                 </div>
+                <h3 className="text-lg font-bold mb-1">Catalogue</h3>
+                <p className="text-xs text-white/80">Mes services</p>
               </div>
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="px-4 py-2 bg-blue-500 text-white text-sm rounded-lg font-semibold"
-                onClick={() => router.push('/dashboard/services/clients')}
-              >
-                Voir tous
-              </motion.button>
-            </div>
+            </motion.div>
+
+            {/* Liste Devis */}
+            <motion.div
+              whileHover={{ scale: 1.03, y: -3 }}
+              whileTap={{ scale: 0.97 }}
+              className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl p-5 cursor-pointer shadow-lg hover:shadow-xl transition-all relative overflow-hidden"
+              onClick={() => router.push('/dashboard/services/devis')}
+            >
+              <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2" />
+              <div className="relative z-10 text-white">
+                <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center mb-3">
+                  <span className="text-2xl">📋</span>
+                </div>
+                <h3 className="text-lg font-bold mb-1">Devis</h3>
+                <p className="text-xs text-white/80">Créer & gérer</p>
+              </div>
+            </motion.div>
           </motion.div>
 
-          {/* Quick Actions */}
+          {/* Actions secondaires - Clients & Rapports */}
           <motion.div
             initial={{ y: 30, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.8 }}
+            className="grid grid-cols-2 gap-4 mb-4"
           >
-            <div className="bg-white rounded-2xl p-4 mb-4 shadow-md flex items-center gap-3">
-              <span className="text-2xl">⚡</span>
-              <h2 className="text-lg font-bold text-gray-800">Actions rapides</h2>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              {[
-                { icon: '🛠️', title: 'Mes Services', subtitle: 'Gérer vos prestations', color: 'orange', path: '/prestations' },
-                { icon: '💰', title: 'Facturations', subtitle: 'Historique & factures', color: 'green', path: '/facturations' },
-                { icon: '👥', title: 'Mes Clients', subtitle: "Carnet d'adresses", color: 'blue', path: '/clients' },
-                { icon: '📊', title: 'Rapports', subtitle: 'Statistiques détaillées', color: 'indigo', path: '/rapports' }
-              ].map((action, index) => (
-                <motion.div
-                  key={index}
-                  initial={{ scale: 0.8, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  transition={{ delay: 0.9 + index * 0.1 }}
-                  whileHover={{ scale: 1.05, y: -5 }}
-                  whileTap={{ scale: 0.95 }}
-                  className={`bg-gradient-to-br ${
-                    action.color === 'orange' ? 'from-orange-50 to-orange-100' :
-                    action.color === 'green' ? 'from-green-50 to-green-100' :
-                    action.color === 'blue' ? 'from-blue-50 to-blue-100' :
-                    'from-indigo-50 to-indigo-100'
-                  } rounded-2xl p-5 text-center cursor-pointer shadow-md hover:shadow-xl transition-all border-2 border-transparent hover:border-${action.color}-200 relative overflow-hidden`}
-                  onClick={() => router.push(`/dashboard/services${action.path}`)}
-                >
-                  <div className="relative z-10">
-                    <span className="text-4xl mb-3 block">{action.icon}</span>
-                    <div className="text-sm font-bold text-gray-800 mb-1">{action.title}</div>
-                    <div className="text-xs text-gray-600">{action.subtitle}</div>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-
-            {/* Coffre-Fort Button */}
+            {/* Mes Clients */}
             <motion.div
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 1.3 }}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              className="mt-4 bg-gradient-to-br from-yellow-100 to-yellow-200 rounded-2xl p-5 cursor-pointer shadow-lg hover:shadow-xl transition-all"
-              onClick={() => setShowCoffreModal(true)}
+              whileHover={{ scale: 1.03, y: -3 }}
+              whileTap={{ scale: 0.97 }}
+              className="bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-2xl p-4 cursor-pointer shadow-md hover:shadow-lg transition-all border border-indigo-200"
+              onClick={() => router.push('/dashboard/services/clients')}
             >
               <div className="text-center">
-                <span className="text-4xl mb-3 block">🏦</span>
-                <div className="text-base font-bold text-gray-800 mb-1">Coffre-Fort</div>
-                <div className="text-xs text-gray-600">CA réel, prestations, charges & solde</div>
+                <span className="text-3xl mb-2 block">👥</span>
+                <div className="text-sm font-bold text-gray-800 mb-0.5">Mes Clients</div>
+                <div className="text-xs text-gray-500">Carnet d'adresses</div>
               </div>
             </motion.div>
+
+            {/* Rapports */}
+            <motion.div
+              whileHover={{ scale: 1.03, y: -3 }}
+              whileTap={{ scale: 0.97 }}
+              className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-2xl p-4 cursor-pointer shadow-md hover:shadow-lg transition-all border border-purple-200"
+              onClick={() => router.push('/dashboard/services/rapports')}
+            >
+              <div className="text-center">
+                <span className="text-3xl mb-2 block">📊</span>
+                <div className="text-sm font-bold text-gray-800 mb-0.5">Rapports</div>
+                <div className="text-xs text-gray-500">Statistiques</div>
+              </div>
+            </motion.div>
+          </motion.div>
+
+          {/* Coffre-Fort Button */}
+          <motion.div
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.9 }}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            className="bg-gradient-to-br from-yellow-100 to-yellow-200 rounded-2xl p-5 cursor-pointer shadow-lg hover:shadow-xl transition-all"
+            onClick={() => setShowCoffreModal(true)}
+          >
+            <div className="text-center">
+              <span className="text-4xl mb-3 block">🏦</span>
+              <div className="text-base font-bold text-gray-800 mb-1">Coffre-Fort</div>
+              <div className="text-xs text-gray-600">CA réel, prestations, charges & solde</div>
+            </div>
           </motion.div>
         </div>
 
