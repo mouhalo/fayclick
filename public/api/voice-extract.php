@@ -37,6 +37,7 @@ if (!$data) {
 $apiKey = $data['apiKey'] ?? '';
 $transcription = $data['transcription'] ?? '';
 $context = $data['context'] ?? 'client';
+$customPrompt = $data['customPrompt'] ?? null;  // Prompt personnalisé (pour services_match)
 
 if (empty($apiKey) || empty($transcription)) {
     http_response_code(400);
@@ -78,10 +79,37 @@ IMPORTANT: Réponds UNIQUEMENT en JSON valide, sans aucun texte supplémentaire:
 {"designation": "...", "marque": "...", "prix_unitaire": 0, "quantite": 1, "confidence": 0.0-1.0}
 
 Si une information n\'est pas mentionnée, omets le champ (sauf confidence).
-Les prix sont en FCFA (francs CFA).'
+Les prix sont en FCFA (francs CFA).',
+
+    'equipements_multiples' => 'Tu es un assistant qui extrait une LISTE d\'équipements d\'un texte dicté en français.
+Analyse le texte et détecte TOUS les équipements/articles mentionnés avec leurs quantités.
+
+IMPORTANT: Réponds UNIQUEMENT en JSON valide, sans aucun texte supplémentaire:
+{"equipements": [{"quantite": 1, "designation": "..."}, ...], "confidence": 0.0-1.0}
+
+Règles:
+- Si aucune quantité mentionnée, utiliser 1 par défaut
+- Détecter les pluriels pour déduire la quantité si non précisée (ex: "des robinets" → quantite: 1)
+- Séparer les articles distincts même s\'ils sont dans la même phrase
+- Garder les descriptions complètes (ex: "câble 10 mètres" reste "câble 10 mètres")
+- Les mots comme "un", "une", "deux", "trois" indiquent la quantité
+- Ignorer les mots de liaison (et, avec, puis, aussi, également)
+
+Exemples:
+- "2 compresseurs, 5 filtres et un câble de 10 mètres"
+  → {"equipements": [{"quantite": 2, "designation": "compresseurs"}, {"quantite": 5, "designation": "filtres"}, {"quantite": 1, "designation": "câble 10 mètres"}], "confidence": 0.9}
+- "il me faut des robinets, 3 tuyaux PVC et 2 coudes"
+  → {"equipements": [{"quantite": 1, "designation": "robinets"}, {"quantite": 3, "designation": "tuyaux PVC"}, {"quantite": 2, "designation": "coudes"}], "confidence": 0.85}',
+
+    'services_match' => 'Tu es un assistant qui identifie des services dans un texte dicté.'
 ];
 
-$systemPrompt = $systemPrompts[$context] ?? $systemPrompts['client'];
+// Utiliser le customPrompt si fourni (pour services_match avec liste dynamique)
+if (!empty($customPrompt)) {
+    $systemPrompt = $customPrompt;
+} else {
+    $systemPrompt = $systemPrompts[$context] ?? $systemPrompts['client'];
+}
 
 // Préparer la requête pour Anthropic
 $anthropicPayload = [

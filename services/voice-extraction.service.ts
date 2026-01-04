@@ -9,6 +9,9 @@ import {
   ExtractedClientData,
   ExtractedServiceData,
   ExtractedEquipementData,
+  ExtractedEquipementsMultiplesData,
+  ExtractedServicesMatchData,
+  ServiceDisponible,
   VoiceExtractionResult
 } from '@/types/voice-input';
 
@@ -86,8 +89,63 @@ Exemples:
 - "câble électrique de 10 mètres"
   → {"designation": "câble électrique 10m", "quantite": 1, "confidence": 0.7}
 - "2 robinets Grohe à 25000"
-  → {"designation": "robinets", "marque": "Grohe", "prix_unitaire": 25000, "quantite": 2, "confidence": 0.9}`
+  → {"designation": "robinets", "marque": "Grohe", "prix_unitaire": 25000, "quantite": 2, "confidence": 0.9}`,
+
+  equipements_multiples: `Tu es un assistant qui extrait une LISTE d'équipements d'un texte dicté en français.
+Analyse le texte et détecte TOUS les équipements/articles mentionnés avec leurs quantités.
+
+IMPORTANT: Réponds UNIQUEMENT en JSON valide, sans aucun texte supplémentaire:
+{"equipements": [{"quantite": 1, "designation": "..."}, ...], "confidence": 0.0-1.0}
+
+Règles:
+- Si aucune quantité mentionnée, utiliser 1 par défaut
+- Détecter les pluriels pour déduire la quantité si non précisée (ex: "des robinets" → quantite: 1)
+- Séparer les articles distincts même s'ils sont dans la même phrase
+- Garder les descriptions complètes (ex: "câble 10 mètres" reste "câble 10 mètres")
+- Les mots comme "un", "une", "deux", "trois" indiquent la quantité
+- Ignorer les mots de liaison (et, avec, puis, aussi, également)
+
+Exemples:
+- "2 compresseurs, 5 filtres et un câble de 10 mètres"
+  → {"equipements": [{"quantite": 2, "designation": "compresseurs"}, {"quantite": 5, "designation": "filtres"}, {"quantite": 1, "designation": "câble 10 mètres"}], "confidence": 0.9}
+- "il me faut des robinets, 3 tuyaux PVC et 2 coudes"
+  → {"equipements": [{"quantite": 1, "designation": "robinets"}, {"quantite": 3, "designation": "tuyaux PVC"}, {"quantite": 2, "designation": "coudes"}], "confidence": 0.85}
+- "une télécommande, deux piles AA et un support mural"
+  → {"equipements": [{"quantite": 1, "designation": "télécommande"}, {"quantite": 2, "designation": "piles AA"}, {"quantite": 1, "designation": "support mural"}], "confidence": 0.9}
+- "10 mètres de câble électrique, 5 prises et 3 interrupteurs"
+  → {"equipements": [{"quantite": 1, "designation": "câble électrique 10 mètres"}, {"quantite": 5, "designation": "prises"}, {"quantite": 3, "designation": "interrupteurs"}], "confidence": 0.85}`,
+
+  // Note: services_match utilise un prompt dynamique avec la liste des services
+  services_match: `Tu es un assistant qui identifie des services dans un texte dicté.`
 };
+
+// Prompt dynamique pour le matching de services
+const getServicesMatchPrompt = (servicesJson: string) => `Tu es un assistant qui identifie des services dans un texte dicté en français.
+Tu disposes d'une liste de services disponibles et tu dois trouver les correspondances.
+
+LISTE DES SERVICES DISPONIBLES:
+${servicesJson}
+
+RÈGLES DE MATCHING:
+1. Cherche des correspondances partielles (ex: "clim" → "Installation climatiseur")
+2. Utilise des synonymes (ex: "frigo" → "Réparation réfrigérateur")
+3. Ignore les mots de liaison (et, avec, puis, aussi)
+4. Si plusieurs services sont mentionnés, retourne-les tous
+5. Pour chaque service trouvé, utilise l'ID et le prix de la liste
+6. La quantité est 1 par défaut sauf si précisée ("deux installations")
+7. Si un service dicté ne correspond à AUCUN service de la liste, ignore-le
+
+IMPORTANT: Réponds UNIQUEMENT en JSON valide, sans aucun texte supplémentaire:
+{"services": [{"id_service": 1, "nom_service": "...", "cout": 0, "quantite": 1}, ...], "confidence": 0.0-1.0}
+
+Exemples avec liste: [{"id": 1, "nom": "Installation climatiseur", "prix": 50000}, {"id": 2, "nom": "Réparation électrique", "prix": 25000}, {"id": 3, "nom": "Plomberie", "prix": 15000}]
+
+- "je veux installer un clim et faire la plomberie"
+  → {"services": [{"id_service": 1, "nom_service": "Installation climatiseur", "cout": 50000, "quantite": 1}, {"id_service": 3, "nom_service": "Plomberie", "cout": 15000, "quantite": 1}], "confidence": 0.9}
+- "réparation électricité"
+  → {"services": [{"id_service": 2, "nom_service": "Réparation électrique", "cout": 25000, "quantite": 1}], "confidence": 0.85}
+- "deux installations de climatisation"
+  → {"services": [{"id_service": 1, "nom_service": "Installation climatiseur", "cout": 50000, "quantite": 2}], "confidence": 0.9}`;
 
 export class VoiceExtractionService {
   private static instance: VoiceExtractionService;
@@ -181,13 +239,91 @@ export class VoiceExtractionService {
   }
 
   /**
-   * Extraction spécialisée pour les données équipement
+   * Extraction spécialisée pour les données équipement (un seul)
    */
   async extractEquipement(
     transcription: string,
     apiKey: string
   ): Promise<VoiceExtractionResult<ExtractedEquipementData>> {
     return this.extract<ExtractedEquipementData>(transcription, 'equipement', apiKey);
+  }
+
+  /**
+   * Extraction spécialisée pour les équipements multiples (dictée libre)
+   * Retourne un tableau d'équipements avec quantité et désignation
+   */
+  async extractEquipementsMultiples(
+    transcription: string,
+    apiKey: string
+  ): Promise<VoiceExtractionResult<ExtractedEquipementsMultiplesData>> {
+    return this.extract<ExtractedEquipementsMultiplesData>(transcription, 'equipements_multiples', apiKey);
+  }
+
+  /**
+   * Matching de services avec liste disponible
+   * Utilise un prompt dynamique incluant les services disponibles
+   */
+  async matchServices(
+    transcription: string,
+    servicesDisponibles: ServiceDisponible[],
+    apiKey: string
+  ): Promise<VoiceExtractionResult<ExtractedServicesMatchData>> {
+    SecurityService.secureLog('log', '[Matching Services]', {
+      textLength: transcription.length,
+      nbServices: servicesDisponibles.length
+    });
+
+    try {
+      // Construire le JSON des services disponibles
+      const servicesJson = JSON.stringify(servicesDisponibles, null, 2);
+      const systemPrompt = getServicesMatchPrompt(servicesJson);
+
+      // Appel direct à l'API Anthropic via proxy avec prompt personnalisé
+      const proxyUrl = getProxyUrl();
+
+      const response = await fetch(proxyUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          apiKey: apiKey,
+          transcription: transcription,
+          context: 'services_match',
+          customPrompt: systemPrompt  // Prompt personnalisé avec liste des services
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: `HTTP ${response.status}` }));
+        throw new Error(errorData.error?.message || errorData.error || `Erreur proxy: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const content = data.content?.[0]?.text || '{}';
+
+      // Parser le JSON de la réponse
+      const cleanContent = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+      const extracted = JSON.parse(cleanContent) as ExtractedServicesMatchData;
+
+      SecurityService.secureLog('log', '[Matching Services] Succès', { extracted });
+
+      return {
+        success: true,
+        data: extracted,
+        rawTranscription: transcription
+      };
+
+    } catch (error) {
+      SecurityService.secureLog('error', '[Matching Services] Erreur', error);
+
+      return {
+        success: false,
+        data: null,
+        rawTranscription: transcription,
+        error: error instanceof Error ? error.message : 'Erreur inconnue'
+      };
+    }
   }
 }
 
