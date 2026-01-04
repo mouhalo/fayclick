@@ -16,6 +16,7 @@ import {
   ExtractedClientData,
   ExtractedServiceData,
   ExtractedEquipementData,
+  ExtractedEquipementsMultiplesData,
   VoiceExtractionResult,
   UseVoiceInputReturn
 } from '@/types/voice-input';
@@ -23,7 +24,7 @@ import {
 /**
  * Hook générique pour la capture vocale avec extraction IA
  */
-export function useVoiceInput<T extends ExtractedClientData | ExtractedServiceData | ExtractedEquipementData>(
+export function useVoiceInput<T extends ExtractedClientData | ExtractedServiceData | ExtractedEquipementData | ExtractedEquipementsMultiplesData>(
   context: VoiceInputContext
 ): UseVoiceInputReturn<T> {
   const [state, setState] = useState<VoiceInputState>('idle');
@@ -113,6 +114,13 @@ export function useVoiceInput<T extends ExtractedClientData | ExtractedServiceDa
           ) as VoiceExtractionResult<T>;
           break;
 
+        case 'equipements_multiples':
+          extractionResult = await voiceExtractionService.extractEquipementsMultiples(
+            transcription.text,
+            anthropicApiKey
+          ) as VoiceExtractionResult<T>;
+          break;
+
         default:
           throw new Error(`Contexte non supporté: ${context}`);
       }
@@ -177,9 +185,17 @@ export function useVoiceInputService() {
 }
 
 /**
- * Hook spécialisé pour les données équipement
+ * Hook spécialisé pour les données équipement (un seul)
  * Extrait: designation, marque, prix_unitaire, quantite
  */
 export function useVoiceInputEquipement() {
   return useVoiceInput<ExtractedEquipementData>('equipement');
+}
+
+/**
+ * Hook spécialisé pour les équipements multiples (dictée libre)
+ * Extrait une liste d'équipements avec quantité et désignation
+ */
+export function useVoiceInputEquipementsMultiples() {
+  return useVoiceInput<ExtractedEquipementsMultiplesData>('equipements_multiples');
 }

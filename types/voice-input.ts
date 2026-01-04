@@ -7,7 +7,7 @@
 export type VoiceInputState = 'idle' | 'recording' | 'transcribing' | 'extracting' | 'error';
 
 // Type de contexte pour extraction IA
-export type VoiceInputContext = 'client' | 'service' | 'equipement';
+export type VoiceInputContext = 'client' | 'service' | 'equipement' | 'equipements_multiples' | 'services_match';
 
 // Provider de transcription
 export type TranscriptionProvider = 'groq' | 'openai';
@@ -26,7 +26,7 @@ export interface ExtractedServiceData {
   confidence: number;
 }
 
-// Données équipement extraites par IA
+// Données équipement extraites par IA (un seul)
 export interface ExtractedEquipementData {
   designation?: string;
   marque?: string;
@@ -35,8 +35,41 @@ export interface ExtractedEquipementData {
   confidence: number;
 }
 
+// Équipement simplifié pour dictée libre (Qté + Désignation seulement)
+export interface EquipementSimple {
+  quantite: number;
+  designation: string;
+}
+
+// Données équipements multiples extraites par IA (dictée libre)
+export interface ExtractedEquipementsMultiplesData {
+  equipements: EquipementSimple[];
+  confidence: number;
+}
+
+// Service disponible simplifié pour le matching IA
+export interface ServiceDisponible {
+  id: number;
+  nom: string;
+  prix: number;
+}
+
+// Service matché par l'IA
+export interface ServiceMatche {
+  id_service: number;
+  nom_service: string;
+  cout: number;  // Prix proposé (peut être modifié)
+  quantite: number;
+}
+
+// Données services matchés extraites par IA (dictée libre)
+export interface ExtractedServicesMatchData {
+  services: ServiceMatche[];
+  confidence: number;
+}
+
 // Union type pour les données extraites
-export type ExtractedData = ExtractedClientData | ExtractedServiceData | ExtractedEquipementData;
+export type ExtractedData = ExtractedClientData | ExtractedServiceData | ExtractedEquipementData | ExtractedEquipementsMultiplesData | ExtractedServicesMatchData;
 
 // Réponse de transcription
 export interface TranscriptionResponse {

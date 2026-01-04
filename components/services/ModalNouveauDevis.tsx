@@ -28,8 +28,11 @@ import { Service, DevisLigneService, LigneEquipement, DevisFormData } from '@/ty
 import { prestationService } from '@/services/prestation.service';
 import PopMessage from '@/components/ui/PopMessage';
 import { MicrophoneButton } from '@/components/voice/MicrophoneButton';
-import { useVoiceInputClient, useVoiceInputService, useVoiceInputEquipement } from '@/hooks/useVoiceInput';
-import { ExtractedClientData, ExtractedServiceData, ExtractedEquipementData } from '@/types/voice-input';
+import { useVoiceInputClient, useVoiceInputEquipement } from '@/hooks/useVoiceInput';
+import { ExtractedClientData, ExtractedEquipementData, EquipementSimple, ServiceMatche } from '@/types/voice-input';
+import { ModalEditionEquipementsVocaux } from './ModalEditionEquipementsVocaux';
+import { ModalDicteeServicesVocaux } from './ModalDicteeServicesVocaux';
+import { Mic } from 'lucide-react';
 
 interface ModalNouveauDevisProps {
   isOpen: boolean;
@@ -82,8 +85,16 @@ export function ModalNouveauDevis({
 
   // Hooks de capture vocale
   const voiceClient = useVoiceInputClient();
-  const voiceService = useVoiceInputService();
   const voiceEquipement = useVoiceInputEquipement();
+
+  // État pour le modal de dictée équipements
+  const [showEquipementsVocauxModal, setShowEquipementsVocauxModal] = useState(false);
+
+  // État pour le modal de dictée services
+  const [showServicesVocauxModal, setShowServicesVocauxModal] = useState(false);
+
+  // État pour l'édition d'un équipement (index ou null)
+  const [editingEquipementIndex, setEditingEquipementIndex] = useState<number | null>(null);
 
   // Charger les services disponibles
   const loadServices = useCallback(async () => {
@@ -193,6 +204,24 @@ export function ModalNouveauDevis({
   // Supprimer un équipement
   const handleRemoveEquipement = (index: number) => {
     setEquipements(prev => prev.filter((_, i) => i !== index));
+    if (editingEquipementIndex === index) {
+      setEditingEquipementIndex(null);
+    }
+  };
+
+  // Mettre à jour un équipement (prix, quantité, etc.)
+  const handleUpdateEquipement = (index: number, updates: Partial<LigneEquipement>) => {
+    setEquipements(prev =>
+      prev.map((eq, i) => {
+        if (i === index) {
+          const updated = { ...eq, ...updates };
+          // Recalculer le total
+          updated.total = updated.prix_unitaire * updated.quantite;
+          return updated;
+        }
+        return eq;
+      })
+    );
   };
 
   // Afficher message
@@ -219,41 +248,7 @@ export function ModalNouveauDevis({
     }
   };
 
-  // Handler capture vocale Service (recherche)
-  const handleVoiceService = async () => {
-    if (voiceService.state === 'recording') {
-      const result = await voiceService.stopAndProcess();
-      if (result?.success && result.data) {
-        const data = result.data as ExtractedServiceData;
-        const searchTerm = data.search_term.toLowerCase();
-
-        // Filtrer les services disponibles
-        const matchingServices = servicesDisponibles.filter(s =>
-          s.nom_service.toLowerCase().includes(searchTerm) ||
-          (s.description && s.description.toLowerCase().includes(searchTerm))
-        );
-
-        if (matchingServices.length === 1) {
-          // Un seul résultat -> ajouter directement
-          handleAddService(matchingServices[0]);
-          showMessage('success', `Service "${matchingServices[0].nom_service}" ajouté`);
-        } else if (matchingServices.length > 1) {
-          // Plusieurs résultats -> ouvrir le sélecteur
-          setShowServiceSelector(true);
-          showMessage('info', `${matchingServices.length} services trouvés pour "${data.search_term}"`);
-        } else {
-          showMessage('warning', `Aucun service trouvé pour "${data.search_term}"`);
-        }
-      } else {
-        showMessage('error', result?.error || 'Erreur lors de la recherche de service');
-      }
-    } else if (voiceService.state === 'idle' || voiceService.state === 'error') {
-      voiceService.reset();
-      await voiceService.startCapture();
-    }
-  };
-
-  // Handler capture vocale Équipement
+  // Handler capture vocale Équipement (un seul - formulaire manuel)
   const handleVoiceEquipement = async () => {
     if (voiceEquipement.state === 'recording') {
       const result = await voiceEquipement.stopAndProcess();
@@ -276,6 +271,56 @@ export function ModalNouveauDevis({
       voiceEquipement.reset();
       await voiceEquipement.startCapture();
     }
+  };
+
+  // Ouvrir le modal de dictée équipements
+  const handleOpenDicteeEquipements = () => {
+    setShowEquipementsVocauxModal(true);
+    setExpandedSection('equipements');
+  };
+
+  // Handler validation des équipements vocaux
+  const handleValidateEquipementsVocaux = (equipementsValides: EquipementSimple[]) => {
+    // Ajouter chaque équipement à la liste avec prix_unitaire = 0
+    const nouveauxEquipements: LigneEquipement[] = equipementsValides.map(eq => ({
+      designation: eq.designation,
+      marque: '',
+      prix_unitaire: 0,
+      quantite: eq.quantite,
+      total: 0
+    }));
+
+    setEquipements(prev => [...prev, ...nouveauxEquipements]);
+    showMessage('success', `${equipementsValides.length} équipement(s) ajouté(s)`);
+    setShowEquipementsVocauxModal(false);
+  };
+
+  // Ouvrir le modal de dictée services
+  const handleOpenDicteeServices = () => {
+    setShowServicesVocauxModal(true);
+    setExpandedSection('services');
+  };
+
+  // Handler validation des services vocaux
+  const handleValidateServicesVocaux = (servicesValides: ServiceMatche[]) => {
+    // Filtrer les doublons (services déjà sélectionnés)
+    const existingIds = new Set(servicesSelectionnes.map(s => s.id_service));
+    const nouveauxServices: DevisLigneService[] = servicesValides
+      .filter(s => !existingIds.has(s.id_service))
+      .map(s => ({
+        id_service: s.id_service,
+        nom_service: s.nom_service,
+        cout: s.cout,
+        quantite: s.quantite
+      }));
+
+    if (nouveauxServices.length > 0) {
+      setServicesSelectionnes(prev => [...prev, ...nouveauxServices]);
+      showMessage('success', `${nouveauxServices.length} service(s) ajouté(s)`);
+    } else {
+      showMessage('info', 'Tous les services sont déjà dans la liste');
+    }
+    setShowServicesVocauxModal(false);
   };
 
   // Soumettre le devis
@@ -443,14 +488,13 @@ export function ModalNouveauDevis({
                     )}
                   </div>
                 </button>
-                <MicrophoneButton
-                  context="service"
-                  state={voiceService.state}
-                  onClick={handleVoiceService}
-                  size="sm"
-                  disabled={!voiceService.isSupported}
-                  className="ml-2"
-                />
+                <button
+                  onClick={handleOpenDicteeServices}
+                  className="ml-2 w-9 h-9 bg-orange-500 rounded-full flex items-center justify-center text-white hover:bg-orange-600 transition-colors shadow-md"
+                  title="Dicter les services"
+                >
+                  <Mic className="w-5 h-5" />
+                </button>
               </div>
 
               <AnimatePresence>
@@ -560,14 +604,13 @@ export function ModalNouveauDevis({
                     )}
                   </div>
                 </button>
-                <MicrophoneButton
-                  context="equipement"
-                  state={voiceEquipement.state}
-                  onClick={handleVoiceEquipement}
-                  size="sm"
-                  disabled={!voiceEquipement.isSupported}
-                  className="ml-2"
-                />
+                <button
+                  onClick={handleOpenDicteeEquipements}
+                  className="ml-2 w-9 h-9 bg-purple-500 rounded-full flex items-center justify-center text-white hover:bg-purple-600 transition-colors shadow-md"
+                  title="Dicter les équipements"
+                >
+                  <Mic className="w-5 h-5" />
+                </button>
               </div>
 
               <AnimatePresence>
@@ -588,23 +631,103 @@ export function ModalNouveauDevis({
                       {equipements.map((equipement, index) => (
                         <div
                           key={index}
-                          className="flex items-center gap-2 bg-white rounded-xl p-3 border border-purple-200"
+                          className={`bg-white rounded-xl p-3 border transition-all ${
+                            editingEquipementIndex === index
+                              ? 'border-purple-400 ring-2 ring-purple-200'
+                              : 'border-purple-200 cursor-pointer hover:border-purple-300'
+                          }`}
+                          onClick={() => {
+                            if (editingEquipementIndex !== index) {
+                              setEditingEquipementIndex(index);
+                            }
+                          }}
                         >
-                          <div className="flex-1">
-                            <p className="font-medium text-gray-800 text-sm">{equipement.designation}</p>
-                            {equipement.marque && (
-                              <p className="text-xs text-gray-500">{equipement.marque}</p>
-                            )}
-                            <p className="text-xs text-purple-600 mt-1">
-                              {equipement.quantite} x {formatMontant(equipement.prix_unitaire)} = {formatMontant(equipement.total)}
-                            </p>
-                          </div>
-                          <button
-                            onClick={() => handleRemoveEquipement(index)}
-                            className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center text-red-500 hover:bg-red-200"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                          {editingEquipementIndex === index ? (
+                            // Mode édition
+                            <div className="space-y-2">
+                              <div className="flex items-center justify-between">
+                                <span className="text-xs text-purple-600 font-medium">Mode édition</span>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setEditingEquipementIndex(null);
+                                  }}
+                                  className="text-xs text-gray-500 hover:text-gray-700"
+                                >
+                                  ✓ Terminé
+                                </button>
+                              </div>
+                              <input
+                                type="text"
+                                value={equipement.designation}
+                                onChange={(e) => handleUpdateEquipement(index, { designation: e.target.value })}
+                                className="w-full px-2 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-400"
+                                placeholder="Désignation"
+                                onClick={(e) => e.stopPropagation()}
+                              />
+                              <div className="grid grid-cols-3 gap-2">
+                                <div>
+                                  <label className="text-xs text-gray-500">Qté</label>
+                                  <input
+                                    type="number"
+                                    min="1"
+                                    value={equipement.quantite}
+                                    onChange={(e) => handleUpdateEquipement(index, { quantite: parseInt(e.target.value) || 1 })}
+                                    className="w-full px-2 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-400"
+                                    onClick={(e) => e.stopPropagation()}
+                                  />
+                                </div>
+                                <div>
+                                  <label className="text-xs text-gray-500">Prix unit.</label>
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    value={equipement.prix_unitaire || ''}
+                                    onChange={(e) => handleUpdateEquipement(index, { prix_unitaire: parseFloat(e.target.value) || 0 })}
+                                    className="w-full px-2 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-400"
+                                    placeholder="0"
+                                    onClick={(e) => e.stopPropagation()}
+                                  />
+                                </div>
+                                <div className="flex items-end">
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleRemoveEquipement(index);
+                                    }}
+                                    className="w-full py-1.5 bg-red-100 text-red-500 rounded-lg text-sm hover:bg-red-200"
+                                  >
+                                    <Trash2 className="w-4 h-4 mx-auto" />
+                                  </button>
+                                </div>
+                              </div>
+                              <div className="text-right text-sm font-bold text-purple-600">
+                                Total: {formatMontant(equipement.total)}
+                              </div>
+                            </div>
+                          ) : (
+                            // Mode affichage
+                            <div className="flex items-center gap-2">
+                              <div className="flex-1">
+                                <p className="font-medium text-gray-800 text-sm">{equipement.designation}</p>
+                                {equipement.marque && (
+                                  <p className="text-xs text-gray-500">{equipement.marque}</p>
+                                )}
+                                <p className="text-xs text-purple-600 mt-1">
+                                  {equipement.quantite} x {equipement.prix_unitaire > 0 ? formatMontant(equipement.prix_unitaire) : <span className="text-orange-500 font-medium">Cliquer pour saisir le prix</span>} = {formatMontant(equipement.total)}
+                                </p>
+                              </div>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleRemoveEquipement(index);
+                                }}
+                                className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center text-red-500 hover:bg-red-200"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          )}
                         </div>
                       ))}
 
@@ -733,6 +856,23 @@ export function ModalNouveauDevis({
         title={popMessage.title}
         message={popMessage.message}
         onClose={() => setPopMessage({ ...popMessage, show: false })}
+      />
+
+      {/* Modal dictée équipements vocaux */}
+      <ModalEditionEquipementsVocaux
+        isOpen={showEquipementsVocauxModal}
+        onClose={() => setShowEquipementsVocauxModal(false)}
+        onValidate={handleValidateEquipementsVocaux}
+        autoStartRecording={true}
+      />
+
+      {/* Modal dictée services vocaux */}
+      <ModalDicteeServicesVocaux
+        isOpen={showServicesVocauxModal}
+        onClose={() => setShowServicesVocauxModal(false)}
+        onValidate={handleValidateServicesVocaux}
+        servicesDisponibles={servicesDisponibles}
+        autoStartRecording={true}
       />
     </AnimatePresence>
   );
