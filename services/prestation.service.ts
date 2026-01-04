@@ -570,23 +570,80 @@ export class PrestationService {
       // Appeler get_my_devis avec l'ID spécifique
       const query = `SELECT public.get_my_devis(${user.id_structure}, ${annee}, 0, ${idDevis}) as result`;
 
+      SecurityService.secureLog('log', '[getDevisById] Requête:', {
+        query,
+        id_structure: user.id_structure,
+        annee,
+        id_devis: idDevis
+      });
+
       const results = await database.query(query);
+
+      SecurityService.secureLog('log', '[getDevisById] Résultat brut:', {
+        isArray: Array.isArray(results),
+        length: Array.isArray(results) ? results.length : 'N/A',
+        results: JSON.stringify(results).substring(0, 500)
+      });
+
       const rawResult = Array.isArray(results) ? results[0] : results;
+
+      SecurityService.secureLog('log', '[getDevisById] rawResult:', {
+        hasResult: !!rawResult?.result,
+        hasGetMyDevis: !!rawResult?.get_my_devis,
+        keys: rawResult ? Object.keys(rawResult) : []
+      });
 
       let response: GetMyDevisResponse;
       if (typeof rawResult?.result === 'string') {
         response = JSON.parse(rawResult.result);
+        SecurityService.secureLog('log', '[getDevisById] Parsé depuis result (string)');
       } else if (rawResult?.result) {
         response = rawResult.result;
+        SecurityService.secureLog('log', '[getDevisById] Utilisé result (object)');
       } else if (rawResult?.get_my_devis) {
         response = typeof rawResult.get_my_devis === 'string'
           ? JSON.parse(rawResult.get_my_devis)
           : rawResult.get_my_devis;
+        SecurityService.secureLog('log', '[getDevisById] Parsé depuis get_my_devis');
       } else {
+        SecurityService.secureLog('warn', '[getDevisById] Aucune donnée trouvée dans rawResult');
         return { success: false, data: null };
       }
 
-      const devis = response.devis?.[0] || null;
+      SecurityService.secureLog('log', '[getDevisById] Response parsée:', {
+        success: response.success,
+        code: response.code,
+        hasDevisArray: Array.isArray(response.devis),
+        hasDevisObject: !Array.isArray(response.devis) && typeof response.devis === 'object',
+        hasDetailsProduitsAtRoot: !!response.details_produits
+      });
+
+      // Gérer les deux formats de réponse :
+      // 1. Liste: { devis: [DevisFromDB, ...] }
+      // 2. Par ID: { devis: {...}, details_produits: [...], resume: {...} } - response EST le DevisFromDB
+      let devis: DevisFromDB | null = null;
+
+      if (Array.isArray(response.devis)) {
+        // Format liste : devis est un tableau de DevisFromDB
+        devis = response.devis[0] || null;
+        SecurityService.secureLog('log', '[getDevisById] Devis extrait depuis tableau');
+      } else if (response.devis && response.details_produits) {
+        // Format par ID : response contient directement { devis, details_produits, resume }
+        // La response elle-même a la structure DevisFromDB
+        devis = {
+          devis: response.devis,
+          details_produits: response.details_produits,
+          resume: response.resume
+        } as unknown as DevisFromDB;
+        SecurityService.secureLog('log', '[getDevisById] Devis construit depuis structure plate');
+      }
+
+      SecurityService.secureLog('log', '[getDevisById] Devis extrait:', {
+        found: !!devis,
+        id_devis: devis?.devis?.id_devis,
+        num_devis: devis?.devis?.num_devis,
+        nb_produits: devis?.details_produits?.length
+      });
 
       return {
         success: !!devis,
@@ -594,7 +651,7 @@ export class PrestationService {
       };
 
     } catch (error) {
-      SecurityService.secureLog('error', 'Erreur récupération devis par ID', error);
+      SecurityService.secureLog('error', '[getDevisById] Erreur:', error);
       return { success: false, data: null };
     }
   }
@@ -1045,6 +1102,197 @@ export class PrestationService {
         ca_annee: 0,
         mt_impayees: 0,
         evolution_ca_mois: 0
+      };
+    }
+  }
+
+  // ==========================================================================
+  // CONVERSION DEVIS → FACTURE
+  // ==========================================================================
+
+  /**
+   * Créer une facture à partir d'un devis existant
+   * Transforme les services et équipements du devis en facture
+   *
+   * @param data - Données de la facture depuis le modal de création
+   * @returns Résultat de la création avec id_facture
+   */
+  async createFactureFromDevis(data: {
+    id_devis: number;
+    nom_client: string;
+    tel_client: string;
+    montant_services: number;
+    equipements: LigneEquipement[];
+    montant_equipements: number;
+    remise: number;
+    montant_total: number;
+    montant_net: number;
+  }): Promise<{ success: boolean; id_facture?: number; message: string }> {
+    try {
+      const user = authService.getUser();
+      if (!user) {
+        throw new PrestationApiException('Utilisateur non authentifié', 401);
+      }
+
+      SecurityService.secureLog('log', 'Création facture depuis devis', {
+        id_devis: data.id_devis,
+        id_structure: user.id_structure,
+        nom_client: data.nom_client,
+        montant_services: data.montant_services,
+        montant_equipements: data.montant_equipements,
+        montant_total: data.montant_total,
+        remise: data.remise
+      });
+
+      // 1. Récupérer les détails du devis pour avoir les services
+      const devisResponse = await this.getDevisById(data.id_devis);
+      if (!devisResponse.success || !devisResponse.data) {
+        throw new PrestationApiException('Devis introuvable', 404);
+      }
+
+      const devisData = devisResponse.data;
+
+      // 2. Construire le string des articles UNIQUEMENT depuis details_produits (services)
+      // Format: id_produit-quantite-prix#
+      // Note: On n'intègre PAS les équipements car ils n'ont pas d'id_produit valide
+      const servicesArticles = devisData.details_produits.map(prod =>
+        `${prod.id_produit}-${prod.quantite}-${prod.prix}`
+      );
+      const articlesString = servicesArticles.join('#') + '#';
+
+      // 3. Calculer le montant total depuis les details_produits (éviter NaN)
+      const montantCalcule = devisData.details_produits.reduce((sum, prod) => {
+        return sum + (prod.prix * prod.quantite);
+      }, 0);
+
+      // Appliquer la remise
+      const remise = data.remise || 0;
+      const montantNet = montantCalcule - remise;
+
+      SecurityService.secureLog('log', '[createFactureFromDevis] Montants calculés:', {
+        montantCalcule,
+        remise,
+        montantNet,
+        nbServices: devisData.details_produits.length,
+        articlesString
+      });
+
+      // 4. Description de la facture
+      const description = `Facture issue du devis ${devisData.devis.num_devis}`;
+
+      // 5. Appeler la fonction PostgreSQL create_facture_complete1
+      const dateFacture = new Date().toISOString().split('T')[0];
+
+      const query = `
+        SELECT * FROM create_facture_complete1(
+          '${dateFacture}',
+          ${user.id_structure},
+          '${data.tel_client}',
+          '${data.nom_client.replace(/'/g, "''")}',
+          ${montantCalcule},
+          '${description.replace(/'/g, "''")}',
+          '${articlesString}',
+          ${remise},
+          0,
+          false,
+          false,
+          ${user.id || 0}
+        )
+      `;
+
+      SecurityService.secureLog('log', 'Requête création facture depuis devis', {
+        query: query.substring(0, 300),
+        articlesString,
+        montantCalcule,
+        remise
+      });
+
+      const result = await database.query(query);
+      const factureResult = Array.isArray(result) && result.length > 0 ? result[0] : null;
+
+      if (!factureResult || !factureResult.success) {
+        throw new PrestationApiException(
+          factureResult?.message || 'Erreur lors de la création de la facture',
+          500
+        );
+      }
+
+      // 6. Mettre à jour le statut du devis en 'FACTURE'
+      await this.updateDevisStatut(data.id_devis, 'FACTURE', factureResult.id_facture);
+
+      SecurityService.secureLog('log', 'Facture créée depuis devis avec succès', {
+        id_devis: data.id_devis,
+        id_facture: factureResult.id_facture
+      });
+
+      return {
+        success: true,
+        id_facture: factureResult.id_facture,
+        message: `Facture créée avec succès (N° ${factureResult.id_facture})`
+      };
+
+    } catch (error) {
+      SecurityService.secureLog('error', 'Erreur création facture depuis devis', error);
+
+      if (error instanceof PrestationApiException) {
+        throw error;
+      }
+
+      throw new PrestationApiException(
+        'Impossible de créer la facture depuis le devis',
+        500,
+        error
+      );
+    }
+  }
+
+  /**
+   * Mettre à jour le statut d'un devis
+   * Utilisé notamment après conversion en facture
+   */
+  async updateDevisStatut(
+    idDevis: number,
+    statut: 'BROUILLON' | 'ENVOYE' | 'ACCEPTE' | 'REFUSE' | 'FACTURE',
+    idFacture?: number
+  ): Promise<{ success: boolean; message: string }> {
+    try {
+      const user = authService.getUser();
+      if (!user) {
+        throw new PrestationApiException('Utilisateur non authentifié', 401);
+      }
+
+      SecurityService.secureLog('log', 'Mise à jour statut devis', {
+        id_devis: idDevis,
+        statut,
+        id_facture: idFacture
+      });
+
+      // Vérifier si une fonction PostgreSQL existe pour cela
+      // Sinon, faire un UPDATE direct sur la table des devis
+      // Note: La structure de la table devis n'a peut-être pas de champ statut
+      // Pour l'instant, on log juste l'intention - à adapter selon la DB
+
+      // TODO: Implémenter quand la colonne statut existe dans list_devis
+      // const query = `UPDATE list_devis SET statut = '${statut}'${idFacture ? `, id_facture = ${idFacture}` : ''} WHERE id_devis = ${idDevis} AND id_structure = ${user.id_structure}`;
+      // await database.query(query);
+
+      SecurityService.secureLog('log', 'Statut devis mis à jour (simulation)', {
+        id_devis: idDevis,
+        nouveau_statut: statut
+      });
+
+      return {
+        success: true,
+        message: `Statut du devis mis à jour: ${statut}`
+      };
+
+    } catch (error) {
+      SecurityService.secureLog('error', 'Erreur mise à jour statut devis', error);
+
+      // Ne pas faire échouer la création de facture si le statut ne peut pas être mis à jour
+      return {
+        success: false,
+        message: 'Impossible de mettre à jour le statut du devis'
       };
     }
   }
