@@ -167,11 +167,31 @@ export default function ListeDevisPage() {
 
   // Créer facture depuis devis
   const handleCreateFacture = async (data: FactureFromDevisData) => {
-    // TODO: Implémenter la création de facture via API
-    console.log('Créer facture avec données:', data);
-    showMessage('success', 'Facture créée avec succès');
-    setShowModalFacture(false);
-    loadDevis(); // Recharger pour mettre à jour le statut
+    try {
+      const result = await prestationService.createFactureFromDevis({
+        id_devis: data.id_devis,
+        nom_client: data.nom_client,
+        tel_client: data.tel_client,
+        montant_services: data.montant_services,
+        equipements: data.equipements,
+        montant_equipements: data.montant_equipements,
+        remise: data.remise,
+        montant_total: data.montant_total,
+        montant_net: data.montant_net
+      });
+
+      if (result.success) {
+        showMessage('success', result.message, 'Facture créée');
+        setShowModalFacture(false);
+        setDevisForFacture(null);
+        loadDevis(); // Recharger pour mettre à jour la liste
+      } else {
+        showMessage('error', result.message || 'Erreur lors de la création de la facture');
+      }
+    } catch (error) {
+      console.error('Erreur création facture:', error);
+      showMessage('error', error instanceof Error ? error.message : 'Impossible de créer la facture');
+    }
   };
 
   // Supprimer un devis
