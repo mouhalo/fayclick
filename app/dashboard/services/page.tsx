@@ -5,7 +5,10 @@ import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { authService } from '@/services/auth.service';
 import { useDashboardData } from '@/hooks/useDashboardData';
+import { useNotifications } from '@/hooks/useNotifications';
 import MainMenu from '@/components/layout/MainMenu';
+import { ModalDeconnexion } from '@/components/auth/ModalDeconnexion';
+import { ModalNotifications } from '@/components/notifications/ModalNotifications';
 import { formatAmount } from '@/utils/formatAmount';
 import { User } from '@/types/auth';
 
@@ -16,17 +19,28 @@ export default function ServicesDashboard() {
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [showCoffreModal, setShowCoffreModal] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
-  const [notifications, setNotifications] = useState(3);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [showNotificationsModal, setShowNotificationsModal] = useState(false);
 
   // Hook pour charger les vraies données depuis l'API
-  const { 
-    stats, 
-    statsCardData, 
-    financialData, 
-    isLoading: loadingStats, 
-    error: statsError, 
-    refresh: refreshStats 
+  const {
+    stats,
+    statsCardData,
+    financialData,
+    isLoading: loadingStats,
+    error: statsError,
+    refresh: refreshStats
   } = useDashboardData(user?.id_structure || 0);
+
+  // Hook pour les notifications
+  const {
+    unreadCount: notificationCount,
+    refresh: refreshNotifications
+  } = useNotifications({
+    userId: user?.id || 0,
+    autoFetch: !!user?.id,
+    refreshInterval: 60000 // Rafraîchir toutes les 60 secondes
+  });
 
   useEffect(() => {
     // Attendre que le composant soit monté côté client avant de vérifier localStorage
@@ -96,8 +110,20 @@ export default function ServicesDashboard() {
   };
 
   const handleNotifications = () => {
-    setNotifications(0);
-    alert('Notifications (3) :\n\n• Nouveau client intéressé par vos services\n• Rappel : Facturation en attente pour M. Diallo\n• Paiement Orange Money reçu : 25,000 FCFA');
+    setShowNotificationsModal(true);
+  };
+
+  const handleLogout = () => {
+    setShowLogoutModal(true);
+  };
+
+  const handleConfirmLogout = () => {
+    setShowLogoutModal(false);
+    authService.logout();
+  };
+
+  const handleCancelLogout = () => {
+    setShowLogoutModal(false);
   };
 
   if (isAuthLoading || !user) {
@@ -148,23 +174,37 @@ export default function ServicesDashboard() {
               <span className="text-xl">☰</span>
             </motion.button>
 
-            <motion.button
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-              className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:bg-white/30 transition-all relative"
-              onClick={handleNotifications}
-            >
-              <span className="text-xl">🔔</span>
-              {notifications > 0 && (
-                <motion.div
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-xs font-bold"
-                >
-                  {notifications}
-                </motion.div>
-              )}
-            </motion.button>
+            <div className="flex items-center gap-2">
+              <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:bg-white/30 transition-all relative"
+                onClick={handleNotifications}
+              >
+                <span className="text-xl">🔔</span>
+                {notificationCount > 0 && (
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-xs font-bold"
+                  >
+                    {notificationCount > 9 ? '9+' : notificationCount}
+                  </motion.div>
+                )}
+              </motion.button>
+
+              <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                className="w-10 h-10 bg-red-500/80 backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:bg-red-600 transition-all"
+                onClick={handleLogout}
+                title="Déconnexion"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+              </motion.button>
+            </div>
           </div>
 
           {/* Welcome Section */}
@@ -312,17 +352,17 @@ export default function ServicesDashboard() {
               </div>
             </motion.div>
 
-            {/* Rapports */}
+            {/* Factures */}
             <motion.div
               whileHover={{ scale: 1.03, y: -3 }}
               whileTap={{ scale: 0.97 }}
-              className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-2xl p-4 cursor-pointer shadow-md hover:shadow-lg transition-all border border-purple-200"
-              onClick={() => router.push('/dashboard/services/rapports')}
+              className="bg-gradient-to-br from-green-50 to-green-100 rounded-2xl p-4 cursor-pointer shadow-md hover:shadow-lg transition-all border border-green-200"
+              onClick={() => router.push('/dashboard/services/factures')}
             >
               <div className="text-center">
-                <span className="text-3xl mb-2 block">📊</span>
-                <div className="text-sm font-bold text-gray-800 mb-0.5">Rapports</div>
-                <div className="text-xs text-gray-500">Statistiques</div>
+                <span className="text-3xl mb-2 block">🧾</span>
+                <div className="text-sm font-bold text-gray-800 mb-0.5">Factures</div>
+                <div className="text-xs text-gray-500">Gérer & encaisser</div>
               </div>
             </motion.div>
           </motion.div>
@@ -490,6 +530,24 @@ export default function ServicesDashboard() {
         onClose={() => setShowMenu(false)}
         userName={user?.username}
         businessName={user?.nom_structure}
+      />
+
+      {/* Modal de déconnexion */}
+      <ModalDeconnexion
+        isOpen={showLogoutModal}
+        onClose={handleCancelLogout}
+        onConfirm={handleConfirmLogout}
+        userName={user?.username}
+      />
+
+      {/* Modal des notifications */}
+      <ModalNotifications
+        isOpen={showNotificationsModal}
+        onClose={() => {
+          setShowNotificationsModal(false);
+          refreshNotifications(); // Rafraîchir le compteur après fermeture
+        }}
+        userId={user?.id || 0}
       />
 
       <style jsx global>{`

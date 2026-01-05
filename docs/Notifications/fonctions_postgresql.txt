@@ -1,0 +1,37 @@
+add_new_notification(int4, varchar, text, varchar) 
+IS 'Crée une nouvelle notification pour un utilisateur.
+Paramètres:
+- pid_user: ID de l''utilisateur destinataire (utilisateur connecté)
+- ptitre: Titre de la notification (max 100 caractères)
+- pmessage: Message de la notification
+- ptype: Type de notification (abonnement, retrait, paiement, system, commande)
+
+La notification est créée avec lue=false par défaut.
+Retourne JSON avec success, code, message et data.';
+
+-- FUNCTION public.delete_my_notifications(int4, int4);
+COMMENT ON FUNCTION public.delete_my_notifications(int4, int4) IS 'Supprime une ou toutes les notifications d''un utilisateur.
+Paramètres:
+- pid_utilisateur: ID de l''utilisateur
+- pid_notification: ID de la notification (défaut: 0 = supprimer toutes)
+Retourne: JSONB avec statut et détails de la suppression';
+
+
+-- FUNCTION public.edit_read_notification(int4);
+COMMENT ON FUNCTION public.edit_read_notification(int4) IS 'Marque une notification comme lue.
+Paramètre: pid_notification - ID de la notification
+Retourne: JSONB avec statut et détails de la notification';
+
+-- FUNCTION public.get_my_notifications(int4, int4, int4, bool);
+COMMENT ON FUNCTION public.get_my_notifications(int4, int4, int4, bool) IS 'Récupère les notifications d''un utilisateur.
+Paramètres:
+- pid_utilisateur: ID de l''utilisateur
+- p_limit: Nombre max de notifications (défaut: 50)
+- p_offset: Décalage pour pagination (défaut: 0)
+- p_only_unread: Si TRUE, retourne uniquement les non lues (défaut: FALSE)
+Retourne: JSONB avec stats et liste des notifications';
+
+--  FUNCTION public.mark_all_notifications_read(int4);
+COMMENT ON FUNCTION public.mark_all_notifications_read(int4) IS 'Marque toutes les notifications d''un utilisateur comme lues.
+Paramètre: pid_utilisateur - ID de l''utilisateur
+Retourne: JSONB avec nombre de notifications marquées';
