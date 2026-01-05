@@ -3,10 +3,13 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, LogOut } from 'lucide-react';
 import { authService } from '@/services/auth.service';
 import { useDashboardData } from '@/hooks/useDashboardData';
+import { useNotifications } from '@/hooks/useNotifications';
 import MainMenu from '@/components/layout/MainMenu';
+import { ModalDeconnexion } from '@/components/auth/ModalDeconnexion';
+import { ModalNotifications } from '@/components/notifications/ModalNotifications';
 import { formatAmount } from '@/utils/formatAmount';
 import { User } from '@/types/auth';
 import { StatusBarPanier } from '@/components/panier/StatusBarPanier';
@@ -24,8 +27,9 @@ export default function CommerceDashboard() {
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [showCoffreModal, setShowCoffreModal] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
-  const [notifications, setNotifications] = useState(3);
-  const [showValeurStock, setShowValeurStock] = useState(false); // Masqué par défaut
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [showNotificationsModal, setShowNotificationsModal] = useState(false);
+  const [showValeurStock, setShowValeurStock] = useState(false);
   const { ToastComponent } = useToast();
 
   // Hook état abonnement pour bloquer les fonctionnalités si expiré
@@ -45,6 +49,16 @@ export default function CommerceDashboard() {
     statsCardData,
     isLoading: loadingStats
   } = useDashboardData(user?.id_structure || 0);
+
+  // Hook pour les notifications
+  const {
+    unreadCount: notificationCount,
+    refresh: refreshNotifications
+  } = useNotifications({
+    userId: user?.id || 0,
+    autoFetch: !!user?.id,
+    refreshInterval: 60000
+  });
 
   useEffect(() => {
     // Attendre que le composant soit monté côté client avant de vérifier localStorage
@@ -105,11 +119,6 @@ export default function CommerceDashboard() {
     return <>{count}</>;
   };
 
-  const handleNotifications = () => {
-    setNotifications(0);
-    alert('Notifications (3) :\n\n• Nouvelle commande de Fatou K.\n• Rappel : Stock faible pour "Riz parfumé"\n• Paiement Orange Money reçu : 15,000 FCFA');
-  };
-
   if (isAuthLoading || !user) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-sky-400 to-sky-200">
@@ -158,23 +167,37 @@ export default function CommerceDashboard() {
               <span className="text-xl">☰</span>
             </motion.button>
 
-            <motion.button
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-              className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:bg-white/30 transition-all relative"
-              onClick={handleNotifications}
-            >
-              <span className="text-xl">🔔</span>
-              {notifications > 0 && (
-                <motion.div
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-xs font-bold"
-                >
-                  {notifications}
-                </motion.div>
-              )}
-            </motion.button>
+            <div className="flex items-center gap-2">
+              {/* Bouton Notifications */}
+              <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:bg-white/30 transition-all relative"
+                onClick={() => setShowNotificationsModal(true)}
+              >
+                <span className="text-xl">🔔</span>
+                {notificationCount > 0 && (
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-xs font-bold"
+                  >
+                    {notificationCount > 9 ? '9+' : notificationCount}
+                  </motion.div>
+                )}
+              </motion.button>
+
+              {/* Bouton Déconnexion */}
+              <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                className="w-10 h-10 bg-red-500/80 backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:bg-red-600/80 transition-all"
+                onClick={() => setShowLogoutModal(true)}
+                title="Déconnexion"
+              >
+                <LogOut className="w-5 h-5" />
+              </motion.button>
+            </div>
           </div>
 
           {/* Welcome Section */}
@@ -448,6 +471,19 @@ export default function CommerceDashboard() {
         onClose={() => setShowMenu(false)}
         userName={user?.username}
         businessName={user?.nom_structure}
+      />
+
+      {/* Modal Notifications */}
+      <ModalNotifications
+        isOpen={showNotificationsModal}
+        onClose={() => setShowNotificationsModal(false)}
+        userId={user?.id || 0}
+      />
+
+      {/* Modal Déconnexion */}
+      <ModalDeconnexion
+        isOpen={showLogoutModal}
+        onClose={() => setShowLogoutModal(false)}
       />
 
       <style jsx global>{`
