@@ -59,6 +59,7 @@ export interface Structure {
   id_localite: number;
   actif: boolean;
   logo: string;
+  cachet?: string;  // URL du cachet de la structure
   createdat: string;
   updatedat: string;
   id_type: number;
