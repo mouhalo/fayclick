@@ -352,6 +352,10 @@ class DatabaseService {
       if (/^\d+$/.test(p)) {
         return `${p}::integer`;
       }
+      // Gérer les booléens (true/false)
+      if (p === 'true' || p === 'false') {
+        return `${p}::boolean`;
+      }
       // Échapper les quotes dans les chaînes
       const escapedParam = p.replace(/'/g, "''");
       return `'${escapedParam}'::varchar`;
