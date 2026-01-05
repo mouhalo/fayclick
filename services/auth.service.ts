@@ -55,6 +55,7 @@ export class AuthService {
         id_localite: (structureData.id_localite as number) || 0,
         actif: (structureData.actif as boolean) || false,
         logo: (structureData.logo as string) || '',
+        cachet: (structureData.cachet as string) || undefined,
         createdat: (structureData.createdat as string) || '',
         updatedat: (structureData.updatedat as string) || '',
         id_type: (structureData.id_type as number) || 0,
@@ -73,6 +74,8 @@ export class AuthService {
 
       console.log('✅ [AUTH] Détails structure récupérés:', {
         nom_structure: structure.nom_structure,
+        logo: structure.logo,
+        cachet: structure.cachet,
         etat_abonnement: structure.etat_abonnement?.statut,
         jours_restants: structure.etat_abonnement?.jours_restants
       });
