@@ -81,9 +81,9 @@ export const FactureCard = ({
       className="w-full"
     >
       <div className="
-        bg-green-800/90 backdrop-blur-sm rounded-xl sm:rounded-2xl p-3 sm:p-4
-        border border-green-700/50 hover:bg-green-800
-        transition-all duration-200
+        bg-slate-900/60 backdrop-blur-xl rounded-xl sm:rounded-2xl p-3 sm:p-4
+        border border-white/20 hover:bg-slate-800/70 hover:border-blue-400/30
+        transition-all duration-300 shadow-lg shadow-blue-900/20
         group relative overflow-hidden
       ">
         {/* En-tête avec numéro de facture et statut */}
@@ -140,7 +140,7 @@ export const FactureCard = ({
             <>
               <button
                 onClick={handleVoirDetails}
-                className="flex-1 py-1.5 sm:py-2 bg-white/20 rounded-md sm:rounded-lg text-white text-xs sm:text-sm hover:bg-white/30 transition-colors flex items-center justify-center gap-1"
+                className="flex-1 py-1.5 sm:py-2 bg-blue-500/20 rounded-md sm:rounded-lg text-blue-100 text-xs sm:text-sm hover:bg-blue-500/40 transition-colors flex items-center justify-center gap-1 border border-blue-400/20"
               >
                 <Eye className="w-3 h-3 sm:w-4 sm:h-4" />
                 <span className="hidden xs:inline">Voir</span>
@@ -149,7 +149,7 @@ export const FactureCard = ({
               {shouldShowDeleteButton && (
                 <button
                   onClick={() => onSupprimer(facture)}
-                  className="flex-1 py-1.5 sm:py-2 bg-red-500/20 rounded-md sm:rounded-lg text-red-200 text-xs sm:text-sm hover:bg-red-500/30 transition-colors flex items-center justify-center gap-1"
+                  className="flex-1 py-1.5 sm:py-2 bg-red-500/20 rounded-md sm:rounded-lg text-red-200 text-xs sm:text-sm hover:bg-red-500/40 transition-colors flex items-center justify-center gap-1 border border-red-400/20"
                   title="Supprimer la facture"
                 >
                   <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
@@ -159,7 +159,7 @@ export const FactureCard = ({
 
               <button
                 onClick={() => onAjouterAcompte?.(facture)}
-                className="flex-1 py-1.5 sm:py-2 bg-emerald-500/20 rounded-md sm:rounded-lg text-emerald-200 text-xs sm:text-sm hover:bg-emerald-500/30 transition-colors flex items-center justify-center gap-1"
+                className="flex-1 py-1.5 sm:py-2 bg-cyan-500/20 rounded-md sm:rounded-lg text-cyan-100 text-xs sm:text-sm hover:bg-cyan-500/40 transition-colors flex items-center justify-center gap-1 border border-cyan-400/20"
               >
                 <CreditCard className="w-3 h-3 sm:w-4 sm:h-4" />
                 <span className="hidden xs:inline">Payer</span>
@@ -169,7 +169,7 @@ export const FactureCard = ({
             <>
               <button
                 onClick={handleVoirDetails}
-                className="flex-1 py-1.5 sm:py-2 bg-white/20 rounded-md sm:rounded-lg text-white text-xs sm:text-sm hover:bg-white/30 transition-colors flex items-center justify-center gap-1"
+                className="flex-1 py-1.5 sm:py-2 bg-blue-500/20 rounded-md sm:rounded-lg text-blue-100 text-xs sm:text-sm hover:bg-blue-500/40 transition-colors flex items-center justify-center gap-1 border border-blue-400/20"
               >
                 <Eye className="w-3 h-3 sm:w-4 sm:h-4" />
                 <span className="hidden xs:inline">Voir</span>
@@ -178,7 +178,7 @@ export const FactureCard = ({
               {shouldShowDeleteButton && (
                 <button
                   onClick={() => onSupprimer(facture)}
-                  className="flex-1 py-1.5 sm:py-2 bg-red-500/20 rounded-md sm:rounded-lg text-red-200 text-xs sm:text-sm hover:bg-red-500/30 transition-colors flex items-center justify-center gap-1"
+                  className="flex-1 py-1.5 sm:py-2 bg-red-500/20 rounded-md sm:rounded-lg text-red-200 text-xs sm:text-sm hover:bg-red-500/40 transition-colors flex items-center justify-center gap-1 border border-red-400/20"
                   title={isAdmin ? "Supprimer la facture (ADMIN)" : "Supprimer la facture"}
                 >
                   <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
@@ -188,7 +188,7 @@ export const FactureCard = ({
 
               <button
                 onClick={() => onVoirRecu?.(facture)}
-                className="flex-1 py-1.5 sm:py-2 bg-emerald-500/20 rounded-md sm:rounded-lg text-emerald-200 text-xs sm:text-sm hover:bg-emerald-500/30 transition-colors flex items-center justify-center gap-1"
+                className="flex-1 py-1.5 sm:py-2 bg-cyan-500/20 rounded-md sm:rounded-lg text-cyan-100 text-xs sm:text-sm hover:bg-cyan-500/40 transition-colors flex items-center justify-center gap-1 border border-cyan-400/20"
                 title="Voir le reçu de paiement"
               >
                 <Receipt className="w-3 h-3 sm:w-4 sm:h-4" />
@@ -222,8 +222,8 @@ export const FactureCardSkeleton = ({ delay = 0 }: { delay?: number }) => {
       transition={{ delay }}
     >
       <div className="
-        bg-green-800/90 backdrop-blur-sm rounded-xl sm:rounded-2xl p-3 sm:p-4 animate-pulse
-        border border-green-700/50
+        bg-slate-900/60 backdrop-blur-xl rounded-xl sm:rounded-2xl p-3 sm:p-4 animate-pulse
+        border border-white/20 shadow-lg shadow-blue-900/20
       ">
         <div className="flex justify-between mb-2 sm:mb-3">
           <div>

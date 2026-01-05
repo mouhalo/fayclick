@@ -187,7 +187,7 @@ export function StatsCardsFacturesGlass({
           }}
           whileHover={{ scale: 1.02 }}
         >
-          <div className="bg-green-800/90 backdrop-blur-sm rounded-2xl p-3 border border-green-700/50 hover:scale-[1.02] transition-transform duration-200">
+          <div className="bg-slate-900/60 backdrop-blur-xl rounded-2xl p-3 border border-white/20 hover:bg-slate-800/70 hover:border-blue-400/30 hover:scale-[1.02] transition-all duration-300 shadow-lg shadow-blue-900/20">
             {/* Layout horizontal : Icône à gauche, infos à droite */}
             <div className="flex items-center gap-3">
               {/* Icône à gauche */}
@@ -235,7 +235,7 @@ export function StatsCardsFacturesGlassLoading() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: i * 0.1 }}
         >
-          <div className="bg-green-800/90 backdrop-blur-sm rounded-2xl p-3 border border-green-700/50 animate-pulse">
+          <div className="bg-slate-900/60 backdrop-blur-xl rounded-2xl p-3 border border-white/20 animate-pulse shadow-lg shadow-blue-900/20">
             <div className="flex items-center gap-3">
               {/* Icône skeleton */}
               <div className="w-12 h-12 bg-white/20 rounded-xl flex-shrink-0"></div>
