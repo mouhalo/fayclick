@@ -79,8 +79,24 @@ export class VisualRecognitionService {
     this.embeddingStore = createEmbeddingStore(idStructure);
     this.similarityEngine = new SimilarityEngine(this.embeddingStore);
 
-    // Initialiser le cache de similarité
+    // Initialiser le cache de similarité depuis IndexedDB
     await this.similarityEngine.initialize();
+
+    // Si le cache local est vide, synchroniser depuis le serveur
+    const localCount = await this.embeddingStore.count();
+    console.log(`[VisualRecognition] Cache local: ${localCount} embeddings`);
+
+    if (localCount === 0) {
+      console.log('[VisualRecognition] Cache vide, synchronisation depuis serveur...');
+      try {
+        const synced = await this.embeddingStore.syncFromServer();
+        console.log(`[VisualRecognition] ${synced} embeddings synchronisés depuis serveur`);
+        // Rafraîchir le cache après sync
+        await this.similarityEngine.refreshCache();
+      } catch (error) {
+        console.warn('[VisualRecognition] Sync serveur échoué:', error);
+      }
+    }
 
     this.initialized = true;
     console.log(`[VisualRecognition] Initialisé pour structure ${idStructure}`);

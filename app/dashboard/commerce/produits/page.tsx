@@ -15,7 +15,9 @@ import {
   AlertCircle,
   Trash2,
   Printer,
-  Camera
+  Camera,
+  ChevronDown,
+  BarChart3
 } from 'lucide-react';
 import { authService } from '@/services/auth.service';
 import { produitsService, ProduitsApiException } from '@/services/produits.service';
@@ -40,8 +42,8 @@ import { ModalScanCodeBarre } from '@/components/produits/ModalScanCodeBarre';
 import { ModalImpressionProduits } from '@/components/produits/ModalImpressionProduits';
 import { usePanierStore } from '@/stores/panierStore';
 import { ModalAbonnementExpire, useModalAbonnementExpire } from '@/components/subscription/ModalAbonnementExpire';
-import { ModalCapturePhoto, ModalEnrolementProduits } from '@/components/visual-recognition';
-import { VisualMatch } from '@/services/visual-recognition';
+import { ModalEnrolementProduits } from '@/components/visual-recognition';
+import { ModalOptionsAjout } from '@/components/produits/ModalOptionsAjout';
 
 export default function ProduitsCommercePage() {
   const router = useRouter();
@@ -49,7 +51,7 @@ export default function ProduitsCommercePage() {
   // États locaux
   const [user, setUser] = useState<User | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
-  const [viewMode, setViewMode] = useState<'grid' | 'table' | 'compact'>('grid');
+  const [viewMode, setViewMode] = useState<'grid' | 'table' | 'compact'>('compact');
   const [showFilters, setShowFilters] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -68,11 +70,15 @@ export default function ProduitsCommercePage() {
   // État pour le modal d'impression
   const [showPrintModal, setShowPrintModal] = useState(false);
 
-  // État pour le modal de recherche visuelle
-  const [showVisualSearchModal, setShowVisualSearchModal] = useState(false);
 
   // État pour le modal d'enrôlement par photo
   const [showEnrolementModal, setShowEnrolementModal] = useState(false);
+
+  // État pour le modal d'options d'ajout
+  const [showOptionsAjoutModal, setShowOptionsAjoutModal] = useState(false);
+
+  // État pour l'accordéon des statistiques (replié par défaut)
+  const [showStats, setShowStats] = useState(false);
 
   // Configuration pagination
   const itemsPerPage = 10;
@@ -264,12 +270,17 @@ export default function ProduitsCommercePage() {
     setModalAjoutOpen(true);
   };
 
-  const handleAddProduit = () => {
+  // Ouvre le modal d'options d'ajout (bouton flottant unique)
+  const handleOpenOptionsAjout = () => {
     // Vérifier l'abonnement avant d'autoriser l'ajout
     if (!canAccessFeature('Ajout produit')) {
       showAbonnementModal('Ajout de produit');
       return;
     }
+    setShowOptionsAjoutModal(true);
+  };
+
+  const handleAddProduit = () => {
     setProduitSelectionne(null);
     setModeEdition(false);
     setModalAjoutOpen(true);
@@ -277,11 +288,6 @@ export default function ProduitsCommercePage() {
 
   // Gestion de l'enrôlement par photo
   const handleOpenEnrolement = () => {
-    // Vérifier l'abonnement avant d'autoriser l'ajout
-    if (!canAccessFeature('Ajout produit')) {
-      showAbonnementModal('Ajout de produits par photo');
-      return;
-    }
     console.log('📸 [PRODUITS COMMERCE] Ouverture enrôlement par photo');
     setShowEnrolementModal(true);
   };
@@ -397,39 +403,6 @@ export default function ProduitsCommercePage() {
   const handlePrint = () => {
     console.log('🖨️ [PRODUITS COMMERCE] Ouverture modal d\'impression');
     setShowPrintModal(true);
-  };
-
-  // Gestion de la recherche visuelle
-  const handleVisualSearchClick = () => {
-    console.log('📸 [PRODUITS COMMERCE] Ouverture recherche visuelle');
-    setShowVisualSearchModal(true);
-  };
-
-  const handleVisualSearchResult = (match: VisualMatch | null) => {
-    setShowVisualSearchModal(false);
-
-    if (match) {
-      console.log('✅ [PRODUITS COMMERCE] Produit reconnu visuellement:', match.idProduit, 'Similarité:', match.similarity);
-
-      // Rechercher le produit dans la liste
-      const produitTrouve = produits.find(p => p.id_produit === match.idProduit);
-
-      if (produitTrouve) {
-        // Si confiance élevée (>85%), ouvrir directement en édition
-        if (match.similarity >= 0.85) {
-          showToast('success', 'Produit trouvé !', `${produitTrouve.nom_produit} reconnu avec ${Math.round(match.similarity * 100)}% de confiance`);
-          handleEditProduit(produitTrouve);
-        } else {
-          // Sinon, juste afficher un toast et filtrer la recherche
-          showToast('info', 'Produit similaire trouvé', `${produitTrouve.nom_produit} (${Math.round(match.similarity * 100)}% de similarité)`);
-          setSearchTerm(produitTrouve.nom_produit);
-        }
-      } else {
-        showToast('warning', 'Produit non trouvé', 'Le produit reconnu n\'est pas dans votre liste actuelle');
-      }
-    } else {
-      showToast('info', 'Aucun produit reconnu', 'Essayez avec une autre photo ou enregistrez ce produit');
-    }
   };
 
   // Gestion de la pagination
@@ -552,9 +525,7 @@ export default function ProduitsCommercePage() {
               onToggleFilters={() => setShowFilters(!showFilters)}
               onRefresh={handleRefresh}
               refreshing={refreshing}
-              onScanClick={() => setShowScanModal(true)}
               onPrintClick={handlePrint}
-              onVisualSearchClick={handleVisualSearchClick}
             />
           }
         />
@@ -562,15 +533,73 @@ export default function ProduitsCommercePage() {
         {/* Contenu principal */}
         <div className="p-5 pb-24">
           
-          {/* Statistiques */}
-          <div className="mb-6">
-            {isLoadingProduits ? (
-              <StatsCardsNouveauxLoading />
-            ) : (
-              <StatsCardsNouveaux 
-                articles={produitsFiltered}
-              />
-            )}
+          {/* Accordéon Statistiques */}
+          <div className="mb-4">
+            {/* Header accordéon */}
+            <motion.button
+              onClick={() => setShowStats(!showStats)}
+              className="w-full flex items-center justify-between p-3 sm:p-4 bg-white/20 backdrop-blur-sm rounded-xl border border-white/30 hover:bg-white/30 transition-all"
+            >
+              <div className="flex items-center gap-2 sm:gap-3">
+                {/* Icône animée */}
+                <div className="relative">
+                  <motion.div
+                    animate={{
+                      scale: [1, 1.1, 1],
+                      rotate: [0, 5, -5, 0]
+                    }}
+                    transition={{
+                      duration: 2,
+                      repeat: Infinity,
+                      ease: "easeInOut"
+                    }}
+                    className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-amber-400 to-orange-500 rounded-lg flex items-center justify-center shadow-md"
+                  >
+                    <BarChart3 className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                  </motion.div>
+                  {/* Pulse effect */}
+                  <motion.div
+                    animate={{ scale: [1, 1.5], opacity: [0.5, 0] }}
+                    transition={{ duration: 1.5, repeat: Infinity }}
+                    className="absolute inset-0 bg-amber-400 rounded-lg"
+                  />
+                </div>
+                <div className="text-left">
+                  <h3 className="text-white font-semibold text-sm sm:text-base">Valeur de vos Stocks</h3>
+                  <p className="text-white/70 text-xs sm:text-sm">
+                    {showStats ? 'Cliquez pour replier' : 'Cliquez pour voir les détails'}
+                  </p>
+                </div>
+              </div>
+              {/* Chevron */}
+              <motion.div
+                animate={{ rotate: showStats ? 180 : 0 }}
+                transition={{ duration: 0.3 }}
+                className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center"
+              >
+                <ChevronDown className="w-5 h-5 text-white" />
+              </motion.div>
+            </motion.button>
+
+            {/* Contenu accordéon */}
+            <motion.div
+              initial={false}
+              animate={{
+                height: showStats ? 'auto' : 0,
+                opacity: showStats ? 1 : 0,
+                marginTop: showStats ? 12 : 0
+              }}
+              transition={{ duration: 0.3, ease: 'easeInOut' }}
+              className="overflow-hidden"
+            >
+              {isLoadingProduits ? (
+                <StatsCardsNouveauxLoading />
+              ) : (
+                <StatsCardsNouveaux
+                  articles={produitsFiltered}
+                />
+              )}
+            </motion.div>
           </div>
 
           {/* Pagination glassmorphism */}
@@ -627,39 +656,52 @@ export default function ProduitsCommercePage() {
           />
         </div>
 
-        {/* Boutons flottants */}
-        <div className="fixed bottom-6 right-6 flex flex-col gap-3 z-40">
-          {/* Bouton Enrôlement par Photo */}
-          <motion.button
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-            onClick={handleOpenEnrolement}
-            className="w-14 h-14 bg-gradient-to-r from-purple-500 to-indigo-500 text-white rounded-full shadow-lg hover:shadow-xl flex items-center justify-center transition-all duration-300 relative"
-            aria-label="Ajouter des produits par photo"
-            title="Ajout par photo (IA)"
-          >
-            <Camera className="w-6 h-6" />
-            <div className="absolute -top-1 -right-1 w-4 h-4 bg-amber-400 rounded-full flex items-center justify-center">
-              <span className="text-[10px] font-bold text-amber-900">IA</span>
-            </div>
-          </motion.button>
-
-          {/* Bouton Ajouter classique */}
-          <motion.button
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-            onClick={handleAddProduit}
-            className="w-14 h-14 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-full shadow-lg hover:shadow-xl flex items-center justify-center transition-all duration-300"
-            aria-label="Ajouter un produit"
-            title="Ajout manuel"
-          >
-            <Plus className="w-6 h-6" />
-          </motion.button>
-        </div>
+        {/* Bouton flottant vert sombre - Ouvre modal options d'ajout */}
+        <motion.button
+          whileHover={{ scale: 1.08 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={handleOpenOptionsAjout}
+          className="fixed bottom-6 right-6 group z-40"
+          aria-label="Ajouter un produit"
+          title="Ajouter un produit"
+        >
+          {/* Effet de halo pulsant */}
+          <motion.div
+            animate={{
+              scale: [1, 1.3, 1],
+              opacity: [0.4, 0.15, 0.4]
+            }}
+            transition={{
+              duration: 2,
+              repeat: Infinity,
+              ease: "easeInOut"
+            }}
+            className="absolute inset-0 bg-emerald-500 rounded-2xl blur-lg"
+          />
+          {/* Bouton principal vert sombre */}
+          <div className="relative w-14 h-14 bg-gradient-to-br from-emerald-600 to-green-700 rounded-2xl shadow-xl flex items-center justify-center overflow-hidden group-hover:from-emerald-500 group-hover:to-green-600 transition-all duration-300 border-2 border-emerald-400/50">
+            {/* Reflet brillant */}
+            <div className="absolute inset-0 bg-gradient-to-br from-white/25 via-transparent to-transparent" />
+            {/* Icône */}
+            <Plus className="w-8 h-8 text-white drop-shadow-lg relative z-10 group-hover:rotate-90 transition-transform duration-300" strokeWidth={2.5} />
+          </div>
+          {/* Label "Ajouter" */}
+          <span className="absolute right-full mr-3 top-1/2 -translate-y-1/2 px-3 py-1.5 bg-emerald-700 rounded-lg text-white text-sm font-semibold whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity shadow-lg">
+            Ajouter
+          </span>
+        </motion.button>
       
         {/* StatusBar Panier - fixe en bas */}
         <StatusBarPanier />
       </div>
+
+      {/* Modal options d'ajout (3 méthodes) */}
+      <ModalOptionsAjout
+        isOpen={showOptionsAjoutModal}
+        onClose={() => setShowOptionsAjoutModal(false)}
+        onSelectManuel={handleAddProduit}
+        onSelectPhoto={handleOpenEnrolement}
+      />
 
       {/* Modals */}
       <ModalAjoutProduitNew
@@ -776,16 +818,6 @@ export default function ProduitsCommercePage() {
         nomStructure={user.nom_structure}
       />
 
-      {/* Modal de recherche visuelle IA */}
-      {user && (
-        <ModalCapturePhoto
-          isOpen={showVisualSearchModal}
-          onClose={() => setShowVisualSearchModal(false)}
-          mode="recognize"
-          idStructure={user.id_structure}
-          onRecognized={handleVisualSearchResult}
-        />
-      )}
 
       {/* Modal d'enrôlement par photo */}
       {user && (

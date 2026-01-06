@@ -72,6 +72,7 @@ class DatabaseService {
 
   private construireXml = (application_name: string, requeteSql: string) => {
     const sql_text = requeteSql.replace(/\n/g, ' ').trim();
+    // Sans CDATA - les caractères spéciaux sont gérés par encodage (d, f, m)
     const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <request>
     <application>${application_name}</application>

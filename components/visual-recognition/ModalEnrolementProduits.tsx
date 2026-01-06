@@ -23,7 +23,7 @@ import {
   ImagePlus,
   Sparkles
 } from 'lucide-react';
-import { claudeVisionService } from '@/services/visual-recognition/claude-vision.service';
+import { claudeVisionService, CATEGORIES_PRODUIT, type CategorieProduit } from '@/services/visual-recognition/claude-vision.service';
 import { clipClient } from '@/services/visual-recognition/clip-client';
 import { imageProcessor } from '@/services/visual-recognition/image-processor';
 import { createEmbeddingStore } from '@/services/visual-recognition/embedding-store';
@@ -35,6 +35,7 @@ interface ProduitCapture {
   thumbnailUrl: string;          // Miniature base64
   nomProduit: string;            // Nom extrait par OCR
   nomOriginal: string;           // Nom original (avant édition)
+  categorie: CategorieProduit;   // Catégorie du produit
   coutRevient: number | '';      // Prix achat (vide = non saisi)
   prixVente: number | '';        // Prix vente (vide = non saisi)
   qteStock: number;              // Quantité disponible (défaut 1)
@@ -161,6 +162,7 @@ export function ModalEnrolementProduits({
         thumbnailUrl,
         nomProduit: 'Extraction en cours...',
         nomOriginal: '',
+        categorie: 'Autre',
         coutRevient: '',
         prixVente: '',
         qteStock: 1,
@@ -192,6 +194,7 @@ export function ModalEnrolementProduits({
             ...p,
             nomProduit: ocrResult.nomProduit,
             nomOriginal: ocrResult.nomProduit,
+            categorie: ocrResult.categorie || 'Autre',
             confidence: ocrResult.confidence,
             embedding: clipResult?.embedding || null,
             imageHash: processed.hash,
@@ -223,6 +226,7 @@ export function ModalEnrolementProduits({
       thumbnailUrl,
       nomProduit: 'Extraction en cours...',
       nomOriginal: '',
+      categorie: 'Autre',
       coutRevient: '',
       prixVente: '',
       qteStock: 1,
@@ -249,6 +253,7 @@ export function ModalEnrolementProduits({
             ...p,
             nomProduit: ocrResult.nomProduit,
             nomOriginal: ocrResult.nomProduit,
+            categorie: ocrResult.categorie || 'Autre',
             confidence: ocrResult.confidence,
             embedding: clipResult?.embedding || null,
             imageHash: processed.hash,
@@ -339,21 +344,29 @@ export function ModalEnrolementProduits({
     try {
       const validProduits = produits.filter(p => !p.isProcessing && !p.error);
 
-      // Construire le JSON pour add_multiproduit
-      const produitsJson = validProduits.map(p => ({
-        nom_produit: p.nomProduit,
-        cout_revient: Number(p.coutRevient),
-        prix_vente: Number(p.prixVente),
-        qte_stock: p.qteStock
-      }));
+      // Construire le format texte pour add_multiproduit
+      // Format: nom-catégorie-prix_achat-prix_vente-qte_stock#...
+      const produitsText = validProduits.map(p => {
+        // Échapper les apostrophes dans le nom (doubler pour PostgreSQL)
+        const nomEchappe = p.nomProduit.replace(/'/g, "''");
+        return `${nomEchappe}-${p.categorie}-${Number(p.coutRevient)}-${Number(p.prixVente)}-${p.qteStock}`;
+      }).join('#');
 
-      console.log('[Enrolement] Sauvegarde produits:', produitsJson);
+      console.log('[Enrolement] Sauvegarde produits (format texte):', produitsText);
 
-      // Appeler add_multiproduit
-      const query = `SELECT * FROM add_multiproduit(${idStructure}, '${JSON.stringify(produitsJson)}'::jsonb)`;
-      const result = await databaseService.query(query);
+      // Appeler add_multiproduit avec le nouveau format texte
+      const query = `SELECT * FROM add_multiproduit(${idStructure}, '${produitsText}')`;
+      const rawResult = await databaseService.query(query);
 
-      console.log('[Enrolement] Résultat add_multiproduit:', result);
+      console.log('[Enrolement] Résultat brut add_multiproduit:', rawResult);
+
+      // Extraire le résultat de add_multiproduit depuis la réponse
+      // Format: [{add_multiproduit: {success, code, message, data}}]
+      const result = Array.isArray(rawResult) && rawResult[0]?.add_multiproduit
+        ? rawResult[0].add_multiproduit
+        : rawResult;
+
+      console.log('[Enrolement] Résultat parsé:', result);
 
       if (!result?.success) {
         throw new Error(result?.message || 'Erreur lors de la création des produits');
@@ -506,11 +519,12 @@ export function ModalEnrolementProduits({
           {/* Entêtes tableau */}
           <div className="bg-white border-b border-gray-200 px-2 py-2 grid grid-cols-12 gap-1 text-xs font-medium text-gray-600">
             <div className="col-span-1 text-center">Photo</div>
-            <div className="col-span-4">Nom produit</div>
+            <div className="col-span-3">Nom produit</div>
+            <div className="col-span-2">Catégorie</div>
             <div className="col-span-2 text-center">P. Achat</div>
             <div className="col-span-2 text-center">P. Vente</div>
             <div className="col-span-1 text-center">Qté</div>
-            <div className="col-span-2 text-center">Actions</div>
+            <div className="col-span-1 text-center">Act.</div>
           </div>
 
           {/* Liste produits */}
@@ -542,8 +556,8 @@ export function ModalEnrolementProduits({
                       />
                     </div>
 
-                    {/* Nom produit */}
-                    <div className="col-span-4">
+                    {/* Nom produit (cliquable pour éditer) */}
+                    <div className="col-span-3">
                       {produit.isProcessing ? (
                         <div className="flex items-center gap-2 text-gray-400">
                           <Loader2 className="w-4 h-4 animate-spin" />
@@ -560,7 +574,11 @@ export function ModalEnrolementProduits({
                           className="w-full px-2 py-1 text-xs border border-purple-300 rounded focus:outline-none focus:ring-1 focus:ring-purple-500"
                         />
                       ) : (
-                        <div className="flex items-center gap-1">
+                        <div
+                          onClick={() => toggleEditNom(produit.id)}
+                          className="flex items-center gap-1 cursor-pointer hover:bg-purple-50 rounded px-1 py-0.5 transition-colors"
+                          title="Cliquer pour modifier"
+                        >
                           <span className={`text-xs truncate ${
                             produit.confidence === 'low' ? 'text-amber-600' : 'text-gray-800'
                           }`}>
@@ -569,8 +587,23 @@ export function ModalEnrolementProduits({
                           {produit.confidence === 'low' && (
                             <AlertTriangle className="w-3 h-3 text-amber-500 flex-shrink-0" />
                           )}
+                          <Edit3 className="w-3 h-3 text-gray-400 flex-shrink-0 opacity-0 group-hover:opacity-100" />
                         </div>
                       )}
+                    </div>
+
+                    {/* Catégorie */}
+                    <div className="col-span-2">
+                      <select
+                        value={produit.categorie}
+                        onChange={(e) => updateProduit(produit.id, 'categorie', e.target.value as CategorieProduit)}
+                        disabled={produit.isProcessing}
+                        className="w-full px-1 py-1 text-xs border border-gray-200 rounded focus:outline-none focus:ring-1 focus:ring-purple-500 disabled:bg-gray-100 bg-white"
+                      >
+                        {CATEGORIES_PRODUIT.map((cat) => (
+                          <option key={cat} value={cat}>{cat}</option>
+                        ))}
+                      </select>
                     </div>
 
                     {/* Prix achat */}
@@ -610,20 +643,7 @@ export function ModalEnrolementProduits({
                     </div>
 
                     {/* Actions */}
-                    <div className="col-span-2 flex justify-center gap-1">
-                      <motion.button
-                        whileTap={{ scale: 0.9 }}
-                        onClick={() => toggleEditNom(produit.id)}
-                        disabled={produit.isProcessing}
-                        className="p-1.5 bg-blue-100 text-blue-600 rounded hover:bg-blue-200 disabled:opacity-50"
-                        title="Corriger le nom"
-                      >
-                        {produit.isEditing ? (
-                          <Check className="w-3.5 h-3.5" />
-                        ) : (
-                          <Edit3 className="w-3.5 h-3.5" />
-                        )}
-                      </motion.button>
+                    <div className="col-span-1 flex justify-center">
                       <motion.button
                         whileTap={{ scale: 0.9 }}
                         onClick={() => handleDelete(produit.id)}

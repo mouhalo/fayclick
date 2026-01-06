@@ -5,9 +5,14 @@
  * FayClick V2 - Commerce
  */
 
+// Liste des catégories disponibles
+export const CATEGORIES_PRODUIT = ['Accessoire', 'Électronique', 'Vêtement', 'Alimentation', 'Informatique', 'Décoration', 'Mobilier', 'Cosmetique', 'Santé', 'Autre'] as const;
+export type CategorieProduit = typeof CATEGORIES_PRODUIT[number];
+
 interface ExtractionResult {
   success: boolean;
   nomProduit: string;
+  categorie: CategorieProduit;
   confidence: 'high' | 'medium' | 'low';
   rawText?: string;
   error?: string;
@@ -52,6 +57,7 @@ export class ClaudeVisionService {
         return {
           success: false,
           nomProduit: 'Produit non identifié',
+          categorie: 'Autre',
           confidence: 'low',
           error: result.error || `Erreur API: ${response.status}`
         };
@@ -65,6 +71,7 @@ export class ClaudeVisionService {
       return {
         success: false,
         nomProduit: 'Produit non identifié',
+        categorie: 'Autre',
         confidence: 'low',
         error: error instanceof Error ? error.message : 'Erreur inconnue'
       };

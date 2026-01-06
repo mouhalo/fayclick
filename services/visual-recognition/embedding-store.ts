@@ -181,14 +181,41 @@ export class EmbeddingStore {
   }
 
   /**
+   * Convertit un embedding en format TEXT PostgreSQL compatible XML
+   * Remplacements pour éviter les caractères spéciaux XML :
+   * - 'd' au lieu de '[' (début)
+   * - 'f' au lieu de ']' (fin)
+   * - 'm' au lieu de '-' (moins)
+   * - Précision limitée à 5 décimales (limite API 10K chars)
+   * PostgreSQL fera le remplacement inverse
+   * Exemple: [0.40549105, -0.32347154] => 'd0.40549,m0.32347f'
+   */
+  private formatEmbeddingForPostgres(embedding: number[]): string {
+    const formatted = embedding.map(val => {
+      // Limiter à 5 décimales pour respecter la limite de 10K caractères
+      const rounded = Math.abs(val).toFixed(5);
+      if (val < 0) {
+        // Remplacer le signe moins par 'm'
+        return 'm' + rounded;
+      }
+      return rounded;
+    }).join(',');
+    // Utiliser 'd' et 'f' au lieu de '[' et ']' pour compatibilité XML
+    return `d${formatted}f`;
+  }
+
+  /**
    * Synchronise un embedding vers le serveur PostgreSQL
    */
   private async syncToServer(record: ProductEmbedding): Promise<void> {
+    // Formater l'embedding avec 'm' pour les nombres négatifs
+    const embeddingText = this.formatEmbeddingForPostgres(record.embedding);
+
     const query = `
       SELECT * FROM save_product_embedding(
         ${record.idProduit},
         ${record.idStructure},
-        '${JSON.stringify(record.embedding)}'::jsonb,
+        '${embeddingText}',
         '${record.imageHash}',
         NULL,
         '224x224',
@@ -196,11 +223,15 @@ export class EmbeddingStore {
       )
     `;
 
+    console.log('[EmbeddingStore] Sync vers serveur, embedding dimension:', record.embedding.length);
+
     const result = await databaseService.query(query);
 
     if (!result?.success) {
       throw new Error(result?.message || 'Erreur de synchronisation');
     }
+
+    console.log('[EmbeddingStore] Embedding sauvegardé avec succès pour produit:', record.idProduit);
   }
 
   /**
@@ -208,6 +239,8 @@ export class EmbeddingStore {
    */
   async getAll(): Promise<ProductEmbedding[]> {
     await this.init();
+
+    console.log(`[EmbeddingStore] getAll() pour structure: ${this.idStructure}`);
 
     return new Promise((resolve, reject) => {
       if (!this.db) {
@@ -220,7 +253,10 @@ export class EmbeddingStore {
       const index = store.index('idStructure');
 
       const request = index.getAll(this.idStructure);
-      request.onsuccess = () => resolve(request.result || []);
+      request.onsuccess = () => {
+        console.log(`[EmbeddingStore] getAll() retourne: ${request.result?.length || 0} embeddings`);
+        resolve(request.result || []);
+      };
       request.onerror = () => reject(request.error);
     });
   }
@@ -310,14 +346,26 @@ export class EmbeddingStore {
    * Utile après installation ou changement d'appareil
    */
   async syncFromServer(): Promise<number> {
+    console.log(`[EmbeddingStore] syncFromServer() pour structure: ${this.idStructure}`);
+
     const query = `SELECT * FROM get_product_embeddings(${this.idStructure}, 1000)`;
     const result = await databaseService.query(query);
 
-    if (!result?.success || !result?.data?.embeddings) {
+    // La réponse est: [{"get_product_embeddings": {"success": true, "data": {"embeddings": [...]}}}]
+    const funcResult = Array.isArray(result) ? result[0]?.get_product_embeddings : result;
+
+    console.log('[EmbeddingStore] syncFromServer résultat:', {
+      isArray: Array.isArray(result),
+      funcResult: funcResult ? 'présent' : 'null',
+      success: funcResult?.success,
+      embeddingsCount: funcResult?.data?.embeddings?.length
+    });
+
+    if (!funcResult?.success || !funcResult?.data?.embeddings) {
       throw new Error('Erreur de récupération des embeddings');
     }
 
-    const serverEmbeddings = result.data.embeddings as Array<{
+    const serverEmbeddings = funcResult.data.embeddings as Array<{
       id: number;
       id_produit: number;
       embedding: number[];
