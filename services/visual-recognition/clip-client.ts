@@ -11,8 +11,8 @@ export interface ClipEmbeddingResponse {
   processingTime: number;   // Temps en ms
 }
 
-// URL de l'API route locale
-const CLIP_API_URL = '/api/vision/clip';
+// URL de l'API backend (api.icelabsoft.com)
+const CLIP_API_URL = 'https://api.icelabsoft.com/api/vision/clip';
 
 /**
  * Service client pour l'API CLIP

@@ -13,8 +13,8 @@ interface ExtractionResult {
   error?: string;
 }
 
-// URL de l'API route locale
-const OCR_API_URL = '/api/vision/ocr';
+// URL de l'API backend (api.icelabsoft.com)
+const OCR_API_URL = 'https://api.icelabsoft.com/api/vision/ocr';
 
 /**
  * Service d'extraction de nom de produit via Claude Vision
