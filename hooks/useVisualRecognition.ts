@@ -64,12 +64,16 @@ export function useVisualRecognition({
     const service = serviceRef.current;
 
     const init = async () => {
+      console.log('[useVisualRecognition] Initialisation pour structure:', idStructure);
       try {
         await service.initialize(idStructure);
         const initialStats = await service.getStats();
+        console.log('[useVisualRecognition] Stats initiales:', initialStats);
         setStats(initialStats);
         setIsReady(true);
+        console.log('[useVisualRecognition] Service prêt ✓');
       } catch (err) {
+        console.error('[useVisualRecognition] Erreur init:', err);
         setError(err instanceof Error ? err.message : 'Erreur d\'initialisation');
       }
     };
@@ -93,10 +97,13 @@ export function useVisualRecognition({
   const recognize = useCallback(async (
     image: File | Blob | string | HTMLVideoElement
   ): Promise<VisualRecognitionResult | null> => {
+    console.log('[useVisualRecognition] Début reconnaissance, type image:', typeof image);
     setError(null);
 
     try {
+      console.log('[useVisualRecognition] Appel service.recognize()...');
       const result = await serviceRef.current.recognize(image);
+      console.log('[useVisualRecognition] Résultat reconnaissance:', result);
       setLastResult(result);
 
       // Rafraîchir les stats après reconnaissance
@@ -105,6 +112,7 @@ export function useVisualRecognition({
 
       return result;
     } catch (err) {
+      console.error('[useVisualRecognition] Erreur reconnaissance:', err);
       const message = err instanceof Error ? err.message : 'Erreur de reconnaissance';
       setError(message);
       return null;

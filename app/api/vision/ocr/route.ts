@@ -14,9 +14,14 @@ interface OcrRequest {
   mimeType?: string;
 }
 
+// Liste des catégories disponibles
+const CATEGORIES = ['Accessoire', 'Électronique', 'Vêtement', 'Alimentation', 'Informatique', 'Décoration', 'Mobilier', 'Cosmetique', 'Santé', 'Autre'] as const;
+type Categorie = typeof CATEGORIES[number];
+
 interface ExtractionResult {
   success: boolean;
   nomProduit: string;
+  categorie: Categorie;
   confidence: 'high' | 'medium' | 'low';
   rawText?: string;
   error?: string;
@@ -34,6 +39,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<Extractio
       return NextResponse.json({
         success: false,
         nomProduit: 'Produit non identifié',
+        categorie: 'Autre',
         confidence: 'low',
         error: 'Clé API Anthropic non configurée sur le serveur'
       }, { status: 500 });
@@ -71,25 +77,38 @@ export async function POST(request: NextRequest): Promise<NextResponse<Extractio
                 type: 'text',
                 text: `Analyse cette image d'un produit (emballage, étiquette, ou article).
 
-TÂCHE: Extraire UNIQUEMENT le nom commercial du produit.
+TÂCHE: Extraire le nom commercial du produit ET sa catégorie.
+
+CATÉGORIES DISPONIBLES (choisis UNE seule):
+- Accessoire
+- Électronique
+- Vêtement
+- Alimentation
+- Informatique
+- Décoration
+- Mobilier
+- Cosmetique
+- Santé
+- Autre
 
 RÈGLES:
-- Retourne SEULEMENT le nom du produit, rien d'autre
+- Retourne le résultat au format JSON strict: {"nom": "...", "categorie": "..."}
 - Inclus la marque si visible (ex: "Lait Nido 400g", "Coca-Cola 1.5L")
 - Inclus le format/poids si visible
 - Si plusieurs produits, prends le plus visible/central
-- Si aucun nom lisible, retourne "Produit non identifié"
-- Ne mets PAS de guillemets autour du nom
-- Pas d'explication, juste le nom
+- Si aucun nom lisible, utilise "Produit non identifié"
+- Choisis la catégorie la plus appropriée selon le type de produit
+- Si incertain sur la catégorie, utilise "Autre"
 
 EXEMPLES de réponses attendues:
-- Lait Nido 400g
-- Coca-Cola 1.5L
-- Savon Palmolive Original
-- Riz Uncle Bens 1kg
-- Produit non identifié
+{"nom": "Lait Nido 400g", "categorie": "Alimentation"}
+{"nom": "Coca-Cola 1.5L", "categorie": "Alimentation"}
+{"nom": "Savon Palmolive Original", "categorie": "Cosmetique"}
+{"nom": "Câble USB-C 2m", "categorie": "Électronique"}
+{"nom": "T-shirt Nike Sport", "categorie": "Vêtement"}
+{"nom": "Doliprane 1000mg", "categorie": "Santé"}
 
-Nom du produit:`
+Réponse JSON:`
               }
             ]
           }
@@ -103,6 +122,7 @@ Nom du produit:`
       return NextResponse.json({
         success: false,
         nomProduit: 'Produit non identifié',
+        categorie: 'Autre',
         confidence: 'low',
         error: `Erreur API Anthropic: ${response.status}`
       }, { status: response.status });
@@ -111,10 +131,33 @@ Nom du produit:`
     const data = await response.json();
     const extractedText = data.content?.[0]?.text?.trim() || '';
 
-    // Nettoyer le résultat
-    let nomProduit = extractedText
-      .replace(/^["']|["']$/g, '') // Enlever guillemets
-      .replace(/^Nom du produit:\s*/i, '') // Enlever préfixe si présent
+    // Parser le JSON retourné par Claude
+    let nomProduit = 'Produit non identifié';
+    let categorie: Categorie = 'Autre';
+
+    try {
+      // Extraire le JSON de la réponse (peut contenir du texte autour)
+      const jsonMatch = extractedText.match(/\{[^}]+\}/);
+      if (jsonMatch) {
+        const parsed = JSON.parse(jsonMatch[0]);
+        nomProduit = parsed.nom || 'Produit non identifié';
+        // Valider que la catégorie est dans la liste
+        if (parsed.categorie && CATEGORIES.includes(parsed.categorie)) {
+          categorie = parsed.categorie;
+        }
+      }
+    } catch (parseError) {
+      // Si le parsing échoue, utiliser l'ancien format (juste le nom)
+      console.warn('[API/OCR] Parsing JSON échoué, fallback:', parseError);
+      nomProduit = extractedText
+        .replace(/^["']|["']$/g, '')
+        .replace(/^Nom du produit:\s*/i, '')
+        .trim() || 'Produit non identifié';
+    }
+
+    // Nettoyer le nom
+    nomProduit = nomProduit
+      .replace(/^["']|["']$/g, '')
       .trim();
 
     // Déterminer la confiance
@@ -132,6 +175,7 @@ Nom du produit:`
     return NextResponse.json({
       success: true,
       nomProduit,
+      categorie,
       confidence,
       rawText: extractedText
     });
@@ -141,6 +185,7 @@ Nom du produit:`
     return NextResponse.json({
       success: false,
       nomProduit: 'Produit non identifié',
+      categorie: 'Autre',
       confidence: 'low',
       error: error instanceof Error ? error.message : 'Erreur inconnue'
     }, { status: 500 });

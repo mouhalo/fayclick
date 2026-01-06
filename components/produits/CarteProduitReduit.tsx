@@ -150,18 +150,18 @@ export function CarteProduitReduit({
       className="relative bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-200 overflow-hidden"
       onClick={closeMenu}
     >
-      {/* Header compact */}
-      <div className="bg-gradient-to-r from-blue-50 to-cyan-50 p-3 flex items-start justify-between gap-2">
+      {/* Header compact - Optimisé mobile */}
+      <div className="bg-gradient-to-r from-blue-50 to-cyan-50 p-2 flex items-start justify-between gap-1.5">
         {/* Nom produit */}
         <div className="flex-1 min-w-0">
-          <h3 className="font-bold text-gray-900 text-sm leading-tight truncate">
+          <h3 className="font-bold text-gray-900 text-[11px] leading-tight truncate">
             {produit.nom_produit}
           </h3>
-          <div className="flex items-center gap-1.5 mt-1">
-            <span className={`text-xs font-medium px-2 py-0.5 rounded-full text-white ${badge.color}`}>
+          <div className="flex items-center gap-1 mt-0.5">
+            <span className={`text-[9px] font-medium px-1.5 py-0.5 rounded-full text-white ${badge.color}`}>
               {badge.text}
             </span>
-            <span className="text-xs text-gray-500">
+            <span className="text-[9px] text-gray-500">
               Stock: {produit.niveau_stock || 0}
             </span>
           </div>
@@ -172,10 +172,10 @@ export function CarteProduitReduit({
           <motion.button
             whileTap={{ scale: 0.9 }}
             onClick={toggleMenu}
-            className="p-1.5 rounded-lg hover:bg-white/80 transition-colors"
+            className="p-1 rounded-lg hover:bg-white/80 transition-colors"
             aria-label="Menu actions"
           >
-            <MoreVertical className="w-5 h-5 text-gray-600" />
+            <MoreVertical className="w-4 h-4 text-gray-600" />
           </motion.button>
 
           {/* Dropdown menu */}
@@ -230,28 +230,28 @@ export function CarteProduitReduit({
         </div>
       </div>
 
-      {/* Body */}
-      <div className="p-3 space-y-3">
+      {/* Body - Optimisé mobile */}
+      <div className="p-2 space-y-1.5">
         {/* Prix + Stock (Grid 2 colonnes) */}
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-2 gap-1.5">
           {/* Prix */}
-          <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-2.5">
-            <div className="flex items-center gap-1.5 mb-1">
-              <TrendingUp className="w-3.5 h-3.5 text-green-600" />
-              <span className="text-xs font-medium text-gray-600">Prix</span>
+          <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-1.5">
+            <div className="flex items-center gap-1 mb-0.5">
+              <TrendingUp className="w-3 h-3 text-green-600" />
+              <span className="text-[9px] font-medium text-gray-600">Prix</span>
             </div>
-            <p className="text-sm font-bold text-gray-900 leading-tight">
+            <p className="text-[11px] font-bold text-gray-900 leading-tight">
               {produit.prix_vente.toLocaleString('fr-FR')} FCFA
             </p>
           </div>
 
           {/* Stock disponible */}
-          <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-2.5">
-            <div className="flex items-center gap-1.5 mb-1">
-              <Package className="w-3.5 h-3.5 text-blue-600" />
-              <span className="text-xs font-medium text-gray-600">Dispo</span>
+          <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-1.5">
+            <div className="flex items-center gap-1 mb-0.5">
+              <Package className="w-3 h-3 text-blue-600" />
+              <span className="text-[9px] font-medium text-gray-600">Dispo</span>
             </div>
-            <p className={`text-sm font-bold leading-tight ${
+            <p className={`text-[11px] font-bold leading-tight ${
               stockDisponible <= 0 ? 'text-red-600' :
               stockDisponible <= 5 ? 'text-orange-600' :
               'text-gray-900'
@@ -261,31 +261,22 @@ export function CarteProduitReduit({
           </div>
         </div>
 
-        {/* Description (1 ligne max) */}
-        {produit.description_produit && (
-          <div className="bg-gray-50 rounded-lg p-2">
-            <p className="text-xs text-gray-600 line-clamp-1">
-              {produit.description_produit}
-            </p>
-          </div>
-        )}
-
         {/* Contrôles quantité */}
-        <div className="flex items-center justify-center gap-3 bg-gray-50 rounded-lg p-2">
+        <div className="flex items-center justify-center gap-2 bg-gray-50 rounded-lg py-1.5 px-2">
           <motion.button
             whileTap={{ scale: 0.9 }}
             onClick={handleDecrement}
             disabled={quantite <= 1}
-            className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${
+            className={`w-6 h-6 rounded-md flex items-center justify-center transition-colors ${
               quantite <= 1
                 ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
                 : 'bg-white text-gray-700 hover:bg-gray-100 shadow-sm'
             }`}
           >
-            <Minus className="w-4 h-4" />
+            <Minus className="w-3 h-3" />
           </motion.button>
 
-          <span className="text-lg font-bold text-gray-900 min-w-[3ch] text-center">
+          <span className="text-sm font-bold text-gray-900 min-w-[2ch] text-center">
             {quantite}
           </span>
 
@@ -293,13 +284,13 @@ export function CarteProduitReduit({
             whileTap={{ scale: 0.9 }}
             onClick={handleIncrement}
             disabled={quantite >= stockDisponible}
-            className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${
+            className={`w-6 h-6 rounded-md flex items-center justify-center transition-colors ${
               quantite >= stockDisponible
                 ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
                 : 'bg-white text-gray-700 hover:bg-gray-100 shadow-sm'
             }`}
           >
-            <Plus className="w-4 h-4" />
+            <Plus className="w-3 h-3" />
           </motion.button>
         </div>
 
@@ -312,14 +303,14 @@ export function CarteProduitReduit({
             handleVendre();
           }}
           disabled={stockDisponible <= 0}
-          className={`w-full py-2.5 rounded-lg font-semibold text-sm flex items-center justify-center gap-2 transition-all ${
+          className={`w-full py-1.5 rounded-lg font-semibold text-[11px] flex items-center justify-center gap-1.5 transition-all ${
             stockDisponible <= 0
               ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-              : 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-md hover:shadow-lg'
+              : 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-sm hover:shadow-md'
           }`}
         >
-          <ShoppingCart className="w-4 h-4" />
-          {stockDisponible <= 0 ? 'Rupture de stock' : 'Vendre'}
+          <ShoppingCart className="w-3.5 h-3.5" />
+          {stockDisponible <= 0 ? 'Rupture' : 'Vendre'}
         </motion.button>
       </div>
     </motion.div>

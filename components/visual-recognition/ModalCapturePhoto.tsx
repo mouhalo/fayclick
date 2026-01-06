@@ -180,21 +180,35 @@ export function ModalCapturePhoto({
 
   // Traiter l'image
   const processImage = useCallback(async () => {
-    if (!capturedImage) return;
+    console.log('[ModalCapturePhoto] processImage appelé, mode:', mode);
+    console.log('[ModalCapturePhoto] capturedImage:', capturedImage ? 'présent' : 'null');
+    console.log('[ModalCapturePhoto] isReady:', isReady);
+
+    if (!capturedImage) {
+      console.warn('[ModalCapturePhoto] Pas d\'image capturée');
+      return;
+    }
 
     if (mode === 'enroll' && idProduit) {
+      console.log('[ModalCapturePhoto] Mode enrôlement, idProduit:', idProduit);
       const result = await enroll(idProduit, capturedImage);
       if (result.success) {
         onEnrolled?.();
         onClose();
       }
     } else if (mode === 'recognize') {
+      console.log('[ModalCapturePhoto] Mode reconnaissance, lancement...');
       const result = await recognize(capturedImage);
+      console.log('[ModalCapturePhoto] Résultat recognize:', result);
       if (result) {
+        console.log('[ModalCapturePhoto] topMatch:', result.topMatch);
         onRecognized?.(result.topMatch);
+      } else {
+        console.log('[ModalCapturePhoto] Pas de résultat, appel onRecognized(null)');
+        onRecognized?.(null);
       }
     }
-  }, [capturedImage, mode, idProduit, enroll, recognize, onEnrolled, onRecognized, onClose]);
+  }, [capturedImage, mode, idProduit, enroll, recognize, onEnrolled, onRecognized, onClose, isReady]);
 
   if (!isOpen) return null;
 

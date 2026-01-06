@@ -397,6 +397,7 @@ export function ModalAjoutProduitNew({
   return (
     <AnimatePresence>
       <motion.div
+        key="modal-ajout-produit-overlay"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
@@ -411,7 +412,7 @@ export function ModalAjoutProduitNew({
           className="bg-gradient-to-br from-green-600 via-green-700 to-green-800 backdrop-blur-xl rounded-3xl w-full max-w-4xl max-h-[90vh] overflow-hidden shadow-2xl border border-white/20"
         >
           {/* Header avec onglets - Style harmonisé avec modal client */}
-          <div className="bg-gradient-to-r from-yellow-400 via-orange-500 to-red-600 backdrop-blur-lg p-6 text-white relative overflow-hidden">
+          <div className="bg-gradient-to-r from-yellow-400 via-orange-500 to-red-600 backdrop-blur-lg p-3 sm:p-4 md:p-6 text-white relative overflow-hidden">
             {/* Pattern décoratif */}
             <div className="absolute inset-0 opacity-20">
               <div className="absolute inset-0" style={{
@@ -419,40 +420,40 @@ export function ModalAjoutProduitNew({
                 backgroundSize: '20px 20px'
               }} />
             </div>
-            <div className="relative z-10 flex justify-between items-center mb-4">
-              <h3 className="text-xl font-bold text-white">
+            <div className="relative z-10 flex justify-between items-center mb-2 sm:mb-3 md:mb-4">
+              <h3 className="text-base sm:text-lg md:text-xl font-bold text-white">
                 {produitToEdit ? 'Modifier le produit' : 'Ajouter un produit'}
               </h3>
               <button
                 onClick={onClose}
-                className="w-8 h-8 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-white/30 transition-colors"
+                className="w-7 h-7 sm:w-8 sm:h-8 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-white/30 transition-colors"
               >
-                <X className="w-5 h-5 text-white" />
+                <X className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
               </button>
             </div>
 
             {/* Navigation onglets */}
-            <div className="relative z-10 flex space-x-1 bg-white/10 backdrop-blur-sm rounded-xl p-1">
+            <div className="relative z-10 flex space-x-0.5 sm:space-x-1 bg-white/10 backdrop-blur-sm rounded-lg sm:rounded-xl p-0.5 sm:p-1">
               {ongletsAffiches.map((onglet) => {
                 const shortLabels: Record<OngletType, string> = {
                   'informations': 'Infos',
                   'photos': 'Photos',
                   'gestion-stock': 'Stocks',
-                  'historique': 'Historique'
+                  'historique': 'Histo'
                 };
 
                 return (
                   <button
                     key={onglet.id}
                     onClick={() => setOngletActif(onglet.id)}
-                    className={`flex-1 flex flex-col items-center justify-center gap-1 px-3 py-2.5 rounded-lg text-xs font-medium transition-all ${
+                    className={`flex-1 flex flex-col items-center justify-center gap-0.5 sm:gap-1 px-1.5 sm:px-3 py-1.5 sm:py-2.5 rounded-md sm:rounded-lg text-[10px] sm:text-xs font-medium transition-all ${
                       ongletActif === onglet.id
                         ? 'bg-white/95 shadow-lg text-sky-600'
                         : 'text-white/80 hover:text-white hover:bg-white/20'
                     }`}
                   >
-                    <onglet.icon className="w-4 h-4" />
-                    <span>{shortLabels[onglet.id]}</span>
+                    <onglet.icon className="w-3 h-3 sm:w-4 sm:h-4" />
+                    <span className="truncate">{shortLabels[onglet.id]}</span>
                   </button>
                 );
               })}
@@ -460,19 +461,19 @@ export function ModalAjoutProduitNew({
           </div>
 
           {/* Contenu des onglets - Fond harmonisé */}
-          <div className="p-6 overflow-y-auto max-h-[calc(90vh-200px)] bg-gradient-to-br from-green-400/10 via-emerald-400/15 to-teal-400/10 backdrop-blur-2xl">
+          <div className="p-3 sm:p-4 md:p-6 overflow-y-auto max-h-[calc(90vh-140px)] sm:max-h-[calc(90vh-170px)] md:max-h-[calc(90vh-200px)] bg-gradient-to-br from-green-400/10 via-emerald-400/15 to-teal-400/10 backdrop-blur-2xl">
             {/* Onglet Informations */}
             {ongletActif === 'informations' && (
               <motion.div
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
-                className="space-y-5"
+                className="space-y-3 sm:space-y-4 md:space-y-5"
               >
-                <form onSubmit={handleSubmit} className="space-y-5">
+                <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4 md:space-y-5">
                   {/* Nom du produit */}
                   <div>
-                    <label className="block text-sm font-medium text-white mb-2">
-                      <Package className="w-4 h-4 inline mr-1" />
+                    <label className="block text-xs sm:text-sm font-medium text-white mb-1 sm:mb-2">
+                      <Package className="w-3 h-3 sm:w-4 sm:h-4 inline mr-1" />
                       Nom du {formData.est_service ? 'service' : 'produit'} *
                     </label>
                     <input
@@ -480,7 +481,7 @@ export function ModalAjoutProduitNew({
                       value={formData.nom_produit}
                       onChange={(e) => handleInputChange('nom_produit', e.target.value)}
                       disabled={!canEdit}
-                      className={`w-full px-4 py-3 border rounded-xl backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-transparent transition-all ${
+                      className={`w-full px-3 py-2 sm:px-4 sm:py-3 text-sm sm:text-base border rounded-lg sm:rounded-xl backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-transparent transition-all ${
                         !canEdit
                           ? 'bg-gray-100/80 border-gray-300 cursor-not-allowed text-gray-600'
                           : errors.nom_produit
@@ -490,8 +491,8 @@ export function ModalAjoutProduitNew({
                       placeholder={`Ex: ${formData.est_service ? 'Consultation technique' : 'Samsung Galaxy A10'}`}
                     />
                     {errors.nom_produit && (
-                      <p className="text-red-500 text-sm mt-1 flex items-center">
-                        <AlertCircle className="w-4 h-4 mr-1" />
+                      <p className="text-red-500 text-xs sm:text-sm mt-1 flex items-center">
+                        <AlertCircle className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
                         {errors.nom_produit}
                       </p>
                     )}
@@ -500,7 +501,7 @@ export function ModalAjoutProduitNew({
                   {/* Code-barres avec scanner */}
                   {!formData.est_service && (
                     <div>
-                      <label className="block text-sm font-medium text-white mb-2">
+                      <label className="block text-xs sm:text-sm font-medium text-white mb-1 sm:mb-2">
                         Code-barres (optionnel)
                       </label>
                       <div className="flex gap-2">
@@ -509,7 +510,7 @@ export function ModalAjoutProduitNew({
                           value={formData.code_barres || ''}
                           onChange={(e) => handleInputChange('code_barres', e.target.value)}
                           disabled={!canEdit}
-                          className={`flex-1 px-4 py-3 border rounded-xl backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-transparent transition-all ${
+                          className={`flex-1 px-3 py-2 sm:px-4 sm:py-3 text-sm sm:text-base border rounded-lg sm:rounded-xl backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-transparent transition-all ${
                             !canEdit
                               ? 'bg-gray-100/80 border-gray-300 cursor-not-allowed text-gray-600'
                               : 'border-sky-200 bg-white/60 hover:bg-white/70'
@@ -517,7 +518,7 @@ export function ModalAjoutProduitNew({
                           placeholder="Ex: 3560071234560"
                         />
                         {canEdit && (
-                          <div className="w-28">
+                          <div className="w-20 sm:w-28">
                             <BoutonScanCodeBarre
                               onScanClick={() => setShowScanModal(true)}
                               variant="secondary"
@@ -530,9 +531,9 @@ export function ModalAjoutProduitNew({
 
                   {/* Type: Produit ou Service */}
                   <div>
-                    <label className="block text-sm font-medium text-white mb-2">Type</label>
-                    <div className="flex gap-4">
-                      <label className={`flex items-center bg-white/80 px-4 py-2 rounded-lg transition-all ${
+                    <label className="block text-xs sm:text-sm font-medium text-white mb-1 sm:mb-2">Type</label>
+                    <div className="flex gap-2 sm:gap-4">
+                      <label className={`flex items-center bg-white/80 px-2 py-1.5 sm:px-4 sm:py-2 rounded-md sm:rounded-lg transition-all ${
                         canEdit ? 'cursor-pointer hover:bg-white/90' : 'cursor-not-allowed opacity-60'
                       }`}>
                         <input
@@ -540,11 +541,11 @@ export function ModalAjoutProduitNew({
                           checked={!formData.est_service}
                           onChange={() => handleInputChange('est_service', false)}
                           disabled={!canEdit}
-                          className="mr-2 text-emerald-600"
+                          className="mr-1.5 sm:mr-2 text-emerald-600 w-3 h-3 sm:w-4 sm:h-4"
                         />
-                        <span className="text-slate-700 font-medium">Produit physique</span>
+                        <span className="text-slate-700 font-medium text-xs sm:text-sm">Produit</span>
                       </label>
-                      <label className={`flex items-center bg-white/80 px-4 py-2 rounded-lg transition-all ${
+                      <label className={`flex items-center bg-white/80 px-2 py-1.5 sm:px-4 sm:py-2 rounded-md sm:rounded-lg transition-all ${
                         canEdit ? 'cursor-pointer hover:bg-white/90' : 'cursor-not-allowed opacity-60'
                       }`}>
                         <input
@@ -552,22 +553,23 @@ export function ModalAjoutProduitNew({
                           checked={formData.est_service}
                           onChange={() => handleInputChange('est_service', true)}
                           disabled={!canEdit}
-                          className="mr-2 text-emerald-600"
+                          className="mr-1.5 sm:mr-2 text-emerald-600 w-3 h-3 sm:w-4 sm:h-4"
                         />
-                        <span className="text-slate-700 font-medium">Service</span>
+                        <span className="text-slate-700 font-medium text-xs sm:text-sm">Service</span>
                       </label>
                     </div>
                   </div>
 
                   {/* Prix - Grille horizontale 2x1 */}
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-2 gap-2 sm:gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-white mb-2">
-                        Prix d'achat (FCFA) *
+                      <label className="block text-xs sm:text-sm font-medium text-white mb-1 sm:mb-2">
+                        <span className="hidden sm:inline">Prix d&apos;achat (FCFA) *</span>
+                        <span className="sm:hidden">P.Achat *</span>
                       </label>
                       {!isAdmin && isEditMode ? (
                         // Non-ADMIN en mode édition : masquer avec astérisques
-                        <div className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-gray-100/80 backdrop-blur-sm text-gray-600 font-mono tracking-widest cursor-not-allowed flex items-center">
+                        <div className="w-full px-3 py-2 sm:px-4 sm:py-3 text-sm sm:text-base border border-gray-300 rounded-lg sm:rounded-xl bg-gray-100/80 backdrop-blur-sm text-gray-600 font-mono tracking-widest cursor-not-allowed flex items-center">
                           ••••••••
                         </div>
                       ) : (
@@ -576,7 +578,7 @@ export function ModalAjoutProduitNew({
                           value={formData.cout_revient}
                           onChange={(e) => handleInputChange('cout_revient', parseFloat(e.target.value) || 0)}
                           disabled={!canEdit}
-                          className={`w-full px-4 py-3 border rounded-xl backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-transparent transition-all ${
+                          className={`w-full px-3 py-2 sm:px-4 sm:py-3 text-sm sm:text-base border rounded-lg sm:rounded-xl backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-transparent transition-all ${
                             !canEdit
                               ? 'bg-gray-100/80 border-gray-300 cursor-not-allowed text-gray-600'
                               : errors.cout_revient
@@ -588,20 +590,21 @@ export function ModalAjoutProduitNew({
                         />
                       )}
                       {errors.cout_revient && (
-                        <p className="text-red-500 text-sm mt-1">{errors.cout_revient}</p>
+                        <p className="text-red-500 text-xs sm:text-sm mt-1">{errors.cout_revient}</p>
                       )}
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-white mb-2">
-                        Prix de vente (FCFA) *
+                      <label className="block text-xs sm:text-sm font-medium text-white mb-1 sm:mb-2">
+                        <span className="hidden sm:inline">Prix de vente (FCFA) *</span>
+                        <span className="sm:hidden">P.Vente *</span>
                       </label>
                       <input
                         type="number"
                         value={formData.prix_vente}
                         onChange={(e) => handleInputChange('prix_vente', parseFloat(e.target.value) || 0)}
                         disabled={!canEdit}
-                        className={`w-full px-4 py-3 border rounded-xl backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-transparent transition-all ${
+                        className={`w-full px-3 py-2 sm:px-4 sm:py-3 text-sm sm:text-base border rounded-lg sm:rounded-xl backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-transparent transition-all ${
                           !canEdit
                             ? 'bg-gray-100/80 border-gray-300 cursor-not-allowed text-gray-600'
                             : errors.prix_vente
@@ -612,21 +615,21 @@ export function ModalAjoutProduitNew({
                         step="0.01"
                       />
                       {errors.prix_vente && (
-                        <p className="text-red-500 text-sm mt-1">{errors.prix_vente}</p>
+                        <p className="text-red-500 text-xs sm:text-sm mt-1">{errors.prix_vente}</p>
                       )}
                     </div>
                   </div>
 
                   {/* Calcul de la marge */}
                   {formData.cout_revient > 0 && formData.prix_vente > 0 && (
-                    <div className="bg-gradient-to-r from-emerald-50/60 to-green-50/60 backdrop-blur-sm p-4 rounded-xl border border-emerald-200/50 shadow-sm">
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-slate-600">Marge bénéficiaire:</span>
+                    <div className="bg-gradient-to-r from-emerald-50/60 to-green-50/60 backdrop-blur-sm p-2.5 sm:p-4 rounded-lg sm:rounded-xl border border-emerald-200/50 shadow-sm">
+                      <div className="flex items-center justify-between text-xs sm:text-sm">
+                        <span className="text-slate-600">Marge:</span>
                         <div className="text-right">
-                          <div className="font-semibold text-sky-900">
+                          <div className="font-semibold text-sky-900 text-xs sm:text-sm">
                             {formatMontant(marge)}
                           </div>
-                          <div className="text-sky-700">
+                          <div className="text-sky-700 text-[10px] sm:text-xs">
                             ({margePercentage}%)
                           </div>
                         </div>
@@ -636,15 +639,15 @@ export function ModalAjoutProduitNew({
 
                   {/* Catégorie */}
                   <div>
-                    <label className="block text-sm font-medium text-white mb-2">
-                      <Tag className="w-4 h-4 inline mr-1" />
+                    <label className="block text-xs sm:text-sm font-medium text-white mb-1 sm:mb-2">
+                      <Tag className="w-3 h-3 sm:w-4 sm:h-4 inline mr-1" />
                       Catégorie
                     </label>
                     <select
                       value={formData.nom_categorie}
                       onChange={(e) => handleInputChange('nom_categorie', e.target.value)}
                       disabled={!canEdit}
-                      className={`w-full px-4 py-3 border rounded-xl backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-transparent transition-all ${
+                      className={`w-full px-3 py-2 sm:px-4 sm:py-3 text-sm sm:text-base border rounded-lg sm:rounded-xl backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-transparent transition-all ${
                         !canEdit
                           ? 'bg-gray-100/80 border-gray-300 cursor-not-allowed text-gray-600'
                           : 'border-sky-200 bg-white/60 hover:bg-white/70'
@@ -659,16 +662,16 @@ export function ModalAjoutProduitNew({
 
                   {/* Description */}
                   <div>
-                    <label className="block text-sm font-medium text-white mb-2">
-                      <FileText className="w-4 h-4 inline mr-1" />
+                    <label className="block text-xs sm:text-sm font-medium text-white mb-1 sm:mb-2">
+                      <FileText className="w-3 h-3 sm:w-4 sm:h-4 inline mr-1" />
                       Description
                     </label>
                     <textarea
                       value={formData.description}
                       onChange={(e) => handleInputChange('description', e.target.value)}
                       disabled={!canEdit}
-                      rows={3}
-                      className={`w-full px-4 py-3 border rounded-xl backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-transparent transition-all resize-none ${
+                      rows={2}
+                      className={`w-full px-3 py-2 sm:px-4 sm:py-3 text-sm sm:text-base border rounded-lg sm:rounded-xl backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-transparent transition-all resize-none ${
                         !canEdit
                           ? 'bg-gray-100/80 border-gray-300 cursor-not-allowed text-gray-600'
                           : 'border-sky-200 bg-white/60 hover:bg-white/70'
@@ -678,25 +681,25 @@ export function ModalAjoutProduitNew({
                   </div>
 
                   {/* Présenter au public */}
-                  <div className={`bg-gradient-to-r from-amber-50/70 to-orange-50/70 backdrop-blur-sm p-4 rounded-xl border border-amber-200/50 ${
+                  <div className={`bg-gradient-to-r from-amber-50/70 to-orange-50/70 backdrop-blur-sm p-2.5 sm:p-4 rounded-lg sm:rounded-xl border border-amber-200/50 ${
                     !canEdit ? 'opacity-60' : ''
                   }`}>
-                    <label className={`flex items-center gap-3 ${canEdit ? 'cursor-pointer' : 'cursor-not-allowed'}`}>
+                    <label className={`flex items-center gap-2 sm:gap-3 ${canEdit ? 'cursor-pointer' : 'cursor-not-allowed'}`}>
                       <input
                         type="checkbox"
                         checked={formData.presente_au_public || false}
                         onChange={(e) => handleInputChange('presente_au_public', e.target.checked)}
                         disabled={!canEdit}
-                        className={`w-5 h-5 text-amber-600 border-amber-300 rounded focus:ring-amber-500 focus:ring-offset-0 ${
+                        className={`w-4 h-4 sm:w-5 sm:h-5 text-amber-600 border-amber-300 rounded focus:ring-amber-500 focus:ring-offset-0 ${
                           canEdit ? 'cursor-pointer' : 'cursor-not-allowed'
                         }`}
                       />
                       <div className="flex-1">
-                        <span className="text-sm font-medium text-slate-800 flex items-center gap-2">
-                          <Globe className="w-4 h-4 text-amber-600" />
+                        <span className="text-xs sm:text-sm font-medium text-slate-800 flex items-center gap-1.5 sm:gap-2">
+                          <Globe className="w-3 h-3 sm:w-4 sm:h-4 text-amber-600" />
                           Présenter au public
                         </span>
-                        <p className="text-xs text-slate-600 mt-0.5">
+                        <p className="text-[10px] sm:text-xs text-slate-600 mt-0.5 hidden sm:block">
                           Ce {formData.est_service ? 'service' : 'produit'} sera visible dans votre catalogue public
                         </p>
                       </div>
@@ -704,11 +707,11 @@ export function ModalAjoutProduitNew({
                   </div>
 
                   {/* Boutons d'action - Style harmonisé */}
-                  <div className="flex gap-3 pt-4">
+                  <div className="flex gap-2 sm:gap-3 pt-2 sm:pt-4">
                     <button
                       type="button"
                       onClick={onClose}
-                      className="flex-1 px-4 py-3 bg-red-500/20 backdrop-blur-sm border border-red-400/30 text-red-200 rounded-xl hover:bg-red-500/30 transition-all font-medium"
+                      className="flex-1 px-3 py-2 sm:px-4 sm:py-3 text-xs sm:text-sm bg-red-500/20 backdrop-blur-sm border border-red-400/30 text-red-200 rounded-lg sm:rounded-xl hover:bg-red-500/30 transition-all font-medium"
                     >
                       {!canEdit ? 'Fermer' : 'Annuler'}
                     </button>
@@ -716,12 +719,12 @@ export function ModalAjoutProduitNew({
                       <button
                         type="submit"
                         disabled={isLoading}
-                        className="flex-1 px-4 py-3 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white rounded-xl hover:from-emerald-600 hover:to-emerald-700 transition-all font-medium flex items-center justify-center gap-2 disabled:opacity-50 shadow-lg hover:shadow-xl"
+                        className="flex-1 px-3 py-2 sm:px-4 sm:py-3 text-xs sm:text-sm bg-gradient-to-r from-emerald-500 to-emerald-600 text-white rounded-lg sm:rounded-xl hover:from-emerald-600 hover:to-emerald-700 transition-all font-medium flex items-center justify-center gap-1.5 sm:gap-2 disabled:opacity-50 shadow-lg hover:shadow-xl"
                       >
                         {isLoading ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
+                          <Loader2 className="w-3 h-3 sm:w-4 sm:h-4 animate-spin" />
                         ) : (
-                          <Save className="w-4 h-4" />
+                          <Save className="w-3 h-3 sm:w-4 sm:h-4" />
                         )}
                         {isLoading
                           ? 'Enregistrement...'
@@ -735,9 +738,9 @@ export function ModalAjoutProduitNew({
 
                   {/* Message d'avertissement si non-ADMIN en mode édition */}
                   {!canEdit && (
-                    <div className="mt-3 p-3 bg-amber-500/20 backdrop-blur-sm border border-amber-400/30 rounded-xl">
-                      <p className="text-amber-200 text-sm text-center flex items-center justify-center gap-2">
-                        <AlertCircle className="w-4 h-4" />
+                    <div className="mt-2 sm:mt-3 p-2 sm:p-3 bg-amber-500/20 backdrop-blur-sm border border-amber-400/30 rounded-lg sm:rounded-xl">
+                      <p className="text-amber-200 text-[10px] sm:text-sm text-center flex items-center justify-center gap-1.5 sm:gap-2">
+                        <AlertCircle className="w-3 h-3 sm:w-4 sm:h-4" />
                         Seul l&apos;administrateur peut modifier les produits
                       </p>
                     </div>
@@ -751,69 +754,70 @@ export function ModalAjoutProduitNew({
               <motion.div
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
-                className="space-y-6"
+                className="space-y-3 sm:space-y-4 md:space-y-6"
               >
-                <div className="bg-gradient-to-r from-sky-50/70 to-blue-50/70 backdrop-blur-sm p-5 rounded-xl border border-sky-200/50 shadow-sm">
-                  <h4 className="font-semibold text-slate-900 mb-2">Produit: {produitToEdit?.nom_produit}</h4>
-                  <p className="text-sm text-slate-600">Stock actuel: <span className="font-medium">{produitToEdit?.niveau_stock || produitToEdit?.stock_actuel || 0} unités</span></p>
+                <div className="bg-gradient-to-r from-sky-50/70 to-blue-50/70 backdrop-blur-sm p-3 sm:p-4 md:p-5 rounded-lg sm:rounded-xl border border-sky-200/50 shadow-sm">
+                  <h4 className="font-semibold text-slate-900 text-sm sm:text-base mb-1 sm:mb-2 truncate">Produit: {produitToEdit?.nom_produit}</h4>
+                  <p className="text-xs sm:text-sm text-slate-600">Stock actuel: <span className="font-medium">{produitToEdit?.niveau_stock || produitToEdit?.stock_actuel || 0} unités</span></p>
                 </div>
 
-                <form onSubmit={handleStockSubmit} className="space-y-5">
+                <form onSubmit={handleStockSubmit} className="space-y-3 sm:space-y-4 md:space-y-5">
                   {/* Type de mouvement */}
                   <div>
-                    <label className="block text-sm font-medium text-white mb-2">Type de mouvement</label>
-                    <div className="grid grid-cols-2 gap-3">
-                      <label className="flex items-center p-3 bg-white/80 border border-emerald-300/50 rounded-lg hover:bg-white/90 cursor-pointer transition-all">
+                    <label className="block text-xs sm:text-sm font-medium text-white mb-1 sm:mb-2">Type de mouvement</label>
+                    <div className="grid grid-cols-2 gap-2 sm:gap-3">
+                      <label className="flex items-center p-2 sm:p-3 bg-white/80 border border-emerald-300/50 rounded-md sm:rounded-lg hover:bg-white/90 cursor-pointer transition-all">
                         <input
                           type="radio"
                           checked={stockForm.type_mouvement === 'ENTREE'}
                           onChange={() => setStockForm(prev => ({ ...prev, type_mouvement: 'ENTREE' }))}
-                          className="mr-3 text-green-600"
+                          className="mr-1.5 sm:mr-3 text-green-600 w-3 h-3 sm:w-4 sm:h-4"
                         />
-                        <div className="flex items-center gap-2">
-                          <TrendingUp className="w-4 h-4 text-green-600" />
-                          <span className="font-medium text-green-700">Entrée</span>
+                        <div className="flex items-center gap-1 sm:gap-2">
+                          <TrendingUp className="w-3 h-3 sm:w-4 sm:h-4 text-green-600" />
+                          <span className="font-medium text-green-700 text-xs sm:text-sm">Entrée</span>
                         </div>
                       </label>
-                      <label className="flex items-center p-3 bg-white/80 border border-red-300/50 rounded-lg hover:bg-white/90 cursor-pointer transition-all">
+                      <label className="flex items-center p-2 sm:p-3 bg-white/80 border border-red-300/50 rounded-md sm:rounded-lg hover:bg-white/90 cursor-pointer transition-all">
                         <input
                           type="radio"
                           checked={stockForm.type_mouvement === 'SORTIE'}
                           onChange={() => setStockForm(prev => ({ ...prev, type_mouvement: 'SORTIE' }))}
-                          className="mr-3 text-red-600"
+                          className="mr-1.5 sm:mr-3 text-red-600 w-3 h-3 sm:w-4 sm:h-4"
                         />
-                        <div className="flex items-center gap-2">
-                          <TrendingDown className="w-4 h-4 text-red-600" />
-                          <span className="font-medium text-red-700">Sortie</span>
+                        <div className="flex items-center gap-1 sm:gap-2">
+                          <TrendingDown className="w-3 h-3 sm:w-4 sm:h-4 text-red-600" />
+                          <span className="font-medium text-red-700 text-xs sm:text-sm">Sortie</span>
                         </div>
                       </label>
                     </div>
                   </div>
 
                   {/* Quantité et Prix - Grille horizontale 2x1 */}
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-2 gap-2 sm:gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-white mb-2">
+                      <label className="block text-xs sm:text-sm font-medium text-white mb-1 sm:mb-2">
                         Quantité *
                       </label>
                       <input
                         type="number"
                         value={stockForm.quantite}
                         onChange={(e) => setStockForm(prev => ({ ...prev, quantite: parseInt(e.target.value) || 0 }))}
-                        className="w-full px-4 py-3 border border-sky-200 rounded-xl bg-white/60 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-transparent transition-all hover:bg-white/70"
+                        className="w-full px-3 py-2 sm:px-4 sm:py-3 text-sm sm:text-base border border-sky-200 rounded-lg sm:rounded-xl bg-white/60 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-transparent transition-all hover:bg-white/70"
                         min="1"
                         required
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-white mb-2">
-                        Prix unitaire (FCFA) *
+                      <label className="block text-xs sm:text-sm font-medium text-white mb-1 sm:mb-2">
+                        <span className="hidden sm:inline">Prix unitaire (FCFA) *</span>
+                        <span className="sm:hidden">Prix unit. *</span>
                       </label>
                       <input
                         type="number"
                         value={stockForm.prix_unitaire}
                         onChange={(e) => setStockForm(prev => ({ ...prev, prix_unitaire: parseFloat(e.target.value) || 0 }))}
-                        className="w-full px-4 py-3 border border-sky-200 rounded-xl bg-white/60 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-transparent transition-all hover:bg-white/70"
+                        className="w-full px-3 py-2 sm:px-4 sm:py-3 text-sm sm:text-base border border-sky-200 rounded-lg sm:rounded-xl bg-white/60 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-transparent transition-all hover:bg-white/70"
                         min="0"
                         step="0.01"
                         required
@@ -823,24 +827,24 @@ export function ModalAjoutProduitNew({
 
                   {/* Description */}
                   <div>
-                    <label className="block text-sm font-medium text-white mb-2">
+                    <label className="block text-xs sm:text-sm font-medium text-white mb-1 sm:mb-2">
                       Description (optionnelle)
                     </label>
                     <textarea
                       value={stockForm.description}
                       onChange={(e) => setStockForm(prev => ({ ...prev, description: e.target.value }))}
                       rows={2}
-                      className="w-full px-3 py-2.5 border border-sky-300/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                      className="w-full px-3 py-2 sm:py-2.5 text-sm sm:text-base border border-sky-300/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent"
                       placeholder="Motif du mouvement..."
                     />
                   </div>
 
                   {/* Total calculé */}
                   {stockForm.quantite > 0 && stockForm.prix_unitaire > 0 && (
-                    <div className="bg-gradient-to-r from-amber-50/60 to-orange-50/60 backdrop-blur-sm p-4 rounded-xl border border-orange-200/50 shadow-sm">
+                    <div className="bg-gradient-to-r from-amber-50/60 to-orange-50/60 backdrop-blur-sm p-2.5 sm:p-4 rounded-lg sm:rounded-xl border border-orange-200/50 shadow-sm">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-slate-600">Total {stockForm.type_mouvement.toLowerCase()}:</span>
-                        <div className="text-lg font-semibold text-orange-900">
+                        <span className="text-xs sm:text-sm text-slate-600">Total {stockForm.type_mouvement.toLowerCase()}:</span>
+                        <div className="text-sm sm:text-lg font-semibold text-orange-900">
                           {formatMontant(stockForm.quantite * stockForm.prix_unitaire)}
                         </div>
                       </div>
@@ -851,14 +855,14 @@ export function ModalAjoutProduitNew({
                   <button
                     type="submit"
                     disabled={isLoadingStock || stockForm.quantite <= 0 || stockForm.prix_unitaire <= 0}
-                    className="w-full px-4 py-3 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white rounded-xl hover:from-emerald-600 hover:to-emerald-700 transition-all font-medium flex items-center justify-center gap-2 disabled:opacity-50 shadow-lg hover:shadow-xl"
+                    className="w-full px-3 py-2 sm:px-4 sm:py-3 text-xs sm:text-sm bg-gradient-to-r from-emerald-500 to-emerald-600 text-white rounded-lg sm:rounded-xl hover:from-emerald-600 hover:to-emerald-700 transition-all font-medium flex items-center justify-center gap-1.5 sm:gap-2 disabled:opacity-50 shadow-lg hover:shadow-xl"
                   >
                     {isLoadingStock ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <Loader2 className="w-3 h-3 sm:w-4 sm:h-4 animate-spin" />
                     ) : (
-                      <Package className="w-4 h-4" />
+                      <Package className="w-3 h-3 sm:w-4 sm:h-4" />
                     )}
-                    {isLoadingStock ? 'Enregistrement...' : 'Enregistrer le mouvement'}
+                    {isLoadingStock ? 'Enregistrement...' : 'Enregistrer'}
                   </button>
                 </form>
               </motion.div>
@@ -869,70 +873,71 @@ export function ModalAjoutProduitNew({
               <motion.div
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
-                className="space-y-6"
+                className="space-y-3 sm:space-y-4 md:space-y-6"
               >
                 {isLoadingHistorique ? (
-                  <div className="flex items-center justify-center py-8">
-                    <Loader2 className="w-8 h-8 animate-spin text-sky-600" />
+                  <div className="flex items-center justify-center py-6 sm:py-8">
+                    <Loader2 className="w-6 h-6 sm:w-8 sm:h-8 animate-spin text-sky-600" />
                   </div>
                 ) : historique ? (
                   <>
                     {/* Statistiques */}
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="bg-gradient-to-r from-emerald-50/70 to-green-50/70 backdrop-blur-sm p-5 rounded-xl border border-emerald-200/50 shadow-sm">
-                        <div className="flex items-center gap-2 mb-2">
-                          <TrendingUp className="w-5 h-5 text-green-600" />
-                          <span className="font-medium text-green-800">Total Entrées</span>
+                    <div className="grid grid-cols-2 gap-2 sm:gap-4">
+                      <div className="bg-gradient-to-r from-emerald-50/70 to-green-50/70 backdrop-blur-sm p-2.5 sm:p-4 md:p-5 rounded-lg sm:rounded-xl border border-emerald-200/50 shadow-sm">
+                        <div className="flex items-center gap-1 sm:gap-2 mb-1 sm:mb-2">
+                          <TrendingUp className="w-3 h-3 sm:w-5 sm:h-5 text-green-600" />
+                          <span className="font-medium text-green-800 text-[10px] sm:text-sm">Total Entrées</span>
                         </div>
-                        <div className="text-lg font-bold text-green-900">{historique.totalEntrees} unités</div>
-                        <div className="text-sm text-green-700">{formatMontant(historique.totalEntriesMontant)}</div>
+                        <div className="text-xs sm:text-lg font-bold text-green-900">{historique.totalEntrees} unités</div>
+                        <div className="text-[10px] sm:text-sm text-green-700">{formatMontant(historique.totalEntriesMontant)}</div>
                       </div>
-                      <div className="bg-gradient-to-r from-rose-50/70 to-red-50/70 backdrop-blur-sm p-5 rounded-xl border border-rose-200/50 shadow-sm">
-                        <div className="flex items-center gap-2 mb-2">
-                          <TrendingDown className="w-5 h-5 text-red-600" />
-                          <span className="font-medium text-red-800">Total Sorties</span>
+                      <div className="bg-gradient-to-r from-rose-50/70 to-red-50/70 backdrop-blur-sm p-2.5 sm:p-4 md:p-5 rounded-lg sm:rounded-xl border border-rose-200/50 shadow-sm">
+                        <div className="flex items-center gap-1 sm:gap-2 mb-1 sm:mb-2">
+                          <TrendingDown className="w-3 h-3 sm:w-5 sm:h-5 text-red-600" />
+                          <span className="font-medium text-red-800 text-[10px] sm:text-sm">Total Sorties</span>
                         </div>
-                        <div className="text-lg font-bold text-red-900">{historique.totalSorties} unités</div>
-                        <div className="text-sm text-red-700">{formatMontant(historique.totalSortiesMontant)}</div>
+                        <div className="text-xs sm:text-lg font-bold text-red-900">{historique.totalSorties} unités</div>
+                        <div className="text-[10px] sm:text-sm text-red-700">{formatMontant(historique.totalSortiesMontant)}</div>
                       </div>
                     </div>
 
                     {/* Tableau des mouvements */}
                     {historique.mouvements.length > 0 ? (
-                      <div className="overflow-x-auto">
-                        <table className="w-full border-collapse">
+                      <div className="overflow-x-auto -mx-3 sm:mx-0 px-3 sm:px-0">
+                        <table className="w-full border-collapse min-w-[400px]">
                           <thead>
-                            <tr className="bg-gradient-to-r from-sky-50/70 to-blue-50/70 backdrop-blur-sm border-b border-sky-200/50">
-                              <th className="text-left p-3 text-sm font-medium text-slate-700 min-w-[100px]">Date</th>
-                              <th className="text-left p-3 text-sm font-medium text-slate-700 min-w-[80px]">Type</th>
-                              <th className="text-left p-3 text-sm font-medium text-slate-700 min-w-[80px]">Quantité</th>
-                              <th className="text-left p-3 text-sm font-medium text-slate-700 min-w-[120px]">Prix Achat (FCFA)</th>
-                              <th className="text-left p-3 text-sm font-medium text-slate-700 min-w-[120px]">Total (FCFA)</th>
+                            <tr className="bg-gradient-to-r from-sky-600/80 to-blue-600/80 backdrop-blur-sm border-b border-sky-200/50">
+                              <th className="text-left p-2 sm:p-3 text-[10px] sm:text-sm font-medium text-white min-w-[70px] sm:min-w-[100px]">Date</th>
+                              <th className="text-left p-2 sm:p-3 text-[10px] sm:text-sm font-medium text-slate-100 min-w-[60px] sm:min-w-[80px]">Type</th>
+                              <th className="text-left p-2 sm:p-3 text-[10px] sm:text-sm font-medium text-white min-w-[50px] sm:min-w-[80px]">Qté</th>
+                              <th className="text-left p-2 sm:p-3 text-[10px] sm:text-sm font-medium text-slate-100 min-w-[80px] sm:min-w-[120px]">P.Achat</th>
+                              <th className="text-left p-2 sm:p-3 text-[10px] sm:text-sm font-medium text-slate-100 min-w-[80px] sm:min-w-[120px]">Total</th>
                             </tr>
                           </thead>
                           <tbody>
                             {historique.mouvements.map((mouvement, index) => (
                               <tr key={index} className="border-b border-sky-100 hover:bg-sky-50/30 transition-colors">
-                                <td className="p-3 text-sm text-slate-600">
+                                <td className="p-2 sm:p-3 text-[10px] sm:text-sm text-white font-medium bg-sky-600/60">
                                   {new Date(mouvement.tms_create).toLocaleDateString('fr-FR')}
                                 </td>
-                                <td className="p-3">
-                                  <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${
-                                    mouvement.type_mouvement === 'ENTREE' 
+                                <td className="p-2 sm:p-3">
+                                  <span className={`inline-flex items-center gap-0.5 sm:gap-1 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full text-[9px] sm:text-xs font-medium ${
+                                    mouvement.type_mouvement === 'ENTREE'
                                       ? 'bg-green-100 text-green-800'
                                       : 'bg-red-100 text-red-800'
                                   }`}>
                                     {mouvement.type_mouvement === 'ENTREE' ? (
-                                      <TrendingUp className="w-3 h-3" />
+                                      <TrendingUp className="w-2 h-2 sm:w-3 sm:h-3" />
                                     ) : (
-                                      <TrendingDown className="w-3 h-3" />
+                                      <TrendingDown className="w-2 h-2 sm:w-3 sm:h-3" />
                                     )}
-                                    {mouvement.type_mouvement}
+                                    <span className="hidden sm:inline">{mouvement.type_mouvement}</span>
+                                    <span className="sm:hidden">{mouvement.type_mouvement === 'ENTREE' ? 'E' : 'S'}</span>
                                   </span>
                                 </td>
-                                <td className="p-3 text-sm text-slate-900 font-medium">{mouvement.quantite}</td>
-                                <td className="p-3 text-sm text-slate-900">{mouvement.prix_unitaire.toLocaleString('fr-FR')}</td>
-                                <td className="p-3 text-sm text-slate-900 font-medium">
+                                <td className="p-2 sm:p-3 text-[10px] sm:text-sm text-white font-medium bg-sky-600/60">{mouvement.quantite}</td>
+                                <td className="p-2 sm:p-3 text-[10px] sm:text-sm text-slate-900">{mouvement.prix_unitaire.toLocaleString('fr-FR')}</td>
+                                <td className="p-2 sm:p-3 text-[10px] sm:text-sm text-slate-900 font-medium">
                                   {(mouvement.quantite * mouvement.prix_unitaire).toLocaleString('fr-FR')}
                                 </td>
                               </tr>
@@ -941,16 +946,16 @@ export function ModalAjoutProduitNew({
                         </table>
                       </div>
                     ) : (
-                      <div className="text-center py-8">
-                        <History className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-                        <p className="text-slate-500">Aucun mouvement de stock enregistré</p>
+                      <div className="text-center py-6 sm:py-8">
+                        <History className="w-8 h-8 sm:w-12 sm:h-12 text-slate-300 mx-auto mb-2 sm:mb-3" />
+                        <p className="text-slate-500 text-xs sm:text-sm">Aucun mouvement de stock enregistré</p>
                       </div>
                     )}
                   </>
                 ) : (
-                  <div className="text-center py-8">
-                    <AlertCircle className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-                    <p className="text-slate-500">Erreur lors du chargement de l&iapos;historique</p>
+                  <div className="text-center py-6 sm:py-8">
+                    <AlertCircle className="w-8 h-8 sm:w-12 sm:h-12 text-slate-300 mx-auto mb-2 sm:mb-3" />
+                    <p className="text-slate-500 text-xs sm:text-sm">Erreur lors du chargement de l&apos;historique</p>
                   </div>
                 )}
               </motion.div>
