@@ -41,7 +41,7 @@ export function ProduitsFilterHeader({
             type="text"
             value={searchTerm}
             onChange={(e) => onSearchChange(e.target.value)}
-            placeholder="Rechercher..."
+            placeholder="Nom ou code-barres..."
             className="w-full pl-10 pr-4 py-3 rounded-lg text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-green-300 bg-white/90 backdrop-blur-sm"
           />
         </div>
