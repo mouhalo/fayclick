@@ -33,7 +33,8 @@ Header always set X-Frame-Options "SAMEORIGIN"
 Header always set Referrer-Policy "strict-origin-when-cross-origin"
 
 # Permissions Policy (anciennement Feature-Policy)
-Header always set Permissions-Policy "camera=*, microphone=(), geolocation=(self), payment=(self)"
+# microphone=(self) permet l'accès au micro pour l'app uniquement (dictée vocale)
+Header always set Permissions-Policy "camera=*, microphone=(self), geolocation=(self), payment=(self)"
 
 # Cross-Origin Resource Policy
 Header always set Cross-Origin-Resource-Policy "same-origin"

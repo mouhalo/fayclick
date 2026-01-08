@@ -811,3 +811,119 @@ html, body {
 .animate-float {
   animation: float 6s ease-in-out infinite;
 }
+
+/* ===== STYLES D'IMPRESSION GLOBAUX ===== */
+/* Compatible Chrome, Firefox, Safari, Edge */
+@media print {
+  /* Reset de base pour impression */
+  html, body {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: white !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+
+  /* Masquer les éléments non imprimables */
+  .no-print,
+  .print\:hidden,
+  nav,
+  header:not(.print-header),
+  footer:not(.print-footer),
+  .fixed:not(.print-fixed),
+  button:not(.print-button),
+  [role="dialog"],
+  [role="tooltip"],
+  .backdrop-blur-sm,
+  .backdrop-blur-md,
+  .backdrop-blur-lg,
+  .toast,
+  .modal-backdrop {
+    display: none !important;
+    visibility: hidden !important;
+  }
+
+  /* Forcer l'affichage des éléments imprimables */
+  .print\:block,
+  .print-only {
+    display: block !important;
+  }
+
+  /* Supprimer les ombres et effets visuels en impression */
+  * {
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+
+  /* Optimiser les liens */
+  a {
+    text-decoration: none !important;
+    color: inherit !important;
+  }
+
+  /* Éviter les coupures de page dans les éléments */
+  .page-break-avoid,
+  table, tr, td, th,
+  img, figure,
+  .card, .card-fayclick {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  /* Forcer une nouvelle page */
+  .page-break-before {
+    page-break-before: always !important;
+    break-before: page !important;
+  }
+
+  .page-break-after {
+    page-break-after: always !important;
+    break-after: page !important;
+  }
+
+  /* Styles pour les tableaux en impression */
+  table {
+    border-collapse: collapse !important;
+    width: 100% !important;
+  }
+
+  th, td {
+    border: 1px solid #ccc !important;
+    padding: 8px !important;
+    text-align: left !important;
+  }
+
+  th {
+    background-color: #f3f4f6 !important;
+    font-weight: bold !important;
+  }
+
+  /* Taille de police optimisée pour impression */
+  body {
+    font-size: 12pt !important;
+    line-height: 1.4 !important;
+  }
+
+  /* Largeur maximale pour impression A4 */
+  .print-container {
+    max-width: 210mm !important;
+    margin: 0 auto !important;
+    padding: 10mm !important;
+  }
+
+  /* Fond blanc forcé */
+  .bg-gradient-to-br,
+  .bg-gradient-to-r,
+  .bg-gradient-to-b,
+  [class*="bg-blue-"],
+  [class*="bg-emerald-"],
+  [class*="bg-green-"] {
+    background: white !important;
+  }
+
+  /* Texte visible en impression */
+  .text-white {
+    color: #000 !important;
+  }
+}
