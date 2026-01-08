@@ -233,16 +233,18 @@ export function ModalRecuGenere({
       <!DOCTYPE html>
       <html>
       <head>
+        <meta charset="UTF-8">
         <title>Reçu ${recuDetails.facture.numrecu}</title>
         <style>
           @page { size: 80mm auto; margin: 5mm; }
-          * { margin: 0; padding: 0; box-sizing: border-box; }
+          * { margin: 0; padding: 0; box-sizing: border-box; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
           body {
-            font-family: 'Courier New', monospace;
+            font-family: 'Courier New', 'Lucida Console', Monaco, monospace;
             max-width: 80mm;
             margin: 0 auto;
             padding: 10px;
             font-size: 12px;
+            background: white;
           }
           .header { text-align: center; border-bottom: 1px dashed #000; padding-bottom: 10px; margin-bottom: 10px; }
           .logo-img {
@@ -290,17 +292,18 @@ export function ModalRecuGenere({
           .qr-section { text-align: center; margin: 15px 0; }
           .qr-text { font-size: 10px; color: #666; margin-top: 5px; }
           @media print {
-            body { padding: 0; }
+            html, body { margin: 0; padding: 0; background: white; }
+            body { padding: 5px; }
           }
         </style>
       </head>
       <body>
         <div class="header">
-          <img src="${logoStructure}" alt="Logo" class="logo-img" onerror="this.src='${logoDefault}'" />
+          <img src="${logoStructure}" alt="Logo" class="logo-img" onerror="this.style.display='none'" crossorigin="anonymous" />
           <div class="structure">${recuDetails.facture.nom_structure}</div>
-          <div class="title">🧾 REÇU DE PAIEMENT</div>
+          <div class="title">RECU DE PAIEMENT</div>
           <div class="badge ${isAcompte ? 'badge-acompte' : 'badge-success'}">
-            ${isAcompte ? '⚠️ ACOMPTE' : '✅ PAYÉ'}
+            ${isAcompte ? 'ACOMPTE' : 'PAYE'}
           </div>
         </div>
 
@@ -322,7 +325,7 @@ export function ModalRecuGenere({
         <div class="section">
           <div class="row">
             <span class="label">Méthode</span>
-            <span class="value">${walletInfo.icon} ${walletInfo.name}</span>
+            <span class="value">${walletInfo.name}</span>
           </div>
           <div class="row">
             <span class="label">Date/Heure</span>
@@ -362,13 +365,45 @@ export function ModalRecuGenere({
       </html>
     `;
 
-    const printWindow = window.open('', '_blank');
-    if (printWindow) {
-      printWindow.document.write(recuHTML);
-      printWindow.document.close();
-      printWindow.onload = () => {
-        printWindow.print();
+    // Méthode robuste avec iframe caché (compatible tous navigateurs)
+    // Évite les popup blockers et les problèmes de timing
+    const printFrame = document.createElement('iframe');
+    printFrame.style.position = 'fixed';
+    printFrame.style.right = '0';
+    printFrame.style.bottom = '0';
+    printFrame.style.width = '0';
+    printFrame.style.height = '0';
+    printFrame.style.border = 'none';
+    printFrame.style.visibility = 'hidden';
+    document.body.appendChild(printFrame);
+
+    const frameDoc = printFrame.contentWindow?.document || printFrame.contentDocument;
+    if (frameDoc) {
+      frameDoc.open();
+      frameDoc.write(recuHTML);
+      frameDoc.close();
+
+      // Attendre le chargement complet avant d'imprimer
+      printFrame.onload = () => {
+        setTimeout(() => {
+          try {
+            printFrame.contentWindow?.focus();
+            printFrame.contentWindow?.print();
+          } catch (e) {
+            // Fallback pour Safari et autres navigateurs restrictifs
+            console.warn('Impression iframe échouée, tentative alternative:', e);
+            window.print();
+          }
+          // Nettoyer l'iframe après impression
+          setTimeout(() => {
+            document.body.removeChild(printFrame);
+          }, 1000);
+        }, 250); // Délai pour s'assurer que les styles sont appliqués
       };
+    } else {
+      // Fallback ultime: impression de la page courante
+      console.warn('Iframe non disponible, utilisation de window.print()');
+      window.print();
     }
   };
 
