@@ -484,6 +484,11 @@ export default function CommerceDashboard() {
       <ModalDeconnexion
         isOpen={showLogoutModal}
         onClose={() => setShowLogoutModal(false)}
+        onConfirm={() => {
+          authService.logout();
+          router.push('/login');
+        }}
+        userName={user?.username}
       />
 
       <style jsx global>{`
