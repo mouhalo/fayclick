@@ -33,13 +33,14 @@ export function useProduits() {
   const produitsFiltered = useMemo(() => {
     let filteredProducts = [...produits];
 
-    // Filtre par terme de recherche
+    // Filtre par terme de recherche (nom, description, code produit ou code-barres)
     if (searchTerm) {
       const terme = searchTerm.toLowerCase();
       filteredProducts = filteredProducts.filter(p =>
         p.nom_produit.toLowerCase().includes(terme) ||
         p.description?.toLowerCase().includes(terme) ||
-        p.code_produit?.toLowerCase().includes(terme)
+        p.code_produit?.toLowerCase().includes(terme) ||
+        p.code_barre?.toLowerCase().includes(terme)
       );
     }
 
