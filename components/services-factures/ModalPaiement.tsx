@@ -99,12 +99,12 @@ export function ModalPaiement({
   // Calculs des montants
   const montants = useMemo(() => {
     if (!facture) return null;
-    
+
     const montantSaisi = parseFloat(montantAcompte) || 0;
     const montantRestant = facture.facture.mt_restant;
     const nouveauRestant = Math.max(0, montantRestant - montantSaisi);
     const estSoldee = nouveauRestant === 0;
-    
+
     return {
       montantSaisi,
       montantRestant,
@@ -140,34 +140,54 @@ export function ModalPaiement({
     };
   }, [facture, montants, selectedPaymentMethod, useIntegratedPaymentSelection]);
 
-  // Styles responsives
+  // Détection des breakpoints pour design responsive
+  const isCompact = isMobile; // < 640px (mobile)
+  const isMedium = isMobileLarge && !isMobile; // 640-768px (tablette portrait)
+  const isDesktop = !isMobile && !isMobileLarge; // > 768px (tablette landscape + desktop)
+
+  // Styles responsives optimisés
   const getModalStyles = () => {
-    if (isMobile) {
+    if (isCompact) {
+      // Mobile : Ultra-compact
       return {
-        container: 'max-w-sm p-4',
+        container: 'max-w-[95vw] p-3',
+        title: 'text-base',
+        subtitle: 'text-xs',
+        input: 'text-base p-2.5',
+        button: 'text-sm px-3 py-2',
+        icon: 'w-4 h-4',
+        cardSize: 'sm' as const,
+        showFullInfo: false,
+        showApercu: false,
+        raccourcisCount: 1 // Juste "Tout"
+      };
+    } else if (isMedium) {
+      // Tablette portrait : Medium
+      return {
+        container: 'max-w-md p-4',
         title: 'text-lg',
         subtitle: 'text-sm',
         input: 'text-base p-3',
         button: 'text-sm px-4 py-2',
-        icon: 'w-5 h-5'
+        icon: 'w-5 h-5',
+        cardSize: 'md' as const,
+        showFullInfo: false,
+        showApercu: true,
+        raccourcisCount: 2 // 50% + Tout
       };
-    } else if (isMobileLarge) {
+    } else {
+      // Desktop : Complet
       return {
         container: 'max-w-lg p-5',
         title: 'text-xl',
-        subtitle: 'text-base',
+        subtitle: 'text-sm',
         input: 'text-base p-3',
         button: 'text-base px-5 py-2.5',
-        icon: 'w-5 h-5'
-      };
-    } else {
-      return {
-        container: 'max-w-lg p-6',
-        title: 'text-2xl',
-        subtitle: 'text-base',
-        input: 'text-lg p-4',
-        button: 'text-base px-6 py-3',
-        icon: 'w-6 h-6'
+        icon: 'w-5 h-5',
+        cardSize: 'md' as const,
+        showFullInfo: true,
+        showApercu: true,
+        raccourcisCount: 4 // Tous
       };
     }
   };
@@ -182,7 +202,7 @@ export function ModalPaiement({
     const year = now.getFullYear().toString();
     const hours = now.getHours().toString().padStart(2, '0');
     const minutes = now.getMinutes().toString().padStart(2, '0');
-    
+
     return `CASH-${facture?.facture.id_structure}-${day}${month}${year}${hours}${minutes}`;
   };
 
@@ -467,13 +487,30 @@ export function ModalPaiement({
     };
   };
 
-  // Raccourcis de montant
+  // Raccourcis de montant - adapté selon le breakpoint
   const getMontantRaccourcis = () => {
     if (!montants) return [];
-    
+
     const restant = montants.montantRestant;
+    const count = styles.raccourcisCount;
+
+    // Mobile (1) : Juste "Tout"
+    if (count === 1) {
+      return [{ label: 'Tout', value: restant }];
+    }
+
+    // Tablette (2) : 50% + Tout
+    if (count === 2) {
+      return restant > 1000
+        ? [
+            { label: '50%', value: Math.round(restant * 0.5) },
+            { label: 'Tout', value: restant }
+          ]
+        : [{ label: 'Tout', value: restant }];
+    }
+
+    // Desktop (4) : Tous
     const raccourcis = [];
-    
     if (restant > 1000) {
       raccourcis.push(
         { label: '25%', value: Math.round(restant * 0.25) },
@@ -481,9 +518,8 @@ export function ModalPaiement({
         { label: '75%', value: Math.round(restant * 0.75) }
       );
     }
-    
     raccourcis.push({ label: 'Tout', value: restant });
-    
+
     return raccourcis;
   };
 
@@ -547,213 +583,239 @@ export function ModalPaiement({
           exit={{ scale: 0.9, opacity: 0, y: 20 }}
           transition={{ duration: 0.2 }}
           className={`
-            bg-gradient-to-br from-white via-white to-blue-50/30 
-            rounded-2xl shadow-2xl border border-white/50 
+            bg-gradient-to-br from-white via-white to-blue-50/30
+            rounded-2xl shadow-2xl border border-white/50
             backdrop-blur-sm w-full max-h-[90vh] overflow-y-auto
             ${styles.container}
           `}
         >
           {success ? (
-            // État de succès
+            // État de succès - Responsive
             <div className="text-center">
               <motion.div
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
                 transition={{ delay: 0.2, type: 'spring' }}
-                className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4"
+                className={`${isCompact ? 'w-12 h-12 mb-3' : 'w-14 h-14 mb-4'} bg-emerald-100 rounded-full flex items-center justify-center mx-auto`}
               >
-                <CheckCircle className="w-8 h-8 text-emerald-600" />
+                <CheckCircle className={`${isCompact ? 'w-6 h-6' : 'w-7 h-7'} text-emerald-600`} />
               </motion.div>
-              
-              <h2 className={`text-emerald-900 font-bold mb-2 ${styles.title}`}>
-                Paiement enregistré !
+
+              <h2 className={`text-emerald-900 font-bold mb-1 ${styles.title}`}>
+                {isCompact ? 'Paiement OK !' : 'Paiement enregistré !'}
               </h2>
-              
+
               <p className={`text-emerald-700 ${styles.subtitle}`}>
-                {montants?.estSoldee 
-                  ? 'La facture a été entièrement payée'
-                  : `Acompte de ${montants?.montantSaisi.toLocaleString('fr-FR')} FCFA ajouté`
+                {montants?.estSoldee
+                  ? (isCompact ? 'Facture soldée' : 'La facture a été entièrement payée')
+                  : `${montants?.montantSaisi.toLocaleString('fr-FR')} F ajoutés`
                 }
               </p>
 
-              {/* Afficher les détails du paiement selon le mode */}
-              {selectedPaymentMethod && (
-                <div className="mt-4 p-3 bg-emerald-50 rounded-lg">
-                  <p className="text-sm text-emerald-700">
-                    Mode de paiement : {selectedPaymentMethod === 'CASH' ? 'Espèces' : selectedPaymentMethod}
+              {/* Détails du paiement - Simplifié sur mobile */}
+              {selectedPaymentMethod && !isCompact && (
+                <div className="mt-3 p-2 bg-emerald-50 rounded-lg">
+                  <p className={`text-emerald-700 ${styles.subtitle}`}>
+                    {selectedPaymentMethod === 'CASH' ? 'Espèces' : selectedPaymentMethod}
                   </p>
-                  {walletPaymentData && selectedPaymentMethod !== 'CASH' && (
-                    <>
-                      <p className="text-xs text-emerald-600 mt-1">
-                        Transaction : {walletPaymentData.transaction_id}
-                      </p>
-                      <p className="text-xs text-emerald-600">
-                        UUID : {walletPaymentData.uuid}
-                      </p>
-                    </>
-                  )}
-                  {selectedPaymentMethod === 'CASH' && (
-                    <p className="text-xs text-emerald-600 mt-1">
-                      Transaction : {generateCashTransactionId()}
-                    </p>
-                  )}
                 </div>
               )}
             </div>
           ) : (
             <>
-              {/* En-tête */}
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center space-x-3">
-                  <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
-                    <CreditCard className="w-6 h-6 text-blue-600" />
-                  </div>
+              {/* En-tête - Responsive */}
+              <div className={`flex items-center justify-between ${isCompact ? 'mb-3' : 'mb-4'}`}>
+                <div className="flex items-center space-x-2">
+                  {!isCompact && (
+                    <div className={`${isDesktop ? 'w-10 h-10' : 'w-8 h-8'} bg-blue-100 rounded-lg flex items-center justify-center`}>
+                      <CreditCard className={`${isDesktop ? 'w-5 h-5' : 'w-4 h-4'} text-blue-600`} />
+                    </div>
+                  )}
                   <div>
                     <h2 className={`text-gray-900 font-bold ${styles.title}`}>
-                      Ajouter un acompte
+                      {isCompact ? 'Acompte' : 'Ajouter un acompte'}
                     </h2>
-                    <p className={`text-gray-600 ${styles.subtitle}`}>
-                      {facture.facture.num_facture}
-                    </p>
+                    {!isCompact && (
+                      <p className={`text-gray-500 ${styles.subtitle}`}>
+                        {facture.facture.num_facture}
+                      </p>
+                    )}
                   </div>
                 </div>
-                
+
                 <button
                   onClick={onClose}
-                  className="p-2 hover:bg-gray-100 rounded-xl transition-colors"
+                  className={`${isCompact ? 'p-1.5' : 'p-2'} hover:bg-gray-100 rounded-lg transition-colors`}
                 >
-                  <X className="w-5 h-5 text-gray-500" />
+                  <X className={`${isCompact ? 'w-4 h-4' : 'w-5 h-5'} text-gray-500`} />
                 </button>
               </div>
 
-              {/* Informations facture */}
-              <div className="bg-blue-50/50 rounded-xl p-4 mb-6">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className={`text-gray-600 font-medium ${styles.subtitle}`}>Client</p>
-                    <p className={`text-gray-900 ${styles.subtitle}`}>{facture.facture.nom_client}</p>
+              {/* Informations facture - Responsive */}
+              <div className={`bg-blue-50/50 rounded-xl ${isCompact ? 'p-2.5 mb-3' : 'p-3 mb-4'}`}>
+                {styles.showFullInfo ? (
+                  /* Desktop : Grille 2x2 complète */
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <p className={`text-gray-500 ${styles.subtitle}`}>Client</p>
+                      <p className={`text-gray-900 font-medium ${styles.subtitle}`}>{facture.facture.nom_client}</p>
+                    </div>
+                    <div>
+                      <p className={`text-gray-500 ${styles.subtitle}`}>Total</p>
+                      <p className={`text-gray-900 font-bold ${styles.subtitle}`}>
+                        {facture.facture.montant.toLocaleString('fr-FR')} F
+                      </p>
+                    </div>
+                    <div>
+                      <p className={`text-gray-500 ${styles.subtitle}`}>Payé</p>
+                      <p className={`text-emerald-600 font-bold ${styles.subtitle}`}>
+                        {facture.facture.mt_acompte.toLocaleString('fr-FR')} F
+                      </p>
+                    </div>
+                    <div>
+                      <p className={`text-gray-500 ${styles.subtitle}`}>Reste</p>
+                      <p className={`text-amber-600 font-bold ${styles.subtitle}`}>
+                        {facture.facture.mt_restant.toLocaleString('fr-FR')} F
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <p className={`text-gray-600 font-medium ${styles.subtitle}`}>Montant total</p>
-                    <p className={`text-gray-900 font-bold ${styles.subtitle}`}>
-                      {facture.facture.montant.toLocaleString('fr-FR')} FCFA
-                    </p>
+                ) : (
+                  /* Mobile/Tablette : Ligne condensée */
+                  <div className={`flex items-center justify-between ${isCompact ? 'gap-2' : 'gap-3'}`}>
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-gray-900 font-medium truncate ${styles.subtitle}`}>
+                        {facture.facture.nom_client}
+                      </p>
+                      {!isCompact && (
+                        <p className={`text-gray-500 ${styles.subtitle}`}>
+                          {facture.facture.num_facture}
+                        </p>
+                      )}
+                    </div>
+                    <div className="text-right flex-shrink-0">
+                      <p className={`text-amber-600 font-bold ${isCompact ? 'text-sm' : 'text-base'}`}>
+                        {facture.facture.mt_restant.toLocaleString('fr-FR')} F
+                      </p>
+                      <p className={`text-gray-400 ${styles.subtitle}`}>à payer</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className={`text-gray-600 font-medium ${styles.subtitle}`}>Déjà payé</p>
-                    <p className={`text-emerald-600 font-bold ${styles.subtitle}`}>
-                      {facture.facture.mt_acompte.toLocaleString('fr-FR')} FCFA
-                    </p>
-                  </div>
-                  <div>
-                    <p className={`text-gray-600 font-medium ${styles.subtitle}`}>Reste à payer</p>
-                    <p className={`text-amber-600 font-bold ${styles.subtitle}`}>
-                      {facture.facture.mt_restant.toLocaleString('fr-FR')} FCFA
-                    </p>
-                  </div>
-                </div>
+                )}
               </div>
 
-              {/* Saisie du montant */}
-              <div className="space-y-4 mb-6">
-                <div>
-                  <label className={`block text-gray-700 font-medium mb-2 ${styles.subtitle}`}>
-                    Montant de l&apos;acompte
-                  </label>
-                  <div className="relative">
-                    <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                    <input
-                      type="number"
-                      value={montantAcompte}
-                      onChange={(e) => setMontantAcompte(e.target.value)}
-                      placeholder="0"
-                      className={`
-                        w-full pl-10 pr-16 border border-gray-200 rounded-xl 
-                        focus:ring-2 focus:ring-blue-500 focus:border-transparent
-                        bg-white/70 backdrop-blur-sm
-                        ${styles.input}
-                      `}
-                      disabled={loading}
-                    />
-                    <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400">
-                      FCFA
-                    </span>
+              {/* Saisie du montant - Responsive */}
+              <div className={`${isCompact ? 'space-y-2 mb-3' : 'space-y-3 mb-4'}`}>
+                {/* Input + Raccourcis en ligne sur mobile */}
+                <div className={isCompact ? 'flex gap-2' : ''}>
+                  <div className={isCompact ? 'flex-1' : ''}>
+                    {!isCompact && (
+                      <label className={`block text-gray-700 font-medium mb-1.5 ${styles.subtitle}`}>
+                        Montant
+                      </label>
+                    )}
+                    <div className="relative">
+                      <input
+                        type="number"
+                        value={montantAcompte}
+                        onChange={(e) => setMontantAcompte(e.target.value)}
+                        placeholder="Montant"
+                        className={`
+                          w-full pr-12 border border-gray-200 rounded-lg
+                          focus:ring-2 focus:ring-blue-500 focus:border-transparent
+                          bg-white/70
+                          ${isCompact ? 'pl-3 text-sm py-2' : 'pl-3'}
+                          ${styles.input}
+                        `}
+                        disabled={loading}
+                      />
+                      <span className={`absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 ${isCompact ? 'text-xs' : 'text-sm'}`}>
+                        FCFA
+                      </span>
+                    </div>
                   </div>
-                </div>
 
-                {/* Raccourcis de montant */}
-                <div className="flex flex-wrap gap-2">
-                  {getMontantRaccourcis().map((raccourci) => (
+                  {/* Raccourcis - En ligne sur mobile, séparés sur desktop */}
+                  {isCompact ? (
                     <button
-                      key={raccourci.label}
-                      onClick={() => setMontantAcompte(raccourci.value.toString())}
-                      className={`
-                        px-3 py-1.5 text-sm bg-blue-100 text-blue-700 rounded-lg 
-                        hover:bg-blue-200 transition-colors
-                        ${montants?.montantSaisi === raccourci.value ? 'bg-blue-200 font-medium' : ''}
-                      `}
+                      onClick={() => montants && setMontantAcompte(montants.montantRestant.toString())}
+                      className="px-3 py-2 text-sm bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors font-medium whitespace-nowrap"
                       disabled={loading}
                     >
-                      {raccourci.label}
+                      Tout
                     </button>
-                  ))}
+                  ) : (
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {getMontantRaccourcis().map((raccourci) => (
+                        <button
+                          key={raccourci.label}
+                          onClick={() => setMontantAcompte(raccourci.value.toString())}
+                          className={`
+                            px-3 py-1.5 text-sm rounded-lg transition-colors
+                            ${montants?.montantSaisi === raccourci.value
+                              ? 'bg-blue-500 text-white font-medium'
+                              : 'bg-blue-100 text-blue-700 hover:bg-blue-200'}
+                          `}
+                          disabled={loading}
+                        >
+                          {raccourci.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
-                {/* Actions de paiement directes (nouveau flow uniquement) */}
+                {/* Actions de paiement directes - Taille adaptée */}
                 {useIntegratedPaymentSelection && montants && montants.montantSaisi > 0 && (
                   <PaymentMethodSelector
                     onMethodAction={handleMethodAction}
                     onCancel={onClose}
-                    size="md"
+                    size={styles.cardSize}
                     disabled={loading}
                     montant={montants.montantSaisi}
                   />
                 )}
 
-                {/* Aperçu des calculs */}
-                {montants && montants.montantSaisi > 0 && (
-                  <div className="bg-emerald-50/50 rounded-xl p-4">
-                    <div className="flex items-center mb-2">
-                      <Calculator className="w-4 h-4 text-emerald-600 mr-2" />
-                      <span className={`text-emerald-800 font-medium ${styles.subtitle}`}>
-                        Aperçu du paiement
-                      </span>
-                    </div>
-                    <div className="space-y-1">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">Montant à payer:</span>
-                        <span className="font-medium">{montants.montantSaisi.toLocaleString('fr-FR')} FCFA</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">Nouveau restant:</span>
-                        <span className="font-medium text-amber-600">
-                          {montants.nouveauRestant.toLocaleString('fr-FR')} FCFA
+                {/* Aperçu des calculs - Conditionné par breakpoint */}
+                {styles.showApercu && montants && montants.montantSaisi > 0 && (
+                  <div className={`bg-emerald-50/50 rounded-lg ${isCompact ? 'p-2' : 'p-3'}`}>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center">
+                        <Calculator className={`${isCompact ? 'w-3 h-3' : 'w-4 h-4'} text-emerald-600 mr-1.5`} />
+                        <span className={`text-emerald-700 ${styles.subtitle}`}>
+                          Reste après: <span className="font-bold text-amber-600">{montants.nouveauRestant.toLocaleString('fr-FR')} F</span>
                         </span>
                       </div>
                       {montants.estSoldee && (
-                        <div className="text-center mt-2">
-                          <span className="inline-flex items-center px-2 py-1 bg-emerald-100 text-emerald-800 rounded-full text-sm font-medium">
-                            <CheckCircle className="w-4 h-4 mr-1" />
-                            Facture soldée
-                          </span>
-                        </div>
+                        <span className="inline-flex items-center px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded-full text-xs font-medium">
+                          <CheckCircle className="w-3 h-3 mr-1" />
+                          Soldée
+                        </span>
                       )}
                     </div>
                   </div>
                 )}
+
+                {/* Badge "Facture soldée" sur mobile (sans aperçu complet) */}
+                {!styles.showApercu && montants && montants.estSoldee && (
+                  <div className="text-center">
+                    <span className="inline-flex items-center px-2 py-1 bg-emerald-100 text-emerald-800 rounded-full text-xs font-medium">
+                      <CheckCircle className="w-3 h-3 mr-1" />
+                      Facture soldée
+                    </span>
+                  </div>
+                )}
               </div>
 
-              {/* Messages d'erreur */}
+              {/* Messages d'erreur - Responsive */}
               {(error || validation.errors.length > 0) && (
-                <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-6">
+                <div className={`bg-red-50 border border-red-200 rounded-lg ${isCompact ? 'p-2 mb-2' : 'p-3 mb-3'}`}>
                   <div className="flex items-start">
-                    <AlertCircle className="w-5 h-5 text-red-500 mr-2 flex-shrink-0 mt-0.5" />
+                    <AlertCircle className={`${isCompact ? 'w-4 h-4' : 'w-5 h-5'} text-red-500 mr-2 flex-shrink-0`} />
                     <div className="flex-1">
                       {error && (
-                        <p className="text-red-800 text-sm font-medium">{error}</p>
+                        <p className={`text-red-800 font-medium ${isCompact ? 'text-xs' : 'text-sm'}`}>{error}</p>
                       )}
                       {validation.errors.map((err, idx) => (
-                        <p key={idx} className="text-red-700 text-sm">{err}</p>
+                        <p key={idx} className={`text-red-700 ${isCompact ? 'text-xs' : 'text-sm'}`}>{err}</p>
                       ))}
                     </div>
                   </div>
@@ -801,11 +863,11 @@ export function ModalPaiement({
                 </div>
               )}
 
-              {/* Message d'aide pour le nouveau flow */}
+              {/* Message d'aide pour le nouveau flow - Responsive */}
               {useIntegratedPaymentSelection && (!montants || montants.montantSaisi <= 0) && (
-                <div className="text-center py-4">
-                  <p className="text-gray-600 text-sm">
-                    Saisissez un montant pour voir les options de paiement
+                <div className={`text-center ${isCompact ? 'py-2' : 'py-3'}`}>
+                  <p className={`text-gray-500 ${isCompact ? 'text-xs' : 'text-sm'}`}>
+                    {isCompact ? 'Saisissez un montant' : 'Saisissez un montant pour voir les options de paiement'}
                   </p>
                 </div>
               )}
