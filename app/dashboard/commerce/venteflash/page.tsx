@@ -11,7 +11,7 @@ import { Loader2 } from 'lucide-react';
 import { authService } from '@/services/auth.service';
 import database from '@/services/database.service';
 import { Produit } from '@/types/produit';
-import { VenteFlash, VenteFlashStats, DetailVente } from '@/types/venteflash.types';
+import { VenteFlash, VenteFlashStats, DetailVente, RecuPaiement } from '@/types/venteflash.types';
 import { User } from '@/types/auth';
 import { usePanierStore } from '@/stores/panierStore';
 import { useToast } from '@/components/ui/Toast';
@@ -20,6 +20,7 @@ import { VenteFlashStatsCards } from '@/components/venteflash/VenteFlashStatsCar
 import { VenteFlashListeVentes } from '@/components/venteflash/VenteFlashListeVentes';
 import { PanierVenteFlashInline } from '@/components/venteflash/PanierVenteFlashInline';
 import { ModalRecuGenere } from '@/components/recu/ModalRecuGenere';
+import { ModalRecuVenteFlash } from '@/components/venteflash/ModalRecuVenteFlash';
 import { ModalRefresh } from '@/components/venteflash/ModalRefresh';
 import MainMenu from '@/components/layout/MainMenu';
 
@@ -50,12 +51,29 @@ export default function VenteFlashPage() {
   // État pour le modal de refresh
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // États pour le reçu
+  // États pour le reçu (ancien modal)
   const [showRecu, setShowRecu] = useState(false);
   const [recuData, setRecuData] = useState<{
     idFacture: number;
     numFacture: string;
     montantTotal: number;
+  } | null>(null);
+
+  // États pour le nouveau modal reçu ticket
+  const [showRecuTicket, setShowRecuTicket] = useState(false);
+  const [recuTicketData, setRecuTicketData] = useState<{
+    idFacture: number;
+    numFacture: string;
+    montantTotal: number;
+    methodePaiement: 'CASH' | 'OM' | 'WAVE';
+    dateVente: Date;
+    detailFacture: Array<{
+      id_detail?: number;
+      nom_produit: string;
+      quantite: number;
+      prix: number;
+      sous_total: number;
+    }>;
   } | null>(null);
 
   /**
@@ -67,52 +85,21 @@ export default function VenteFlashPage() {
 
     setIsLoadingProduits(true);
     try {
-      console.log('📦 [VENTE FLASH] === CHARGEMENT PRODUITS ===');
-      console.log('👤 [VENTE FLASH] ID Structure:', user.id_structure);
-
       const query = `SELECT * FROM get_mes_produits(${user.id_structure}, NULL)`;
-      console.log('📝 [VENTE FLASH] Requête SQL:', query);
-
       const results = await database.query(query);
-      console.log('📦 [VENTE FLASH] Résultats bruts:', results);
 
       if (results && results.length > 0) {
         const response = results[0].get_mes_produits;
-        console.log('🔍 [VENTE FLASH] Réponse get_mes_produits (type):', typeof response);
-
         const parsedResponse = typeof response === 'string'
           ? JSON.parse(response)
           : response;
-        console.log('🔍 [VENTE FLASH] Réponse parsée:', parsedResponse);
 
         if (parsedResponse.success && parsedResponse.data) {
-          console.log(`✅ [VENTE FLASH] ${parsedResponse.data.length} produits chargés`);
-
-          // LOG DU PREMIER PRODUIT POUR VOIR SA STRUCTURE
-          if (parsedResponse.data.length > 0) {
-            console.log('📄 [VENTE FLASH] Premier produit (structure):', {
-              id_produit: parsedResponse.data[0].id_produit,
-              nom_produit: parsedResponse.data[0].nom_produit,
-              prix_vente: parsedResponse.data[0].prix_vente,
-              niveau_stock: parsedResponse.data[0].niveau_stock,
-              stock: parsedResponse.data[0].stock,
-              quantite: parsedResponse.data[0].quantite,
-              quantite_disponible: parsedResponse.data[0].quantite_disponible,
-              champs_stock_possibles: Object.keys(parsedResponse.data[0]).filter(k =>
-                k.toLowerCase().includes('stock') ||
-                k.toLowerCase().includes('quantit') ||
-                k.toLowerCase().includes('dispo')
-              ),
-              produit_complet: parsedResponse.data[0]
-            });
-          }
-
           setProduits(parsedResponse.data);
-          console.log('✅ [VENTE FLASH] Produits stockés en mémoire');
         }
       }
     } catch (error) {
-      console.error('❌ [VENTE FLASH] Erreur chargement produits:', error);
+      console.error('❌ [VF] Erreur chargement produits:', error);
     } finally {
       setIsLoadingProduits(false);
     }
@@ -123,48 +110,27 @@ export default function VenteFlashPage() {
    * Utilise get_my_factures1 avec filtrage par année/mois pour optimiser les performances
    */
   const loadVentesJour = useCallback(async () => {
-    if (!user) {
-      console.warn('⚠️ [VENTE FLASH] Pas d\'utilisateur connecté, abandon chargement ventes');
-      return;
-    }
+    if (!user) return;
 
     setIsLoadingVentes(true);
     try {
-      console.log('📊 [VENTE FLASH] === DÉBUT CHARGEMENT FACTURES ===');
-      console.log('👤 [VENTE FLASH] ID Structure:', user.id_structure);
-      console.log('👤 [VENTE FLASH] Nom structure:', user.nom_structure);
-
-      // Paramètres pour get_my_factures1: année et mois en cours
       const currentDate = new Date();
       const annee = currentDate.getFullYear();
-      const mois = currentDate.getMonth() + 1; // JavaScript months are 0-indexed
+      const mois = currentDate.getMonth() + 1;
 
       const query = `SELECT * FROM get_my_factures1(${user.id_structure}, ${annee}, ${mois}, 0)`;
-      console.log('📝 [VENTE FLASH] Requête SQL:', query);
-
-      console.log('🔄 [VENTE FLASH] Envoi requête à database.query()...');
-      // Timeout réduit car la requête est maintenant optimisée
       const results = await database.query(query, 30000);
-      console.log('📦 [VENTE FLASH] Résultats bruts reçus:', JSON.stringify(results, null, 2));
 
       if (results && results.length > 0) {
-        console.log('✅ [VENTE FLASH] Résultats non vides, extraction get_my_factures1...');
         const response = results[0].get_my_factures1;
-        console.log('🔍 [VENTE FLASH] Réponse brute get_my_factures1:', typeof response, response);
-
         const parsedResponse = typeof response === 'string'
           ? JSON.parse(response)
           : response;
-        console.log('🔍 [VENTE FLASH] Réponse parsée:', parsedResponse);
 
-        // Gérer différents formats de réponse possibles
         let facturesData: unknown[] = [];
 
         if (parsedResponse.factures && Array.isArray(parsedResponse.factures)) {
-          // Format: { factures: [ { facture: {...}, details: [...] } ] }
-          console.log('📋 [VENTE FLASH] Format détecté: parsedResponse.factures');
           facturesData = parsedResponse.factures.map((item: { facture?: unknown; details?: unknown[] }) => {
-            // Si item contient {facture: {...}, details: [...]}, on fusionne
             if (item.facture && typeof item.facture === 'object') {
               return {
                 ...(item.facture as Record<string, unknown>),
@@ -174,69 +140,36 @@ export default function VenteFlashPage() {
             return item;
           });
         } else if (parsedResponse.data && Array.isArray(parsedResponse.data)) {
-          // Format: { success: true, data: [...] }
-          console.log('📋 [VENTE FLASH] Format détecté: parsedResponse.data');
           facturesData = parsedResponse.data;
         } else if (Array.isArray(parsedResponse)) {
-          // Format: tableau direct
-          console.log('📋 [VENTE FLASH] Format détecté: tableau direct');
           facturesData = parsedResponse;
         }
 
-        console.log(`📋 [VENTE FLASH] ${facturesData.length} factures extraites au total`);
         if (facturesData.length > 0) {
-          console.log('📄 [VENTE FLASH] Première facture brute:', facturesData[0]);
-          const premiereFact = facturesData[0] as Record<string, unknown>;
-          console.log('🔍 [VENTE FLASH] Détails dans première facture?', Array.isArray(premiereFact.details), 'Nombre:', Array.isArray(premiereFact.details) ? premiereFact.details.length : 0);
-        }
-
-        if (facturesData.length > 0) {
-          // Filtrer uniquement les ventes du jour
           const today = new Date().toISOString().split('T')[0];
-          console.log('📅 [VENTE FLASH] Date du jour (ISO):', today);
 
           const ventesAujourdhui = facturesData.filter((item: unknown) => {
             const facture = item as Record<string, unknown>;
-            // Extraire la date selon la structure
             const dateFacture = (facture.date_facture as string) || (facture.date as string) || '';
-            console.log('🔍 [VENTE FLASH] Facture date brute:', dateFacture, '| Facture:', facture.num_facture || facture.id_facture);
-
             if (!dateFacture) return false;
-
             const factureDate = new Date(dateFacture).toISOString().split('T')[0];
-            const isToday = factureDate === today;
-            console.log('📅 [VENTE FLASH] Comparaison:', factureDate, '===', today, '?', isToday);
-
-            return isToday;
+            return factureDate === today;
           });
 
-          console.log(`✅ [VENTE FLASH] ${ventesAujourdhui.length} ventes du jour filtrées`);
-          if (ventesAujourdhui.length > 0) {
-            console.log('📄 [VENTE FLASH] Première vente:', ventesAujourdhui[0]);
-          }
-
-          // Mapper au format VenteFlash
           const ventesFormatees: VenteFlash[] = ventesAujourdhui.map((item: unknown) => {
             const f = item as Record<string, unknown>;
             const nomCaissier = (f.nom_caissier as string) ||
                                (user.nom && user.prenom ? `${user.prenom} ${user.nom}` : user.login);
 
-            // Les champs peuvent avoir des noms différents selon la structure
             const montantTotal = (f.montant as number) || (f.montant_total as number) || 0;
             const montantPaye = (f.mt_acompte as number) || (f.montant_paye as number) || 0;
             const montantImpaye = (f.mt_restant as number) || (f.montant_impaye as number) || 0;
             const modePaiement = (f.mode_paiement as string) || (f.libelle_etat as string) || 'ESPECES';
 
-            // Extraire les détails déjà présents dans la structure
             const detailsArray = Array.isArray(f.details) ? f.details : [];
-            console.log('📦 [VENTE FLASH] Détails bruts pour facture', f.num_facture, ':', detailsArray.length, 'items');
-            if (detailsArray.length > 0) {
-              console.log('🔍 [VENTE FLASH] Premier détail brut:', detailsArray[0]);
-            }
-
             const detailsFormates: DetailVente[] = detailsArray.map((item: unknown) => {
               const d = item as Record<string, unknown>;
-              const detailFormatte = {
+              return {
                 id_detail: d.id_detail as number,
                 id_produit: d.id_produit as number,
                 nom_produit: (d.nom_produit as string) || '',
@@ -244,19 +177,22 @@ export default function VenteFlashPage() {
                 prix_unitaire: (d.prix as number) || 0,
                 total: (d.sous_total as number) || 0
               };
-              console.log('✨ [VENTE FLASH] Détail formaté:', detailFormatte);
-              return detailFormatte;
             });
 
-            console.log('💰 [VENTE FLASH] Mapping facture:', {
-              num_facture: f.num_facture,
-              montant: f.montant,
-              mt_acompte: f.mt_acompte,
-              mt_restant: f.mt_restant,
-              montantTotal,
-              montantPaye,
-              montantImpaye,
-              nb_details: detailsFormates.length
+            // Extraire les reçus de paiement si présents
+            const recusArray = Array.isArray(f.recus_paiements) ? f.recus_paiements : [];
+            const recusFormates: RecuPaiement[] = recusArray.map((item: unknown) => {
+              const r = item as Record<string, unknown>;
+              return {
+                id_recu: r.id_recu as number,
+                id_facture: r.id_facture as number,
+                numero_recu: (r.numero_recu as string) || '',
+                methode_paiement: (r.methode_paiement as string) || 'espèces',
+                montant_paye: (r.montant_paye as number) || 0,
+                reference_transaction: (r.reference_transaction as string) || undefined,
+                telephone_client: (r.telephone_client as string) || undefined,
+                date_paiement: (r.date_paiement as string) || ''
+              };
             });
 
             return {
@@ -273,14 +209,13 @@ export default function VenteFlashPage() {
               nom_caissier: nomCaissier,
               id_utilisateur: f.id_utilisateur as number,
               statut: (f.libelle_etat as string) || (f.statut as string) || '',
-              details: detailsFormates
+              details: detailsFormates,
+              recus_paiements: recusFormates.length > 0 ? recusFormates : undefined
             };
           });
 
-          console.log('🎯 [VENTE FLASH] Ventes formatées:', ventesFormatees.length);
           setVentesJour(ventesFormatees);
 
-          // Calculer statistiques
           const statsCalculees: VenteFlashStats = {
             nb_ventes: ventesFormatees.length,
             total_ventes: ventesFormatees.reduce((sum, v) => sum + v.montant_total, 0),
@@ -288,27 +223,143 @@ export default function VenteFlashPage() {
             total_remises: ventesFormatees.reduce((sum, v) => sum + (v.mt_remise || 0), 0)
           };
 
-          console.log('📊 [VENTE FLASH] Statistiques calculées:', statsCalculees);
           setStats(statsCalculees);
-          console.log('✅ [VENTE FLASH] === FIN CHARGEMENT FACTURES (SUCCÈS) ===');
-        } else {
-          console.warn('⚠️ [VENTE FLASH] Réponse sans succès ou sans données');
-          console.log('🔍 [VENTE FLASH] parsedResponse.success:', parsedResponse.success);
-          console.log('🔍 [VENTE FLASH] parsedResponse.data:', parsedResponse.data);
         }
-      } else {
-        console.warn('⚠️ [VENTE FLASH] Résultats vides ou null');
-        console.log('🔍 [VENTE FLASH] results:', results);
       }
     } catch (error) {
-      console.error('❌ [VENTE FLASH] === ERREUR CHARGEMENT FACTURES ===');
-      console.error('❌ [VENTE FLASH] Type erreur:', error instanceof Error ? error.constructor.name : typeof error);
-      console.error('❌ [VENTE FLASH] Message:', error instanceof Error ? error.message : String(error));
-      console.error('❌ [VENTE FLASH] Stack:', error instanceof Error ? error.stack : 'N/A');
-      console.error('❌ [VENTE FLASH] Objet erreur complet:', error);
+      console.error('❌ [VF] Erreur chargement ventes:', error instanceof Error ? error.message : error);
     } finally {
       setIsLoadingVentes(false);
-      console.log('🏁 [VENTE FLASH] Fin du bloc loadVentesJour');
+    }
+  }, [user]);
+
+  /**
+   * Charger UNE SEULE facture par son ID et l'ajouter aux ventes du jour
+   * Optimisation : évite de recharger toutes les factures après chaque vente
+   * Utilise get_my_factures1(id_structure, année, 0, id_facture) pour récupérer recus_paiements
+   */
+  const loadAndAddFacture = useCallback(async (idFacture: number): Promise<VenteFlash | null> => {
+    if (!user) return null;
+
+    try {
+      const currentDate = new Date();
+      const annee = currentDate.getFullYear();
+
+      // Charger UNE SEULE facture avec son id_facture spécifique
+      const query = `SELECT * FROM get_my_factures1(${user.id_structure}, ${annee}, 0, ${idFacture})`;
+      console.log(`🔄 [VF] Chargement facture unique #${idFacture}`);
+
+      const results = await database.query(query, 10000);
+
+      if (!results || results.length === 0) {
+        console.warn(`⚠️ [VF] Facture #${idFacture} non trouvée`);
+        return null;
+      }
+
+      const response = results[0].get_my_factures1;
+      const parsedResponse = typeof response === 'string' ? JSON.parse(response) : response;
+
+      // Extraire la facture de la réponse
+      let factureData: Record<string, unknown> | null = null;
+
+      if (parsedResponse.factures && Array.isArray(parsedResponse.factures) && parsedResponse.factures.length > 0) {
+        const item = parsedResponse.factures[0];
+        if (item.facture && typeof item.facture === 'object') {
+          factureData = { ...(item.facture as Record<string, unknown>), details: item.details || [], recus_paiements: item.recus_paiements || [] };
+        } else {
+          factureData = item;
+        }
+      } else if (parsedResponse.data && Array.isArray(parsedResponse.data) && parsedResponse.data.length > 0) {
+        factureData = parsedResponse.data[0];
+      } else if (Array.isArray(parsedResponse) && parsedResponse.length > 0) {
+        factureData = parsedResponse[0];
+      }
+
+      if (!factureData) {
+        console.warn(`⚠️ [VF] Structure facture invalide pour #${idFacture}`);
+        return null;
+      }
+
+      // Formater la facture (même logique que loadVentesJour)
+      const f = factureData;
+      const nomCaissier = (f.nom_caissier as string) ||
+                         (user.nom && user.prenom ? `${user.prenom} ${user.nom}` : user.login);
+
+      const montantTotal = (f.montant as number) || (f.montant_total as number) || 0;
+      const montantPaye = (f.mt_acompte as number) || (f.montant_paye as number) || 0;
+      const montantImpaye = (f.mt_restant as number) || (f.montant_impaye as number) || 0;
+      const modePaiement = (f.mode_paiement as string) || (f.libelle_etat as string) || 'ESPECES';
+
+      // Formater les détails
+      const detailsArray = Array.isArray(f.details) ? f.details : [];
+      const detailsFormates: DetailVente[] = detailsArray.map((item: unknown) => {
+        const d = item as Record<string, unknown>;
+        return {
+          id_detail: d.id_detail as number,
+          id_produit: d.id_produit as number,
+          nom_produit: (d.nom_produit as string) || '',
+          quantite: (d.quantite as number) || 0,
+          prix_unitaire: (d.prix as number) || 0,
+          total: (d.sous_total as number) || 0
+        };
+      });
+
+      // Formater les reçus de paiement - CRITIQUE pour afficher le bon mode de paiement
+      const recusArray = Array.isArray(f.recus_paiements) ? f.recus_paiements : [];
+      const recusFormates: RecuPaiement[] = recusArray.map((item: unknown) => {
+        const r = item as Record<string, unknown>;
+        return {
+          id_recu: r.id_recu as number,
+          id_facture: r.id_facture as number,
+          numero_recu: (r.numero_recu as string) || '',
+          methode_paiement: (r.methode_paiement as string) || 'espèces',
+          montant_paye: (r.montant_paye as number) || 0,
+          reference_transaction: (r.reference_transaction as string) || undefined,
+          telephone_client: (r.telephone_client as string) || undefined,
+          date_paiement: (r.date_paiement as string) || ''
+        };
+      });
+
+      const nouvelleVente: VenteFlash = {
+        id_facture: f.id_facture as number,
+        num_facture: (f.num_facture as string) || '',
+        date_facture: (f.date_facture as string) || new Date().toISOString(),
+        montant_total: montantTotal,
+        montant_paye: montantPaye,
+        montant_impaye: montantImpaye,
+        mt_remise: (f.mt_remise as number) || 0,
+        mode_paiement: modePaiement,
+        nom_client: (f.nom_client as string) || 'CLIENT ANONYME',
+        tel_client: (f.tel_client as string) || '',
+        nom_caissier: nomCaissier,
+        id_utilisateur: f.id_utilisateur as number,
+        statut: (f.libelle_etat as string) || (f.statut as string) || '',
+        details: detailsFormates,
+        recus_paiements: recusFormates.length > 0 ? recusFormates : undefined
+      };
+
+      console.log(`✅ [VF] Facture #${idFacture} chargée | Reçus: ${recusFormates.length} | Méthode: ${recusFormates[0]?.methode_paiement || 'N/A'}`);
+
+      // Ajouter en tête de liste (plus récente en premier)
+      setVentesJour(prev => {
+        // Éviter les doublons
+        const filtered = prev.filter(v => v.id_facture !== idFacture);
+        return [nouvelleVente, ...filtered];
+      });
+
+      // Mettre à jour les stats localement
+      setStats(prev => ({
+        nb_ventes: prev.nb_ventes + 1,
+        total_ventes: prev.total_ventes + montantTotal,
+        ca_jour: prev.ca_jour + montantPaye,
+        total_remises: prev.total_remises + (nouvelleVente.mt_remise || 0)
+      }));
+
+      return nouvelleVente;
+
+    } catch (error) {
+      console.error(`❌ [VF] Erreur chargement facture #${idFacture}:`, error);
+      return null;
     }
   }, [user]);
 
@@ -316,26 +367,21 @@ export default function VenteFlashPage() {
   useEffect(() => {
     const checkAuthentication = () => {
       if (!authService.isAuthenticated()) {
-        console.log('❌ [VENTE FLASH] Utilisateur non authentifié');
         router.push('/login');
         return;
       }
 
       const userData = authService.getUser();
       if (!userData || userData.type_structure !== 'COMMERCIALE') {
-        console.log('⚠️ [VENTE FLASH] Type structure incorrect');
         router.push('/dashboard');
         return;
       }
 
-      console.log('✅ [VENTE FLASH] Authentification validée');
       setUser(userData);
 
-      // Charger les données complètes incluant la structure
       const completeData = authService.getCompleteAuthData();
       if (completeData && completeData.structure) {
         setStructure(completeData.structure);
-        console.log('✅ [VENTE FLASH] Structure chargée:', completeData.structure.nom_structure);
       }
 
       setIsAuthLoading(false);
@@ -357,12 +403,9 @@ export default function VenteFlashPage() {
    * Rafraîchir manuellement les données
    */
   const handleRefresh = useCallback(async () => {
-    console.log('🔄 [VENTE FLASH] Rafraîchissement manuel déclenché');
     setIsRefreshing(true);
 
-    // Timeout de sécurité : masquer le modal après 35s MAX (même si erreur)
     const safetyTimeout = setTimeout(() => {
-      console.warn('⚠️ [VENTE FLASH] Timeout de sécurité - fermeture forcée du modal (manuel)');
       setIsRefreshing(false);
     }, 35000);
 
@@ -371,16 +414,11 @@ export default function VenteFlashPage() {
         loadProduits(),
         loadVentesJour()
       ]);
-      console.log('✅ [VENTE FLASH] Rafraîchissement manuel terminé');
     } catch (error) {
-      console.error('❌ [VENTE FLASH] Erreur rafraîchissement manuel:', error);
+      console.error('❌ [VF] Erreur rafraîchissement:', error);
     } finally {
-      // Annuler le timeout de sécurité
       clearTimeout(safetyTimeout);
-
-      setTimeout(() => {
-        setIsRefreshing(false);
-      }, 1000);
+      setTimeout(() => setIsRefreshing(false), 1000);
     }
   }, [loadProduits, loadVentesJour]);
 
@@ -388,27 +426,13 @@ export default function VenteFlashPage() {
    * Ajouter un produit au panier
    */
   const handleAddToPanier = useCallback((produit: Produit) => {
-    console.log('🛒 [VENTE FLASH] === AJOUT PRODUIT AU PANIER ===');
-    console.log('📦 [VENTE FLASH] Produit:', {
-      id_produit: produit.id_produit,
-      nom_produit: produit.nom_produit,
-      prix_vente: produit.prix_vente,
-      niveau_stock: produit.niveau_stock,
-      stock_disponible: produit.niveau_stock || 0,
-      produit_complet: produit
-    });
-
-    // Vérifier stock disponible
     const stockDisponible = produit.niveau_stock || 0;
-    console.log('📊 [VENTE FLASH] Stock disponible calculé:', stockDisponible);
 
     if (stockDisponible <= 0) {
-      console.warn('⚠️ [VENTE FLASH] Stock insuffisant détecté');
       showToast('warning', 'Stock insuffisant', `${produit.nom_produit} n'est plus en stock`);
       return;
     }
 
-    console.log('✅ [VENTE FLASH] Stock OK, ajout au panier...');
     addArticle(produit);
     showToast('success', 'Ajouté au panier', produit.nom_produit);
   }, [addArticle, showToast]);
@@ -420,8 +444,6 @@ export default function VenteFlashPage() {
     if (!user) return;
 
     try {
-      console.log('🗑️ [VENTE FLASH] Suppression facture:', id_facture);
-
       const query = `SELECT * FROM supprimer_facturecom(${user.id_structure}, ${id_facture}, ${user.id})`;
       const results = await database.query(query);
 
@@ -433,42 +455,94 @@ export default function VenteFlashPage() {
 
         if (parsedResponse.success) {
           showToast('success', 'Suppression réussie', 'La facture a été supprimée');
-          // Recharger liste
           loadVentesJour();
         } else {
           showToast('error', 'Erreur', parsedResponse.message || 'Suppression impossible');
         }
       }
     } catch (error) {
-      console.error('❌ [VENTE FLASH] Erreur suppression:', error);
+      console.error('❌ [VF] Erreur suppression:', error);
       showToast('error', 'Erreur', 'Impossible de supprimer la facture');
     }
   };
 
   /**
-   * Afficher reçu
+   * Afficher reçu (nouveau modal ticket)
+   * Utilise recus_paiements local (chargé via loadAndAddFacture avec get_my_factures1)
+   * Fallback: requête SQL si recus_paiements non disponible (anciennes factures)
    */
-  const handleViewReceipt = (id_facture: number) => {
-    console.log('📄 [VENTE FLASH] Affichage reçu:', id_facture);
-    // TODO: Implémenter affichage reçu (réutiliser composant existant)
-    showToast('info', 'Reçu', 'Fonctionnalité à implémenter');
-  };
+  const handleViewReceipt = async (id_facture: number) => {
+    // Trouver la vente dans la liste
+    const vente = ventesJour.find(v => v.id_facture === id_facture);
+    if (!vente) {
+      showToast('error', 'Erreur', 'Vente non trouvée');
+      return;
+    }
 
-  /**
-   * Afficher facture
-   */
-  const handleViewInvoice = (id_facture: number) => {
-    console.log('📋 [VENTE FLASH] Affichage facture:', id_facture);
-    // TODO: Implémenter affichage facture (réutiliser composant existant)
-    showToast('info', 'Facture', 'Fonctionnalité à implémenter');
+    let methodePaiement: 'CASH' | 'OM' | 'WAVE' = 'CASH';
+
+    // PRIORITÉ 1: Utiliser recus_paiements local (données déjà chargées)
+    if (vente.recus_paiements && vente.recus_paiements.length > 0) {
+      const recu = vente.recus_paiements[0];
+      const methodeFromData = (recu.methode_paiement || '').toLowerCase();
+
+      if (methodeFromData === 'orange-money' || methodeFromData === 'om') {
+        methodePaiement = 'OM';
+      } else if (methodeFromData === 'wave') {
+        methodePaiement = 'WAVE';
+      }
+      console.log(`📄 [VF-RECU] Mode depuis données locales: ${methodePaiement}`);
+    } else {
+      // FALLBACK: Requête SQL pour anciennes factures sans recus_paiements
+      try {
+        const recuQuery = `
+          SELECT methode_paiement FROM recus_paiement
+          WHERE id_facture = ${id_facture}
+          ORDER BY date_paiement DESC LIMIT 1
+        `;
+        const recuResults = await database.query(recuQuery);
+
+        if (recuResults && recuResults.length > 0) {
+          const methodeFromDB = (recuResults[0].methode_paiement || '').toLowerCase();
+          if (methodeFromDB === 'orange-money' || methodeFromDB === 'om') {
+            methodePaiement = 'OM';
+          } else if (methodeFromDB === 'wave') {
+            methodePaiement = 'WAVE';
+          }
+          console.log(`📄 [VF-RECU] Mode depuis SQL fallback: ${methodePaiement}`);
+        }
+      } catch {
+        console.warn(`⚠️ [VF-RECU] Fallback SQL échoué, défaut CASH`);
+      }
+    }
+
+    // Mapper les détails de la vente au format attendu par le modal
+    const detailFacture = (vente.details || []).map((d: any) => ({
+      id_detail: d.id_detail,
+      nom_produit: d.nom_produit || 'Produit',
+      quantite: d.quantite || 1,
+      prix: d.prix_unitaire || d.prix || 0,
+      sous_total: d.total || (d.quantite * (d.prix_unitaire || d.prix || 0))
+    }));
+
+    console.log(`📄 [VF-RECU] Affichage reçu #${vente.num_facture} | Mode: ${methodePaiement} | Articles: ${detailFacture.length}`);
+
+    // Afficher le modal ticket avec détails produits
+    setRecuTicketData({
+      idFacture: vente.id_facture,
+      numFacture: vente.num_facture,
+      montantTotal: vente.montant_total,
+      methodePaiement,
+      dateVente: new Date(vente.date_facture),
+      detailFacture
+    });
+    setShowRecuTicket(true);
   };
 
   /**
    * Imprimer le rapport des ventes du jour
    */
   const handlePrintRapport = () => {
-    console.log('🖨️ [VENTE FLASH] Impression rapport du jour');
-
     // Regrouper les articles identiques et totaliser
     const produitsGroupes = new Map<string, {
       nom_produit: string;
@@ -508,11 +582,6 @@ export default function VenteFlashPage() {
       prix_unitaire: produit.prix_unitaire,
       total: produit.total
     }));
-
-    console.log('📊 [VENTE FLASH] Produits regroupés:', detailsVentes.length, 'articles uniques');
-    if (detailsVentes.length > 0) {
-      console.log('🔍 [VENTE FLASH] Premier produit:', detailsVentes[0]);
-    }
 
     // Créer le contenu HTML du rapport
     const dateJour = new Date().toLocaleDateString('fr-FR', {
@@ -676,7 +745,7 @@ export default function VenteFlashPage() {
 
         {/* Section 2: Panier Inline (s'affiche automatiquement quand articles ajoutés) */}
         <PanierVenteFlashInline
-          onSuccess={() => loadVentesJour()}
+          onSuccess={(idFacture: number) => loadAndAddFacture(idFacture)}
           onShowRecu={(idFacture: number, numFacture: string, montantTotal: number) => {
             setRecuData({ idFacture, numFacture, montantTotal });
             setShowRecu(true);
@@ -695,7 +764,6 @@ export default function VenteFlashPage() {
           isLoading={isLoadingVentes}
           onDeleteVente={handleDeleteVente}
           onViewReceipt={handleViewReceipt}
-          onViewInvoice={handleViewInvoice}
         />
       </div>
 
@@ -719,6 +787,23 @@ export default function VenteFlashPage() {
 
       {/* Modal Refresh */}
       <ModalRefresh isOpen={isRefreshing} />
+
+      {/* Modal Reçu Ticket (nouveau) */}
+      {recuTicketData && (
+        <ModalRecuVenteFlash
+          isOpen={showRecuTicket}
+          onClose={() => {
+            setShowRecuTicket(false);
+            setRecuTicketData(null);
+          }}
+          idFacture={recuTicketData.idFacture}
+          numFacture={recuTicketData.numFacture}
+          montantTotal={recuTicketData.montantTotal}
+          methodePaiement={recuTicketData.methodePaiement}
+          dateVente={recuTicketData.dateVente}
+          detailFacture={recuTicketData.detailFacture}
+        />
+      )}
 
       {/* Menu Principal */}
       <MainMenu

@@ -3,6 +3,17 @@
  * Gestion rapide des ventes avec scan code-barre
  */
 
+export interface RecuPaiement {
+  id_recu: number;
+  id_facture: number;
+  numero_recu: string;
+  methode_paiement: string;  // 'wave', 'orange-money', 'espèces'
+  montant_paye: number;
+  reference_transaction?: string;
+  telephone_client?: string;
+  date_paiement: string;
+}
+
 export interface VenteFlash {
   id_facture: number;
   num_facture: string;
@@ -18,6 +29,7 @@ export interface VenteFlash {
   id_utilisateur?: number;
   statut?: string;
   details?: DetailVente[];  // Détails déjà chargés avec la facture
+  recus_paiements?: RecuPaiement[];  // Reçus de paiement associés
 }
 
 export interface VenteFlashStats {

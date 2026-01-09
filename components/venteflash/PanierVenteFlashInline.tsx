@@ -1,7 +1,7 @@
 /**
  * Panier Vente Flash Inline - Affichage intégré sous le header
  * S'affiche automatiquement quand des articles sont ajoutés
- * Client anonyme par défaut - Paiement CASH immédiat
+ * Client anonyme par défaut - Paiement CASH ou WALLET (OM/WAVE)
  */
 
 'use client';
@@ -9,17 +9,21 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Trash2, Minus, Plus, ShoppingCart, Save, XCircle, Receipt, ChevronDown, ChevronUp
+  Trash2, Minus, Plus, ShoppingCart, CreditCard, XCircle, Receipt, ChevronDown
 } from 'lucide-react';
 import { usePanierStore } from '@/stores/panierStore';
 import { useToast } from '@/components/ui/Toast';
 import { authService } from '@/services/auth.service';
 import { factureService } from '@/services/facture.service';
 import database from '@/services/database.service';
+import { ModalEncaissementVenteFlash } from './ModalEncaissementVenteFlash';
+import { ModalRecuVenteFlash } from './ModalRecuVenteFlash';
+import { PaymentMethod } from '@/types/payment-wallet';
+import { useBreakpoint } from '@/hooks/useBreakpoint';
 
 interface PanierVenteFlashInlineProps {
-  /** Callback succès (pour rafraîchir liste ventes) */
-  onSuccess?: () => void;
+  /** Callback succès avec id_facture (pour charger la facture unique) */
+  onSuccess?: (idFacture: number) => void;
   /** Callback affichage reçu */
   onShowRecu?: (idFacture: number, numFacture: string, montantTotal: number) => void;
 }
@@ -29,6 +33,9 @@ export function PanierVenteFlashInline({
   onShowRecu
 }: PanierVenteFlashInlineProps) {
   const { showToast } = useToast();
+  const { isMobile, isMobileLarge } = useBreakpoint();
+  const isCompact = isMobile || isMobileLarge;
+
   const {
     articles,
     remise,
@@ -43,15 +50,52 @@ export function PanierVenteFlashInline({
 
   const [isProcessing, setIsProcessing] = useState(false);
   const [isExpanded, setIsExpanded] = useState(true);
+  const [showEncaissementModal, setShowEncaissementModal] = useState(false);
+
+  // État pour le nouveau modal reçu ticket
+  const [showRecuModal, setShowRecuModal] = useState(false);
+  const [recuData, setRecuData] = useState<{
+    idFacture: number;
+    numFacture: string;
+    montantTotal: number;
+    methodePaiement: 'CASH' | 'OM' | 'WAVE';
+    monnaieARendre: number;
+    detailFacture: Array<{
+      id_detail?: number;
+      nom_produit: string;
+      quantite: number;
+      prix: number;
+      sous_total: number;
+    }>;
+  } | null>(null);
 
   const totalItems = getTotalItems();
   const sousTotal = getSousTotal();
   const montants = getMontantsFacture();
   const total = montants.montant_net;
 
-  // Ne pas afficher si panier vide
-  if (articles.length === 0) {
+  // Ne pas afficher le panier si vide, MAIS afficher le modal reçu si actif
+  if (articles.length === 0 && !showRecuModal) {
     return null;
+  }
+
+  // Si panier vide mais modal reçu actif, afficher uniquement le modal
+  if (articles.length === 0 && showRecuModal && recuData) {
+    return (
+      <ModalRecuVenteFlash
+        isOpen={showRecuModal}
+        onClose={() => {
+          setShowRecuModal(false);
+          setRecuData(null);
+        }}
+        idFacture={recuData.idFacture}
+        detailFacture={recuData.detailFacture}
+        numFacture={recuData.numFacture}
+        montantTotal={recuData.montantTotal}
+        methodePaiement={recuData.methodePaiement}
+        monnaieARendre={recuData.monnaieARendre}
+      />
+    );
   }
 
   /**
@@ -64,11 +108,28 @@ export function PanierVenteFlashInline({
   };
 
   /**
-   * Créer facture + encaissement CASH
+   * Ouvrir le modal d'encaissement
    */
-  const handleSauvegarder = async () => {
+  const handleOpenEncaissement = () => {
     if (articles.length === 0) {
-      showToast('warning', 'Panier vide', 'Ajoutez des produits avant de sauvegarder');
+      showToast('warning', 'Panier vide', 'Ajoutez des produits avant de procéder');
+      return;
+    }
+    setShowEncaissementModal(true);
+  };
+
+  /**
+   * Callback après validation du paiement dans le modal
+   * IMPORTANT: Guard contre les appels multiples (polling peut rappeler plusieurs fois)
+   */
+  const handlePaymentComplete = async (
+    method: PaymentMethod,
+    transactionData: { transactionId: string; uuid: string; telephone?: string },
+    monnaieARendre?: number
+  ) => {
+    // Guard contre les doublons - si déjà en cours, ignorer
+    if (isProcessing) {
+      console.warn('⚠️ [PANIER INLINE] handlePaymentComplete déjà en cours, ignoré');
       return;
     }
 
@@ -79,21 +140,19 @@ export function PanierVenteFlashInline({
     }
 
     setIsProcessing(true);
+    setShowEncaissementModal(false);
 
     try {
-      console.log('💰 [PANIER INLINE] === DÉBUT CRÉATION FACTURE + ENCAISSEMENT ===');
-      console.log('📦 [PANIER INLINE] Articles:', articles.length);
-      console.log('💵 [PANIER INLINE] Total:', total, 'FCFA');
+      console.log(`🛒 [VF-VENTE] === NOUVELLE VENTE ${method} ===`);
+      console.log(`🛒 [VF-VENTE] Articles: ${articles.length} | Total: ${total} FCFA`);
 
       // Étape 1 : Créer la facture
-      console.log('📝 [PANIER INLINE] Étape 1/3 : Création facture...');
-
       const factureResult = await factureService.createFacture(
         articles,
         {
           nom_client_payeur: 'CLIENT_ANONYME',
           tel_client: '000000000',
-          description: 'Vente Flash'
+          description: `Vente Flash - ${method}`
         },
         {
           remise: remise || 0,
@@ -109,20 +168,18 @@ export function PanierVenteFlashInline({
       const idFacture = factureResult.id_facture;
       const numFacture = `FAC-${idFacture}`;
 
-      console.log('✅ [PANIER INLINE] Facture créée:', { id_facture: idFacture, num_facture: numFacture });
+      console.log(`✅ [VF-VENTE] 1/2 Facture créée | ID: ${idFacture} | Num: ${numFacture}`);
 
-      // Étape 2 : Encaissement CASH
-      console.log('💵 [PANIER INLINE] Étape 2/3 : Encaissement CASH...');
-
-      const transactionId = `CASH-${user.id_structure}-${Date.now()}`;
-
+      // Étape 2 : Encaissement + Reçu automatique (nouvelle signature add_acompte_facture)
       const encaissementQuery = `
-        SELECT * FROM add_acompte_facture(
+        SELECT * FROM add_acompte_facture1(
           ${user.id_structure},
           ${idFacture},
           ${total},
-          '${transactionId}',
-          'face2face'
+          '${transactionData.transactionId}',
+          '${transactionData.uuid}',
+          '${method}',
+          '${transactionData.telephone || '000000000'}'
         )
       `;
 
@@ -132,54 +189,51 @@ export function PanierVenteFlashInline({
         throw new Error('Erreur enregistrement encaissement');
       }
 
-      const encaissementResponse = encaissementResults[0].add_acompte_facture;
+      const encaissementResponse = encaissementResults[0].add_acompte_facture1;
       const parsedEncaissement = typeof encaissementResponse === 'string'
         ? JSON.parse(encaissementResponse)
         : encaissementResponse;
 
+      console.log(`💰 [VF-VENTE] Réponse add_acompte_facture1:`, JSON.stringify(parsedEncaissement));
+
       if (!parsedEncaissement.success) {
+        console.error(`❌ [VF-VENTE] Encaissement échoué | Code: ${parsedEncaissement.code} | Message: ${parsedEncaissement.message}`);
         throw new Error(parsedEncaissement.message || 'Erreur encaissement');
       }
 
-      console.log('✅ [PANIER INLINE] Encaissement OK');
+      // Extraire les données du reçu créé automatiquement par PostgreSQL
+      const recuInfo = parsedEncaissement.recus_paiement?.[0];
+      const numeroRecu = recuInfo?.numero_recu || parsedEncaissement.paiement?.numero_recu;
 
-      // Étape 3 : Créer le reçu
-      console.log('🧾 [PANIER INLINE] Étape 3/3 : Création reçu...');
+      // Extraire les détails de la facture pour le ticket
+      const detailFacture = parsedEncaissement.detail_facture || [];
 
-      try {
-        const { recuService } = await import('@/services/recu.service');
-        const numeroRecu = `REC-${user.id_structure}-${idFacture}-${Date.now()}`;
-
-        await recuService.creerRecu({
-          id_facture: idFacture,
-          id_structure: user.id_structure,
-          methode_paiement: 'CASH',
-          montant_paye: total,
-          numero_recu: numeroRecu,
-          reference_transaction: transactionId,
-          date_paiement: new Date().toISOString()
-        });
-      } catch (recuError) {
-        console.warn('⚠️ [PANIER INLINE] Reçu non créé mais vente OK');
-      }
+      console.log(`✅ [VF-VENTE] 2/2 Acompte + Reçu créés | ${method} | ID Reçu: ${recuInfo?.id_recu || 'N/A'} | N°: ${numeroRecu || 'N/A'} | Articles: ${detailFacture.length}`);
 
       // Vider le panier
       clearPanier();
 
-      // Toast succès
-      showToast('success', 'Vente enregistrée !', `Facture ${numFacture} créée et encaissée`);
-
-      // Callback succès
+      // Callback succès avec id_facture (pour charger la facture unique)
       if (onSuccess) {
-        onSuccess();
+        onSuccess(idFacture);
       }
 
-      // Afficher le reçu
-      if (onShowRecu) {
-        setTimeout(() => {
-          onShowRecu(idFacture, numFacture, total);
-        }, 300);
-      }
+      // Afficher le nouveau modal reçu ticket avec détails produits
+      setRecuData({
+        idFacture,
+        numFacture: parsedEncaissement.facture?.num_facture || numFacture,
+        montantTotal: total,
+        methodePaiement: method as 'CASH' | 'OM' | 'WAVE',
+        monnaieARendre: monnaieARendre || 0,
+        detailFacture: detailFacture.map((item: { id_detail?: number; nom_produit: string; quantite: number; prix: number; sous_total: number }) => ({
+          id_detail: item.id_detail,
+          nom_produit: item.nom_produit,
+          quantite: item.quantite,
+          prix: item.prix,
+          sous_total: item.sous_total
+        }))
+      });
+      setShowRecuModal(true);
 
     } catch (error) {
       console.error('❌ [PANIER INLINE] Erreur:', error);
@@ -346,11 +400,11 @@ export function PanierVenteFlashInline({
                   Annuler
                 </motion.button>
 
-                {/* Bouton Sauvegarder */}
+                {/* Bouton Encaisser */}
                 <motion.button
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
-                  onClick={handleSauvegarder}
+                  onClick={handleOpenEncaissement}
                   disabled={isProcessing}
                   className="
                     flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl
@@ -372,7 +426,7 @@ export function PanierVenteFlashInline({
                     </>
                   ) : (
                     <>
-                      <Save className="w-4 h-4" />
+                      <CreditCard className="w-4 h-4" />
                       Encaisser
                     </>
                   )}
@@ -382,6 +436,31 @@ export function PanierVenteFlashInline({
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Modal Encaissement */}
+      <ModalEncaissementVenteFlash
+        isOpen={showEncaissementModal}
+        onClose={() => setShowEncaissementModal(false)}
+        montantTotal={total}
+        onPaymentComplete={handlePaymentComplete}
+      />
+
+      {/* Modal Reçu Ticket */}
+      {recuData && (
+        <ModalRecuVenteFlash
+          isOpen={showRecuModal}
+          onClose={() => {
+            setShowRecuModal(false);
+            setRecuData(null);
+          }}
+          idFacture={recuData.idFacture}
+          numFacture={recuData.numFacture}
+          montantTotal={recuData.montantTotal}
+          methodePaiement={recuData.methodePaiement}
+          monnaieARendre={recuData.monnaieARendre}
+          detailFacture={recuData.detailFacture}
+        />
+      )}
     </motion.div>
   );
 }
