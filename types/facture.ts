@@ -112,18 +112,21 @@ export interface StatsFactures {
   margeTotale: number;
 }
 
-// Interface pour ajouter un acompte
+// Interface pour ajouter un acompte (nouvelle signature avec mode_paiement et telephone)
 export interface AjouterAcompteData {
   id_structure: number;
   id_facture: number;
   montant_acompte: number;
   transaction_id: string;
   uuid: string;
+  mode_paiement: 'CASH' | 'WAVE' | 'OM';  // Nouveau paramètre
+  telephone?: string;                       // Nouveau paramètre (optionnel)
 }
 
-// Interface pour la réponse d'ajout d'acompte
+// Interface pour la réponse d'ajout d'acompte (inclut maintenant recus_paiement)
 export interface AjouterAcompteResponse {
   success: boolean;
+  code?: string;
   message: string;
   facture: {
     id_facture: number;
@@ -140,6 +143,30 @@ export interface AjouterAcompteResponse {
     nouvel_etat: number;
     statut: 'PAYEE' | 'IMPAYEE';
   };
+  paiement?: {
+    mode_paiement: string;
+    reference_transaction: string;
+    telephone: string;
+    numero_recu: string;
+    uuid: string;
+  };
+  detail_facture?: Array<{
+    id_detail: number;
+    nom_produit: string;
+    quantite: number;
+    prix: number;
+    sous_total: number;
+  }>;
+  recus_paiement?: Array<{
+    id_recu: number;
+    id_facture: number;
+    numero_recu: string;
+    methode_paiement: string;
+    montant_paye: number;
+    reference_transaction: string;
+    date_paiement: string;
+    telephone_client: string;
+  }>;
   timestamp_operation: string;
 }
 

@@ -345,12 +345,15 @@ class FactureService {
         id_facture: data.id_facture,
         montant_acompte: data.montant_acompte,
         transaction_id: data.transaction_id,
-        uuid: data.uuid
+        uuid: data.uuid,
+        mode_paiement: data.mode_paiement,
+        telephone: data.telephone
       });
 
-      // Appel de la fonction PostgreSQL add_acompte_facture
-      const query = `SELECT add_acompte_facture(${data.id_structure}, ${data.id_facture}, ${data.montant_acompte}, '${data.transaction_id}', '${data.uuid}')`;
-      console.log('💰 [CASH] Requête add_acompte_facture:', query);
+      // Appel de la fonction PostgreSQL add_acompte_facture (nouvelle signature 7 paramètres)
+      const telephone = data.telephone || '000000000';
+      const query = `SELECT * FROM add_acompte_facture(${data.id_structure}, ${data.id_facture}, ${data.montant_acompte}, '${data.transaction_id}', '${data.uuid}', '${data.mode_paiement}', '${telephone}')`;
+      console.log('💰 [ACOMPTE] Requête add_acompte_facture:', query);
       const result = await DatabaseService.query(query);
       
       if (!result || result.length === 0) {

@@ -172,7 +172,7 @@ export function PanierVenteFlashInline({
 
       // Étape 2 : Encaissement + Reçu automatique (nouvelle signature add_acompte_facture)
       const encaissementQuery = `
-        SELECT * FROM add_acompte_facture1(
+        SELECT * FROM add_acompte_facture(
           ${user.id_structure},
           ${idFacture},
           ${total},
@@ -189,12 +189,12 @@ export function PanierVenteFlashInline({
         throw new Error('Erreur enregistrement encaissement');
       }
 
-      const encaissementResponse = encaissementResults[0].add_acompte_facture1;
+      const encaissementResponse = encaissementResults[0].add_acompte_facture;
       const parsedEncaissement = typeof encaissementResponse === 'string'
         ? JSON.parse(encaissementResponse)
         : encaissementResponse;
 
-      console.log(`💰 [VF-VENTE] Réponse add_acompte_facture1:`, JSON.stringify(parsedEncaissement));
+      console.log(`💰 [VF-VENTE] Réponse add_acompte_facture:`, JSON.stringify(parsedEncaissement));
 
       if (!parsedEncaissement.success) {
         console.error(`❌ [VF-VENTE] Encaissement échoué | Code: ${parsedEncaissement.code} | Message: ${parsedEncaissement.message}`);

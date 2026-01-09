@@ -19,7 +19,7 @@ import {
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { FactureComplete, AjouterAcompteData } from '@/types/facture';
 import { factureService } from '@/services/facture.service';
-import { recuService } from '@/services/recu.service';
+// recuService supprimé - le reçu est maintenant créé automatiquement par add_acompte_facture
 import { authService } from '@/services/auth.service';
 import { ModalChoixPaiement } from './ModalChoixPaiement';
 import { ModalPaiementQRCode } from './ModalPaiementQRCode';
@@ -259,18 +259,23 @@ export function ModalPaiement({
     setError('');
 
     try {
+      const transactionId = generateCashTransactionId();
       const acompteData: AjouterAcompteData = {
         id_structure: facture.facture.id_structure,
         id_facture: facture.facture.id_facture,
         montant_acompte: montants.montantSaisi,
-        transaction_id: generateCashTransactionId(),
-        uuid: 'face2face'
+        transaction_id: transactionId,
+        uuid: 'face2face',
+        mode_paiement: 'CASH',
+        telephone: facture.facture.tel_client || '000000000'
       };
 
       console.log('💰 [CASH] Enregistrement acompte avec:', {
         transaction_id: acompteData.transaction_id,
         uuid: acompteData.uuid,
-        montant: acompteData.montant_acompte
+        montant: acompteData.montant_acompte,
+        mode_paiement: acompteData.mode_paiement,
+        telephone: acompteData.telephone
       });
 
       const response = await factureService.addAcompte(acompteData);
@@ -278,55 +283,29 @@ export function ModalPaiement({
       if (response.success) {
         setSuccess(true);
 
-        // Générer automatiquement un reçu pour l'acompte cash
-        try {
-          console.log('🧾 [ACOMPTE-CASH] Génération reçu pour acompte cash:', {
+        // Le reçu est maintenant créé automatiquement par PostgreSQL
+        const recuData = response.recus_paiement?.[0];
+        const numeroRecu = recuData?.numero_recu || response.paiement?.numero_recu;
+
+        console.log('✅ [ACOMPTE-CASH] Acompte + Reçu créés automatiquement:', {
+          id_facture: facture.facture.id_facture,
+          id_recu: recuData?.id_recu,
+          numero_recu: numeroRecu,
+          montant_paye: recuData?.montant_paye || montants.montantSaisi
+        });
+
+        // Afficher le modal de reçu si disponible
+        if (numeroRecu) {
+          setModalRecuAcompte({
+            isOpen: true,
             factureId: facture.facture.id_facture,
-            montantAcompte: montants.montantSaisi,
-            paymentMethod: 'CASH'
+            walletUsed: 'CASH',
+            montantPaye: montants.montantSaisi,
+            numeroRecu: numeroRecu,
+            referenceTransaction: transactionId,
+            typePaiement: 'ACOMPTE',
+            montantFactureTotal: facture.facture.montant
           });
-
-          const numeroRecu = `REC-${facture.facture.id_structure}-${facture.facture.id_facture}-${Date.now()}`;
-          const recuResponse = await recuService.creerRecu({
-            id_facture: facture.facture.id_facture,
-            id_structure: facture.facture.id_structure,
-            methode_paiement: 'CASH', // Le service convertira vers espèces
-            montant_paye: montants.montantSaisi, // Montant de l'acompte
-            numero_recu: numeroRecu,
-            reference_transaction: acompteData.transaction_id,
-            numero_telephone: facture.facture.tel_client,
-            date_paiement: new Date().toISOString()
-          });
-
-          if (recuResponse.success) {
-            console.log('✅ [ACOMPTE-CASH] Reçu créé avec succès:', {
-              id_recu: recuResponse.id_recu,
-              numero_recu: recuResponse.numero_recu || numeroRecu,
-              message: recuResponse.message
-            });
-
-            // Préparer et afficher le modal de reçu d'acompte cash
-            setModalRecuAcompte({
-              isOpen: true,
-              factureId: facture.facture.id_facture,
-              walletUsed: 'CASH',
-              montantPaye: montants.montantSaisi,
-              numeroRecu: recuResponse.numero_recu || numeroRecu,
-              referenceTransaction: acompteData.transaction_id,
-              typePaiement: 'ACOMPTE',
-              montantFactureTotal: facture.facture.montant
-            });
-          }
-        } catch (recuError) {
-          console.error('❌ [ACOMPTE-CASH] Erreur génération reçu:', {
-            error: recuError,
-            message: recuError instanceof Error ? recuError.message : 'Erreur inconnue',
-            factureId: facture.facture.id_facture,
-            numeroRecu: facture.facture.numrecu
-          });
-          // Ne pas bloquer le flow principal, le reçu est optionnel
-          // Mais informer l'utilisateur que le reçu n'a pas pu être généré
-          console.warn('⚠️ [ACOMPTE-CASH] Le paiement a été enregistré mais le reçu n\'a pas pu être généré');
         }
 
         if (onSuccess) {
@@ -382,7 +361,9 @@ export function ModalPaiement({
         id_facture: facture.facture.id_facture,
         montant_acompte: montants.montantSaisi,
         transaction_id: transaction_id,
-        uuid: uuid
+        uuid: uuid,
+        mode_paiement: selectedPaymentMethod as 'CASH' | 'WAVE' | 'OM',
+        telephone: facture.facture.tel_client || '000000000'
       };
 
       console.log('💾 [WALLET] Enregistrement acompte avec:', acompteData);
@@ -393,54 +374,29 @@ export function ModalPaiement({
         setShowQRCode(false);
         setSuccess(true);
 
-        // Générer automatiquement un reçu pour l'acompte
-        try {
-          console.log('🧾 [ACOMPTE] Génération reçu pour acompte:', {
+        // Le reçu est maintenant créé automatiquement par PostgreSQL
+        const recuData = response.recus_paiement?.[0];
+        const numeroRecu = recuData?.numero_recu || response.paiement?.numero_recu;
+
+        console.log('✅ [ACOMPTE-WALLET] Acompte + Reçu créés automatiquement:', {
+          id_facture: facture.facture.id_facture,
+          id_recu: recuData?.id_recu,
+          numero_recu: numeroRecu,
+          methode_paiement: recuData?.methode_paiement || selectedPaymentMethod
+        });
+
+        // Afficher le modal de reçu si disponible
+        if (numeroRecu) {
+          setModalRecuAcompte({
+            isOpen: true,
             factureId: facture.facture.id_facture,
-            montantAcompte: montants.montantSaisi,
-            paymentMethod: selectedPaymentMethod
+            walletUsed: selectedPaymentMethod,
+            montantPaye: montants.montantSaisi,
+            numeroRecu: numeroRecu,
+            referenceTransaction: transaction_id,
+            typePaiement: 'ACOMPTE',
+            montantFactureTotal: facture.facture.montant
           });
-
-          const numeroRecu = `REC-${facture.facture.id_structure}-${facture.facture.id_facture}-${Date.now()}`;
-          const recuResponse = await recuService.creerRecu({
-            id_facture: facture.facture.id_facture,
-            id_structure: facture.facture.id_structure,
-            methode_paiement: selectedPaymentMethod, // Le service convertira automatiquement
-            montant_paye: montants.montantSaisi, // Montant de l'acompte, pas le total
-            numero_recu: numeroRecu,
-            reference_transaction: transaction_id,
-            numero_telephone: facture.facture.tel_client,
-            date_paiement: new Date().toISOString()
-          });
-
-          if (recuResponse.success) {
-            console.log('✅ [ACOMPTE] Reçu créé avec succès:', {
-              id_recu: recuResponse.id_recu,
-              numero_recu: recuResponse.numero_recu || numeroRecu,
-              message: recuResponse.message
-            });
-
-            // Préparer et afficher le modal de reçu d'acompte
-            setModalRecuAcompte({
-              isOpen: true,
-              factureId: facture.facture.id_facture,
-              walletUsed: selectedPaymentMethod,
-              montantPaye: montants.montantSaisi,
-              numeroRecu: recuResponse.numero_recu || numeroRecu,
-              referenceTransaction: transaction_id,
-              typePaiement: 'ACOMPTE',
-              montantFactureTotal: facture.facture.montant
-            });
-          }
-        } catch (recuError) {
-          console.error('❌ [ACOMPTE] Erreur génération reçu:', {
-            error: recuError,
-            message: recuError instanceof Error ? recuError.message : 'Erreur inconnue',
-            factureId: facture.facture.id_facture,
-            numeroRecu: facture.facture.numrecu
-          });
-          // Ne pas bloquer le flow principal, le reçu est optionnel
-          console.warn('⚠️ [ACOMPTE] Le paiement a été enregistré mais le reçu n\'a pas pu être généré');
         }
 
         if (onSuccess) {

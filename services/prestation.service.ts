@@ -891,16 +891,19 @@ export class PrestationService {
       const result = await database.query(query);
       const factureResult = Array.isArray(result) ? result[0] : result;
 
-      // Si paiement CASH, enregistrer l'encaissement
+      // Si paiement CASH, enregistrer l'encaissement (nouvelle signature 7 paramètres)
       let idFacture = factureResult.id_facture;
       if (data.mode_paiement === 'CASH' && idFacture) {
         const transactionId = `CASH-${user.id_structure}-${Date.now()}`;
+        const telephone = data.tel_client || '000000000';
         const queryAcompte = `SELECT * FROM add_acompte_facture(
           ${user.id_structure},
           ${idFacture},
           ${montantNet},
           '${transactionId}',
-          'face2face'
+          'face2face',
+          'CASH',
+          '${telephone}'
         )`;
         await database.query(queryAcompte);
       }
