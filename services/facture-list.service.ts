@@ -148,8 +148,11 @@ class FactureListService {
             factureKeys: factureItem.facture ? Object.keys(factureItem.facture) : []
           });
 
-          // La structure de l'API est { facture: {...}, details: [...], resume: {...} }
+          // La structure de l'API est { facture: {...}, details: [...], resume: {...}, recus_paiements: [...] }
           if (factureItem.facture) {
+            // Extraire recus_paiements si disponible
+            const recusPaiements = (factureItem as any).recus_paiements;
+
             return {
               facture: factureItem.facture as ApiFactureData,
               details: (factureItem.details as Record<string, unknown>[]) || [],
@@ -158,7 +161,8 @@ class FactureListService {
                 quantite_totale: 0,
                 cout_total_revient: 0,
                 marge_totale: 0
-              }
+              },
+              recus_paiements: Array.isArray(recusPaiements) ? recusPaiements : undefined
             };
           }
 

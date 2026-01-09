@@ -53,11 +53,24 @@ export interface ResumeFacture {
   marge_totale: number;
 }
 
+// Interface pour un reçu de paiement (retourné par get_my_factures1)
+export interface RecuPaiement {
+  id_recu: number;
+  numero_recu: string;
+  date_paiement: string;
+  montant_paye: number;
+  methode_paiement: 'CASH' | 'WAVE' | 'OM' | 'FREE' | string;
+  reference_transaction?: string;
+  telephone_client?: string;
+  uuid_paiement?: string;
+}
+
 // Interface pour une facture complète avec détails
 export interface FactureComplete {
   facture: Facture;
   details: DetailFacture[];
   resume: ResumeFacture;
+  recus_paiements?: RecuPaiement[]; // Reçus de paiement (depuis get_my_factures1)
 }
 
 // Interface pour le résumé global de toutes les factures

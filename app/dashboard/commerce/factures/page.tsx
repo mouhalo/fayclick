@@ -277,13 +277,44 @@ export default function FacturesGlassPage() {
   };
 
   // Action pour voir le reçu depuis une carte de facture (factures PAYÉES)
+  // Utilise recus_paiements si disponible (depuis get_my_factures1), sinon fallback
   const handleVoirRecuFacture = (facture: FactureComplete) => {
-    // Construire un objet paiement à partir des données de la facture
+    // PRIORITÉ 1: Utiliser recus_paiements si disponible (données réelles)
+    if (facture.recus_paiements && facture.recus_paiements.length > 0) {
+      const recu = facture.recus_paiements[0]; // Premier reçu
+
+      console.log('🧾 [FACTURES] Affichage reçu depuis recus_paiements:', {
+        id_facture: facture.facture.id_facture,
+        numero_recu: recu.numero_recu,
+        methode_paiement: recu.methode_paiement,
+        montant_paye: recu.montant_paye
+      });
+
+      setModalRecuGenere({
+        isOpen: true,
+        facture: facture,
+        paiement: {
+          id_facture: facture.facture.id_facture,
+          montant_paye: recu.montant_paye,
+          date_paiement: recu.date_paiement,
+          methode_paiement: recu.methode_paiement,
+          reference_transaction: recu.reference_transaction || recu.numero_recu
+        }
+      });
+      return;
+    }
+
+    // FALLBACK: Construire un objet paiement simulé (anciennes factures sans recus_paiements)
+    console.log('⚠️ [FACTURES] Fallback paiement simulé (pas de recus_paiements):', {
+      id_facture: facture.facture.id_facture,
+      numrecu: facture.facture.numrecu
+    });
+
     const paiementSimule = {
       id_facture: facture.facture.id_facture,
       montant_paye: facture.facture.montant,
       date_paiement: facture.facture.date_facture,
-      methode_paiement: 'CASH', // Par défaut, peut être amélioré si on a l'info
+      methode_paiement: 'CASH', // Par défaut pour les anciennes factures
       reference_transaction: facture.facture.numrecu || ''
     };
 
