@@ -204,18 +204,23 @@ export function ModalFactureSuccess() {
         return `CASH-${factureDetails.id_structure}-${day}${month}${year}${hours}${minutes}`;
       };
 
+      const transactionId = generateCashTransactionId();
       const acompteData: AjouterAcompteData = {
         id_structure: factureDetails.id_structure,
         id_facture: factureDetails.id_facture,
         montant_acompte: factureDetails.mt_restant, // Solde complet
-        transaction_id: generateCashTransactionId(),
-        uuid: 'face2face'
+        transaction_id: transactionId,
+        uuid: 'face2face',
+        mode_paiement: 'CASH',
+        telephone: factureDetails.tel_client || '000000000'
       };
 
       console.log('💰 [CASH-SUCCESS] Encaissement facture avec:', {
         transaction_id: acompteData.transaction_id,
         uuid: acompteData.uuid,
         montant: acompteData.montant_acompte,
+        mode_paiement: acompteData.mode_paiement,
+        telephone: acompteData.telephone,
         facture: factureDetails.num_facture
       });
 
@@ -275,7 +280,9 @@ export function ModalFactureSuccess() {
         id_facture: factureDetails.id_facture,
         montant_acompte: factureDetails.mt_restant, // Solde complet
         transaction_id: transaction_id,
-        uuid: uuid
+        uuid: uuid,
+        mode_paiement: selectedPaymentMethod as 'CASH' | 'WAVE' | 'OM',
+        telephone: factureDetails.tel_client || '000000000'
       };
 
       console.log('💾 [WALLET-SUCCESS] Enregistrement solde avec:', acompteData);
