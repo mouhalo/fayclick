@@ -418,42 +418,68 @@ export function ModalRecuGenere({
   };
 
   // Styles adaptatifs selon le breakpoint
+  // Desktop optimisé : ultra-compact pour tout afficher sans scroll
   const getResponsiveStyles = () => {
     if (isMobile) {
       return {
         container: 'max-w-xs',
-        padding: 'p-3',
-        headerPadding: 'p-4',
-        contentPadding: 'p-4',
-        titleSize: 'text-lg',
-        subtitleSize: 'text-xs',
-        qrSize: 120,
-        buttonPadding: 'py-3',
-        iconSize: 'w-4 h-4'
+        padding: 'p-2',
+        headerPadding: 'p-2',
+        contentPadding: 'p-2',
+        titleSize: 'text-sm',
+        subtitleSize: 'text-[10px]',
+        qrSize: 80,
+        buttonPadding: 'py-1.5',
+        iconSize: 'w-3 h-3',
+        spacing: 'space-y-1',
+        textSize: 'text-[10px]',
+        valueSize: 'text-xs',
+        labelSize: 'text-[10px]',
+        montantSize: 'text-base',
+        sectionPadding: 'p-2',
+        sectionMargin: 'mb-2',
+        gap: 'gap-1'
       };
     } else if (isMobileLarge) {
       return {
-        container: 'max-w-sm',
-        padding: 'p-4',
-        headerPadding: 'p-5',
-        contentPadding: 'p-5',
-        titleSize: 'text-xl',
-        subtitleSize: 'text-sm',
-        qrSize: 150,
-        buttonPadding: 'py-3.5',
-        iconSize: 'w-5 h-5'
+        container: 'max-w-xs',
+        padding: 'p-2',
+        headerPadding: 'p-2',
+        contentPadding: 'p-2',
+        titleSize: 'text-sm',
+        subtitleSize: 'text-[10px]',
+        qrSize: 90,
+        buttonPadding: 'py-1.5',
+        iconSize: 'w-3 h-3',
+        spacing: 'space-y-1',
+        textSize: 'text-[10px]',
+        valueSize: 'text-xs',
+        labelSize: 'text-[10px]',
+        montantSize: 'text-base',
+        sectionPadding: 'p-2',
+        sectionMargin: 'mb-2',
+        gap: 'gap-1'
       };
     } else {
+      // Desktop : Ultra-compact pour tout voir sans scroll
       return {
-        container: 'max-w-md',
-        padding: 'p-4',
-        headerPadding: 'p-6',
-        contentPadding: 'p-6',
-        titleSize: 'text-xl',
-        subtitleSize: 'text-sm',
-        qrSize: 200,
-        buttonPadding: 'py-4',
-        iconSize: 'w-5 h-5'
+        container: 'max-w-xs',
+        padding: 'p-2',
+        headerPadding: 'p-2',
+        contentPadding: 'p-2',
+        titleSize: 'text-sm',
+        subtitleSize: 'text-[10px]',
+        qrSize: 80,
+        buttonPadding: 'py-1.5',
+        iconSize: 'w-3 h-3',
+        spacing: 'space-y-1',
+        textSize: 'text-[10px]',
+        valueSize: 'text-xs',
+        labelSize: 'text-[10px]',
+        montantSize: 'text-base',
+        sectionPadding: 'p-2',
+        sectionMargin: 'mb-2',
+        gap: 'gap-1'
       };
     }
   };
@@ -500,28 +526,28 @@ export function ModalRecuGenere({
               </div>
 
               <div className="relative z-10 flex items-center justify-between">
-                <div className="flex items-center gap-2 sm:gap-3">
-                  <div className={`${isMobile ? 'w-10 h-10' : 'w-12 h-12'} bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center`}>
-                    <Receipt className={isMobile ? 'w-5 h-5' : 'w-7 h-7'} />
+                <div className={`flex items-center ${styles.gap}`}>
+                  <div className="w-8 h-8 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center">
+                    <Receipt className="w-4 h-4" />
                   </div>
                   <div>
                     <h2 className={`${styles.titleSize} font-bold`}>Paiement réussi !</h2>
                     <p className={`text-emerald-100 ${styles.subtitleSize}`}>🧾 Reçu généré</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className={`flex items-center ${styles.gap}`}>
                   <button
                     onClick={handlePrint}
-                    className={`${isMobile ? 'w-7 h-7' : 'w-8 h-8'} bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-white/30 transition-colors`}
+                    className="w-6 h-6 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-white/30 transition-colors"
                     title="Imprimer le reçu"
                   >
-                    <Printer className={isMobile ? 'w-4 h-4' : 'w-5 h-5'} />
+                    <Printer className="w-3 h-3" />
                   </button>
                   <button
                     onClick={onClose}
-                    className={`${isMobile ? 'w-7 h-7' : 'w-8 h-8'} bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-white/30 transition-colors`}
+                    className="w-6 h-6 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-white/30 transition-colors"
                   >
-                    <X className={isMobile ? 'w-4 h-4' : 'w-5 h-5'} />
+                    <X className="w-3 h-3" />
                   </button>
                 </div>
               </div>
@@ -540,70 +566,70 @@ export function ModalRecuGenere({
               ) : recuDetails ? (
                 <>
                   {/* Badge REÇU OFFICIEL avec type paiement */}
-                  <div className="flex justify-center mb-4">
+                  <div className={`flex justify-center ${styles.sectionMargin}`}>
                     {typePaiement === 'ACOMPTE' ? (
-                      <div className="bg-gradient-to-r from-orange-500 to-amber-600 text-white px-4 py-2 rounded-full text-sm font-bold flex items-center gap-2">
-                        <CheckCircle className="w-4 h-4" />
+                      <div className={`bg-gradient-to-r from-orange-500 to-amber-600 text-white px-3 py-1 rounded-full ${styles.textSize} font-bold flex items-center ${styles.gap}`}>
+                        <CheckCircle className={styles.iconSize} />
                         REÇU ACOMPTE
                       </div>
                     ) : (
-                      <div className="bg-gradient-to-r from-emerald-500 to-green-600 text-white px-4 py-2 rounded-full text-sm font-bold flex items-center gap-2">
-                        <CheckCircle className="w-4 h-4" />
+                      <div className={`bg-gradient-to-r from-emerald-500 to-green-600 text-white px-3 py-1 rounded-full ${styles.textSize} font-bold flex items-center ${styles.gap}`}>
+                        <CheckCircle className={styles.iconSize} />
                         REÇU OFFICIEL
                       </div>
                     )}
                   </div>
 
                   {/* Informations du reçu */}
-                  <div className={`bg-white/60 backdrop-blur-sm rounded-2xl ${isMobile ? 'p-3' : 'p-5'} mb-4 sm:mb-6 border border-emerald-100`}>
-                    <div className={`flex items-center justify-between ${isMobile ? 'mb-3' : 'mb-4'}`}>
-                      <span className={`${isMobile ? 'text-xs' : 'text-sm'} text-gray-600`}>N° Reçu</span>
-                      <span className={`font-bold text-emerald-700 ${isMobile ? 'text-sm' : 'text-base'}`}>
+                  <div className={`bg-white/60 backdrop-blur-sm rounded-xl ${styles.sectionPadding} ${styles.sectionMargin} border border-emerald-100`}>
+                    <div className={`flex items-center justify-between mb-1.5`}>
+                      <span className={`${styles.labelSize} text-gray-600`}>N° Reçu</span>
+                      <span className={`font-bold text-emerald-700 ${styles.valueSize}`}>
                         {recuDetails.facture.numrecu}
                       </span>
                     </div>
 
-                    <div className={`flex items-center justify-between ${isMobile ? 'mb-3' : 'mb-4'}`}>
-                      <span className={`${isMobile ? 'text-xs' : 'text-sm'} text-gray-600`}>Facture</span>
-                      <span className={`font-medium text-gray-800 ${isMobile ? 'text-sm' : 'text-base'}`}>
+                    <div className={`flex items-center justify-between mb-1.5`}>
+                      <span className={`${styles.labelSize} text-gray-600`}>Facture</span>
+                      <span className={`font-medium text-gray-800 ${styles.valueSize}`}>
                         {recuDetails.facture.num_facture}
                       </span>
                     </div>
 
-                    <div className={`flex items-center justify-between ${isMobile ? 'mb-3' : 'mb-4'}`}>
-                      <span className={`${isMobile ? 'text-xs' : 'text-sm'} text-gray-600`}>Client</span>
-                      <span className={`font-medium text-gray-800 ${isMobile ? 'text-sm' : 'text-base'} text-right flex-1 ml-2`} style={{ wordBreak: 'break-word' }}>
+                    <div className={`flex items-center justify-between mb-1.5`}>
+                      <span className={`${styles.labelSize} text-gray-600`}>Client</span>
+                      <span className={`font-medium text-gray-800 ${styles.valueSize} text-right flex-1 ml-2`} style={{ wordBreak: 'break-word' }}>
                         {recuDetails.facture.nom_client}
                       </span>
                     </div>
 
                     {/* Informations de paiement */}
-                    <div className={`border-t border-emerald-100 ${isMobile ? 'pt-3' : 'pt-4'} space-y-2`}>
+                    <div className={`border-t border-emerald-100 pt-1.5 ${styles.spacing}`}>
                       <div className="flex items-center justify-between">
-                        <span className={`${isMobile ? 'text-xs' : 'text-sm'} text-gray-600 flex items-center gap-1`}>
-                          <CreditCard className="w-3 h-3" />
+                        <span className={`${styles.labelSize} text-gray-600 flex items-center gap-0.5`}>
+                          <CreditCard className="w-2.5 h-2.5" />
                           Méthode
                         </span>
-                        <span className={`${walletInfo.color} font-medium ${isMobile ? 'text-sm' : 'text-base'}`}>
+                        <span className={`${walletInfo.color} font-medium ${styles.valueSize}`}>
                           {walletInfo.displayName}
                         </span>
                       </div>
 
                       <div className="flex items-center justify-between">
-                        <span className={`${isMobile ? 'text-xs' : 'text-sm'} text-gray-600 flex items-center gap-1`}>
-                          <Clock className="w-3 h-3" />
+                        <span className={`${styles.labelSize} text-gray-600 flex items-center gap-0.5`}>
+                          <Clock className="w-2.5 h-2.5" />
                           Date/Heure
                         </span>
-                        <span className={`font-medium text-gray-800 ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                        <span className={`font-medium text-gray-800 ${styles.textSize}`}>
                           {formatDateTime(recuDetails.paiement.date_paiement)}
                         </span>
                       </div>
 
-                      <div className="flex items-center justify-between pt-2">
-                        <span className={`${isMobile ? 'text-sm' : 'text-lg'} font-semibold text-gray-700`}>
+                      <div className="flex items-center justify-between pt-1">
+                        <span className={`${styles.valueSize} font-semibold text-gray-700`}>
                           {typePaiement === 'ACOMPTE' ? 'Acompte versé' : 'Montant payé'}
                         </span>
-                        <span className={`${isMobile ? 'text-lg' : 'text-2xl'} font-bold ${
+                        <span className={`${styles.montantSize} font-bold ${
                           typePaiement === 'ACOMPTE' ? 'text-orange-600' : 'text-emerald-600'
                         }`}>
                           {montantPaye?.toLocaleString('fr-FR')} FCFA
@@ -612,31 +638,31 @@ export function ModalRecuGenere({
 
                       {/* Affichage spécial pour les acomptes */}
                       {typePaiement === 'ACOMPTE' && montantFactureTotal && (
-                        <div className="mt-3 pt-3 border-t border-orange-100">
-                          <div className="flex items-center justify-between mb-2">
-                            <span className={`${isMobile ? 'text-xs' : 'text-sm'} text-gray-600`}>Montant total facture</span>
-                            <span className={`font-medium text-gray-800 ${isMobile ? 'text-sm' : 'text-base'}`}>
+                        <div className="mt-1.5 pt-1.5 border-t border-orange-100">
+                          <div className="flex items-center justify-between mb-1">
+                            <span className={`${styles.labelSize} text-gray-600`}>Total facture</span>
+                            <span className={`font-medium text-gray-800 ${styles.valueSize}`}>
                               {montantFactureTotal.toLocaleString('fr-FR')} FCFA
                             </span>
                           </div>
                           <div className="flex items-center justify-between">
-                            <span className={`${isMobile ? 'text-xs' : 'text-sm'} text-gray-600`}>Montant restant</span>
-                            <span className={`font-bold text-red-600 ${isMobile ? 'text-sm' : 'text-base'}`}>
+                            <span className={`${styles.labelSize} text-gray-600`}>Restant</span>
+                            <span className={`font-bold text-red-600 ${styles.valueSize}`}>
                               {(montantFactureTotal - montantPaye).toLocaleString('fr-FR')} FCFA
                             </span>
                           </div>
 
                           {/* Barre de progression */}
-                          <div className="mt-3">
-                            <div className="flex justify-between items-center mb-1">
-                              <span className={`${isMobile ? 'text-xs' : 'text-sm'} text-gray-600`}>Progression paiement</span>
-                              <span className={`${isMobile ? 'text-xs' : 'text-sm'} font-medium text-orange-600`}>
+                          <div className="mt-1.5">
+                            <div className="flex justify-between items-center mb-0.5">
+                              <span className={`${styles.textSize} text-gray-600`}>Progression</span>
+                              <span className={`${styles.textSize} font-medium text-orange-600`}>
                                 {Math.round((montantPaye / montantFactureTotal) * 100)}%
                               </span>
                             </div>
-                            <div className="w-full bg-gray-200 rounded-full h-2">
+                            <div className="w-full bg-gray-200 rounded-full h-1.5">
                               <div
-                                className="bg-gradient-to-r from-orange-500 to-amber-500 h-2 rounded-full transition-all duration-300"
+                                className="bg-gradient-to-r from-orange-500 to-amber-500 h-1.5 rounded-full transition-all duration-300"
                                 style={{ width: `${(montantPaye / montantFactureTotal) * 100}%` }}
                               />
                             </div>
@@ -647,14 +673,14 @@ export function ModalRecuGenere({
                   </div>
 
                   {/* QR Code Section */}
-                  <div className={`bg-gradient-to-br from-emerald-50/60 to-white/60 backdrop-blur-sm rounded-2xl ${isMobile ? 'p-3' : 'p-6'} mb-4 sm:mb-6 border border-emerald-100`}>
-                    <div className="flex items-center justify-between mb-2">
+                  <div className={`bg-gradient-to-br from-emerald-50/60 to-white/60 backdrop-blur-sm rounded-xl ${styles.sectionPadding} ${styles.sectionMargin} border border-emerald-100`}>
+                    <div className="flex items-center justify-between mb-1">
                       <button
                         onClick={() => setQrExpanded(!qrExpanded)}
-                        className="flex items-center gap-2 font-semibold text-gray-800 hover:text-emerald-600 transition-colors flex-1 text-left"
+                        className={`flex items-center ${styles.gap} font-semibold text-gray-800 hover:text-emerald-600 transition-colors flex-1 text-left`}
                       >
                         <QrIcon className={`${styles.iconSize} text-emerald-600`} />
-                        <span className={isMobile ? 'text-sm' : 'text-base'}>QR Code du reçu</span>
+                        <span className={styles.valueSize}>QR Code du reçu</span>
                         <motion.div
                           animate={{ rotate: qrExpanded ? 180 : 0 }}
                           transition={{ duration: 0.2 }}
@@ -665,7 +691,7 @@ export function ModalRecuGenere({
                       {qrExpanded && (
                         <button
                           onClick={handleDownloadQR}
-                          className="text-emerald-600 hover:text-emerald-700 transition-colors ml-2"
+                          className="text-emerald-600 hover:text-emerald-700 transition-colors ml-1"
                           title="Télécharger QR Code"
                         >
                           <Download className={styles.iconSize} />
@@ -682,7 +708,7 @@ export function ModalRecuGenere({
                           transition={{ duration: 0.3, ease: 'easeInOut' }}
                           className="overflow-hidden"
                         >
-                          <div className={`bg-white ${isMobile ? 'p-3' : 'p-4'} rounded-xl flex items-center justify-center mt-3`}>
+                          <div className={`bg-white p-2 rounded-lg flex items-center justify-center mt-1.5`}>
                             {urls.full ? (
                               <QRCode
                                 id="recu-qr-code"
@@ -693,13 +719,13 @@ export function ModalRecuGenere({
                                 bgColor="#ffffff"
                               />
                             ) : (
-                              <div className={`flex items-center justify-center ${isMobile ? 'h-[120px]' : 'h-[200px]'} text-gray-400`}>
-                                <p className="text-sm">Génération QR code...</p>
+                              <div className="flex items-center justify-center h-[80px] text-gray-400">
+                                <p className={styles.textSize}>Génération QR code...</p>
                               </div>
                             )}
                           </div>
 
-                          <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-gray-600 text-center mt-2`}>
+                          <p className={`${styles.textSize} text-gray-600 text-center mt-1`}>
                             Scannez pour accéder au reçu officiel
                           </p>
                         </motion.div>
@@ -707,14 +733,14 @@ export function ModalRecuGenere({
                     </AnimatePresence>
 
                     {!qrExpanded && (
-                      <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-gray-500 text-center mt-1`}>
+                      <p className={`${styles.textSize} text-gray-500 text-center`}>
                         Appuyez pour afficher le QR code
                       </p>
                     )}
                   </div>
 
                   {/* Boutons d'action */}
-                  <div className={`space-y-${isMobile ? '2' : '3'}`}>
+                  <div className={styles.spacing}>
                     {/* WhatsApp */}
                     <motion.button
                       whileHover={{ scale: isDesktop ? 1.02 : 1 }}
@@ -722,58 +748,14 @@ export function ModalRecuGenere({
                       onClick={handleWhatsAppShare}
                       className={`
                         w-full bg-gradient-to-r from-green-500 to-green-600
-                        text-white font-semibold ${styles.buttonPadding} rounded-xl
-                        shadow-lg hover:shadow-xl transition-all
-                        flex items-center justify-center gap-2 sm:gap-3
-                        ${isMobile ? 'text-sm' : 'text-base'}
+                        text-white font-semibold ${styles.buttonPadding} rounded-lg
+                        shadow-md hover:shadow-lg transition-all
+                        flex items-center justify-center ${styles.gap}
+                        ${styles.valueSize}
                       `}
                     >
                       <MessageCircle className={styles.iconSize} />
-                      {isMobile ? 'Partager reçu' : 'Partager le reçu'}
-                    </motion.button>
-
-                    {/* Copier URL */}
-                    <motion.button
-                      whileHover={{ scale: isDesktop ? 1.02 : 1 }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={handleCopyUrl}
-                      className={`
-                        w-full bg-white/60 backdrop-blur-sm border-2 border-emerald-200
-                        text-emerald-700 font-semibold ${styles.buttonPadding} rounded-xl
-                        hover:bg-white/80 transition-all
-                        flex items-center justify-center gap-2 sm:gap-3
-                        ${isMobile ? 'text-sm' : 'text-base'}
-                      `}
-                    >
-                      {copiedUrl ? (
-                        <>
-                          <CheckCircle className={styles.iconSize} />
-                          {isMobile ? 'Copié !' : 'Lien copié !'}
-                        </>
-                      ) : (
-                        <>
-                          <Copy className={styles.iconSize} />
-                          Copier le lien
-                        </>
-                      )}
-                    </motion.button>
-
-                    {/* Voir reçu */}
-                    <motion.button
-                      whileHover={{ scale: isDesktop ? 1.02 : 1 }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={() => urls.full && window.open(urls.full, '_blank')}
-                      disabled={!urls.full}
-                      className={`
-                        w-full bg-emerald-100/60 backdrop-blur-sm
-                        text-emerald-700 font-medium ${isMobile ? 'py-2.5' : 'py-3'} rounded-xl
-                        hover:bg-emerald-100/80 transition-all
-                        flex items-center justify-center gap-2 sm:gap-3
-                        ${isMobile ? 'text-sm' : 'text-base'}
-                      `}
-                    >
-                      <ExternalLink className={isMobile ? 'w-4 h-4' : 'w-4 h-4'} />
-                      Voir le reçu
+                      Partager le reçu
                     </motion.button>
                   </div>
                 </>
