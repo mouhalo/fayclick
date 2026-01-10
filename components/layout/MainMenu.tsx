@@ -41,6 +41,18 @@ export default function MainMenu({ isOpen, onClose, userName, businessName }: Me
     };
   }, [isOpen, onClose]);
 
+  // Écouter l'événement pour ouvrir le modal de profil (depuis PasswordChangeNotification)
+  useEffect(() => {
+    const handleOpenProfileModal = () => {
+      setShowProfileModal(true);
+    };
+
+    window.addEventListener('openProfileModal', handleOpenProfileModal);
+    return () => {
+      window.removeEventListener('openProfileModal', handleOpenProfileModal);
+    };
+  }, []);
+
   const handleProfile = () => {
     setShowProfileModal(true);
     onClose();
@@ -268,105 +280,127 @@ function ProfileModal({ isOpen, onClose, user }: ProfileModalProps) {
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.8, y: 50 }}
               transition={{ type: 'spring', damping: 25 }}
-              className="bg-white/95 backdrop-blur-xl rounded-3xl w-full max-w-md overflow-hidden shadow-2xl"
+              className="bg-white/95 backdrop-blur-xl rounded-2xl md:rounded-3xl w-full max-w-[95%] sm:max-w-md md:max-w-lg overflow-hidden shadow-2xl max-h-[90vh] flex flex-col"
               style={{
                 background: 'rgba(255, 255, 255, 0.95)',
                 backdropFilter: 'blur(20px)',
                 border: '1px solid rgba(255, 255, 255, 0.3)'
               }}
             >
-              {/* Header du modal */}
-              <div className="bg-gradient-to-r from-green-500 to-green-600 p-6 text-white relative overflow-hidden">
+              {/* Header du modal - Compact sur mobile */}
+              <div className="bg-gradient-to-r from-green-500 to-green-600 p-3 sm:p-4 md:p-5 text-white relative overflow-hidden flex-shrink-0">
                 <div className="absolute inset-0 opacity-20">
                   <div className="absolute inset-0" style={{
                     backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.2) 1px, transparent 1px)',
                     backgroundSize: '20px 20px'
                   }} />
                 </div>
-                
+
                 <div className="relative z-10 flex items-center justify-between">
                   <div>
-                    <h3 className="text-2xl font-bold mb-1">Mon Profil</h3>
-                    <p className="text-sm opacity-90">Gérez vos informations personnelles</p>
+                    <h3 className="text-lg sm:text-xl md:text-2xl font-bold">Mon Profil</h3>
+                    <p className="text-xs sm:text-sm opacity-90 hidden sm:block">Gérez vos informations personnelles</p>
                   </div>
                   <button
                     onClick={onClose}
-                    className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors"
+                    className="w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors"
                   >
-                    <X className="w-5 h-5" />
+                    <X className="w-4 h-4 sm:w-5 sm:h-5" />
                   </button>
                 </div>
               </div>
 
-              {/* Body du modal */}
-              <form onSubmit={handleSubmit} className="p-6">
-                <div className="space-y-4">
-                  {/* Nom d'utilisateur */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                      <User className="w-4 h-4 text-gray-500" />
-                      Nom d'utilisateur
-                    </label>
-                    <input
-                      type="text"
-                      name="username"
-                      value={formData.username}
-                      onChange={handleChange}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
-                      placeholder="Nom d'utilisateur"
-                    />
+              {/* Body du modal - Scrollable */}
+              <form onSubmit={handleSubmit} className="p-3 sm:p-4 md:p-5 overflow-y-auto flex-1">
+                <div className="space-y-3 sm:space-y-4">
+                  {/* Grille 2 colonnes sur tablette/PC pour Nom + Profil */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+                    {/* Nom d'utilisateur */}
+                    <div>
+                      <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2 flex items-center gap-1 sm:gap-2">
+                        <User className="w-3 h-3 sm:w-4 sm:h-4 text-gray-500" />
+                        Nom d&apos;utilisateur
+                      </label>
+                      <input
+                        type="text"
+                        name="username"
+                        value={formData.username}
+                        onChange={handleChange}
+                        className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
+                        placeholder="Nom d'utilisateur"
+                      />
+                    </div>
+
+                    {/* Profil */}
+                    <div>
+                      <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2 flex items-center gap-1 sm:gap-2">
+                        <Shield className="w-3 h-3 sm:w-4 sm:h-4 text-gray-500" />
+                        Profil
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.nom_profil}
+                        className="w-full px-3 py-2 text-sm sm:text-base border border-gray-200 rounded-lg sm:rounded-xl bg-gray-50 text-gray-600 cursor-not-allowed"
+                        disabled
+                        readOnly
+                      />
+                    </div>
                   </div>
 
-                  {/* Profil */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                      <Shield className="w-4 h-4 text-gray-500" />
-                      Profil
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.nom_profil}
-                      className="w-full px-4 py-2 border border-gray-200 rounded-xl bg-gray-50 text-gray-600 cursor-not-allowed"
-                      disabled
-                      readOnly
-                    />
+                  {/* Grille 2 colonnes sur tablette/PC pour Login + Téléphone */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+                    {/* Login */}
+                    <div>
+                      <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
+                        Login
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.login}
+                        className="w-full px-3 py-2 text-sm sm:text-base border border-gray-200 rounded-lg sm:rounded-xl bg-gray-50 text-gray-600 cursor-not-allowed"
+                        disabled
+                        readOnly
+                      />
+                    </div>
+
+                    {/* Téléphone */}
+                    <div>
+                      <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2 flex items-center gap-1 sm:gap-2">
+                        <Phone className="w-3 h-3 sm:w-4 sm:h-4 text-gray-500" />
+                        Téléphone
+                      </label>
+                      <input
+                        type="tel"
+                        name="telephone"
+                        value={formData.telephone}
+                        onChange={handleChange}
+                        className="w-full px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
+                        placeholder="Numéro de téléphone"
+                      />
+                    </div>
                   </div>
 
-                  {/* Login */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Login
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.login}
-                      className="w-full px-4 py-2 border border-gray-200 rounded-xl bg-gray-50 text-gray-600 cursor-not-allowed"
-                      disabled
-                      readOnly
-                    />
-                  </div>
-
-                  {/* Mot de passe */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center justify-between">
-                      <span className="flex items-center gap-2">
-                        <Lock className="w-4 h-4 text-gray-500" />
+                  {/* Mot de passe - Pleine largeur avec bouton Modifier bien visible */}
+                  <div className="bg-gray-50 rounded-lg sm:rounded-xl p-3 sm:p-4 border border-gray-100">
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="text-xs sm:text-sm font-medium text-gray-700 flex items-center gap-1 sm:gap-2">
+                        <Lock className="w-3 h-3 sm:w-4 sm:h-4 text-gray-500" />
                         Mot de passe
-                      </span>
+                      </label>
                       <button
                         type="button"
                         onClick={() => setShowPasswordModal(true)}
-                        className="text-green-600 hover:text-green-700 flex items-center gap-1 text-sm"
+                        className="text-green-600 hover:text-green-700 flex items-center gap-1 text-xs sm:text-sm font-medium bg-green-50 hover:bg-green-100 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg transition-colors"
                       >
-                        <LockOpen className="w-4 h-4" />
+                        <LockOpen className="w-3 h-3 sm:w-4 sm:h-4" />
                         Modifier
                       </button>
-                    </label>
+                    </div>
                     <div className="relative">
                       <input
                         type={showPassword ? 'text' : 'password'}
                         value="********"
-                        className="w-full px-4 py-2 border border-gray-200 rounded-xl bg-gray-50 text-gray-600 cursor-not-allowed pr-10"
+                        className="w-full px-3 py-2 text-sm sm:text-base border border-gray-200 rounded-lg bg-white text-gray-600 cursor-not-allowed pr-10"
                         disabled
                         readOnly
                       />
@@ -375,31 +409,15 @@ function ProfileModal({ isOpen, onClose, user }: ProfileModalProps) {
                         onClick={() => setShowPassword(!showPassword)}
                         className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
                       >
-                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        {showPassword ? <EyeOff className="w-3 h-3 sm:w-4 sm:h-4" /> : <Eye className="w-3 h-3 sm:w-4 sm:h-4" />}
                       </button>
                     </div>
                   </div>
 
-                  {/* Téléphone */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                      <Phone className="w-4 h-4 text-gray-500" />
-                      Téléphone
-                    </label>
-                    <input
-                      type="tel"
-                      name="telephone"
-                      value={formData.telephone}
-                      onChange={handleChange}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
-                      placeholder="Numéro de téléphone"
-                    />
-                  </div>
-
-                  {/* Statut actif */}
-                  <div className="flex items-center justify-between py-2">
-                    <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
-                      <Check className="w-4 h-4 text-gray-500" />
+                  {/* Statut actif - Version compacte */}
+                  <div className="flex items-center justify-between py-1 sm:py-2">
+                    <label className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm font-medium text-gray-700">
+                      <Check className="w-3 h-3 sm:w-4 sm:h-4 text-gray-500" />
                       Compte actif
                     </label>
                     <div className="flex items-center">
@@ -411,35 +429,36 @@ function ProfileModal({ isOpen, onClose, user }: ProfileModalProps) {
                         className="sr-only"
                         disabled
                       />
-                      <div className={`w-10 h-6 rounded-full transition-colors ${
+                      <div className={`w-9 h-5 sm:w-10 sm:h-6 rounded-full transition-colors ${
                         formData.actif ? 'bg-green-500' : 'bg-gray-300'
                       }`}>
-                        <div className={`w-4 h-4 bg-white rounded-full shadow-md transform transition-transform ${
-                          formData.actif ? 'translate-x-5' : 'translate-x-1'
-                        } mt-1`} />
+                        <div className={`w-3.5 h-3.5 sm:w-4 sm:h-4 bg-white rounded-full shadow-md transform transition-transform ${
+                          formData.actif ? 'translate-x-[18px] sm:translate-x-5' : 'translate-x-1'
+                        } mt-[3px] sm:mt-1`} />
                       </div>
                     </div>
                   </div>
                 </div>
 
-                {/* Actions */}
-                <div className="flex gap-3 mt-8">
+                {/* Actions - Sticky en bas */}
+                <div className="flex gap-2 sm:gap-3 mt-4 sm:mt-6 pt-3 sm:pt-4 border-t border-gray-100">
                   <button
                     type="button"
                     onClick={onClose}
-                    className="flex-1 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-xl transition-colors"
+                    className="flex-1 py-2 sm:py-2.5 md:py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg sm:rounded-xl transition-colors text-sm sm:text-base"
                   >
                     Annuler
                   </button>
                   <button
                     type="submit"
                     disabled={isLoading}
-                    className="flex-1 py-3 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-medium rounded-xl transition-all disabled:opacity-50"
+                    className="flex-1 py-2 sm:py-2.5 md:py-3 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-medium rounded-lg sm:rounded-xl transition-all disabled:opacity-50 text-sm sm:text-base"
                   >
                     {isLoading ? (
                       <span className="flex items-center justify-center gap-2">
-                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                        Enregistrement...
+                        <div className="w-3 h-3 sm:w-4 sm:h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        <span className="hidden sm:inline">Enregistrement...</span>
+                        <span className="sm:hidden">...</span>
                       </span>
                     ) : (
                       'Enregistrer'
