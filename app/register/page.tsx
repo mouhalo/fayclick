@@ -14,7 +14,8 @@ import {
   ChevronRight,
   ChevronLeft,
   Sparkles,
-  Home
+  Home,
+  Tag
 } from 'lucide-react';
 import {
   StructureType,
@@ -72,6 +73,7 @@ export default function RegisterPage() {
     phoneWave: '',
     address: '',
     logoUrl: '',
+    codePromo: '',
     acceptTerms: false,
   });
 
@@ -323,7 +325,8 @@ export default function RegisterPage() {
         p_mobile_om: formData.phoneOM,
         p_mobile_wave: formData.phoneWave || '',
         p_nom_service: formData.serviceType || 'SERVICES',
-        p_logo: formData.logoUrl || ''
+        p_logo: formData.logoUrl || '',
+        p_code_promo: formData.codePromo?.toUpperCase().trim() || 'FAYCLICK'
       };
 
       const result = await registrationService.registerMerchant(registrationData);
@@ -357,6 +360,7 @@ export default function RegisterPage() {
       phoneWave: '',
       address: '',
       logoUrl: '',
+      codePromo: '',
       acceptTerms: false,
     });
     setLogoUploadState({
@@ -677,6 +681,26 @@ export default function RegisterPage() {
                 <div className="text-xs text-gray-500 text-right">
                   {formData.address.length}/{VALIDATION_RULES.ADDRESS_MAX_LENGTH}
                 </div>
+              </div>
+
+              {/* Code Parrainage */}
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700 flex items-center gap-2">
+                  <Tag className="w-4 h-4 text-orange-500" />
+                  Code Parrainage <span className="text-gray-400 text-sm">({tCommon('optional')})</span>
+                </label>
+                <input
+                  type="text"
+                  name="codePromo"
+                  value={formData.codePromo || ''}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-400 uppercase"
+                  placeholder="Ex: ORANGE2026"
+                  maxLength={11}
+                />
+                <p className="text-xs text-gray-500">
+                  Avez-vous un code partenaire ? Entrez-le ici pour bénéficier d'avantages.
+                </p>
               </div>
             </div>
 
