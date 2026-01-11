@@ -134,6 +134,7 @@ export class RegistrationService {
       p_email: data.p_email || '',
       p_logo: data.p_logo || '',
       p_nom_service: data.p_nom_service || 'SERVICES',
+      p_code_promo: data.p_code_promo?.toUpperCase().trim() || 'FAYCLICK',
       p_id_structure: 0 // Toujours 0 pour une nouvelle inscription
     };
   }
@@ -155,6 +156,8 @@ export class RegistrationService {
       const formattedData = this.formatRegistrationData(registrationData);
 
       // 3. Construction de la requête SQL pour add_edit_inscription
+      // Ordre des paramètres: id_type, nom_structure, adresse, mobile_om, mobile_wave,
+      // numautorisatioon, nummarchand, email, logo, nom_service, code_promo, id_structure
       const query = `SELECT add_edit_inscription(
         ${formattedData.p_id_type}::integer,
         '${formattedData.p_nom_structure}'::varchar,
@@ -166,6 +169,7 @@ export class RegistrationService {
         '${formattedData.p_email}'::varchar,
         '${formattedData.p_logo}'::varchar,
         '${formattedData.p_nom_service}'::varchar,
+        '${formattedData.p_code_promo}'::varchar,
         ${formattedData.p_id_structure}::integer
       ) AS message;`;
 

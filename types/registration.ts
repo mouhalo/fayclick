@@ -16,7 +16,7 @@ export interface RegistrationData {
   p_nom_structure: string;     // Nom de la structure (sera transformé en majuscules)
   p_adresse: string;           // Adresse complète (max 255 caractères)
   p_mobile_om: string;         // Téléphone Orange Money (9 chiffres)
-  
+
   // Champs optionnels avec valeurs par défaut
   p_mobile_wave?: string;      // Téléphone Wave Money (optionnel)
   p_numautorisatioon?: string; // Numéro d'autorisation (optionnel)
@@ -24,6 +24,7 @@ export interface RegistrationData {
   p_email?: string;            // Email (optionnel)
   p_logo?: string;             // Logo en base64 (optionnel)
   p_nom_service?: string;      // Type de service (OPTIONNEL, défaut: "SERVICES")
+  p_code_promo?: string;       // Code promo partenaire (OPTIONNEL, défaut: "FAYCLICK")
   p_id_structure?: number;     // ID structure (0 pour nouvelle inscription)
 }
 
@@ -50,7 +51,7 @@ export interface RegistrationResponse {
 export interface RegistrationFormData {
   // Étape 1: Bienvenue et nom du business
   businessName: string;        // Nom du business/entreprise/commerce
-  
+
   // Étape 2: Configuration détaillée
   structureTypeId: number;     // Type de structure depuis la base (OBLIGATOIRE)
   serviceType: string;         // Type de service indépendant (OPTIONNEL, défaut: SERVICES)
@@ -58,7 +59,8 @@ export interface RegistrationFormData {
   phoneWave?: string;          // Téléphone Wave Money (optionnel)
   address: string;             // Adresse complète
   logoUrl?: string;            // URL du logo uploadé (optionnel)
-  
+  codePromo?: string;          // Code parrainage partenaire (optionnel)
+
   // Étape 3: Récapitulatif et validation
   acceptTerms: boolean;        // Acceptation CGU
 }
