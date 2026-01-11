@@ -7,7 +7,6 @@ import { PWAInstallProvider } from '@/components/pwa/PWAInstallProvider';
 import { LanguageProvider } from '@/contexts/LanguageContext';
 import { ServiceWorkerUpdateHandler } from '@/components/ServiceWorkerUpdateHandler';
 import { Toaster } from 'sonner';
-import PasswordChangeNotification from '@/components/auth/PasswordChangeNotification';
 
 // Temporary fallback to system fonts for deployment
 const inter = {
@@ -80,7 +79,6 @@ export default function RootLayout({
                 <div className="safe-area-container">
                   {children}
                 </div>
-                <PasswordChangeNotification />
                 <Toaster
                   position="top-center"
                   richColors
