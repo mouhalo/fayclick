@@ -6,6 +6,7 @@ import { VersionProvider } from '@/contexts/VersionContext';
 import { PWAInstallProvider } from '@/components/pwa/PWAInstallProvider';
 import { LanguageProvider } from '@/contexts/LanguageContext';
 import { ServiceWorkerUpdateHandler } from '@/components/ServiceWorkerUpdateHandler';
+import { SplashScreenProvider } from '@/components/splash';
 import { Toaster } from 'sonner';
 
 // Temporary fallback to system fonts for deployment
@@ -76,9 +77,11 @@ export default function RootLayout({
           <ConditionalAuthProvider>
             <VersionProvider autoCheck={true}>
               <PWAInstallProvider>
-                <div className="safe-area-container">
-                  {children}
-                </div>
+                <SplashScreenProvider>
+                  <div className="safe-area-container">
+                    {children}
+                  </div>
+                </SplashScreenProvider>
                 <Toaster
                   position="top-center"
                   richColors
