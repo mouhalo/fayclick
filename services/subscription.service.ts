@@ -88,15 +88,17 @@ class SubscriptionService {
     params: CreateAbonnementParams
   ): Promise<AbonnementResponse> {
     try {
-      console.log('📝 [SUBSCRIPTION] Création abonnement:', params);
+      console.log('📝 [SUBSCRIPTION-SERVICE] ======== createSubscription APPELÉ ========');
+      console.log('📝 [SUBSCRIPTION-SERVICE] Paramètres reçus:', JSON.stringify(params, null, 2));
 
       // Validation
       if (!params.id_structure) {
+        console.error('❌ [SUBSCRIPTION-SERVICE] ERREUR: ID structure manquant!');
         throw new Error('ID structure requis');
       }
 
       if (!params.uuid_paiement) {
-        console.warn('⚠️ [SUBSCRIPTION] Création sans UUID paiement (mode test?)');
+        console.warn('⚠️ [SUBSCRIPTION-SERVICE] Création sans UUID paiement (mode test?)');
       }
 
       // Préparer les valeurs (NULL pour les optionnels)
@@ -119,18 +121,31 @@ class SubscriptionService {
         ${forcerRemplacement}::BOOLEAN
       )`;
 
-      console.log('🔍 [SUBSCRIPTION] Requête SQL:', query);
+      console.log('🔍 [SUBSCRIPTION-SERVICE] ======== EXÉCUTION SQL ========');
+      console.log('🔍 [SUBSCRIPTION-SERVICE] Requête SQL:', query);
 
       const result = await databaseService.query<{ add_abonnement_structure: string }>(query);
 
+      console.log('📦 [SUBSCRIPTION-SERVICE] Résultat brut SQL:', JSON.stringify(result, null, 2));
+
       if (!result || result.length === 0) {
+        console.error('❌ [SUBSCRIPTION-SERVICE] ERREUR: Aucune réponse de la fonction PostgreSQL!');
         throw new Error('Aucune réponse de la fonction de création');
       }
 
-      // Parser la réponse JSON de PostgreSQL
-      const response: AbonnementResponse = JSON.parse(
-        result[0].add_abonnement_structure
-      );
+      // Parser la réponse JSON de PostgreSQL (peut être déjà un objet ou une chaîne)
+      const rawResponse = result[0].add_abonnement_structure;
+      console.log('🔄 [SUBSCRIPTION-SERVICE] Type de réponse:', typeof rawResponse);
+
+      let response: AbonnementResponse;
+      if (typeof rawResponse === 'string') {
+        console.log('🔄 [SUBSCRIPTION-SERVICE] Parsing JSON string...');
+        response = JSON.parse(rawResponse);
+      } else {
+        console.log('🔄 [SUBSCRIPTION-SERVICE] Réponse déjà objet, pas de parsing nécessaire');
+        response = rawResponse as AbonnementResponse;
+      }
+      console.log('✅ [SUBSCRIPTION-SERVICE] Réponse finale:', JSON.stringify(response, null, 2));
 
       if (!response.success) {
         console.error('❌ [SUBSCRIPTION] Échec création:', response.message);
