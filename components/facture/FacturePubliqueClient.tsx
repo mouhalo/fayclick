@@ -25,7 +25,6 @@ import { facturePubliqueService } from '@/services/facture-publique.service';
 import { FactureComplete } from '@/types/facture';
 import { ModalPaiementQRCode } from '@/components/factures/ModalPaiementQRCode';
 import { PaymentMethod, PaymentContext } from '@/types/payment-wallet';
-import Image from 'next/image';
 import PaymentFlipCard from './PaymentFlipCard';
 
 interface FacturePubliqueClientProps {
@@ -328,144 +327,149 @@ export default function FacturePubliqueClient({ token }: FacturePubliqueClientPr
   const isPaid = facture.facture.id_etat !== 1 || facture.facture.mt_restant === 0;
 
   return (
-    <div className={`min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 ${styles.container}`}>
+    <div className={`min-h-screen bg-gradient-to-br from-green-100 via-emerald-50 to-teal-100 ${styles.container}`}>
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         className={`${styles.maxWidth} mx-auto`}
       >
-        {/* ========== HEADER VERT AVEC BADGE STATUT ========== */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className={`bg-gradient-to-r from-green-600 via-emerald-600 to-teal-600 rounded-t-2xl ${styles.headerPadding} shadow-lg`}
-        >
-          <div className="flex items-center justify-between">
-            {/* Logo + Nom Structure */}
-            <div className="flex items-center gap-3">
-              {facture.facture.logo && facture.facture.logo.trim() !== '' ? (
-                <div className="bg-white/20 backdrop-blur-sm rounded-lg p-1.5">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={facture.facture.logo}
-                    alt={`Logo ${facture.facture.nom_structure}`}
-                    className={`${screenType === 'mobile' ? 'h-8' : 'h-10'} w-auto object-contain`}
-                    onError={(e) => { e.currentTarget.style.display = 'none'; }}
-                  />
+        {/* ========== CARTE PRINCIPALE CONTENEUR ========== */}
+        <div className="bg-gradient-to-b from-white/80 via-white/60 to-white/80 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/50 overflow-hidden">
+
+          {/* ========== HEADER VERT ========== */}
+          <div className="relative">
+            <div className={`bg-gradient-to-r from-green-600 via-emerald-600 to-teal-600 ${styles.headerPadding} pb-14`}>
+              <div className="flex items-center justify-between">
+                {/* Logo + Nom Structure */}
+                <div className="flex items-center gap-3">
+                  {facture.facture.logo && facture.facture.logo.trim() !== '' ? (
+                    <div className="bg-white/20 backdrop-blur-sm rounded-xl p-2">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={facture.facture.logo}
+                        alt={`Logo ${facture.facture.nom_structure}`}
+                        className={`${screenType === 'mobile' ? 'h-8' : 'h-10'} w-auto object-contain`}
+                        onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                      />
+                    </div>
+                  ) : (
+                    <div className={`bg-white/20 backdrop-blur-sm rounded-xl ${screenType === 'mobile' ? 'p-2.5' : 'p-3'}`}>
+                      <Receipt className={`${screenType === 'mobile' ? 'w-6 h-6' : 'w-7 h-7'} text-white`} />
+                    </div>
+                  )}
+                  <div>
+                    <h1 className={`${styles.title} font-bold text-white`}>
+                      {facture.facture.nom_structure}
+                    </h1>
+                    <p className={`${styles.subtitle} text-white/80 flex items-center gap-1`}>
+                      <Calendar className={`${screenType === 'mobile' ? 'w-3 h-3' : 'w-4 h-4'}`} />
+                      Facture émise le {formatDate(facture.facture.date_facture)}
+                    </p>
+                  </div>
                 </div>
-              ) : (
-                <div className={`bg-white/20 backdrop-blur-sm rounded-lg ${screenType === 'mobile' ? 'p-2' : 'p-2.5'}`}>
-                  <Receipt className={`${screenType === 'mobile' ? 'w-5 h-5' : 'w-6 h-6'} text-white`} />
-                </div>
-              )}
-              <div>
-                <h1 className={`${styles.title} font-bold text-white`}>
-                  {facture.facture.nom_structure}
-                </h1>
-                <p className={`${styles.subtitle} text-white/80 flex items-center gap-1`}>
-                  <Calendar className={`${screenType === 'mobile' ? 'w-3 h-3' : 'w-4 h-4'}`} />
-                  Facture émise le {formatDate(facture.facture.date_facture)}
-                </p>
+
+                {/* Badge Statut */}
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ delay: 0.2, type: 'spring' }}
+                >
+                  <span className={`inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full font-semibold shadow-lg ${
+                    isPaid
+                      ? 'bg-green-100 text-green-800 border border-green-300'
+                      : 'bg-amber-100 text-amber-800 border border-amber-300'
+                  } ${screenType === 'mobile' ? 'text-xs' : 'text-sm'}`}>
+                    <span className={`w-2 h-2 rounded-full ${isPaid ? 'bg-green-500' : 'bg-amber-500'} animate-pulse`}></span>
+                    {isPaid ? 'Payée' : 'En attente'}
+                  </span>
+                </motion.div>
               </div>
             </div>
 
-            {/* Badge Statut */}
-            <motion.div
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{ delay: 0.2, type: 'spring' }}
-            >
-              <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full font-semibold shadow-lg ${
-                isPaid
-                  ? 'bg-green-100 text-green-800 border border-green-300'
-                  : 'bg-amber-100 text-amber-800 border border-amber-300'
-              } ${screenType === 'mobile' ? 'text-xs' : 'text-sm'}`}>
-                <span className={`w-2 h-2 rounded-full ${isPaid ? 'bg-green-500' : 'bg-amber-500'} animate-pulse`}></span>
-                {isPaid ? 'Payée' : 'En attente'}
-              </span>
-            </motion.div>
+            {/* Demi-cercle décoratif doré */}
+            <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-1/2 z-20">
+              <div className={`${screenType === 'mobile' ? 'w-16 h-8' : 'w-20 h-10'} bg-gradient-to-b from-amber-400 to-amber-500 rounded-b-full border-4 border-white shadow-lg`}></div>
+            </div>
           </div>
-        </motion.div>
 
-        {/* ========== CONTENU PRINCIPAL ========== */}
-        <div className="bg-white/95 backdrop-blur-xl rounded-b-2xl shadow-2xl border border-white/30">
+          {/* ========== CARTE INFOS FACTURE (superposée) ========== */}
+          <div className="relative -mt-6 mx-3 z-10">
+            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-4 pt-6">
+              {/* Message de succès de paiement */}
+              {paymentSuccess && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="bg-green-50 border border-green-200 rounded-lg p-3 mb-4 text-center"
+                >
+                  <div className="text-green-700 font-semibold flex items-center justify-center gap-2 text-sm">
+                    <Check className="w-4 h-4" />
+                    Paiement confirmé !
+                  </div>
+                </motion.div>
+              )}
 
-          {/* Message de succès de paiement */}
-          {paymentSuccess && (
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="bg-green-50 border-b border-green-200 p-4 text-center"
-            >
-              <div className="text-green-700 font-semibold flex items-center justify-center gap-2">
-                <Check className="w-5 h-5" />
-                Paiement confirmé ! La facture a été mise à jour.
+              <h3 className={`font-bold text-gray-800 mb-3 flex items-center gap-2 ${screenType === 'mobile' ? 'text-sm' : 'text-base'}`}>
+                <FileText className={`${screenType === 'mobile' ? 'w-4 h-4' : 'w-5 h-5'} text-green-600`} />
+                Infos facture
+              </h3>
+
+              {/* N° Facture avec bouton Copier */}
+              <div className="flex items-center justify-between bg-gray-50 rounded-lg p-2.5 mb-2">
+                <div className="flex items-center gap-2">
+                  <Receipt className={`${screenType === 'mobile' ? 'w-3.5 h-3.5' : 'w-4 h-4'} text-gray-500`} />
+                  <span className={`font-mono font-bold text-gray-800 ${screenType === 'mobile' ? 'text-xs' : 'text-sm'}`}>
+                    N° #{facture.facture.num_facture}
+                  </span>
+                </div>
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={handleCopyNumFacture}
+                  className={`flex items-center gap-1 px-2.5 py-1 rounded-lg transition-all ${
+                    copied
+                      ? 'bg-green-100 text-green-700'
+                      : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'
+                  } ${screenType === 'mobile' ? 'text-xs' : 'text-sm'}`}
+                >
+                  {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                  {copied ? 'Copié' : 'Copier'}
+                </motion.button>
               </div>
-            </motion.div>
-          )}
 
-          {/* ========== CARTE INFOS FACTURE ========== */}
-          <div className={`${styles.card} border-b border-gray-100`}>
-            <h3 className={`font-bold text-gray-800 mb-4 flex items-center gap-2 ${screenType === 'mobile' ? 'text-sm' : 'text-base'}`}>
-              <FileText className={`${screenType === 'mobile' ? 'w-4 h-4' : 'w-5 h-5'} text-green-600`} />
-              Infos facture
-            </h3>
-
-            {/* N° Facture avec bouton Copier */}
-            <div className="flex items-center justify-between bg-gray-50 rounded-lg p-3 mb-3">
-              <div className="flex items-center gap-2">
-                <Receipt className={`${screenType === 'mobile' ? 'w-4 h-4' : 'w-5 h-5'} text-gray-500`} />
-                <span className={`font-mono font-bold text-gray-800 ${screenType === 'mobile' ? 'text-sm' : 'text-base'}`}>
-                  N° #{facture.facture.num_facture}
+              {/* Client */}
+              <div className="flex items-center gap-2 mb-3">
+                <User className={`${screenType === 'mobile' ? 'w-3.5 h-3.5' : 'w-4 h-4'} text-gray-500`} />
+                <span className={`text-gray-700 ${screenType === 'mobile' ? 'text-xs' : 'text-sm'}`}>
+                  Client: <span className="font-medium text-gray-900">{facture.facture.nom_client}</span> · {facture.facture.tel_client}
                 </span>
               </div>
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={handleCopyNumFacture}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all ${
-                  copied
-                    ? 'bg-green-100 text-green-700'
-                    : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'
-                } ${screenType === 'mobile' ? 'text-xs' : 'text-sm'}`}
-              >
-                {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                {copied ? 'Copié' : 'Copier'}
-              </motion.button>
-            </div>
 
-            {/* Client */}
-            <div className="flex items-center gap-2 mb-4">
-              <User className={`${screenType === 'mobile' ? 'w-4 h-4' : 'w-5 h-5'} text-gray-500`} />
-              <span className={`text-gray-700 ${screenType === 'mobile' ? 'text-sm' : 'text-base'}`}>
-                Client: <span className="font-medium text-gray-900">{facture.facture.nom_client}</span> - {facture.facture.tel_client}
-              </span>
-            </div>
-
-            {/* Boutons Partager / Télécharger PDF */}
-            <div className={`grid ${screenType === 'mobile' ? 'grid-cols-2 gap-2' : 'grid-cols-2 gap-3'}`}>
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={handleShare}
-                className={`flex items-center justify-center gap-2 py-2.5 px-4 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white rounded-lg font-medium shadow-md transition-all ${styles.buttonText}`}
-              >
-                <Share2 className={`${screenType === 'mobile' ? 'w-4 h-4' : 'w-5 h-5'}`} />
-                Partager
-              </motion.button>
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                className={`flex items-center justify-center gap-2 py-2.5 px-4 bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 text-white rounded-lg font-medium shadow-md transition-all ${styles.buttonText}`}
-              >
-                <Download className={`${screenType === 'mobile' ? 'w-4 h-4' : 'w-5 h-5'}`} />
-                Télécharger PDF
-              </motion.button>
+              {/* Boutons Partager / Télécharger PDF - Style pilule compact */}
+              <div className="flex gap-2 justify-center">
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={handleShare}
+                  className={`flex items-center gap-1.5 py-2 px-4 bg-white border-2 border-green-500 text-green-600 hover:bg-green-50 rounded-full font-medium shadow-sm transition-all ${screenType === 'mobile' ? 'text-xs' : 'text-sm'}`}
+                >
+                  <Share2 className="w-4 h-4" />
+                  Partager
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  className={`flex items-center gap-1.5 py-2 px-4 bg-white border-2 border-teal-500 text-teal-600 hover:bg-teal-50 rounded-full font-medium shadow-sm transition-all ${screenType === 'mobile' ? 'text-xs' : 'text-sm'}`}
+                >
+                  <Download className="w-4 h-4" />
+                  Télécharger PDF
+                </motion.button>
+              </div>
             </div>
           </div>
 
-          {/* ========== CARTE FLIP MONTANT + PAIEMENT ========== */}
-          <div className={`${styles.card} border-b border-gray-100`}>
+          {/* ========== CARTE MONTANT À PAYER (avec flip pour les wallets) ========== */}
+          <div className="mx-3 mt-3">
             <PaymentFlipCard
               montantRestant={facture.facture.mt_restant}
               montantTotal={facture.facture.montant}
@@ -478,16 +482,16 @@ export default function FacturePubliqueClient({ token }: FacturePubliqueClientPr
           </div>
 
           {/* ========== BOUTON DÉTAILS DE LA VENTE ========== */}
-          <div className={`${styles.card}`}>
+          <div className="mx-3 mt-2 mb-4">
             <motion.button
               whileHover={{ scale: 1.01 }}
               whileTap={{ scale: 0.99 }}
               onClick={() => setShowDetails(!showDetails)}
-              className={`w-full flex items-center justify-center gap-2 py-3 bg-gray-50 hover:bg-gray-100 rounded-xl border border-gray-200 transition-all ${styles.buttonText}`}
+              className={`w-full flex items-center justify-center gap-2 py-2.5 bg-gray-50 hover:bg-gray-100 rounded-xl border border-gray-200 transition-all ${screenType === 'mobile' ? 'text-xs' : 'text-sm'}`}
             >
               <Package className={`${screenType === 'mobile' ? 'w-4 h-4' : 'w-5 h-5'} text-gray-600`} />
               <span className="font-medium text-gray-700">
-                {showDetails ? 'Masquer' : 'Voir'} les détails de la vente
+                {showDetails ? 'Masquer' : 'Voir'} les détails
               </span>
               <motion.div
                 animate={{ rotate: showDetails ? 180 : 0 }}
@@ -496,6 +500,23 @@ export default function FacturePubliqueClient({ token }: FacturePubliqueClientPr
                 <ChevronDown className={`${screenType === 'mobile' ? 'w-4 h-4' : 'w-5 h-5'} text-gray-500`} />
               </motion.div>
             </motion.button>
+          </div>
+
+          {/* ========== FOOTER DANS LA CARTE ========== */}
+          <div className="border-t border-gray-100 py-3 px-4 text-center">
+            <div className={`flex items-center justify-center gap-4 text-gray-500 ${screenType === 'mobile' ? 'text-xs' : 'text-sm'}`}>
+              <button className="hover:text-green-600 transition-colors flex items-center gap-1">
+                <HelpCircle className="w-3.5 h-3.5" />
+                Besoin d&apos;aide ?
+              </button>
+              <span>·</span>
+              <button className="hover:text-green-600 transition-colors">
+                Mentions légales
+              </button>
+            </div>
+            <p className={`mt-2 font-semibold text-green-600 ${screenType === 'mobile' ? 'text-xs' : 'text-sm'}`}>
+              🌿 FayClick
+            </p>
           </div>
         </div>
 
@@ -611,41 +632,6 @@ export default function FacturePubliqueClient({ token }: FacturePubliqueClientPr
           )}
         </AnimatePresence>
 
-        {/* ========== FOOTER ========== */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.4 }}
-          className="text-center mt-6 space-y-3"
-        >
-          {/* Liens */}
-          <div className={`flex items-center justify-center gap-4 ${screenType === 'mobile' ? 'text-xs' : 'text-sm'}`}>
-            <button className="flex items-center gap-1 text-gray-500 hover:text-green-600 transition-colors">
-              <HelpCircle className="w-4 h-4" />
-              Besoin d&apos;aide ?
-            </button>
-            <span className="text-gray-300">|</span>
-            <button className="text-gray-500 hover:text-green-600 transition-colors">
-              Mentions légales
-            </button>
-          </div>
-
-          {/* Logo FayClick */}
-          <div className="flex items-center justify-center gap-2">
-            <div className="w-6 h-6 relative">
-              <Image
-                src="/fayclick.ico"
-                alt="FayClick"
-                fill
-                className="object-contain"
-                sizes="24px"
-              />
-            </div>
-            <p className={`text-gray-500 ${screenType === 'mobile' ? 'text-xs' : 'text-sm'}`}>
-              Facture générée par <strong className="text-green-600">FayClick</strong>
-            </p>
-          </div>
-        </motion.div>
       </motion.div>
 
       {/* ========== MODAL QR CODE ========== */}

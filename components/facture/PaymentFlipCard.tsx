@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Shield, Check, CreditCard } from 'lucide-react';
+import { Shield, Check, CreditCard, RotateCcw, Receipt } from 'lucide-react';
 import Image from 'next/image';
 import { PaymentMethod } from '@/types/payment-wallet';
 
@@ -16,33 +16,6 @@ interface PaymentFlipCardProps {
   formatMontant: (montant: number) => string;
 }
 
-// Configuration des wallets
-const walletMethods: Array<{
-  id: PaymentMethod;
-  name: string;
-  logo: string;
-  color: string;
-}> = [
-  {
-    id: 'OM',
-    name: 'Orange Money',
-    logo: '/images/om.png',
-    color: 'border-orange-400 hover:border-orange-500'
-  },
-  {
-    id: 'WAVE',
-    name: 'Wave',
-    logo: '/images/wave.png',
-    color: 'border-blue-400 hover:border-blue-500'
-  },
-  {
-    id: 'FREE',
-    name: 'Free Money',
-    logo: '/images/free.png',
-    color: 'border-green-400 hover:border-green-500'
-  }
-];
-
 export default function PaymentFlipCard({
   montantRestant,
   montantTotal,
@@ -53,94 +26,97 @@ export default function PaymentFlipCard({
   formatMontant
 }: PaymentFlipCardProps) {
   const [isFlipped, setIsFlipped] = useState(false);
+  const [selectedWallet, setSelectedWallet] = useState<PaymentMethod | null>(null);
 
-  // Styles responsifs (compacts pour éviter carte trop allongée)
+  // Configuration des wallets
+  const walletOptions = [
+    { id: 'OM' as PaymentMethod, name: 'Orange Money', logo: '/images/om.png', color: 'border-orange-400', bg: 'bg-orange-50' },
+    { id: 'WAVE' as PaymentMethod, name: 'Wave', logo: '/images/wave.png', color: 'border-blue-400', bg: 'bg-blue-50' },
+    { id: 'FREE' as PaymentMethod, name: 'Free Money', logo: '/images/free.png', color: 'border-green-400', bg: 'bg-green-50' }
+  ];
+
+  // Styles responsifs
   const getStyles = () => {
     switch (screenType) {
       case 'mobile':
         return {
           montant: 'text-3xl',
-          montantLabel: 'text-sm',
-          walletLogo: 'w-10 h-10',
-          walletName: 'text-[9px]',
-          walletPadding: 'p-2 py-2',
-          padding: 'p-3',
+          montantLabel: 'text-xs',
+          padding: 'p-4',
           detailText: 'text-xs',
-          buttonText: 'text-xs',
-          montantRappel: 'text-sm',
-          montantRappelValue: 'text-base'
+          walletLogo: 'w-10 h-10',
+          walletName: 'text-[10px]',
+          walletPadding: 'p-2'
         };
       case 'tablet':
         return {
           montant: 'text-4xl',
-          montantLabel: 'text-base',
-          walletLogo: 'w-12 h-12',
-          walletName: 'text-[10px]',
-          walletPadding: 'p-2 py-3',
-          padding: 'p-4',
+          montantLabel: 'text-sm',
+          padding: 'p-5',
           detailText: 'text-sm',
-          buttonText: 'text-sm',
-          montantRappel: 'text-sm',
-          montantRappelValue: 'text-lg'
+          walletLogo: 'w-12 h-12',
+          walletName: 'text-xs',
+          walletPadding: 'p-3'
         };
       default:
         return {
           montant: 'text-5xl',
-          montantLabel: 'text-lg',
-          walletLogo: 'w-14 h-14',
-          walletName: 'text-xs',
-          walletPadding: 'p-3 py-3',
-          padding: 'p-5',
+          montantLabel: 'text-base',
+          padding: 'p-6',
           detailText: 'text-sm',
-          buttonText: 'text-base',
-          montantRappel: 'text-sm',
-          montantRappelValue: 'text-lg'
+          walletLogo: 'w-14 h-14',
+          walletName: 'text-sm',
+          walletPadding: 'p-4'
         };
     }
   };
 
   const styles = getStyles();
 
-  const handleFlip = () => {
-    if (!isPaid) {
-      setIsFlipped(!isFlipped);
+  // Handler pour le bouton Payer
+  const handlePay = () => {
+    if (selectedWallet) {
+      onSelectPaymentMethod(selectedWallet);
     }
   };
 
-  const handlePaymentSelect = (method: PaymentMethod) => {
-    onSelectPaymentMethod(method);
+  // Handler pour flipper vers les wallets
+  const handleFlipToWallets = () => {
+    if (!isPaid) {
+      setIsFlipped(true);
+    }
   };
 
   return (
-    <div className="relative w-full" style={{ perspective: '1200px' }}>
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="relative w-full"
+      style={{ perspective: '1000px' }}
+    >
+      {/* Container avec flip 3D */}
       <motion.div
-        className="grid w-full"
-        style={{ transformStyle: 'preserve-3d' }}
         animate={{ rotateY: isFlipped ? 180 : 0 }}
         transition={{ duration: 0.6, ease: 'easeInOut' }}
+        style={{ transformStyle: 'preserve-3d' }}
+        className="relative w-full"
       >
-        {/* ========== FACE AVANT - MONTANT ========== */}
+        {/* ========== FACE AVANT - Montant à payer ========== */}
         <div
-          className={`
-            relative row-start-1 col-start-1 rounded-2xl overflow-hidden cursor-pointer
-            ${!isPaid ? 'hover:shadow-2xl transition-shadow' : ''}
-          `}
-          style={{
-            backfaceVisibility: 'hidden',
-            WebkitBackfaceVisibility: 'hidden'
-          }}
-          onClick={handleFlip}
+          className="relative rounded-2xl overflow-hidden"
+          style={{ backfaceVisibility: 'hidden' }}
         >
           {/* Fond coloré de base */}
           <div className="absolute inset-0 bg-gradient-to-br from-emerald-600 via-green-600 to-teal-700 rounded-2xl"></div>
+
+          {/* Bordure dorée */}
+          <div className="absolute inset-0 rounded-2xl border-2 border-amber-400/50"></div>
 
           {/* Carte glassmorphism */}
           <div className={`
             relative rounded-2xl ${styles.padding} overflow-hidden
             bg-gradient-to-br from-white/15 via-white/10 to-white/5
             backdrop-blur-xl
-            border-2 border-white/30
-            shadow-[0_4px_16px_rgba(0,0,0,0.1)]
           `}>
             {/* Reflet radial */}
             <div
@@ -154,60 +130,61 @@ export default function PaymentFlipCard({
             <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/40 to-transparent"></div>
 
             {/* Mascotte en fond */}
-            <div className="absolute inset-0 pointer-events-none opacity-30">
+            <div className="absolute inset-0 pointer-events-none opacity-25">
               <Image
                 src="/images/fond_card_facture.png"
                 alt="Mascotte"
                 fill
-                className="object-cover"
+                className="object-cover object-right"
                 sizes="(max-width: 768px) 100vw, 600px"
               />
             </div>
 
             {/* Contenu */}
-            <div className="relative z-10">
-              <h3 className={`text-white/90 font-medium mb-2 ${styles.montantLabel}`}>
-                Montant à payer
-              </h3>
+            <div className="relative z-10 text-center">
+              {/* Label Montant à payer dans un badge */}
+              <div className="inline-block mb-3">
+                <span className={`bg-white/20 backdrop-blur-sm text-white px-4 py-1.5 rounded-full font-medium ${styles.montantLabel}`}>
+                  Montant à payer
+                </span>
+              </div>
 
               {/* Montant principal */}
               <div className="mb-3">
                 <span className={`${styles.montant} font-bold text-white`}>
                   {montantRestant > 0
-                    ? formatMontant(montantRestant).replace('XOF', '').trim()
-                    : formatMontant(montantTotal).replace('XOF', '').trim()
+                    ? formatMontant(montantRestant).replace('XOF', '').replace('FCFA', '').trim()
+                    : formatMontant(montantTotal).replace('XOF', '').replace('FCFA', '').trim()
                   }
                 </span>
                 <span className={`${screenType === 'mobile' ? 'text-lg' : 'text-xl'} text-white/90 ml-2`}>XOF</span>
               </div>
 
               {/* Détails acompte/restant */}
-              <div className={`space-y-1 text-white/80 ${styles.detailText}`}>
+              <div className={`space-y-0.5 text-white/80 ${styles.detailText}`}>
                 <p>Acompte: <span className="font-medium text-white">{formatMontant(montantAcompte)}</span></p>
                 <p>Restant: <span className="font-medium text-white">{formatMontant(montantRestant)}</span></p>
               </div>
 
-              {/* Message sécurisé + indication flip */}
+              {/* Bouton pour flipper - Payer maintenant */}
               {!isPaid && (
-                <div className="mt-4 flex items-center justify-between">
-                  <div className={`flex items-center gap-2 text-white/70 ${styles.detailText}`}>
-                    <Shield className="w-4 h-4" />
-                    Paiement sécurisé et instantané
-                  </div>
-                  <motion.div
-                    className={`flex items-center gap-1 bg-white/20 backdrop-blur-sm px-3 py-1.5 rounded-full ${styles.buttonText}`}
-                    animate={{ scale: [1, 1.05, 1] }}
-                    transition={{ repeat: Infinity, duration: 2 }}
-                  >
-                    <CreditCard className="w-4 h-4 text-white" />
-                    <span className="text-white font-medium">Payer</span>
-                  </motion.div>
-                </div>
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={handleFlipToWallets}
+                  className={`mt-4 w-full py-3 rounded-full font-bold shadow-lg transition-all
+                    bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600
+                    text-white border-2 border-amber-300 flex items-center justify-center gap-2
+                    ${screenType === 'mobile' ? 'text-sm' : 'text-base'}`}
+                >
+                  <CreditCard className="w-5 h-5" />
+                  Payer maintenant
+                </motion.button>
               )}
 
               {/* Badge payée */}
               {isPaid && (
-                <div className="mt-4 inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm px-4 py-2 rounded-full">
+                <div className="mt-3 inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm px-4 py-2 rounded-full">
                   <Check className="w-5 h-5 text-white" />
                   <span className="text-white font-semibold">Intégralement payée</span>
                 </div>
@@ -216,85 +193,104 @@ export default function PaymentFlipCard({
           </div>
         </div>
 
-        {/* ========== FACE ARRIÈRE - MODES DE PAIEMENT ========== */}
+        {/* ========== FACE ARRIÈRE - Choix du wallet ========== */}
         <div
-          className="relative row-start-1 col-start-1 rounded-2xl overflow-hidden"
-          style={{
-            backfaceVisibility: 'hidden',
-            WebkitBackfaceVisibility: 'hidden',
-            transform: 'rotateY(180deg)'
-          }}
+          className="absolute inset-0 rounded-2xl overflow-hidden"
+          style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
         >
-          {/* Fond coloré */}
+          {/* Fond coloré de base */}
           <div className="absolute inset-0 bg-gradient-to-br from-slate-700 via-slate-800 to-slate-900 rounded-2xl"></div>
+
+          {/* Bordure dorée */}
+          <div className="absolute inset-0 rounded-2xl border-2 border-amber-400/50"></div>
 
           {/* Carte glassmorphism */}
           <div className={`
-            relative rounded-2xl ${styles.padding} overflow-hidden
-            bg-gradient-to-br from-white/10 via-white/5 to-white/5
+            relative rounded-2xl ${styles.padding} overflow-hidden h-full
+            bg-gradient-to-br from-white/10 via-white/5 to-white/0
             backdrop-blur-xl
-            border-2 border-white/20
           `}>
-            {/* Header */}
-            <div className="flex items-center justify-between mb-2">
-              <h3 className={`text-white font-bold ${styles.detailText}`}>
-                Choisir un moyen de paiement
-              </h3>
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={handleFlip}
-                className={`text-white/70 hover:text-white bg-white/10 hover:bg-white/20 px-2 py-0.5 rounded-full transition-all ${styles.buttonText}`}
-              >
-                ← Retour
-              </motion.button>
-            </div>
+            {/* Ligne de reflet en haut */}
+            <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/30 to-transparent"></div>
 
-            {/* Montant à payer (rappel) - compact */}
-            <div className="bg-white/10 rounded-lg p-2 mb-3 text-center">
-              <span className={`text-white/70 ${styles.montantRappel}`}>Montant : </span>
-              <span className={`text-white font-bold ${styles.montantRappelValue}`}>
-                {formatMontant(montantRestant)}
-              </span>
-            </div>
-
-            {/* Grille des wallets */}
-            <div className="grid grid-cols-3 gap-2">
-              {walletMethods.map((method, index) => (
+            {/* Contenu */}
+            <div className="relative z-10 h-full flex flex-col">
+              {/* Header avec bouton retour */}
+              <div className="flex items-center justify-between mb-3">
+                <span className={`text-white/90 font-medium ${styles.montantLabel}`}>
+                  Choisir un moyen de paiement
+                </span>
                 <motion.button
-                  key={method.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.1 + index * 0.1 }}
-                  whileHover={{ scale: 1.03, y: -2 }}
-                  whileTap={{ scale: 0.97 }}
-                  onClick={() => handlePaymentSelect(method.id)}
-                  className={`
-                    flex flex-col items-center justify-center ${styles.walletPadding} rounded-xl
-                    bg-white hover:bg-gray-50
-                    border-2 ${method.color}
-                    shadow-lg hover:shadow-xl
-                    transition-all duration-200
-                  `}
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
+                  onClick={() => setIsFlipped(false)}
+                  className="p-1.5 bg-white/10 hover:bg-white/20 rounded-full transition-colors"
                 >
-                  <div className={`${styles.walletLogo} relative mb-1`}>
-                    <Image
-                      src={method.logo}
-                      alt={method.name}
-                      fill
-                      className="object-contain p-1"
-                      sizes="80px"
-                    />
-                  </div>
-                  <span className={`font-semibold text-gray-700 ${styles.walletName} text-center leading-tight`}>
-                    {method.name}
-                  </span>
+                  <RotateCcw className="w-4 h-4 text-white/70" />
                 </motion.button>
-              ))}
+              </div>
+
+              {/* Grille des wallets */}
+              <div className="grid grid-cols-3 gap-2 flex-1">
+                {walletOptions.map((wallet) => (
+                  <motion.button
+                    key={wallet.id}
+                    whileHover={{ scale: 1.03 }}
+                    whileTap={{ scale: 0.97 }}
+                    onClick={() => setSelectedWallet(wallet.id)}
+                    className={`relative flex flex-col items-center justify-center ${styles.walletPadding} rounded-xl bg-white/95 border-2 transition-all ${
+                      selectedWallet === wallet.id
+                        ? `${wallet.color} shadow-lg ring-2 ring-offset-1 ring-amber-400`
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                  >
+                    {/* Badge de sélection */}
+                    {selectedWallet === wallet.id && (
+                      <div className="absolute -top-1 -right-1 w-5 h-5 bg-green-500 rounded-full flex items-center justify-center shadow-md">
+                        <Check className="w-3 h-3 text-white" />
+                      </div>
+                    )}
+                    <div className={`${styles.walletLogo} relative mb-1`}>
+                      <Image
+                        src={wallet.logo}
+                        alt={wallet.name}
+                        fill
+                        className="object-contain"
+                        sizes="56px"
+                      />
+                    </div>
+                    <span className={`font-medium text-gray-700 text-center ${styles.walletName}`}>
+                      {wallet.name}
+                    </span>
+                  </motion.button>
+                ))}
+              </div>
+
+              {/* Bouton Payer */}
+              <motion.button
+                whileHover={{ scale: selectedWallet ? 1.02 : 1 }}
+                whileTap={{ scale: selectedWallet ? 0.98 : 1 }}
+                onClick={handlePay}
+                disabled={!selectedWallet}
+                className={`mt-3 w-full py-3 rounded-full font-bold shadow-lg transition-all flex items-center justify-center gap-2 ${
+                  selectedWallet
+                    ? 'bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-white border-2 border-amber-300'
+                    : 'bg-gray-300 text-gray-500 cursor-not-allowed border-2 border-gray-400'
+                } ${screenType === 'mobile' ? 'text-sm' : 'text-base'}`}
+              >
+                <Receipt className="w-5 h-5" />
+                Payer {formatMontant(montantRestant)}
+              </motion.button>
+
+              {/* Message sécurisé */}
+              <div className={`mt-2 flex items-center justify-center gap-2 text-white/60 ${styles.detailText}`}>
+                <Shield className="w-3.5 h-3.5" />
+                Paiement sécurisé
+              </div>
             </div>
           </div>
         </div>
       </motion.div>
-    </div>
+    </motion.div>
   );
 }
