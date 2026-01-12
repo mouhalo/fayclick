@@ -156,23 +156,78 @@ export class AuthService {
       // 1. Vérification des identifiants
       const loginResult = await this.login(credentials);
 
-      // 2. Récupération des détails de structure
-      const structure = await this.fetchStructureDetails(loginResult.user.id_structure);
+      // 2. Vérifier si c'est un admin système (id_structure = 0 UNIQUEMENT)
+      // Note: On vérifie SEULEMENT id_structure === 0, pas nom_groupe
+      // car un utilisateur peut avoir nom_groupe 'ADMIN' mais appartenir à une vraie structure
+      const isAdminSystem = loginResult.user.id_structure === 0;
+
+      let structure: StructureDetails;
+      let rights: UserRights;
+
+      if (isAdminSystem) {
+        // 🔐 Admin système : créer une structure virtuelle (NE PAS appeler get_une_structure)
+        console.log('👑 [AUTH] Admin système détecté - création structure virtuelle');
+
+        structure = {
+          id_structure: 0,
+          code_structure: 'ADMIN-SYSTEM',
+          nom_structure: 'Administration Système FayClick',
+          adresse: 'Dakar, Sénégal',
+          mobile_om: '',
+          mobile_wave: '',
+          numautorisatioon: '',
+          nummarchand: '',
+          email: 'admin@system.fay',
+          id_localite: 0,
+          actif: true,
+          logo: '/fayclick.ico',
+          cachet: undefined,
+          createdat: new Date().toISOString(),
+          updatedat: new Date().toISOString(),
+          id_type: 0,
+          type_structure: 'ADMIN',
+          num_unik_reversement: '',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          description: 'Compte administrateur système',
+          website: 'https://fayclick.net',
+          siret: undefined,
+          responsable: 'Admin System',
+          etat_abonnement: {
+            statut: 'ACTIF',
+            date_debut: '2020-01-01',
+            date_fin: '2099-12-31',
+            jours_restants: 99999,
+            type_abonnement: 'SYSTEM'
+          }
+        };
+
+        // Droits admin complets
+        rights = {
+          id_profil: loginResult.user.id_profil,
+          profil: 'ADMIN_SYSTEM',
+          fonctionnalites: [{ name: '*', allowed: true }],
+          _index: { '*': true }
+        };
+      } else {
+        // Utilisateur normal : récupérer la vraie structure depuis PostgreSQL
+        structure = await this.fetchStructureDetails(loginResult.user.id_structure);
+
+        // Récupération des droits depuis PostgreSQL
+        rights = await this.fetchUserRights(
+          loginResult.user.id_structure,
+          loginResult.user.id_profil
+        );
+      }
 
       // 3. Calcul des permissions (ancien système - garder pour compatibilité)
       const permissions = this.getUserPermissions(loginResult.user, structure);
-
-      // 4. 🆕 Récupération des droits depuis PostgreSQL
-      const rights = await this.fetchUserRights(
-        loginResult.user.id_structure,
-        loginResult.user.id_profil
-      );
 
       const completeData: CompleteAuthData = {
         user: loginResult.user,
         structure,
         permissions,
-        rights, // 🆕 Ajout des droits
+        rights,
         token: loginResult.token
       };
 
@@ -181,7 +236,8 @@ export class AuthService {
         structure: completeData.structure.nom_structure,
         permissions: completeData.permissions.permissions.length,
         droits_profil: completeData.rights.profil,
-        nb_fonctionnalites: completeData.rights.fonctionnalites.length
+        nb_fonctionnalites: completeData.rights.fonctionnalites.length,
+        isAdminSystem
       });
 
       return completeData;
