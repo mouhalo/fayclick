@@ -99,7 +99,7 @@ class WalletService {
           date: p.date_paiement,
           telephone: p.telephone,
           sens: 'ENTREE',
-          montant: p.montant_recu,
+          montant: p.montant_net,
           wallet: p.wallet,
           reference: p.reference,
           type: 'ENCAISSEMENT'

@@ -197,7 +197,10 @@ export const USER_ROUTES = {
   'FORMATION PRO': '/dashboard/formation',
   CLIENT: '/dashboard/client',
   ADMIN: '/dashboard/admin',
-  SYSTEM: '/dashboard/system'
+  SYSTEM: '/dashboard/admin',
+  // Alias pour admin système
+  'ADMIN SYSTEM': '/dashboard/admin',
+  'SYSTEME': '/dashboard/admin'
 } as const;
 
 // Fonction pour obtenir la route de redirection

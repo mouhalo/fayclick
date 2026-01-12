@@ -116,19 +116,70 @@ export function AuthProvider({ children }: AuthProviderProps) {
           const user = authService.getUser();
           if (user && authService.isTokenValid()) {
             console.log('⚠️ [AUTH CONTEXT] Ancien format trouvé, migration nécessaire');
-            
+
             try {
-              // Essayer de récupérer les données manquantes
-              const structure = await authService.fetchStructureDetails(user.id_structure);
+              // Vérifier si c'est un admin système (id_structure = 0)
+              const isAdminSystem = user.id_structure === 0;
+
+              let structure: StructureDetails;
+              let rights: UserRights;
+
+              if (isAdminSystem) {
+                // Admin système : créer une structure virtuelle
+                console.log('👑 [AUTH CONTEXT] Admin système - structure virtuelle');
+                structure = {
+                  id_structure: 0,
+                  code_structure: 'ADMIN-SYSTEM',
+                  nom_structure: 'Administration Système FayClick',
+                  adresse: 'Dakar, Sénégal',
+                  mobile_om: '',
+                  mobile_wave: '',
+                  numautorisatioon: '',
+                  nummarchand: '',
+                  email: 'admin@system.fay',
+                  id_localite: 0,
+                  actif: true,
+                  logo: '/fayclick.ico',
+                  cachet: undefined,
+                  createdat: new Date().toISOString(),
+                  updatedat: new Date().toISOString(),
+                  id_type: 0,
+                  type_structure: 'ADMIN',
+                  num_unik_reversement: '',
+                  created_at: new Date().toISOString(),
+                  updated_at: new Date().toISOString(),
+                  description: 'Compte administrateur système',
+                  website: 'https://fayclick.net',
+                  siret: undefined,
+                  responsable: 'Admin System',
+                  etat_abonnement: {
+                    statut: 'ACTIF',
+                    date_debut: '2020-01-01',
+                    date_fin: '2099-12-31',
+                    jours_restants: 99999,
+                    type_abonnement: 'SYSTEM'
+                  }
+                };
+                rights = {
+                  id_profil: user.id_profil,
+                  profil: 'ADMIN_SYSTEM',
+                  fonctionnalites: [{ name: '*', allowed: true }],
+                  _index: { '*': true }
+                };
+              } else {
+                // Utilisateur normal : récupérer la vraie structure
+                structure = await authService.fetchStructureDetails(user.id_structure);
+                rights = await authService.fetchUserRights(user.id_structure, user.id_profil);
+              }
+
               const permissions = authService.getUserPermissions(user, structure);
-              const rights = await authService.fetchUserRights(user.id_structure, user.id_profil); // 🆕
 
               // Sauvegarder le nouveau format
               const completeData: CompleteAuthData = {
                 user,
                 structure,
                 permissions,
-                rights, // 🆕
+                rights,
                 token: authService.getToken() || ''
               };
 
@@ -138,7 +189,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
                 user,
                 structure,
                 permissions,
-                rights, // 🆕
+                rights,
                 isAuthenticated: true,
                 isLoading: false,
                 isHydrated: true,
@@ -146,7 +197,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
               });
 
               console.log('✅ [AUTH CONTEXT] Migration vers nouveau format réussie');
-              
+
             } catch (error) {
               console.warn('⚠️ [AUTH CONTEXT] Échec migration, déconnexion');
               authService.clearSession();
@@ -271,19 +322,25 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const refreshAuth = useCallback(async () => {
     if (!authState.user) return;
 
+    // Admin système : pas de rafraîchissement nécessaire (structure virtuelle)
+    if (authState.user.id_structure === 0) {
+      console.log('👑 [AUTH CONTEXT] Admin système - skip refresh');
+      return;
+    }
+
     try {
       setAuthState(prev => ({ ...prev, isLoading: true }));
 
-      // Récupérer les données à jour
+      // Récupérer les données à jour (utilisateurs normaux uniquement)
       const structure = await authService.fetchStructureDetails(authState.user.id_structure);
       const permissions = authService.getUserPermissions(authState.user, structure);
-      const rights = await authService.fetchUserRights(authState.user.id_structure, authState.user.id_profil); // 🆕
+      const rights = await authService.fetchUserRights(authState.user.id_structure, authState.user.id_profil);
 
       setAuthState(prev => ({
         ...prev,
         structure,
         permissions,
-        rights, // 🆕
+        rights,
         isLoading: false
       }));
 

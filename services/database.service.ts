@@ -72,20 +72,20 @@ class DatabaseService {
 
   private construireXml = (application_name: string, requeteSql: string) => {
     const sql_text = requeteSql.replace(/\n/g, ' ').trim();
-    // Sans CDATA - les caractères spéciaux sont gérés par encodage (d, f, m)
+    // Format XML correct avec balises <requete> et <mode>
     const xml = `<?xml version="1.0" encoding="UTF-8"?>
-<request>
+<requete>
     <application>${application_name}</application>
     <requete_sql>${sql_text}</requete_sql>
-</request>`;
-    
+    <mode>SELECT</mode>
+</requete>`;
+
     // Log du XML construit pour debug
     console.log('🔵 [DATABASE] XML Request construit:', {
       application: application_name,
-      requete: sql_text,
-      xmlComplet: xml
+      requete: sql_text.substring(0, 100) + (sql_text.length > 100 ? '...' : '')
     });
-    
+
     return xml;
   };
 
