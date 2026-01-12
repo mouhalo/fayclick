@@ -269,6 +269,8 @@ Tous les services suivent un pattern singleton avec gestion d'erreurs centralis�
 - **`facture-list.service.ts`** : Liste et recherche de factures
 - **`facture-privee.service.ts`** : Factures privées (authentifiées)
 - **`facture-publique.service.ts`** : Factures publiques (lien partageable)
+  - `getFacturePublique(id_structure, id_facture)` : Récupère facture sans auth
+  - `addAcomptePublique(params)` : Enregistre paiement wallet sans auth
 - **`dashboard.service.ts`** : Statistiques par type de structure
 - **`subscription.service.ts`** : Gestion abonnements structures (MENSUEL/ANNUEL)
 - **`payment-wallet.service.ts`** : Paiements mobiles (OM/WAVE/FREE)
@@ -388,6 +390,30 @@ POST https://api.icelabsoft.com/sms_service/api/send_o_sms
 - **Service Worker** : `public/service-worker.js` - Mettre à jour `CACHE_NAME` lors de changements majeurs
 - **Installation** : `components/pwa/PWAInstallProvider.tsx` - Prompt intelligent
 - **Background Sync** : `hooks/useBackgroundSync.ts` - Sync offline avec IndexedDB
+
+### Paiement Factures Publiques (sans authentification)
+Quand un client paie via le lien public d'une facture (`/facture?token=XXX`), le paiement doit être enregistré en BD.
+
+**Composants** :
+- `components/facture/FacturePubliqueClient.tsx` : Page facture publique
+- `services/facture-publique.service.ts` : Service sans auth
+
+**Workflow** :
+```
+1. Client ouvre lien facture publique
+2. Clique sur wallet (OM/WAVE/FREE) → ModalPaiementQRCode
+3. Paiement effectué → Polling COMPLETED avec uuid/reference_externe
+4. handleWalletPaymentComplete(statusResponse) appelé
+5. facturePubliqueService.addAcomptePublique({
+     id_structure, id_facture, montant_acompte,
+     transaction_id, uuid, mode_paiement, telephone
+   })
+6. PostgreSQL add_acompte_facture() exécuté
+7. Facture rechargée → Statut mis à jour
+```
+
+**Transaction ID format** : `{WALLET}-PUB-{id_structure}-{timestamp}`
+Exemple : `WAVE-PUB-183-1736693291000`
 
 ### Workflow Déploiement Rapide
 ```bash
