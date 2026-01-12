@@ -194,6 +194,140 @@ class FacturePubliqueService {
     const { getFactureUrl } = await import('@/lib/url-config');
     return getFactureUrl(id_structure, id_facture);
   }
+
+  /**
+   * Ajouter un acompte à une facture publique (sans authentification)
+   * Utilisé quand un client paie directement via le lien public de la facture
+   */
+  async addAcomptePublique(params: {
+    id_structure: number;
+    id_facture: number;
+    montant_acompte: number;
+    transaction_id: string;
+    uuid: string;
+    mode_paiement: 'OM' | 'WAVE' | 'FREE';
+    telephone: string;
+  }): Promise<{
+    success: boolean;
+    message: string;
+    data?: unknown;
+  }> {
+    try {
+      console.log('💳 [FACTURE-PUBLIQUE] Ajout acompte:', params);
+
+      // Validation des paramètres
+      if (!params.id_structure || !params.id_facture) {
+        throw new FacturePubliqueException('Paramètres de facture manquants', 400);
+      }
+
+      if (!params.montant_acompte || params.montant_acompte <= 0) {
+        throw new FacturePubliqueException('Montant invalide', 400);
+      }
+
+      if (!params.uuid || !params.transaction_id) {
+        throw new FacturePubliqueException('Informations de paiement manquantes', 400);
+      }
+
+      // Import dynamique de l'API config
+      const { API_CONFIG } = await import('@/config/env');
+
+      // Construire la requête SQL pour add_acompte_facture (7 paramètres)
+      const telephone = params.telephone || '000000000';
+      const query = `SELECT * FROM add_acompte_facture(${params.id_structure}, ${params.id_facture}, ${params.montant_acompte}, '${params.transaction_id}', '${params.uuid}', '${params.mode_paiement}', '${telephone}')`;
+
+      console.log('📤 [FACTURE-PUBLIQUE] Requête acompte:', query);
+
+      // Construire le XML pour l'API
+      const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<request>
+    <application>fayclick</application>
+    <requete_sql>${query.replace(/\n/g, ' ').trim()}</requete_sql>
+</request>`;
+
+      // Appel direct à l'API
+      const response = await fetch(API_CONFIG.ENDPOINT, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/xml',
+          'Accept': 'application/json'
+        },
+        body: xml
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const responseText = await response.text();
+      console.log('📥 [FACTURE-PUBLIQUE] Réponse acompte brute:', responseText);
+
+      let apiResponse;
+      try {
+        apiResponse = JSON.parse(responseText);
+      } catch (parseError) {
+        console.error('❌ [FACTURE-PUBLIQUE] Erreur parsing JSON:', parseError);
+        throw new Error('Réponse API invalide');
+      }
+
+      // Extraire les données selon le format de réponse
+      let data;
+      if (apiResponse.datas !== undefined) {
+        data = apiResponse.datas;
+      } else if (apiResponse.data !== undefined) {
+        data = apiResponse.data;
+      } else if (apiResponse.result?.datas !== undefined) {
+        data = apiResponse.result.datas;
+      } else {
+        data = apiResponse;
+      }
+
+      // Extraire le résultat de la fonction PostgreSQL
+      let acompteResult;
+      if (Array.isArray(data) && data.length > 0) {
+        const firstRow = data[0];
+        acompteResult = firstRow.add_acompte_facture || firstRow;
+      } else {
+        acompteResult = data;
+      }
+
+      // Parser si c'est une chaîne JSON
+      if (typeof acompteResult === 'string') {
+        try {
+          acompteResult = JSON.parse(acompteResult);
+        } catch (e) {
+          console.error('Erreur parsing résultat acompte:', e);
+        }
+      }
+
+      console.log('✅ [FACTURE-PUBLIQUE] Résultat acompte:', acompteResult);
+
+      // Vérifier le succès
+      if (acompteResult && acompteResult.success === false) {
+        return {
+          success: false,
+          message: acompteResult.message || 'Échec de l\'enregistrement du paiement'
+        };
+      }
+
+      return {
+        success: true,
+        message: 'Paiement enregistré avec succès',
+        data: acompteResult
+      };
+
+    } catch (error) {
+      console.error('❌ [FACTURE-PUBLIQUE] Erreur ajout acompte:', error);
+
+      if (error instanceof FacturePubliqueException) {
+        throw error;
+      }
+
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : 'Erreur lors de l\'enregistrement du paiement'
+      };
+    }
+  }
 }
 
 export const facturePubliqueService = FacturePubliqueService.getInstance();
