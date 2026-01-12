@@ -159,10 +159,73 @@ export default function FacturePubliqueClient({ token }: FacturePubliqueClientPr
     };
   };
 
-  const handleWalletPaymentComplete = async () => {
-    // Pour le contexte public, on affiche juste un message de succès
+  const handleWalletPaymentComplete = async (statusResponse?: {
+    data?: {
+      uuid?: string;
+      reference_externe?: string;
+      telephone?: string;
+      montant?: string | number;
+    }
+  }) => {
+    console.log('💳 [FACTURE-PUBLIQUE] Paiement complété, statusResponse:', statusResponse);
+
+    // Fermer le modal QR code
     setShowQRCode(false);
-    setPaymentSuccess(true);
+
+    // Vérifier qu'on a les données nécessaires
+    if (!facture || !selectedPaymentMethod) {
+      console.error('❌ [FACTURE-PUBLIQUE] Données manquantes pour enregistrer le paiement');
+      setPaymentSuccess(true);
+      setTimeout(() => loadFacture(), 2000);
+      return;
+    }
+
+    // Extraire les données du paiement
+    const uuid = statusResponse?.data?.uuid || '';
+    const referenceExterne = statusResponse?.data?.reference_externe || '';
+    const telephone = statusResponse?.data?.telephone || facture.facture.tel_client || '000000000';
+
+    // Construire le transaction_id
+    const timestamp = Date.now();
+    const transactionId = `${selectedPaymentMethod}-PUB-${facture.facture.id_structure}-${timestamp}`;
+
+    console.log('💰 [FACTURE-PUBLIQUE] Enregistrement acompte:', {
+      id_structure: facture.facture.id_structure,
+      id_facture: facture.facture.id_facture,
+      montant: facture.facture.mt_restant,
+      mode_paiement: selectedPaymentMethod,
+      uuid,
+      transactionId
+    });
+
+    try {
+      // Appeler le service pour enregistrer l'acompte
+      const result = await facturePubliqueService.addAcomptePublique({
+        id_structure: facture.facture.id_structure,
+        id_facture: facture.facture.id_facture,
+        montant_acompte: facture.facture.mt_restant,
+        transaction_id: transactionId,
+        uuid: uuid || referenceExterne || transactionId,
+        mode_paiement: selectedPaymentMethod as 'OM' | 'WAVE' | 'FREE',
+        telephone
+      });
+
+      console.log('📋 [FACTURE-PUBLIQUE] Résultat enregistrement:', result);
+
+      if (result.success) {
+        console.log('✅ [FACTURE-PUBLIQUE] Paiement enregistré avec succès');
+        setPaymentSuccess(true);
+      } else {
+        console.error('❌ [FACTURE-PUBLIQUE] Échec enregistrement:', result.message);
+        // On affiche quand même le succès car le paiement wallet a réussi
+        // L'erreur d'enregistrement sera loggée pour investigation
+        setPaymentSuccess(true);
+      }
+    } catch (err) {
+      console.error('❌ [FACTURE-PUBLIQUE] Erreur lors de l\'enregistrement:', err);
+      // On affiche quand même le succès car le paiement wallet a réussi
+      setPaymentSuccess(true);
+    }
 
     // Recharger la facture pour voir le nouveau statut
     setTimeout(() => {
