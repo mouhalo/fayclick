@@ -433,6 +433,47 @@ clearPanier() {
 - **Montants** : `toLocaleString('fr-FR')` + ' FCFA'
 - **Dates** : `toLocaleDateString('fr-FR')` avec format DD/MM/YYYY
 
+### Éviter les Closures Stale dans les Callbacks
+Quand un callback est passé à une fonction async (polling, setTimeout, etc.), les valeurs d'état React capturées peuvent être périmées (stale).
+
+**Problème** :
+```typescript
+// ❌ MAUVAIS : selectedMethod sera null dans le callback
+const handleSelectMethod = (method) => {
+  setSelectedMethod(method); // async - pas encore mis à jour
+  startPolling(uuid, (status) => {
+    // selectedMethod est capturé ici comme null !
+    if (status === 'COMPLETED') {
+      createSubscription(selectedMethod); // null !
+    }
+  });
+};
+```
+
+**Solution** : Passer les valeurs directement en paramètres :
+```typescript
+// ✅ BON : Passer les valeurs directement au callback
+const startPolling = (uuid, formula, method) => {
+  paymentService.startPolling(uuid, async (status) => {
+    if (status === 'COMPLETED') {
+      await handlePaymentCompleted(uuid, formula, method);
+    }
+  });
+};
+
+// Appel avec valeurs explicites
+startPolling(uuid, formula.type, method);
+```
+
+### Parsing JSON PostgreSQL
+Les réponses PostgreSQL peuvent être string JSON ou objet déjà parsé. Toujours vérifier :
+```typescript
+const rawResponse = result[0].ma_fonction;
+const response = typeof rawResponse === 'string'
+  ? JSON.parse(rawResponse)
+  : rawResponse;
+```
+
 ## Notes Importantes
 
 ### À NE PAS FAIRE
@@ -447,6 +488,8 @@ clearPanier() {
 - ❌ **Ne PAS utiliser mauvais format `add_acompte_facture`** - Respecter signature PostgreSQL
 - ❌ **Ne PAS appeler `add_retrait_marchand` sans succès API send_cash** - Toujours vérifier status === 'SUCCESS'
 - ❌ **Ne PAS utiliser `<style jsx>` pour animations 3D** - Utiliser styles inline React
+- ❌ **Ne PAS capturer useState dans callbacks async** - Passer les valeurs en paramètres (évite closure stale)
+- ❌ **Ne PAS faire JSON.parse() sans vérifier typeof** - PostgreSQL peut retourner objet ou string
 
 ### À TOUJOURS FAIRE
 - ✅ Mettre à jour `CACHE_NAME` dans Service Worker si changements UI majeurs
@@ -458,3 +501,5 @@ clearPanier() {
 - ✅ **Vérifier signatures PostgreSQL** avant d'appeler fonctions DB
 - ✅ **Flip 3D** : Utiliser `style={{ perspective, transformStyle, backfaceVisibility }}` inline
 - ✅ **OTP sessions** : Stockées en mémoire avec expiration 2 min et max 3 tentatives
+- ✅ **Callbacks polling** : Passer `formula` et `method` en paramètres (pas via useState)
+- ✅ **Réponses PostgreSQL** : Vérifier `typeof === 'string'` avant `JSON.parse()`
