@@ -67,6 +67,7 @@ FayClick V2 is a Next.js-based Progressive Web App (PWA) designed as a "Super Ap
 - `useBreakpoint` - Responsive breakpoint detection
 - `useTouch` - Touch gesture handling and capabilities
 - `useDashboardData` - Dashboard data management with API integration
+- `useWalletStructure` - Gestion données wallet (soldes, transactions, totaux)
 
 ### Styling Conventions
 - Use Tailwind utility classes primarily
@@ -184,6 +185,8 @@ The project is in Phase 2 development with:
 - ✅ **Gestion des abonnements** (MENSUEL/ANNUEL) avec paiement wallet
 - ✅ **Système de paiement wallet** (OM/WAVE/FREE) pour factures et abonnements
 - ✅ **VenteFlash (Ventes Rapides)** avec client anonyme et encaissement CASH immédiat
+- ✅ **Système KALPE (Coffre-Fort Wallet)** avec soldes OM/WAVE/FREE et historique transactions
+- ✅ **Retraits Wallet** avec OTP SMS, API send_cash et flip cards animées
 
 ### Production Environment
 - **Live URL**: https://v2.fayclick.net
@@ -281,6 +284,8 @@ Tous les services suivent un pattern singleton avec gestion d'erreurs centralis�
 - **`etatGlobal.service.ts`** : État global et rapports consolidés
 - **`catalogue-public.service.ts`** : Catalogues publics partageables
 - **`logo-upload.service.ts`** : Upload et gestion des logos structures
+- **`wallet.service.ts`** : Gestion soldes et historique wallet (KALPE)
+- **`retrait.service.ts`** : Retraits wallet avec OTP et API send_cash
 
 ### PostgreSQL Functions Used
 ```sql
@@ -309,6 +314,21 @@ SELECT * FROM add_acompte_facture(
   ptransactionid,     -- VARCHAR : 'CASH-{id_structure}-{timestamp}'
   puuid              -- VARCHAR : 'face2face' pour paiement direct
 );
+
+-- Wallet KALPE (Soldes et Historique)
+SELECT * FROM get_soldes_wallet_structure(pid_structure);  -- Soldes simplifiés
+SELECT * FROM get_wallet_structure(pid_structure);         -- Données complètes + historique
+
+-- Retraits Wallet
+-- ⚠️ Appeler UNIQUEMENT après succès API send_cash
+SELECT * FROM add_retrait_marchand(
+  pid_structure,      -- INTEGER : ID structure
+  ptransactionid,     -- VARCHAR : Transaction ID reçu de l'API (ex: 'CI260111.1924.A12345')
+  ptelnumber,         -- VARCHAR : Numéro destination (9 chiffres)
+  pamount,            -- NUMERIC : Montant du retrait
+  pmethode,           -- VARCHAR : 'OM' ou 'WAVE' (FREE utilise 'OM')
+  pfrais              -- INTEGER : Laisser à 0 (frais calculés automatiquement)
+);
 ```
 
 ## Systèmes Complexes (Documentation Détaillée)
@@ -320,6 +340,49 @@ Pour les détails techniques approfondis, voir **`docs/DETAILED_ARCHITECTURE.md`
 - Composants Clés Panier & Vente
 - Système PWA complet
 - Gestion du Cache & Déploiement
+
+### Système KALPE & Retraits Wallet
+Documentation complète : **`docs/Gestion_Wallet/MEMO_KALPE_RETRAITS.md`**
+
+#### Composants Coffre-Fort (`components/coffre-fort/`)
+- **`ModalCoffreFort.tsx`** : Modal 3 onglets (CA Global, KALPE, Transactions)
+- **`WalletFlipCard.tsx`** : Carte wallet avec flip 3D pour retrait
+- **`OTPInput.tsx`** : Saisie OTP 5 chiffres avec validation
+
+#### Workflow Retrait
+```
+1. Clic carte (solde > 0) → Flip animation
+2. Saisie montant → Validation (min 100 FCFA, max solde)
+3. Envoi OTP via API send_o_sms → SMS au numéro structure
+4. Saisie OTP (5 chiffres, 3 tentatives, expire 2 min)
+5. Appel API send_cash → https://api.icelabsoft.com/pay_services/api/send_cash
+6. Si SUCCESS → Sauvegarde add_retrait_marchand()
+7. Refresh soldes automatique
+```
+
+#### API send_cash
+```json
+POST https://api.icelabsoft.com/pay_services/api/send_cash
+{
+  "pservicename": "OFMS",        // "INTOUCH" pour WAVE
+  "app_name": "FAYCLICK",
+  "pmethode": "OM",              // "OM" ou "WAVE"
+  "ptelnumber": "777301221",
+  "pamount": 1000,
+  "pmotif": "Retrait OM KALPE 260111193045",
+  "pnomstructure": "MA BOUTIQUE"
+}
+```
+
+#### API SMS OTP
+```json
+POST https://api.icelabsoft.com/sms_service/api/send_o_sms
+{
+  "numtel": "777301221",
+  "message": "Entrez le code : 12345 pour valider le retrait...",
+  "sender": "ICELABOSOFT"
+}
+```
 
 ### Résumé PWA
 - **Service Worker** : `public/service-worker.js` - Mettre à jour `CACHE_NAME` lors de changements majeurs
@@ -382,6 +445,8 @@ clearPanier() {
 - ❌ **Ne pas oublier les 2 boutons OM** (app + web) lors d'ajout de modals paiement
 - ❌ **Ne PAS créer de fonctions dupliquées** - Toujours vérifier l'existant avant (approche Senior Developer)
 - ❌ **Ne PAS utiliser mauvais format `add_acompte_facture`** - Respecter signature PostgreSQL
+- ❌ **Ne PAS appeler `add_retrait_marchand` sans succès API send_cash** - Toujours vérifier status === 'SUCCESS'
+- ❌ **Ne PAS utiliser `<style jsx>` pour animations 3D** - Utiliser styles inline React
 
 ### À TOUJOURS FAIRE
 - ✅ Mettre à jour `CACHE_NAME` dans Service Worker si changements UI majeurs
@@ -391,3 +456,5 @@ clearPanier() {
 - ✅ Commit avec messages descriptifs suivant format emoji (✨, 🔧, 🐛, etc.)
 - ✅ **Chercher fonctions existantes** (Grep/Glob) avant d'en créer de nouvelles
 - ✅ **Vérifier signatures PostgreSQL** avant d'appeler fonctions DB
+- ✅ **Flip 3D** : Utiliser `style={{ perspective, transformStyle, backfaceVisibility }}` inline
+- ✅ **OTP sessions** : Stockées en mémoire avec expiration 2 min et max 3 tentatives
