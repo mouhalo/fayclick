@@ -1,9 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCoffreFort } from '@/hooks/useCoffreFort';
+import { useWalletStructure } from '@/hooks/useWalletStructure';
+import { useStructure } from '@/hooks/useStructure';
+import WalletFlipCard from './WalletFlipCard';
 
 interface ModalCoffreFortProps {
   isOpen: boolean;
@@ -13,13 +15,58 @@ interface ModalCoffreFortProps {
 
 type TabType = 'ca' | 'kalpe' | 'transactions';
 
+type TransactionFilter = 'all' | 'recu' | 'retrait';
+
 export default function ModalCoffreFort({ isOpen, onClose, structureId }: ModalCoffreFortProps) {
   const [activeTab, setActiveTab] = useState<TabType>('ca');
+  const [transactionFilter, setTransactionFilter] = useState<TransactionFilter>('all');
   const { data: coffreData, isLoading: coffreLoading } = useCoffreFort(structureId);
+  const {
+    soldes,
+    walletData,
+    transactions,
+    totaux,
+    isLoading: walletLoading,
+    refresh: refreshWallet
+  } = useWalletStructure(structureId);
+
+  // Récupérer les numéros de téléphone de la structure
+  const { structure, contact } = useStructure();
+  const mobileOm = contact?.mobileOm || '';
+  const mobileWave = contact?.mobileWave || '';
+  const nomStructure = structure?.nom_structure || '';
 
   const formatCurrency = (amount: number) => {
     return amount.toLocaleString('fr-FR') + ' FCFA';
   };
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('fr-FR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  const formatPhone = (phone: string | null) => {
+    if (!phone || phone === '000000000') return '-';
+    // Format: 77 123 45 67
+    if (phone.length === 9) {
+      return `${phone.slice(0, 2)} ${phone.slice(2, 5)} ${phone.slice(5, 7)} ${phone.slice(7)}`;
+    }
+    return phone;
+  };
+
+  // Filtrer les transactions selon le filtre actif
+  const filteredTransactions = transactions.filter((t) => {
+    if (transactionFilter === 'all') return true;
+    if (transactionFilter === 'recu') return t.sens === 'ENTREE';
+    if (transactionFilter === 'retrait') return t.sens === 'SORTIE';
+    return true;
+  });
 
   const tabs = [
     { id: 'ca' as TabType, label: 'CA Global', icon: '💰' },
@@ -222,7 +269,7 @@ export default function ModalCoffreFort({ isOpen, onClose, structureId }: ModalC
                 </motion.div>
               )}
 
-              {/* Onglet KALPE */}
+              {/* Onglet KALPE - Wallets avec Flip Cards */}
               {activeTab === 'kalpe' && (
                 <motion.div
                   initial={{ opacity: 0, x: -20 }}
@@ -231,68 +278,94 @@ export default function ModalCoffreFort({ isOpen, onClose, structureId }: ModalC
                   transition={{ duration: 0.2 }}
                   className="space-y-3"
                 >
-                  {/* StatCard Orange Money */}
-                  <div className="flex justify-between items-center p-3 bg-gradient-to-r from-orange-50 to-orange-100 rounded-lg border-l-4 border-orange-500">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 relative flex-shrink-0">
-                        <Image
-                          src="/images/om.png"
-                          alt="Orange Money"
-                          width={40}
-                          height={40}
-                          className="object-contain"
-                        />
-                      </div>
-                      <span className="text-sm font-semibold text-gray-700">Orange Money</span>
+                  {/* Solde Total avec bouton Actualiser */}
+                  <div className="bg-gradient-to-r from-purple-500 to-indigo-600 text-white rounded-xl p-4 relative overflow-hidden">
+                    <div className="absolute inset-0 opacity-10">
+                      <div className="absolute inset-0" style={{
+                        backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.2) 1px, transparent 1px)',
+                        backgroundSize: '15px 15px'
+                      }} />
                     </div>
-                    <div className="text-right">
-                      <div className="text-xs text-gray-500">Solde disponible</div>
-                      <div className="text-lg font-bold text-orange-600">
-                        {/* TODO: Intégrer le vrai solde OM */}
-                        0 FCFA
+                    <div className="relative z-10">
+                      <div className="flex justify-between items-start mb-1">
+                        <div className="text-xs opacity-80">Solde Total KALPE</div>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            refreshWallet();
+                          }}
+                          disabled={walletLoading}
+                          className="bg-white/20 hover:bg-white/30 rounded-full p-1.5 transition-all disabled:opacity-50"
+                          title="Actualiser les soldes"
+                        >
+                          <span className={`text-sm ${walletLoading ? 'animate-spin inline-block' : ''}`}>🔄</span>
+                        </button>
                       </div>
-                    </div>
-                  </div>
-
-                  {/* StatCard Wave */}
-                  <div className="flex justify-between items-center p-3 bg-gradient-to-r from-blue-50 to-blue-100 rounded-lg border-l-4 border-blue-500">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 relative flex-shrink-0">
-                        <Image
-                          src="/images/wave.png"
-                          alt="Wave"
-                          width={40}
-                          height={40}
-                          className="object-contain"
-                        />
-                      </div>
-                      <span className="text-sm font-semibold text-gray-700">Wave</span>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-xs text-gray-500">Solde disponible</div>
-                      <div className="text-lg font-bold text-blue-600">
-                        {/* TODO: Intégrer le vrai solde WAVE */}
-                        0 FCFA
+                      <div className="text-2xl font-bold text-center">
+                        {walletLoading ? (
+                          <div className="w-28 h-7 bg-white/20 animate-pulse rounded mx-auto"></div>
+                        ) : (
+                          formatCurrency(soldes?.solde_total || 0)
+                        )}
                       </div>
                     </div>
                   </div>
 
-                  {/* Bouton Retrait */}
-                  <button className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-semibold py-3 rounded-lg transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2">
-                    <span>💸</span>
-                    <span>Effectuer un Retrait</span>
+                  {/* Info retrait */}
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-2 text-center">
+                    <p className="text-xs text-blue-700">
+                      Cliquez sur une carte pour effectuer un retrait
+                    </p>
+                  </div>
+
+                  {/* WalletFlipCard Orange Money */}
+                  <WalletFlipCard
+                    type="OM"
+                    solde={soldes?.solde_om || 0}
+                    totalNet={walletData?.soldes?.om?.total_net || 0}
+                    totalRetire={walletData?.soldes?.om?.total_retire || 0}
+                    telephone={mobileOm}
+                    idStructure={structureId}
+                    nomStructure={nomStructure}
+                    isLoading={walletLoading}
+                    onRetraitSuccess={refreshWallet}
+                  />
+
+                  {/* WalletFlipCard Wave */}
+                  <WalletFlipCard
+                    type="WAVE"
+                    solde={soldes?.solde_wave || 0}
+                    totalNet={walletData?.soldes?.wave?.total_net || 0}
+                    totalRetire={walletData?.soldes?.wave?.total_retire || 0}
+                    telephone={mobileWave}
+                    idStructure={structureId}
+                    nomStructure={nomStructure}
+                    isLoading={walletLoading}
+                    onRetraitSuccess={refreshWallet}
+                  />
+
+                  {/* WalletFlipCard Free Money (utilise le même numéro que OM) */}
+                  <WalletFlipCard
+                    type="FREE"
+                    solde={soldes?.solde_free || 0}
+                    totalNet={walletData?.soldes?.free?.total_net || 0}
+                    totalRetire={walletData?.soldes?.free?.total_retire || 0}
+                    telephone={mobileOm}
+                    idStructure={structureId}
+                    nomStructure={nomStructure}
+                    isLoading={walletLoading}
+                    onRetraitSuccess={refreshWallet}
+                  />
+
+                  {/* Bouton Rafraîchir */}
+                  <button
+                    onClick={refreshWallet}
+                    disabled={walletLoading}
+                    className="w-full bg-gradient-to-r from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 text-gray-700 font-semibold py-2.5 rounded-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                  >
+                    <span className={walletLoading ? 'animate-spin' : ''}>🔄</span>
+                    <span>{walletLoading ? 'Chargement...' : 'Actualiser les soldes'}</span>
                   </button>
-
-                  {/* Note TODO */}
-                  <div className="bg-yellow-50 border-l-4 border-yellow-400 p-3 rounded-lg">
-                    <div className="flex items-start gap-2">
-                      <span className="text-lg">⚠️</span>
-                      <div className="text-xs text-yellow-800">
-                        <div className="font-semibold mb-1">Fonctionnalité en développement</div>
-                        <div>Les soldes KALPE et le système de retrait seront implémentés prochainement.</div>
-                      </div>
-                    </div>
-                  </div>
                 </motion.div>
               )}
 
@@ -305,36 +378,88 @@ export default function ModalCoffreFort({ isOpen, onClose, structureId }: ModalC
                   transition={{ duration: 0.2 }}
                   className="space-y-3"
                 >
-                  {/* StatCards Dépôts/Retraits */}
+                  {/* StatCards Total Reçus / Total Retraits - Cliquables pour filtrer */}
                   <div className="grid grid-cols-2 gap-2">
-                    <div className="bg-green-50 rounded-lg border-l-4 border-green-500 p-2.5">
+                    <motion.button
+                      initial={{ y: -20, opacity: 0 }}
+                      animate={{ y: 0, opacity: 1 }}
+                      transition={{ delay: 0.1 }}
+                      onClick={() => setTransactionFilter(transactionFilter === 'recu' ? 'all' : 'recu')}
+                      className={`
+                        text-left rounded-lg border-l-4 p-2.5 transition-all
+                        ${transactionFilter === 'recu'
+                          ? 'bg-green-100 border-green-600 ring-2 ring-green-300'
+                          : 'bg-green-50 border-green-500 hover:bg-green-100'
+                        }
+                      `}
+                    >
                       <div className="text-xs text-gray-600 mb-1 flex items-center gap-1">
                         <span>📥</span>
-                        <span>Total Dépôts</span>
+                        <span>Total Reçus</span>
+                        {transactionFilter === 'recu' && <span className="ml-auto text-green-600">✓</span>}
                       </div>
                       <div className="text-sm font-bold text-green-600">
-                        {/* TODO: Intégrer total dépôts */}
-                        0 FCFA
+                        {walletLoading ? (
+                          <div className="w-16 h-4 bg-gray-200 animate-pulse rounded"></div>
+                        ) : (
+                          formatCurrency(totaux.totalRecus)
+                        )}
                       </div>
-                    </div>
+                    </motion.button>
 
-                    <div className="bg-red-50 rounded-lg border-l-4 border-red-500 p-2.5">
+                    <motion.button
+                      initial={{ y: -20, opacity: 0 }}
+                      animate={{ y: 0, opacity: 1 }}
+                      transition={{ delay: 0.2 }}
+                      onClick={() => setTransactionFilter(transactionFilter === 'retrait' ? 'all' : 'retrait')}
+                      className={`
+                        text-left rounded-lg border-l-4 p-2.5 transition-all
+                        ${transactionFilter === 'retrait'
+                          ? 'bg-red-100 border-red-600 ring-2 ring-red-300'
+                          : 'bg-red-50 border-red-500 hover:bg-red-100'
+                        }
+                      `}
+                    >
                       <div className="text-xs text-gray-600 mb-1 flex items-center gap-1">
                         <span>📤</span>
                         <span>Total Retraits</span>
+                        {transactionFilter === 'retrait' && <span className="ml-auto text-red-600">✓</span>}
                       </div>
                       <div className="text-sm font-bold text-red-600">
-                        {/* TODO: Intégrer total retraits */}
-                        0 FCFA
+                        {walletLoading ? (
+                          <div className="w-16 h-4 bg-gray-200 animate-pulse rounded"></div>
+                        ) : (
+                          formatCurrency(totaux.totalRetraits)
+                        )}
                       </div>
-                    </div>
+                    </motion.button>
                   </div>
+
+                  {/* Indicateur de filtre actif */}
+                  {transactionFilter !== 'all' && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="flex items-center justify-between bg-gray-100 rounded-lg px-3 py-1.5"
+                    >
+                      <span className="text-xs text-gray-600">
+                        Filtre: <strong>{transactionFilter === 'recu' ? 'Réceptions' : 'Retraits'}</strong>
+                      </span>
+                      <button
+                        onClick={() => setTransactionFilter('all')}
+                        className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+                      >
+                        Voir tout
+                      </button>
+                    </motion.div>
+                  )}
 
                   {/* Tableau des transactions */}
                   <div className="border border-gray-200 rounded-lg overflow-hidden">
-                    <div className="overflow-x-auto">
+                    <div className="overflow-x-auto max-h-[300px] overflow-y-auto">
                       <table className="w-full text-xs">
-                        <thead className="bg-gray-50 border-b border-gray-200">
+                        <thead className="bg-gray-50 border-b border-gray-200 sticky top-0">
                           <tr>
                             <th className="text-left p-2 font-semibold text-gray-700">Date</th>
                             <th className="text-left p-2 font-semibold text-gray-700">Téléphone</th>
@@ -343,30 +468,79 @@ export default function ModalCoffreFort({ isOpen, onClose, structureId }: ModalC
                           </tr>
                         </thead>
                         <tbody>
-                          {/* TODO: Intégrer les vraies transactions */}
-                          <tr className="border-b border-gray-100">
-                            <td colSpan={4} className="text-center py-8 text-gray-400">
-                              <div className="flex flex-col items-center gap-2">
-                                <span className="text-3xl">📭</span>
-                                <span>Aucune transaction pour le moment</span>
-                              </div>
-                            </td>
-                          </tr>
+                          {walletLoading ? (
+                            // Skeleton loading
+                            [...Array(5)].map((_, i) => (
+                              <tr key={i} className="border-b border-gray-100">
+                                <td className="p-2"><div className="w-24 h-3 bg-gray-200 animate-pulse rounded"></div></td>
+                                <td className="p-2"><div className="w-20 h-3 bg-gray-200 animate-pulse rounded"></div></td>
+                                <td className="p-2 text-center"><div className="w-12 h-3 bg-gray-200 animate-pulse rounded mx-auto"></div></td>
+                                <td className="p-2 text-right"><div className="w-16 h-3 bg-gray-200 animate-pulse rounded ml-auto"></div></td>
+                              </tr>
+                            ))
+                          ) : filteredTransactions.length === 0 ? (
+                            <tr className="border-b border-gray-100">
+                              <td colSpan={4} className="text-center py-8 text-gray-400">
+                                <div className="flex flex-col items-center gap-2">
+                                  <span className="text-3xl">📭</span>
+                                  <span>
+                                    {transactionFilter === 'all'
+                                      ? 'Aucune transaction pour le moment'
+                                      : transactionFilter === 'recu'
+                                        ? 'Aucune réception trouvée'
+                                        : 'Aucun retrait trouvé'
+                                    }
+                                  </span>
+                                </div>
+                              </td>
+                            </tr>
+                          ) : (
+                            filteredTransactions.map((transaction) => (
+                              <tr
+                                key={`${transaction.type}-${transaction.id}`}
+                                className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
+                              >
+                                <td className="p-2 text-gray-700">
+                                  {formatDate(transaction.date)}
+                                </td>
+                                <td className="p-2 text-gray-600">
+                                  {formatPhone(transaction.telephone)}
+                                </td>
+                                <td className="p-2 text-center">
+                                  <span
+                                    className={`
+                                      inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold
+                                      ${transaction.sens === 'ENTREE'
+                                        ? 'bg-green-100 text-green-700'
+                                        : 'bg-red-100 text-red-700'
+                                      }
+                                    `}
+                                  >
+                                    {transaction.sens === 'ENTREE' ? '↓' : '↑'}
+                                    {transaction.sens === 'ENTREE' ? 'Entrée' : 'Sortie'}
+                                  </span>
+                                </td>
+                                <td className={`p-2 text-right font-semibold ${
+                                  transaction.sens === 'ENTREE' ? 'text-green-600' : 'text-red-600'
+                                }`}>
+                                  {transaction.sens === 'ENTREE' ? '+' : '-'}
+                                  {formatCurrency(transaction.montant)}
+                                </td>
+                              </tr>
+                            ))
+                          )}
                         </tbody>
                       </table>
                     </div>
                   </div>
 
-                  {/* Note TODO */}
-                  <div className="bg-blue-50 border-l-4 border-blue-400 p-3 rounded-lg">
-                    <div className="flex items-start gap-2">
-                      <span className="text-lg">ℹ️</span>
-                      <div className="text-xs text-blue-800">
-                        <div className="font-semibold mb-1">Historique à venir</div>
-                        <div>L&apos;historique complet des transactions KALPE sera disponible prochainement.</div>
-                      </div>
+                  {/* Nombre de transactions */}
+                  {!walletLoading && filteredTransactions.length > 0 && (
+                    <div className="text-center text-xs text-gray-500">
+                      {filteredTransactions.length} transaction{filteredTransactions.length > 1 ? 's' : ''}
+                      {transactionFilter !== 'all' && ` (sur ${transactions.length} au total)`}
                     </div>
-                  </div>
+                  )}
                 </motion.div>
               )}
             </div>
