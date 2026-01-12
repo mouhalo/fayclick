@@ -218,8 +218,9 @@ export default function ModalPaiementAbonnement({
       setModalState('SHOWING_QR');
       setTimeRemaining(90);
 
-      // Démarrer le polling
-      startPolling(paymentResponse.uuid);
+      // Démarrer le polling avec formula et method passés directement
+      // (évite le problème de closure stale avec useState)
+      startPolling(paymentResponse.uuid, formula.type, method);
 
     } catch (err) {
       console.error('❌ [SUBSCRIPTION-MODAL] Erreur:', err);
@@ -232,14 +233,25 @@ export default function ModalPaiementAbonnement({
 
   /**
    * Démarre le polling du statut de paiement
+   * @param uuid UUID du paiement
+   * @param formula Formule sélectionnée (passée directement pour éviter closure stale)
+   * @param method Méthode de paiement (passée directement pour éviter closure stale)
    */
-  const startPolling = (uuid: string) => {
-    console.log('🔄 [SUBSCRIPTION-MODAL] Démarrage polling:', uuid);
+  const startPolling = (
+    uuid: string,
+    formula: SubscriptionType,
+    method: Exclude<PaymentMethod, 'CASH'>
+  ) => {
+    console.log('🔄 [SUBSCRIPTION-MODAL] Démarrage polling:', { uuid, formula, method });
 
     paymentWalletService.startPolling(
       uuid,
       async (status, statusResponse) => {
-        console.log('📊 [SUBSCRIPTION-MODAL] Statut reçu:', status, statusResponse);
+        console.log('📊 [SUBSCRIPTION-MODAL] ========================================');
+        console.log('📊 [SUBSCRIPTION-MODAL] CALLBACK REÇU - Statut:', status);
+        console.log('📊 [SUBSCRIPTION-MODAL] formula (passée):', formula);
+        console.log('📊 [SUBSCRIPTION-MODAL] method (passée):', method);
+        console.log('📊 [SUBSCRIPTION-MODAL] ========================================');
 
         switch (status) {
           case 'PROCESSING':
@@ -247,8 +259,9 @@ export default function ModalPaiementAbonnement({
             break;
 
           case 'COMPLETED':
-            // Paiement validé → Créer l'abonnement
-            await handlePaymentCompleted(uuid, statusResponse);
+            // Paiement validé → Créer l'abonnement avec les valeurs passées directement
+            console.log('🎯 [SUBSCRIPTION-MODAL] STATUT COMPLETED DÉTECTÉ - Appel handlePaymentCompleted()');
+            await handlePaymentCompleted(uuid, formula, method, statusResponse);
             break;
 
           case 'FAILED':
@@ -274,30 +287,55 @@ export default function ModalPaiementAbonnement({
 
   /**
    * Gère le paiement complété et crée l'abonnement
+   * @param uuid UUID du paiement
+   * @param formula Formule d'abonnement (passée directement pour éviter closure stale)
+   * @param method Méthode de paiement (passée directement pour éviter closure stale)
+   * @param statusResponse Réponse du polling (optionnel)
    */
-  const handlePaymentCompleted = async (uuid: string, statusResponse?: any) => {
+  const handlePaymentCompleted = async (
+    uuid: string,
+    formula: SubscriptionType,
+    method: Exclude<PaymentMethod, 'CASH'>,
+    statusResponse?: any
+  ) => {
+    console.log('🚀 [SUBSCRIPTION-MODAL] ======== handlePaymentCompleted APPELÉ ========');
+    console.log('🚀 [SUBSCRIPTION-MODAL] UUID:', uuid);
+    console.log('🚀 [SUBSCRIPTION-MODAL] idStructure:', idStructure);
+    console.log('🚀 [SUBSCRIPTION-MODAL] formula (passée):', formula);
+    console.log('🚀 [SUBSCRIPTION-MODAL] method (passée):', method);
+
     setModalState('CREATING_SUB');
 
     try {
-      if (!selectedFormula || !selectedMethod) {
+      if (!formula || !method) {
+        console.error('❌ [SUBSCRIPTION-MODAL] ERREUR: Formule ou méthode non passée!');
         throw new Error('Formule ou méthode non sélectionnée');
       }
 
       console.log('📝 [SUBSCRIPTION-MODAL] Création abonnement avec UUID:', uuid);
+      console.log('📝 [SUBSCRIPTION-MODAL] Paramètres envoyés à createSubscription:', {
+        id_structure: idStructure,
+        type_abonnement: formula,
+        methode: method,
+        uuid_paiement: uuid
+      });
 
       // Créer l'abonnement avec l'UUID du paiement validé
       const response = await subscriptionService.createSubscription({
         id_structure: idStructure,
-        type_abonnement: selectedFormula,
-        methode: selectedMethod,
+        type_abonnement: formula,
+        methode: method,
         uuid_paiement: uuid
       });
 
+      console.log('📋 [SUBSCRIPTION-MODAL] Réponse createSubscription:', JSON.stringify(response, null, 2));
+
       if (!response.success) {
+        console.error('❌ [SUBSCRIPTION-MODAL] createSubscription a retourné success=false:', response.message);
         throw new Error(response.message || 'Échec de la création');
       }
 
-      console.log('✅ [SUBSCRIPTION-MODAL] Abonnement créé:', response.data);
+      console.log('✅ [SUBSCRIPTION-MODAL] Abonnement créé avec succès:', response.data);
 
       setModalState('SUCCESS');
 

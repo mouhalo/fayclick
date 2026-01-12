@@ -242,14 +242,20 @@ class PaymentWalletService {
 
         console.log('📊 Statut reçu:', response.data?.statut || response.status);
 
-        console.log('📊 Analyse du statut:', {
+        console.log('📊 [POLLING] Analyse détaillée du statut:', {
           apiStatus: response.data?.statut,
           hasData: !!response.data,
           completedAt: response.data?.completed_at,
           originalStatus: response.data?.metadata?.original_status,
           referenceExterne: response.data?.reference_externe,
-          numTransaction: response.data?.metadata?.intouch_response?.numTransaction
+          numTransaction: response.data?.metadata?.intouch_response?.numTransaction,
+          // 🔍 DEBUG: Afficher tous les champs pour identifier la structure
+          allDataKeys: response.data ? Object.keys(response.data) : [],
+          metadataKeys: response.data?.metadata ? Object.keys(response.data.metadata) : []
         });
+
+        // 🔍 DEBUG: Log complet de response.data pour diagnostic
+        console.log('🔍 [POLLING] response.data complet:', JSON.stringify(response.data, null, 2));
 
         // Vérifier le statut selon la nouvelle structure
         // IMPORTANT: response.status === 'success' signifie que l'API a répondu correctement
