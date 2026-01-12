@@ -56,13 +56,12 @@ class FacturePubliqueService {
       console.log('📤 [FACTURE-PUBLIQUE] Requête:', query);
       console.log('🌐 [FACTURE-PUBLIQUE] URL:', API_CONFIG.ENDPOINT);
 
-      // Appel direct à l'API
+      // Appel direct à l'API (sans headers custom pour éviter les problèmes CORS)
       const response = await fetch(API_CONFIG.ENDPOINT, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/xml',
-          'Accept': 'application/json',
-          'User-Agent': 'FayClick-V2/1.0'
+          'Accept': 'application/json'
         },
         body: xml
       });
