@@ -721,19 +721,40 @@ export async function printOptimized(options: PrintOptimizedOptions): Promise<bo
 
     const htmlDocument = buildPrintDocument(pages, metadata);
 
-    // Phase 4: Ouverture fenêtre d'impression
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) {
-      console.error('❌ [PRINT OPTIMIZED] Impossible d\'ouvrir la fenêtre d\'impression');
+    // Phase 4: Méthode robuste avec iframe caché (compatible mobile/tablette)
+    const printFrame = document.createElement('iframe');
+    printFrame.style.position = 'fixed';
+    printFrame.style.right = '0';
+    printFrame.style.bottom = '0';
+    printFrame.style.width = '0';
+    printFrame.style.height = '0';
+    printFrame.style.border = 'none';
+    printFrame.style.visibility = 'hidden';
+    document.body.appendChild(printFrame);
+
+    const frameDoc = printFrame.contentWindow?.document || printFrame.contentDocument;
+    if (!frameDoc) {
+      console.error('❌ [PRINT OPTIMIZED] Impossible de créer l\'iframe d\'impression');
       return false;
     }
 
-    printWindow.document.write(htmlDocument);
-    printWindow.document.close();
-    printWindow.focus();
+    frameDoc.open();
+    frameDoc.write(htmlDocument);
+    frameDoc.close();
 
-    printWindow.onload = () => {
-      printWindow.print();
+    printFrame.onload = () => {
+      setTimeout(() => {
+        try {
+          printFrame.contentWindow?.focus();
+          printFrame.contentWindow?.print();
+        } catch (e) {
+          console.warn('Impression iframe échouée:', e);
+          window.print();
+        }
+        setTimeout(() => {
+          document.body.removeChild(printFrame);
+        }, 1000);
+      }, 500);
     };
 
     console.log(`✅ [PRINT OPTIMIZED] Impression lancée (${pages.length} pages)`);
@@ -890,19 +911,41 @@ export async function printProduitsList(options: PrintProduitsOptions): Promise<
     console.log('🖨️ [PRINT PRODUITS] Début impression...');
 
     const html = await generateProduitsPrintHTML(options);
-    const printWindow = window.open('', '_blank');
 
-    if (!printWindow) {
-      console.error('❌ [PRINT PRODUITS] Impossible d\'ouvrir la fenêtre d\'impression');
+    // Méthode robuste avec iframe caché (compatible mobile/tablette)
+    const printFrame = document.createElement('iframe');
+    printFrame.style.position = 'fixed';
+    printFrame.style.right = '0';
+    printFrame.style.bottom = '0';
+    printFrame.style.width = '0';
+    printFrame.style.height = '0';
+    printFrame.style.border = 'none';
+    printFrame.style.visibility = 'hidden';
+    document.body.appendChild(printFrame);
+
+    const frameDoc = printFrame.contentWindow?.document || printFrame.contentDocument;
+    if (!frameDoc) {
+      console.error('❌ [PRINT PRODUITS] Impossible de créer l\'iframe d\'impression');
       return false;
     }
 
-    printWindow.document.write(html);
-    printWindow.document.close();
-    printWindow.focus();
+    frameDoc.open();
+    frameDoc.write(html);
+    frameDoc.close();
 
-    printWindow.onload = () => {
-      printWindow.print();
+    printFrame.onload = () => {
+      setTimeout(() => {
+        try {
+          printFrame.contentWindow?.focus();
+          printFrame.contentWindow?.print();
+        } catch (e) {
+          console.warn('Impression iframe échouée:', e);
+          window.print();
+        }
+        setTimeout(() => {
+          document.body.removeChild(printFrame);
+        }, 1000);
+      }, 500);
     };
 
     console.log('✅ [PRINT PRODUITS] Impression lancée');
@@ -964,19 +1007,41 @@ export async function printQRStickers(options: PrintQRStickersOptions): Promise<
     console.log('🖨️ [PRINT QR STICKERS] Début impression stickers...');
 
     const html = await generateQRStickersHTML(options);
-    const printWindow = window.open('', '_blank');
 
-    if (!printWindow) {
-      console.error('❌ [PRINT QR STICKERS] Impossible d\'ouvrir la fenêtre d\'impression');
+    // Méthode robuste avec iframe caché (compatible mobile/tablette)
+    const printFrame = document.createElement('iframe');
+    printFrame.style.position = 'fixed';
+    printFrame.style.right = '0';
+    printFrame.style.bottom = '0';
+    printFrame.style.width = '0';
+    printFrame.style.height = '0';
+    printFrame.style.border = 'none';
+    printFrame.style.visibility = 'hidden';
+    document.body.appendChild(printFrame);
+
+    const frameDoc = printFrame.contentWindow?.document || printFrame.contentDocument;
+    if (!frameDoc) {
+      console.error('❌ [PRINT QR STICKERS] Impossible de créer l\'iframe d\'impression');
       return false;
     }
 
-    printWindow.document.write(html);
-    printWindow.document.close();
-    printWindow.focus();
+    frameDoc.open();
+    frameDoc.write(html);
+    frameDoc.close();
 
-    printWindow.onload = () => {
-      printWindow.print();
+    printFrame.onload = () => {
+      setTimeout(() => {
+        try {
+          printFrame.contentWindow?.focus();
+          printFrame.contentWindow?.print();
+        } catch (e) {
+          console.warn('Impression iframe échouée:', e);
+          window.print();
+        }
+        setTimeout(() => {
+          document.body.removeChild(printFrame);
+        }, 1000);
+      }, 500);
     };
 
     console.log('✅ [PRINT QR STICKERS] Impression lancée');
