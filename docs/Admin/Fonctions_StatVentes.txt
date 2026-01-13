@@ -1,0 +1,514 @@
+pour suivre les statistiques de ventes de produits à travers toutes les structures.
+sql-- ============================================================================
+-- FONCTION: get_admin_stats_produits_vendus()
+-- Objectif: Statistiques globales des produits vendus pour le suivi du commerce
+-- ============================================================================
+
+CREATE OR REPLACE FUNCTION get_admin_stats_produits_vendus(
+    p_annee INTEGER DEFAULT EXTRACT(YEAR FROM CURRENT_DATE)::INTEGER,
+    p_mois INTEGER DEFAULT NULL,                    -- NULL = année complète
+    p_id_structure INTEGER DEFAULT NULL,            -- NULL = toutes structures
+    p_categorie VARCHAR DEFAULT NULL,               -- NULL = toutes catégories
+    p_limit_top INTEGER DEFAULT 20                  -- Limite pour les top produits
+)
+RETURNS JSON
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+    v_result JSON;
+    v_periode JSON;
+    v_resume_global JSON;
+    v_par_categorie JSON;
+    v_par_structure JSON;
+    v_top_produits JSON;
+    v_evolution JSON;
+    v_label_periode VARCHAR;
+    v_date_debut DATE;
+    v_date_fin DATE;
+    v_mois_names VARCHAR[] := ARRAY['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Jun', 
+                                     'Jul', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc'];
+    v_mois_full VARCHAR[] := ARRAY['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
+                                    'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
+BEGIN
+    -- ===== CALCUL DE LA PÉRIODE =====
+    IF p_mois IS NOT NULL THEN
+        v_date_debut := make_date(p_annee, p_mois, 1);
+        v_date_fin := (v_date_debut + INTERVAL '1 month' - INTERVAL '1 day')::DATE;
+        v_label_periode := v_mois_full[p_mois] || ' ' || p_annee::VARCHAR;
+    ELSE
+        v_date_debut := make_date(p_annee, 1, 1);
+        v_date_fin := make_date(p_annee, 12, 31);
+        v_label_periode := 'Année ' || p_annee::VARCHAR;
+    END IF;
+
+    -- Construire l'objet période
+    v_periode := json_build_object(
+        'annee', p_annee,
+        'mois', p_mois,
+        'label', v_label_periode,
+        'date_debut', v_date_debut,
+        'date_fin', v_date_fin
+    );
+
+    -- ===== RÉSUMÉ GLOBAL =====
+    SELECT json_build_object(
+        'nombre_produits_distincts', COUNT(DISTINCT dv.id_produit),
+        'nombre_ventes', COUNT(*),
+        'quantite_totale_vendue', COALESCE(SUM(dv.quantite), 0),
+        'chiffre_affaire_total', COALESCE(SUM(dv.quantite * dv.prix), 0),
+        'cout_total', COALESCE(SUM(dv.quantite * dv.cout_revient), 0),
+        'marge_totale', COALESCE(SUM(dv.marge), 0),
+        'taux_marge_moyen', CASE 
+            WHEN SUM(dv.quantite * dv.prix) > 0 
+            THEN ROUND((SUM(dv.marge) / SUM(dv.quantite * dv.prix) * 100)::NUMERIC, 2)
+            ELSE 0
+        END,
+        'prix_moyen_vente', CASE 
+            WHEN SUM(dv.quantite) > 0 
+            THEN ROUND((SUM(dv.quantite * dv.prix) / SUM(dv.quantite))::NUMERIC, 0)
+            ELSE 0
+        END,
+        'panier_moyen', CASE 
+            WHEN COUNT(DISTINCT dv.id_facture) > 0 
+            THEN ROUND((SUM(dv.quantite * dv.prix) / COUNT(DISTINCT dv.id_facture))::NUMERIC, 0)
+            ELSE 0
+        END,
+        'nombre_factures', COUNT(DISTINCT dv.id_facture),
+        'nombre_structures_actives', COUNT(DISTINCT fc.id_structure)
+    ) INTO v_resume_global
+    FROM list_detailventes dv
+    JOIN facture_com fc ON dv.id_facture = fc.id_facture
+    WHERE dv.date_facture BETWEEN v_date_debut AND v_date_fin
+    AND (p_id_structure IS NULL OR fc.id_structure = p_id_structure)
+    AND (p_categorie IS NULL OR dv.nom_categorie = p_categorie);
+
+    -- ===== STATS PAR CATÉGORIE =====
+    SELECT json_agg(cat_data ORDER BY cat_data->>'chiffre_affaire' DESC)
+    INTO v_par_categorie
+    FROM (
+        SELECT json_build_object(
+            'categorie', COALESCE(dv.nom_categorie, 'Non catégorisé'),
+            'nombre_produits', COUNT(DISTINCT dv.id_produit),
+            'nombre_ventes', COUNT(*),
+            'quantite_vendue', COALESCE(SUM(dv.quantite), 0),
+            'chiffre_affaire', COALESCE(SUM(dv.quantite * dv.prix), 0),
+            'marge_totale', COALESCE(SUM(dv.marge), 0),
+            'taux_marge', CASE 
+                WHEN SUM(dv.quantite * dv.prix) > 0 
+                THEN ROUND((SUM(dv.marge) / SUM(dv.quantite * dv.prix) * 100)::NUMERIC, 2)
+                ELSE 0
+            END,
+            'part_ca', 0  -- Calculé après
+        ) AS cat_data
+        FROM list_detailventes dv
+        JOIN facture_com fc ON dv.id_facture = fc.id_facture
+        WHERE dv.date_facture BETWEEN v_date_debut AND v_date_fin
+        AND (p_id_structure IS NULL OR fc.id_structure = p_id_structure)
+        AND (p_categorie IS NULL OR dv.nom_categorie = p_categorie)
+        GROUP BY dv.nom_categorie
+        HAVING SUM(dv.quantite * dv.prix) > 0
+    ) sub;
+
+    -- ===== STATS PAR STRUCTURE (Top 15) =====
+    SELECT json_agg(struct_data)
+    INTO v_par_structure
+    FROM (
+        SELECT json_build_object(
+            'id_structure', ls.id_structure,
+            'nom_structure', ls.nom_structure,
+            'type_structure', ls.type_structure,
+            'nombre_produits', COUNT(DISTINCT dv.id_produit),
+            'nombre_ventes', COUNT(*),
+            'quantite_vendue', COALESCE(SUM(dv.quantite), 0),
+            'chiffre_affaire', COALESCE(SUM(dv.quantite * dv.prix), 0),
+            'marge_totale', COALESCE(SUM(dv.marge), 0),
+            'taux_marge', CASE 
+                WHEN SUM(dv.quantite * dv.prix) > 0 
+                THEN ROUND((SUM(dv.marge) / SUM(dv.quantite * dv.prix) * 100)::NUMERIC, 2)
+                ELSE 0
+            END
+        ) AS struct_data
+        FROM list_detailventes dv
+        JOIN facture_com fc ON dv.id_facture = fc.id_facture
+        JOIN list_structures ls ON fc.id_structure = ls.id_structure
+        WHERE dv.date_facture BETWEEN v_date_debut AND v_date_fin
+        AND (p_id_structure IS NULL OR fc.id_structure = p_id_structure)
+        AND (p_categorie IS NULL OR dv.nom_categorie = p_categorie)
+        GROUP BY ls.id_structure, ls.nom_structure, ls.type_structure
+        ORDER BY SUM(dv.quantite * dv.prix) DESC
+        LIMIT 15
+    ) sub;
+
+    -- ===== TOP PRODUITS VENDUS =====
+    SELECT json_agg(prod_data)
+    INTO v_top_produits
+    FROM (
+        SELECT json_build_object(
+            'id_produit', dv.id_produit,
+            'nom_produit', dv.nom_produit,
+            'categorie', COALESCE(dv.nom_categorie, 'Non catégorisé'),
+            'description', dv.description,
+            'nombre_structures', COUNT(DISTINCT fc.id_structure),
+            'nombre_ventes', COUNT(*),
+            'quantite_vendue', COALESCE(SUM(dv.quantite), 0),
+            'prix_moyen', ROUND(AVG(dv.prix)::NUMERIC, 0),
+            'prix_min', MIN(dv.prix),
+            'prix_max', MAX(dv.prix),
+            'chiffre_affaire', COALESCE(SUM(dv.quantite * dv.prix), 0),
+            'cout_total', COALESCE(SUM(dv.quantite * dv.cout_revient), 0),
+            'marge_totale', COALESCE(SUM(dv.marge), 0),
+            'taux_marge', CASE 
+                WHEN SUM(dv.quantite * dv.prix) > 0 
+                THEN ROUND((SUM(dv.marge) / SUM(dv.quantite * dv.prix) * 100)::NUMERIC, 2)
+                ELSE 0
+            END
+        ) AS prod_data
+        FROM list_detailventes dv
+        JOIN facture_com fc ON dv.id_facture = fc.id_facture
+        WHERE dv.date_facture BETWEEN v_date_debut AND v_date_fin
+        AND (p_id_structure IS NULL OR fc.id_structure = p_id_structure)
+        AND (p_categorie IS NULL OR dv.nom_categorie = p_categorie)
+        GROUP BY dv.id_produit, dv.nom_produit, dv.nom_categorie, dv.description
+        ORDER BY SUM(dv.quantite) DESC
+        LIMIT p_limit_top
+    ) sub;
+
+    -- ===== ÉVOLUTION (Mensuelle ou Journalière selon la période) =====
+    IF p_mois IS NULL THEN
+        -- Évolution mensuelle sur l'année
+        SELECT json_agg(evol_data ORDER BY (evol_data->>'mois')::INTEGER)
+        INTO v_evolution
+        FROM (
+            SELECT json_build_object(
+                'mois', m.mois,
+                'label', v_mois_names[m.mois],
+                'quantite_vendue', COALESCE(stats.qte, 0),
+                'chiffre_affaire', COALESCE(stats.ca, 0),
+                'marge', COALESCE(stats.marge, 0),
+                'nombre_ventes', COALESCE(stats.nb_ventes, 0)
+            ) AS evol_data
+            FROM generate_series(1, 12) AS m(mois)
+            LEFT JOIN (
+                SELECT 
+                    EXTRACT(MONTH FROM dv.date_facture)::INTEGER as nmois,
+                    SUM(dv.quantite) as qte,
+                    SUM(dv.quantite * dv.prix) as ca,
+                    SUM(dv.marge) as marge,
+                    COUNT(*) as nb_ventes
+                FROM list_detailventes dv
+                JOIN facture_com fc ON dv.id_facture = fc.id_facture
+                WHERE EXTRACT(YEAR FROM dv.date_facture) = p_annee
+                AND (p_id_structure IS NULL OR fc.id_structure = p_id_structure)
+                AND (p_categorie IS NULL OR dv.nom_categorie = p_categorie)
+                GROUP BY EXTRACT(MONTH FROM dv.date_facture)
+            ) stats ON m.mois = stats.nmois
+        ) sub;
+    ELSE
+        -- Évolution journalière sur le mois
+        SELECT json_agg(evol_data ORDER BY (evol_data->>'jour')::INTEGER)
+        INTO v_evolution
+        FROM (
+            SELECT json_build_object(
+                'jour', d.jour,
+                'date', make_date(p_annee, p_mois, d.jour),
+                'quantite_vendue', COALESCE(stats.qte, 0),
+                'chiffre_affaire', COALESCE(stats.ca, 0),
+                'marge', COALESCE(stats.marge, 0),
+                'nombre_ventes', COALESCE(stats.nb_ventes, 0)
+            ) AS evol_data
+            FROM generate_series(1, EXTRACT(DAY FROM v_date_fin)::INTEGER) AS d(jour)
+            LEFT JOIN (
+                SELECT 
+                    EXTRACT(DAY FROM dv.date_facture)::INTEGER as njour,
+                    SUM(dv.quantite) as qte,
+                    SUM(dv.quantite * dv.prix) as ca,
+                    SUM(dv.marge) as marge,
+                    COUNT(*) as nb_ventes
+                FROM list_detailventes dv
+                JOIN facture_com fc ON dv.id_facture = fc.id_facture
+                WHERE dv.date_facture BETWEEN v_date_debut AND v_date_fin
+                AND (p_id_structure IS NULL OR fc.id_structure = p_id_structure)
+                AND (p_categorie IS NULL OR dv.nom_categorie = p_categorie)
+                GROUP BY EXTRACT(DAY FROM dv.date_facture)
+            ) stats ON d.jour = stats.njour
+        ) sub;
+    END IF;
+
+    -- ===== ASSEMBLAGE RÉSULTAT FINAL =====
+    v_result := json_build_object(
+        'success', true,
+        'data', json_build_object(
+            'periode', v_periode,
+            'resume_global', v_resume_global,
+            'par_categorie', COALESCE(v_par_categorie, '[]'::json),
+            'par_structure', COALESCE(v_par_structure, '[]'::json),
+            'top_produits', COALESCE(v_top_produits, '[]'::json),
+            'evolution', COALESCE(v_evolution, '[]'::json)
+        ),
+        'filtres_appliques', json_build_object(
+            'annee', p_annee,
+            'mois', p_mois,
+            'id_structure', p_id_structure,
+            'categorie', p_categorie,
+            'limit_top', p_limit_top
+        ),
+        'generated_at', NOW()
+    );
+
+    RETURN v_result;
+
+EXCEPTION
+    WHEN OTHERS THEN
+        RETURN json_build_object(
+            'success', false,
+            'error', SQLERRM,
+            'error_code', SQLSTATE
+        );
+END;
+$$;
+
+COMMENT ON FUNCTION get_admin_stats_produits_vendus(INTEGER, INTEGER, INTEGER, VARCHAR, INTEGER) IS 
+'Statistiques globales des produits vendus pour le suivi du commerce - Dashboard Admin FayClick';
+
+
+-- ============================================================================
+-- FONCTION COMPLÉMENTAIRE: get_admin_produits_vendus_details()
+-- Pour une liste détaillée paginée des ventes de produits
+-- ============================================================================
+
+CREATE OR REPLACE FUNCTION get_admin_produits_vendus_details(
+    p_limit INTEGER DEFAULT 50,
+    p_offset INTEGER DEFAULT 0,
+    p_annee INTEGER DEFAULT EXTRACT(YEAR FROM CURRENT_DATE)::INTEGER,
+    p_mois INTEGER DEFAULT NULL,
+    p_id_structure INTEGER DEFAULT NULL,
+    p_categorie VARCHAR DEFAULT NULL,
+    p_search VARCHAR DEFAULT NULL,
+    p_order_by VARCHAR DEFAULT 'quantite',  -- 'quantite', 'ca', 'marge', 'nom'
+    p_order_dir VARCHAR DEFAULT 'DESC'
+)
+RETURNS JSON
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+    v_result JSON;
+    v_produits JSON;
+    v_total INTEGER;
+    v_pages INTEGER;
+    v_date_debut DATE;
+    v_date_fin DATE;
+    v_search_pattern VARCHAR;
+BEGIN
+    -- Calcul des dates
+    IF p_mois IS NOT NULL THEN
+        v_date_debut := make_date(p_annee, p_mois, 1);
+        v_date_fin := (v_date_debut + INTERVAL '1 month' - INTERVAL '1 day')::DATE;
+    ELSE
+        v_date_debut := make_date(p_annee, 1, 1);
+        v_date_fin := make_date(p_annee, 12, 31);
+    END IF;
+
+    -- Pattern de recherche
+    v_search_pattern := CASE 
+        WHEN p_search IS NOT NULL AND TRIM(p_search) != '' 
+        THEN '%' || LOWER(TRIM(p_search)) || '%'
+        ELSE NULL 
+    END;
+
+    -- Compter le total
+    SELECT COUNT(DISTINCT dv.id_produit) INTO v_total
+    FROM list_detailventes dv
+    JOIN facture_com fc ON dv.id_facture = fc.id_facture
+    WHERE dv.date_facture BETWEEN v_date_debut AND v_date_fin
+    AND (p_id_structure IS NULL OR fc.id_structure = p_id_structure)
+    AND (p_categorie IS NULL OR dv.nom_categorie = p_categorie)
+    AND (v_search_pattern IS NULL OR LOWER(dv.nom_produit) LIKE v_search_pattern);
+
+    v_pages := CEIL(v_total::NUMERIC / GREATEST(p_limit, 1));
+
+    -- Récupérer les produits avec tri dynamique
+    SELECT json_agg(prod_row)
+    INTO v_produits
+    FROM (
+        SELECT json_build_object(
+            'id_produit', sub.id_produit,
+            'nom_produit', sub.nom_produit,
+            'categorie', sub.categorie,
+            'description', sub.description,
+            'structures', sub.structures,
+            'nombre_ventes', sub.nombre_ventes,
+            'quantite_vendue', sub.quantite_vendue,
+            'prix_moyen', sub.prix_moyen,
+            'chiffre_affaire', sub.chiffre_affaire,
+            'marge_totale', sub.marge_totale,
+            'taux_marge', sub.taux_marge
+        ) AS prod_row
+        FROM (
+            SELECT 
+                dv.id_produit,
+                dv.nom_produit,
+                COALESCE(dv.nom_categorie, 'Non catégorisé') AS categorie,
+                dv.description,
+                json_agg(DISTINCT jsonb_build_object(
+                    'id_structure', fc.id_structure,
+                    'nom_structure', ls.nom_structure
+                )) AS structures,
+                COUNT(*) AS nombre_ventes,
+                SUM(dv.quantite) AS quantite_vendue,
+                ROUND(AVG(dv.prix)::NUMERIC, 0) AS prix_moyen,
+                SUM(dv.quantite * dv.prix) AS chiffre_affaire,
+                SUM(dv.marge) AS marge_totale,
+                CASE 
+                    WHEN SUM(dv.quantite * dv.prix) > 0 
+                    THEN ROUND((SUM(dv.marge) / SUM(dv.quantite * dv.prix) * 100)::NUMERIC, 2)
+                    ELSE 0
+                END AS taux_marge
+            FROM list_detailventes dv
+            JOIN facture_com fc ON dv.id_facture = fc.id_facture
+            JOIN list_structures ls ON fc.id_structure = ls.id_structure
+            WHERE dv.date_facture BETWEEN v_date_debut AND v_date_fin
+            AND (p_id_structure IS NULL OR fc.id_structure = p_id_structure)
+            AND (p_categorie IS NULL OR dv.nom_categorie = p_categorie)
+            AND (v_search_pattern IS NULL OR LOWER(dv.nom_produit) LIKE v_search_pattern)
+            GROUP BY dv.id_produit, dv.nom_produit, dv.nom_categorie, dv.description
+            ORDER BY 
+                CASE WHEN p_order_by = 'quantite' AND p_order_dir = 'DESC' THEN SUM(dv.quantite) END DESC NULLS LAST,
+                CASE WHEN p_order_by = 'quantite' AND p_order_dir = 'ASC' THEN SUM(dv.quantite) END ASC NULLS LAST,
+                CASE WHEN p_order_by = 'ca' AND p_order_dir = 'DESC' THEN SUM(dv.quantite * dv.prix) END DESC NULLS LAST,
+                CASE WHEN p_order_by = 'ca' AND p_order_dir = 'ASC' THEN SUM(dv.quantite * dv.prix) END ASC NULLS LAST,
+                CASE WHEN p_order_by = 'marge' AND p_order_dir = 'DESC' THEN SUM(dv.marge) END DESC NULLS LAST,
+                CASE WHEN p_order_by = 'marge' AND p_order_dir = 'ASC' THEN SUM(dv.marge) END ASC NULLS LAST,
+                CASE WHEN p_order_by = 'nom' AND p_order_dir = 'DESC' THEN dv.nom_produit END DESC NULLS LAST,
+                CASE WHEN p_order_by = 'nom' AND p_order_dir = 'ASC' THEN dv.nom_produit END ASC NULLS LAST,
+                SUM(dv.quantite) DESC  -- Défaut
+            LIMIT p_limit
+            OFFSET p_offset
+        ) sub
+    ) final;
+
+    -- Construire le résultat
+    v_result := json_build_object(
+        'success', true,
+        'data', json_build_object(
+            'produits', COALESCE(v_produits, '[]'::json),
+            'pagination', json_build_object(
+                'total', v_total,
+                'limit', p_limit,
+                'offset', p_offset,
+                'pages', v_pages,
+                'current_page', FLOOR(p_offset / GREATEST(p_limit, 1)) + 1
+            )
+        ),
+        'filtres_appliques', json_build_object(
+            'annee', p_annee,
+            'mois', p_mois,
+            'id_structure', p_id_structure,
+            'categorie', p_categorie,
+            'search', p_search,
+            'order_by', p_order_by,
+            'order_dir', p_order_dir
+        )
+    );
+
+    RETURN v_result;
+
+EXCEPTION
+    WHEN OTHERS THEN
+        RETURN json_build_object(
+            'success', false,
+            'error', SQLERRM,
+            'error_code', SQLSTATE
+        );
+END;
+$$;
+
+COMMENT ON FUNCTION get_admin_produits_vendus_details(INTEGER, INTEGER, INTEGER, INTEGER, INTEGER, VARCHAR, VARCHAR, VARCHAR, VARCHAR) IS 
+'Liste détaillée paginée des produits vendus avec filtres et tri';
+
+
+-- ============================================================================
+-- INDEX RECOMMANDÉS POUR OPTIMISER LES PERFORMANCES
+-- ============================================================================
+
+-- Index sur detail_facture_com pour les jointures
+CREATE INDEX IF NOT EXISTS idx_detail_facture_date 
+ON detail_facture_com(date_facture);
+
+CREATE INDEX IF NOT EXISTS idx_detail_facture_produit_date 
+ON detail_facture_com(id_produit, date_facture);
+
+-- Index sur produit_service pour les catégories
+CREATE INDEX IF NOT EXISTS idx_produit_service_categorie 
+ON produit_service(nom_categorie);
+
+
+-- ============================================================================
+-- EXEMPLES D'UTILISATION
+-- ============================================================================
+
+/*
+-- 1. Stats globales de l'année en cours
+SELECT * FROM get_admin_stats_produits_vendus();
+
+-- 2. Stats du mois de janvier 2026
+SELECT * FROM get_admin_stats_produits_vendus(2026, 1);
+
+-- 3. Stats d'une structure spécifique
+SELECT * FROM get_admin_stats_produits_vendus(2026, NULL, 183);
+
+-- 4. Stats d'une catégorie spécifique
+SELECT * FROM get_admin_stats_produits_vendus(2026, NULL, NULL, 'ALIMENTATION');
+
+-- 5. Top 50 produits
+SELECT * FROM get_admin_stats_produits_vendus(2026, NULL, NULL, NULL, 50);
+
+-- 6. Liste détaillée paginée (page 1)
+SELECT * FROM get_admin_produits_vendus_details(20, 0, 2026);
+
+-- 7. Liste détaillée avec recherche
+SELECT * FROM get_admin_produits_vendus_details(20, 0, 2026, NULL, NULL, NULL, 'riz');
+
+-- 8. Liste triée par chiffre d'affaire
+SELECT * FROM get_admin_produits_vendus_details(20, 0, 2026, NULL, NULL, NULL, NULL, 'ca', 'DESC');
+
+-- 9. Extraire juste le résumé global
+SELECT data->'resume_global' FROM get_admin_stats_produits_vendus();
+
+-- 10. Extraire le top 10 produits
+SELECT jsonb_pretty((data->'top_produits')::jsonb) 
+FROM get_admin_stats_produits_vendus(2026, NULL, NULL, NULL, 10);
+*/
+Résumé des données retournées
+get_admin_stats_produits_vendus() - Stats globales
+SectionContenuresume_globalNombre produits, quantités, CA, coûts, marges, taux marge, panier moyenpar_categorieStats agrégées par catégorie de produitpar_structureTop 15 structures par CA avec leurs statstop_produitsTop N produits les plus vendus (quantité)evolutionÉvolution mensuelle (année) ou journalière (mois)
+get_admin_produits_vendus_details() - Liste détaillée
+FonctionnalitéDescriptionPaginationLimit/offset avec calcul des pagesRecherchePar nom de produitFiltresAnnée, mois, structure, catégorieTriPar quantité, CA, marge ou nom (ASC/DESC)StructuresListe des structures vendant chaque produit
+Exemple de résultat JSON
+json{
+  "success": true,
+  "data": {
+    "periode": {
+      "annee": 2026,
+      "mois": 1,
+      "label": "Janvier 2026"
+    },
+    "resume_global": {
+      "nombre_produits_distincts": 450,
+      "quantite_totale_vendue": 12500,
+      "chiffre_affaire_total": 45000000,
+      "marge_totale": 9500000,
+      "taux_marge_moyen": 21.11,
+      "nombre_structures_actives": 85
+    },
+    "top_produits": [
+      {
+        "nom_produit": "Riz Brisé 25kg",
+        "quantite_vendue": 850,
+        "chiffre_affaire": 8500000,
+        "taux_marge": 15.5
+      }
+    ]
+  }
+}
