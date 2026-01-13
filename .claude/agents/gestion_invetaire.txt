@@ -1,0 +1,45 @@
+On va utiliser au lieu de get_inventaire.
+FUNCTION public.get_inventaire_periodique(pid_structure integer, pannee integer DEFAULT 0, pmois integer DEFAULT 0, psemaine integer DEFAULT 0, pjour integer DEFAULT 0)
+ RETURNS json
+
+
+Exemple:
+
+
+-- Année courante (tous les paramètres à 0)
+SELECT public.get_inventaire_periodique(183);
+
+-- Année 2024
+SELECT public.get_inventaire_periodique(183, 2025);
+
+-- Janvier 2025
+SELECT public.get_inventaire_periodique(203, 2025, 1);
+
+-- Semaine 5 de 2025
+SELECT public.get_inventaire_periodique(203, 2025, 0, 5);
+
+-- Le 15 janvier 2025
+SELECT public.get_inventaire_periodique(203, 2025, 1, 0, 15);
+
+
+
+{"success" : true, "code" : "INVENTAIRE_OK", "structure_id" : 183, "periode" : {"type" : "annee", "label" : "Année 2026", 
+"annee" : 2026, "mois" : null, "semaine" : null, "jour" : null}, "date_debut" : "2026-01-01", "date_fin" : "2026-12-31", 
+"periode_precedente" : {"date_debut" : "2025-01-01", "date_fin" : "2025-12-31"}, 
+"resume_ventes" : {"ca_total" : 50.00, "ca_variation" : -100.0, "ventes_total" : 1, 
+"ventes_variation" : -95.5, "panier_moyen" : 50, "panier_variation" : -99.7, "clients_actifs" : 1, "clients_variation" : -83.3}, 
+"evolution_ventes" : [{"periode" : "Jan", "label" : "January  ", "montant" : 50.00, "nombre_ventes" : 1}, 
+{"periode" : "Feb", "label" : "February ", "montant" : 0, "nombre_ventes" : 0}, 
+{"periode" : "Mar", "label" : "March    ", "montant" : 0, "nombre_ventes" : 0}, 
+{"periode" : "Apr", "label" : "April    ", "montant" : 0, "nombre_ventes" : 0}, 
+{"periode" : "May", "label" : "May      ", "montant" : 0, "nombre_ventes" : 0}, 
+{"periode" : "Jun", "label" : "June     ", "montant" : 0, "nombre_ventes" : 0}, 
+{"periode" : "Jul", "label" : "July     ", "montant" : 0, "nombre_ventes" : 0}, 
+{"periode" : "Aug", "label" : "August   ", "montant" : 0, "nombre_ventes" : 0}, 
+{"periode" : "Sep", "label" : "September", "montant" : 0, "nombre_ventes" : 0}, 
+{"periode" : "Oct", "label" : "October  ", "montant" : 0, "nombre_ventes" : 0}, 
+{"periode" : "Nov", "label" : "November ", "montant" : 0, "nombre_ventes" : 0}, 
+{"periode" : "Dec", "label" : "December ", "montant" : 0, "nombre_ventes" : 0}], 
+"top_articles" : [{"rang" : 1, "nom_produit" : "Tasse de café", "nom_categorie" : "Alimentation", "montant_total" : 50, 
+"nombre_ventes" : 1, "quantite_totale" : 1}],
+ "top_clients" : [], "timestamp_generation" : "2026-01-01T19:33:59.043471+00:00"}
