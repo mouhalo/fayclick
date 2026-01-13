@@ -657,14 +657,45 @@ export function ModalFacturePrestataire({
       </html>
     `;
 
-    const printWindow = window.open('', '_blank');
-    if (printWindow) {
-      printWindow.document.write(factureHTML);
-      printWindow.document.close();
-      printWindow.focus();
-      setTimeout(() => {
-        printWindow.print();
-      }, 300);
+    // Méthode robuste avec iframe caché (compatible mobile/tablette)
+    // Évite les popup blockers et les problèmes de timing
+    const printFrame = document.createElement('iframe');
+    printFrame.style.position = 'fixed';
+    printFrame.style.right = '0';
+    printFrame.style.bottom = '0';
+    printFrame.style.width = '0';
+    printFrame.style.height = '0';
+    printFrame.style.border = 'none';
+    printFrame.style.visibility = 'hidden';
+    document.body.appendChild(printFrame);
+
+    const frameDoc = printFrame.contentWindow?.document || printFrame.contentDocument;
+    if (frameDoc) {
+      frameDoc.open();
+      frameDoc.write(factureHTML);
+      frameDoc.close();
+
+      // Attendre le chargement complet avant d'imprimer
+      printFrame.onload = () => {
+        setTimeout(() => {
+          try {
+            printFrame.contentWindow?.focus();
+            printFrame.contentWindow?.print();
+          } catch (e) {
+            // Fallback pour Safari et autres navigateurs restrictifs
+            console.warn('Impression iframe échouée, tentative alternative:', e);
+            window.print();
+          }
+          // Nettoyer l'iframe après impression
+          setTimeout(() => {
+            document.body.removeChild(printFrame);
+          }, 1000);
+        }, 500); // Délai plus long pour mobile
+      };
+    } else {
+      // Fallback ultime: impression de la page courante
+      console.warn('Iframe non disponible, utilisation de window.print()');
+      window.print();
     }
   };
 

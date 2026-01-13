@@ -534,15 +534,39 @@ export default function FacturesPrestatairesPage() {
       </html>
     `;
 
-    // Ouvrir la fenetre d'impression
-    const printWindow = window.open('', '_blank');
-    if (printWindow) {
-      printWindow.document.write(printHtml);
-      printWindow.document.close();
-      printWindow.focus();
-      setTimeout(() => {
-        printWindow.print();
-      }, 300);
+    // Méthode robuste avec iframe caché (compatible mobile/tablette)
+    const printFrame = document.createElement('iframe');
+    printFrame.style.position = 'fixed';
+    printFrame.style.right = '0';
+    printFrame.style.bottom = '0';
+    printFrame.style.width = '0';
+    printFrame.style.height = '0';
+    printFrame.style.border = 'none';
+    printFrame.style.visibility = 'hidden';
+    document.body.appendChild(printFrame);
+
+    const frameDoc = printFrame.contentWindow?.document || printFrame.contentDocument;
+    if (frameDoc) {
+      frameDoc.open();
+      frameDoc.write(printHtml);
+      frameDoc.close();
+
+      printFrame.onload = () => {
+        setTimeout(() => {
+          try {
+            printFrame.contentWindow?.focus();
+            printFrame.contentWindow?.print();
+          } catch (e) {
+            console.warn('Impression iframe échouée:', e);
+            window.print();
+          }
+          setTimeout(() => {
+            document.body.removeChild(printFrame);
+          }, 1000);
+        }, 500);
+      };
+    } else {
+      window.print();
     }
   };
 
