@@ -1,29 +1,272 @@
 /**
  * Composant de filtres compact pour la gestion des clients
  * Style glassmorphism cohérent avec FilterHeaderGlass des factures
+ * ✅ Export CSV et Impression des clients
  */
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { Search, Filter, X, ChevronDown, RefreshCw } from 'lucide-react';
+import { Search, Filter, X, ChevronDown, RefreshCw, FileDown, Printer } from 'lucide-react';
+import { ClientWithStats } from '@/types/client';
 
 interface FilterHeaderClientsGlassProps {
   searchTerm: string;
   onSearchChange: (value: string) => void;
   onRefresh: () => void;
   isRefreshing?: boolean;
+  clients?: ClientWithStats[];
+  nomStructure?: string;
 }
 
 export function FilterHeaderClientsGlass({
   searchTerm,
   onSearchChange,
   onRefresh,
-  isRefreshing = false
+  isRefreshing = false,
+  clients = [],
+  nomStructure = 'Structure'
 }: FilterHeaderClientsGlassProps) {
   // État local pour l'input (mise à jour immédiate)
   const [localSearchTerm, setLocalSearchTerm] = useState(searchTerm);
+  const [isExporting, setIsExporting] = useState(false);
+
+  // Formater montant en FCFA
+  const formatMontant = (montant: number) => {
+    return montant.toLocaleString('fr-FR') + ' F';
+  };
+
+  // ✅ Export CSV des clients
+  const handleExportCSV = useCallback(() => {
+    if (clients.length === 0) {
+      alert('Aucun client à exporter');
+      return;
+    }
+
+    setIsExporting(true);
+
+    try {
+      // En-têtes CSV
+      const headers = ['Nom Client', 'Téléphone', 'Nbre Factures', 'Total Payé', 'Impayé'];
+
+      // Données clients
+      const rows = clients.map(({ client, statistiques_factures }) => [
+        client.nom_client.replace(/[;,]/g, ' '), // Échapper les séparateurs
+        client.tel_client,
+        statistiques_factures.nombre_factures.toString(),
+        statistiques_factures.montant_total_paye.toString(),
+        statistiques_factures.montant_impaye.toString()
+      ]);
+
+      // Créer le contenu CSV avec BOM UTF-8 pour Excel
+      const BOM = '\uFEFF';
+      const csvContent = BOM + [
+        headers.join(';'),
+        ...rows.map(row => row.join(';'))
+      ].join('\n');
+
+      // Télécharger le fichier
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      const dateStr = new Date().toLocaleDateString('fr-FR').replace(/\//g, '-');
+      link.download = `clients_${nomStructure.replace(/\s+/g, '_')}_${dateStr}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      console.log(`✅ Export CSV: ${clients.length} clients exportés`);
+    } catch (error) {
+      console.error('❌ Erreur export CSV:', error);
+      alert('Erreur lors de l\'export CSV');
+    } finally {
+      setIsExporting(false);
+    }
+  }, [clients, nomStructure]);
+
+  // ✅ Impression des clients
+  const handlePrint = useCallback(() => {
+    if (clients.length === 0) {
+      alert('Aucun client à imprimer');
+      return;
+    }
+
+    // Calculer les totaux
+    const totaux = clients.reduce((acc, { statistiques_factures }) => ({
+      factures: acc.factures + statistiques_factures.nombre_factures,
+      paye: acc.paye + statistiques_factures.montant_total_paye,
+      impaye: acc.impaye + statistiques_factures.montant_impaye
+    }), { factures: 0, paye: 0, impaye: 0 });
+
+    const dateStr = new Date().toLocaleDateString('fr-FR');
+
+    const printHTML = `
+      <!DOCTYPE html>
+      <html lang="fr">
+      <head>
+        <meta charset="UTF-8">
+        <title>Liste des Clients - ${nomStructure}</title>
+        <style>
+          * { margin: 0; padding: 0; box-sizing: border-box; }
+          body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 20px;
+            color: #333;
+          }
+          .header {
+            text-align: center;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #16a34a;
+          }
+          .header h1 {
+            color: #16a34a;
+            font-size: 22px;
+            margin-bottom: 5px;
+          }
+          .header p {
+            color: #666;
+            font-size: 14px;
+          }
+          .meta {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            font-size: 12px;
+            color: #666;
+          }
+          table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+          }
+          th {
+            background: linear-gradient(135deg, #16a34a, #22c55e);
+            color: white;
+            padding: 10px 8px;
+            text-align: left;
+            font-weight: 600;
+          }
+          th:nth-child(3), th:nth-child(4), th:nth-child(5) {
+            text-align: right;
+          }
+          td {
+            padding: 8px;
+            border-bottom: 1px solid #e5e7eb;
+          }
+          td:nth-child(3), td:nth-child(4), td:nth-child(5) {
+            text-align: right;
+            font-family: 'Consolas', monospace;
+          }
+          tr:nth-child(even) { background-color: #f9fafb; }
+          tr:hover { background-color: #f0fdf4; }
+          .impaye { color: #dc2626; font-weight: 600; }
+          .paye { color: #16a34a; }
+          .footer {
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 2px solid #16a34a;
+          }
+          .totaux {
+            display: flex;
+            justify-content: flex-end;
+            gap: 30px;
+            font-size: 13px;
+            font-weight: 600;
+          }
+          .totaux span { color: #666; }
+          .totaux .value { color: #16a34a; }
+          .totaux .impaye-total { color: #dc2626; }
+          @media print {
+            body { padding: 10px; }
+            .header h1 { font-size: 18px; }
+            table { font-size: 10px; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h1>📋 Liste des Clients</h1>
+          <p>${nomStructure}</p>
+        </div>
+
+        <div class="meta">
+          <span>Total: ${clients.length} client(s)</span>
+          <span>Imprimé le ${dateStr}</span>
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th>Nom Client</th>
+              <th>Téléphone</th>
+              <th>Nbre Factures</th>
+              <th>Total Payé</th>
+              <th>Impayé</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${clients.map(({ client, statistiques_factures }) => `
+              <tr>
+                <td>${client.nom_client}</td>
+                <td>${client.tel_client}</td>
+                <td>${statistiques_factures.nombre_factures}</td>
+                <td class="paye">${formatMontant(statistiques_factures.montant_total_paye)}</td>
+                <td class="${statistiques_factures.montant_impaye > 0 ? 'impaye' : ''}">${formatMontant(statistiques_factures.montant_impaye)}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+
+        <div class="footer">
+          <div class="totaux">
+            <div><span>Total Factures:</span> <span class="value">${totaux.factures}</span></div>
+            <div><span>Total Payé:</span> <span class="value">${formatMontant(totaux.paye)}</span></div>
+            <div><span>Total Impayé:</span> <span class="impaye-total">${formatMontant(totaux.impaye)}</span></div>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    // Méthode iframe cachée (compatible mobile/tablette)
+    const printFrame = document.createElement('iframe');
+    printFrame.style.position = 'fixed';
+    printFrame.style.right = '0';
+    printFrame.style.bottom = '0';
+    printFrame.style.width = '0';
+    printFrame.style.height = '0';
+    printFrame.style.border = 'none';
+    printFrame.style.visibility = 'hidden';
+    document.body.appendChild(printFrame);
+
+    const frameDoc = printFrame.contentWindow?.document || printFrame.contentDocument;
+    if (frameDoc) {
+      frameDoc.open();
+      frameDoc.write(printHTML);
+      frameDoc.close();
+
+      printFrame.onload = () => {
+        setTimeout(() => {
+          try {
+            printFrame.contentWindow?.focus();
+            printFrame.contentWindow?.print();
+          } catch (e) {
+            console.warn('Impression iframe échouée, tentative alternative:', e);
+            window.print();
+          }
+          setTimeout(() => {
+            document.body.removeChild(printFrame);
+          }, 1000);
+        }, 500);
+      };
+    }
+
+    console.log(`✅ Impression: ${clients.length} clients`);
+  }, [clients, nomStructure]);
 
   // État d'affichage des filtres avancés
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
@@ -101,8 +344,39 @@ export function FilterHeaderClientsGlass({
             hover:bg-blue-500 transition-all duration-200
             border border-blue-400/50 disabled:opacity-50
           "
+          title="Actualiser"
         >
           <RefreshCw className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+        </motion.button>
+
+        {/* Bouton Export CSV */}
+        <motion.button
+          whileTap={{ scale: 0.95 }}
+          onClick={handleExportCSV}
+          disabled={isExporting || clients.length === 0}
+          className="
+            bg-emerald-500/90 text-white p-2 sm:p-2.5 rounded-md sm:rounded-lg
+            hover:bg-emerald-500 transition-all duration-200
+            border border-emerald-400/50 disabled:opacity-50
+          "
+          title="Exporter CSV"
+        >
+          <FileDown className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${isExporting ? 'animate-pulse' : ''}`} />
+        </motion.button>
+
+        {/* Bouton Imprimer */}
+        <motion.button
+          whileTap={{ scale: 0.95 }}
+          onClick={handlePrint}
+          disabled={clients.length === 0}
+          className="
+            bg-purple-500/90 text-white p-2 sm:p-2.5 rounded-md sm:rounded-lg
+            hover:bg-purple-500 transition-all duration-200
+            border border-purple-400/50 disabled:opacity-50
+          "
+          title="Imprimer"
+        >
+          <Printer className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
         </motion.button>
       </div>
 
