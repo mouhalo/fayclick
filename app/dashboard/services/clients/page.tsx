@@ -311,6 +311,8 @@ export default function ClientsServicesPage() {
               }}
               onRefresh={handleRefresh}
               isRefreshing={refreshing}
+              clients={clientsFiltered}
+              nomStructure={user?.nom_structure || 'Structure'}
             />
           }
         />
