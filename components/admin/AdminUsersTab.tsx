@@ -19,7 +19,10 @@ import {
   Calendar,
   RefreshCw,
   Loader2,
-  Eye
+  Eye,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown
 } from 'lucide-react';
 import adminService from '@/services/admin.service';
 import {
@@ -118,6 +121,12 @@ function ProgressBar({ value, max, color = 'blue' }: { value: number; max: numbe
 }
 
 // ========================================
+// Types pour le tri
+// ========================================
+type UserSortColumn = 'username' | 'structure' | 'groupe' | 'statut' | 'date_creation';
+type UserSortDirection = 'asc' | 'desc';
+
+// ========================================
 // Composant Principal
 // ========================================
 export default function AdminUsersTab() {
@@ -141,6 +150,10 @@ export default function AdminUsersTab() {
   const [filterProfil, setFilterProfil] = useState<number | undefined>();
   const [filterActif, setFilterActif] = useState<boolean | undefined>();
   const [orderBy, setOrderBy] = useState<'createdat' | 'username' | 'login' | 'structure'>('createdat');
+
+  // Tri colonnes tableau
+  const [sortColumn, setSortColumn] = useState<UserSortColumn | null>(null);
+  const [sortDirection, setSortDirection] = useState<UserSortDirection>('asc');
 
   // Chargement des données de référence
   const loadRefData = useCallback(async () => {
@@ -223,6 +236,51 @@ export default function AdminUsersTab() {
     if (lower.includes('gerant') || lower.includes('manager')) return 'orange';
     return 'gray';
   };
+
+  // Gestion du tri des colonnes
+  const handleUserSort = (column: UserSortColumn) => {
+    if (sortColumn === column) {
+      setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortColumn(column);
+      setSortDirection('asc');
+    }
+  };
+
+  const getUserSortIcon = (column: UserSortColumn) => {
+    if (sortColumn !== column) {
+      return <ArrowUpDown className="w-4 h-4 text-gray-500" />;
+    }
+    return sortDirection === 'asc'
+      ? <ArrowUp className="w-4 h-4 text-orange-400" />
+      : <ArrowDown className="w-4 h-4 text-orange-400" />;
+  };
+
+  // Tri des utilisateurs
+  const sortedUtilisateurs = [...utilisateurs].sort((a, b) => {
+    if (!sortColumn) return 0;
+
+    let comparison = 0;
+    switch (sortColumn) {
+      case 'username':
+        comparison = (a.username || '').localeCompare(b.username || '');
+        break;
+      case 'structure':
+        comparison = (a.structure?.nom_structure || '').localeCompare(b.structure?.nom_structure || '');
+        break;
+      case 'groupe':
+        comparison = (a.groupe?.nom_groupe || '').localeCompare(b.groupe?.nom_groupe || '');
+        break;
+      case 'statut':
+        comparison = (a.actif ? 1 : 0) - (b.actif ? 1 : 0);
+        break;
+      case 'date_creation':
+        comparison = new Date(a.date_creation || 0).getTime() - new Date(b.date_creation || 0).getTime();
+        break;
+    }
+
+    return sortDirection === 'asc' ? comparison : -comparison;
+  });
 
   // Calcul max pour barres
   const maxParGroupe = stats?.par_groupe
@@ -404,15 +462,55 @@ export default function AdminUsersTab() {
             <table className="w-full">
               <thead>
                 <tr className="text-left text-gray-400 text-sm border-b border-gray-700 bg-gray-800/50">
-                  <th className="p-3 font-medium">Utilisateur</th>
-                  <th className="p-3 font-medium">Structure</th>
-                  <th className="p-3 font-medium">Groupe</th>
-                  <th className="p-3 font-medium">Statut</th>
-                  <th className="p-3 font-medium">Créé le</th>
+                  <th className="p-3 font-medium">
+                    <button
+                      onClick={() => handleUserSort('username')}
+                      className="flex items-center gap-1 hover:text-white transition-colors"
+                    >
+                      Utilisateur
+                      {getUserSortIcon('username')}
+                    </button>
+                  </th>
+                  <th className="p-3 font-medium">
+                    <button
+                      onClick={() => handleUserSort('structure')}
+                      className="flex items-center gap-1 hover:text-white transition-colors"
+                    >
+                      Structure
+                      {getUserSortIcon('structure')}
+                    </button>
+                  </th>
+                  <th className="p-3 font-medium">
+                    <button
+                      onClick={() => handleUserSort('groupe')}
+                      className="flex items-center gap-1 hover:text-white transition-colors"
+                    >
+                      Groupe
+                      {getUserSortIcon('groupe')}
+                    </button>
+                  </th>
+                  <th className="p-3 font-medium">
+                    <button
+                      onClick={() => handleUserSort('statut')}
+                      className="flex items-center gap-1 hover:text-white transition-colors"
+                    >
+                      Statut
+                      {getUserSortIcon('statut')}
+                    </button>
+                  </th>
+                  <th className="p-3 font-medium">
+                    <button
+                      onClick={() => handleUserSort('date_creation')}
+                      className="flex items-center gap-1 hover:text-white transition-colors"
+                    >
+                      Créé le
+                      {getUserSortIcon('date_creation')}
+                    </button>
+                  </th>
                 </tr>
               </thead>
               <tbody>
-                {utilisateurs.map((user) => (
+                {sortedUtilisateurs.map((user) => (
                   <tr key={user.id} className="border-b border-gray-700/50 hover:bg-gray-700/30 transition-colors">
                     <td className="p-3">
                       <div>
