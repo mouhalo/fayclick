@@ -1,4 +1,5 @@
 import { EtatAbonnement } from './subscription.types';
+import { PartenaireDetails } from './partenaire.types';
 
 // Types pour l'authentification et les structures
 export interface LoginCredentials {
@@ -18,7 +19,7 @@ export interface User {
   nom_structure: string;
   pwd_changed: boolean;
   actif: boolean;
-  type_structure: 'SCOLAIRE' | 'COMMERCIALE' | 'IMMOBILIER' | 'PRESTATAIRE DE SERVICES' | 'FORMATION PRO';
+  type_structure: 'SCOLAIRE' | 'COMMERCIALE' | 'IMMOBILIER' | 'PRESTATAIRE DE SERVICES' | 'FORMATION PRO' | 'PARTENAIRE' | 'ADMIN';
   logo: string;
   pwd: string;
   telephone: string;
@@ -166,6 +167,7 @@ export interface AuthState {
   structure: StructureDetails | null;
   permissions: UserPermissions | null;
   rights: UserRights | null; // 🆕 Droits depuis PostgreSQL
+  partenaire: PartenaireDetails | null; // 🆕 Infos partenaire (si id_groupe = 4)
   isAuthenticated: boolean;
   isLoading: boolean;
   isHydrated: boolean; // Pour gérer l'hydration depuis localStorage
@@ -179,6 +181,7 @@ export interface CompleteAuthData {
   permissions: UserPermissions;
   rights: UserRights; // 🆕 Droits depuis PostgreSQL
   token: string;
+  partenaire?: PartenaireDetails; // 🆕 Infos partenaire (si id_groupe = 4)
 }
 
 export interface ApiError {
@@ -200,7 +203,9 @@ export const USER_ROUTES = {
   SYSTEM: '/dashboard/admin',
   // Alias pour admin système
   'ADMIN SYSTEM': '/dashboard/admin',
-  'SYSTEME': '/dashboard/admin'
+  'SYSTEME': '/dashboard/admin',
+  // 🆕 Partenaires (id_groupe = 4)
+  PARTENAIRE: '/dashboard/partenaire'
 } as const;
 
 // Fonction pour obtenir la route de redirection
@@ -209,9 +214,17 @@ export function getUserRedirectRoute(user: User): string {
   console.log('getUserRedirectRoute - User data:', {
     nom_groupe: user.nom_groupe,
     type_structure: user.type_structure,
-    nom_profil: user.nom_profil
+    nom_profil: user.nom_profil,
+    id_structure: user.id_structure,
+    id_groupe: user.id_groupe
   });
-  
+
+  // 🆕 PRIORITÉ 0: Détecter les partenaires (id_structure=0 ET id_groupe=4)
+  if (user.id_structure === 0 && user.id_groupe === 4) {
+    console.log('Redirecting to partenaire dashboard (id_groupe=4)');
+    return USER_ROUTES.PARTENAIRE;
+  }
+
   // PRIORITÉ 1: Toujours vérifier d'abord le type_structure pour la redirection
   if (user.type_structure) {
     const route = USER_ROUTES[user.type_structure as keyof typeof USER_ROUTES];
@@ -220,7 +233,7 @@ export function getUserRedirectRoute(user: User): string {
       return route;
     }
   }
-  
+
   // PRIORITÉ 2: Si pas de type_structure ou pas de route trouvée, utiliser nom_groupe
   if (user.nom_groupe) {
     const groupRoute = USER_ROUTES[user.nom_groupe as keyof typeof USER_ROUTES];
@@ -229,13 +242,19 @@ export function getUserRedirectRoute(user: User): string {
       return groupRoute;
     }
   }
-  
-  // PRIORITÉ 3: Si c'est un admin système global (sans structure spécifique)
+
+  // PRIORITÉ 3: Si c'est un admin système global (id_structure=0 ET id_groupe=-1)
+  if (user.id_structure === 0 && user.id_groupe === -1) {
+    console.log('Redirecting to admin dashboard (system admin)');
+    return USER_ROUTES.ADMIN;
+  }
+
+  // PRIORITÉ 4: Si c'est un admin système global (sans structure spécifique)
   if ((user.nom_profil === 'ADMIN' || user.nom_profil === 'SYSTEM') && !user.type_structure) {
     console.log('Redirecting to admin dashboard (system admin)');
     return USER_ROUTES.ADMIN;
   }
-  
+
   // Fallback par défaut
   console.log('Fallback redirect to /dashboard');
   return '/dashboard';

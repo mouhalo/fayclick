@@ -21,7 +21,10 @@ import {
   Loader2,
   LogOut,
   Handshake,
-  Tag
+  Tag,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown
 } from 'lucide-react';
 import { authService } from '@/services/auth.service';
 import { useAuth } from '@/contexts/AuthContext';
@@ -236,6 +239,16 @@ export default function AdminDashboard() {
   const [filterType, setFilterType] = useState<TypeStructure | ''>('');
   const [filterStatut, setFilterStatut] = useState<StatutAbonnement | ''>('');
 
+  // Tri Structures
+  type StructureSortColumn = 'nom_structure' | 'type_structure' | 'abonnement' | 'produits' | 'ca';
+  const [structureSortColumn, setStructureSortColumn] = useState<StructureSortColumn | null>(null);
+  const [structureSortDirection, setStructureSortDirection] = useState<'asc' | 'desc'>('asc');
+
+  // Tri Abonnements
+  type AbonnementSortColumn = 'structure' | 'type' | 'statut' | 'periode' | 'montant' | 'jours';
+  const [abonnementSortColumn, setAbonnementSortColumn] = useState<AbonnementSortColumn | null>(null);
+  const [abonnementSortDirection, setAbonnementSortDirection] = useState<'asc' | 'desc'>('asc');
+
   // Vérification auth - Admin système (id_structure = 0) ou groupe admin
   useEffect(() => {
     if (!authService.isAuthenticated()) {
@@ -345,6 +358,114 @@ export default function AdminDashboard() {
       loadAbonnements();
     }
   }, [activeTab, loadStructures, loadAbonnements]);
+
+  // ========================================
+  // Fonctions de tri - Structures
+  // ========================================
+  const handleStructureSort = (column: StructureSortColumn) => {
+    if (structureSortColumn === column) {
+      setStructureSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setStructureSortColumn(column);
+      setStructureSortDirection('asc');
+    }
+  };
+
+  const getStructureSortIcon = (column: StructureSortColumn) => {
+    if (structureSortColumn !== column) {
+      return <ArrowUpDown className="w-4 h-4 text-gray-500" />;
+    }
+    return structureSortDirection === 'asc'
+      ? <ArrowUp className="w-4 h-4 text-blue-400" />
+      : <ArrowDown className="w-4 h-4 text-blue-400" />;
+  };
+
+  const sortedStructures = [...structures].sort((a, b) => {
+    if (!structureSortColumn) return 0;
+    let aValue: string | number = '';
+    let bValue: string | number = '';
+    switch (structureSortColumn) {
+      case 'nom_structure':
+        aValue = a.nom_structure.toLowerCase();
+        bValue = b.nom_structure.toLowerCase();
+        break;
+      case 'type_structure':
+        aValue = a.type_structure.toLowerCase();
+        bValue = b.type_structure.toLowerCase();
+        break;
+      case 'abonnement':
+        aValue = a.abonnement.statut.toLowerCase();
+        bValue = b.abonnement.statut.toLowerCase();
+        break;
+      case 'produits':
+        aValue = a.stats.nombre_produits || 0;
+        bValue = b.stats.nombre_produits || 0;
+        break;
+      case 'ca':
+        aValue = a.stats.chiffre_affaire || 0;
+        bValue = b.stats.chiffre_affaire || 0;
+        break;
+    }
+    if (aValue < bValue) return structureSortDirection === 'asc' ? -1 : 1;
+    if (aValue > bValue) return structureSortDirection === 'asc' ? 1 : -1;
+    return 0;
+  });
+
+  // ========================================
+  // Fonctions de tri - Abonnements
+  // ========================================
+  const handleAbonnementSort = (column: AbonnementSortColumn) => {
+    if (abonnementSortColumn === column) {
+      setAbonnementSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setAbonnementSortColumn(column);
+      setAbonnementSortDirection('asc');
+    }
+  };
+
+  const getAbonnementSortIcon = (column: AbonnementSortColumn) => {
+    if (abonnementSortColumn !== column) {
+      return <ArrowUpDown className="w-4 h-4 text-gray-500" />;
+    }
+    return abonnementSortDirection === 'asc'
+      ? <ArrowUp className="w-4 h-4 text-blue-400" />
+      : <ArrowDown className="w-4 h-4 text-blue-400" />;
+  };
+
+  const sortedAbonnements = [...abonnements].sort((a, b) => {
+    if (!abonnementSortColumn) return 0;
+    let aValue: string | number = '';
+    let bValue: string | number = '';
+    switch (abonnementSortColumn) {
+      case 'structure':
+        aValue = a.structure.nom_structure.toLowerCase();
+        bValue = b.structure.nom_structure.toLowerCase();
+        break;
+      case 'type':
+        aValue = a.type_abonnement.toLowerCase();
+        bValue = b.type_abonnement.toLowerCase();
+        break;
+      case 'statut':
+        aValue = a.statut.toLowerCase();
+        bValue = b.statut.toLowerCase();
+        break;
+      case 'periode':
+        aValue = a.date_debut;
+        bValue = b.date_debut;
+        break;
+      case 'montant':
+        aValue = a.montant || 0;
+        bValue = b.montant || 0;
+        break;
+      case 'jours':
+        aValue = a.jours_restants || 0;
+        bValue = b.jours_restants || 0;
+        break;
+    }
+    if (aValue < bValue) return abonnementSortDirection === 'asc' ? -1 : 1;
+    if (aValue > bValue) return abonnementSortDirection === 'asc' ? 1 : -1;
+    return 0;
+  });
 
   // Formatage montants
   const formatMontant = (montant: number) => {
@@ -570,16 +691,36 @@ export default function AdminDashboard() {
                 <table className="w-full">
                   <thead>
                     <tr className="text-left text-gray-400 text-sm border-b border-gray-700">
-                      <th className="pb-3 font-medium">Structure</th>
-                      <th className="pb-3 font-medium">Type</th>
-                      <th className="pb-3 font-medium">Abonnement</th>
-                      <th className="pb-3 font-medium">Produits</th>
-                      <th className="pb-3 font-medium">CA</th>
+                      <th className="pb-3 font-medium">
+                        <button onClick={() => handleStructureSort('nom_structure')} className="flex items-center gap-1.5 hover:text-white transition-colors">
+                          Structure {getStructureSortIcon('nom_structure')}
+                        </button>
+                      </th>
+                      <th className="pb-3 font-medium">
+                        <button onClick={() => handleStructureSort('type_structure')} className="flex items-center gap-1.5 hover:text-white transition-colors">
+                          Type {getStructureSortIcon('type_structure')}
+                        </button>
+                      </th>
+                      <th className="pb-3 font-medium">
+                        <button onClick={() => handleStructureSort('abonnement')} className="flex items-center gap-1.5 hover:text-white transition-colors">
+                          Abonnement {getStructureSortIcon('abonnement')}
+                        </button>
+                      </th>
+                      <th className="pb-3 font-medium">
+                        <button onClick={() => handleStructureSort('produits')} className="flex items-center gap-1.5 hover:text-white transition-colors">
+                          Produits {getStructureSortIcon('produits')}
+                        </button>
+                      </th>
+                      <th className="pb-3 font-medium">
+                        <button onClick={() => handleStructureSort('ca')} className="flex items-center gap-1.5 hover:text-white transition-colors">
+                          CA {getStructureSortIcon('ca')}
+                        </button>
+                      </th>
                       <th className="pb-3 font-medium"></th>
                     </tr>
                   </thead>
                   <tbody>
-                    {structures.map((s) => (
+                    {sortedStructures.map((s) => (
                       <tr key={s.id_structure} className="border-b border-gray-700/50 hover:bg-gray-700/30">
                         <td className="py-3">
                           <div className="flex items-center gap-3">
@@ -670,16 +811,40 @@ export default function AdminDashboard() {
                 <table className="w-full">
                   <thead>
                     <tr className="text-left text-gray-400 text-sm border-b border-gray-700">
-                      <th className="pb-3 font-medium">Structure</th>
-                      <th className="pb-3 font-medium">Type</th>
-                      <th className="pb-3 font-medium">Statut</th>
-                      <th className="pb-3 font-medium">Période</th>
-                      <th className="pb-3 font-medium">Montant</th>
-                      <th className="pb-3 font-medium">Jours</th>
+                      <th className="pb-3 font-medium">
+                        <button onClick={() => handleAbonnementSort('structure')} className="flex items-center gap-1.5 hover:text-white transition-colors">
+                          Structure {getAbonnementSortIcon('structure')}
+                        </button>
+                      </th>
+                      <th className="pb-3 font-medium">
+                        <button onClick={() => handleAbonnementSort('type')} className="flex items-center gap-1.5 hover:text-white transition-colors">
+                          Type {getAbonnementSortIcon('type')}
+                        </button>
+                      </th>
+                      <th className="pb-3 font-medium">
+                        <button onClick={() => handleAbonnementSort('statut')} className="flex items-center gap-1.5 hover:text-white transition-colors">
+                          Statut {getAbonnementSortIcon('statut')}
+                        </button>
+                      </th>
+                      <th className="pb-3 font-medium">
+                        <button onClick={() => handleAbonnementSort('periode')} className="flex items-center gap-1.5 hover:text-white transition-colors">
+                          Période {getAbonnementSortIcon('periode')}
+                        </button>
+                      </th>
+                      <th className="pb-3 font-medium">
+                        <button onClick={() => handleAbonnementSort('montant')} className="flex items-center gap-1.5 hover:text-white transition-colors">
+                          Montant {getAbonnementSortIcon('montant')}
+                        </button>
+                      </th>
+                      <th className="pb-3 font-medium">
+                        <button onClick={() => handleAbonnementSort('jours')} className="flex items-center gap-1.5 hover:text-white transition-colors">
+                          Jours {getAbonnementSortIcon('jours')}
+                        </button>
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
-                    {abonnements.map((a) => (
+                    {sortedAbonnements.map((a) => (
                       <tr key={a.id_abonnement} className="border-b border-gray-700/50 hover:bg-gray-700/30">
                         <td className="py-3">
                           <div>

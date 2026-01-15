@@ -2,9 +2,11 @@ import { LoginCredentials, LoginResponse, User, StructureDetails, UserPermission
 import DatabaseService from './database.service';
 import SecurityService from './security.service';
 import SMSService from './sms.service';
+import partenaireService from './partenaire.service';
 import { extractSingleDataFromResult } from '@/utils/dataExtractor';
 import { createUserPermissions, parseUserRights } from '@/utils/permissions';
 import { type UserCredentialsResult } from '@/types';
+import { PartenaireDetails } from '@/types/partenaire.types';
 
 // Classe pour gérer les erreurs API
 export class ApiException extends Error {
@@ -156,13 +158,15 @@ export class AuthService {
       // 1. Vérification des identifiants
       const loginResult = await this.login(credentials);
 
-      // 2. Vérifier si c'est un admin système (id_structure = 0 UNIQUEMENT)
-      // Note: On vérifie SEULEMENT id_structure === 0, pas nom_groupe
-      // car un utilisateur peut avoir nom_groupe 'ADMIN' mais appartenir à une vraie structure
-      const isAdminSystem = loginResult.user.id_structure === 0;
+      // 2. Vérifier si c'est un admin système ou un partenaire
+      // - Admin système: id_structure = 0 ET id_groupe = -1
+      // - Partenaire: id_structure = 0 ET id_groupe = 4 (email @partner.fay)
+      const isAdminSystem = loginResult.user.id_structure === 0 && loginResult.user.id_groupe === -1;
+      const isPartenaire = loginResult.user.id_structure === 0 && loginResult.user.id_groupe === 4;
 
       let structure: StructureDetails;
       let rights: UserRights;
+      let partenaireDetails: PartenaireDetails | undefined;
 
       if (isAdminSystem) {
         // 🔐 Admin système : créer une structure virtuelle (NE PAS appeler get_une_structure)
@@ -209,6 +213,96 @@ export class AuthService {
           fonctionnalites: [{ name: '*', allowed: true }],
           _index: { '*': true }
         };
+      } else if (isPartenaire) {
+        // 🤝 Partenaire : créer une structure virtuelle + récupérer infos partenaire
+        console.log('🤝 [AUTH] Partenaire détecté - création structure virtuelle');
+
+        // Récupérer les infos du partenaire depuis PostgreSQL
+        const partenaireResponse = await partenaireService.getPartenaireByUser(loginResult.user.id);
+
+        if (!partenaireResponse.success || !partenaireResponse.partenaire) {
+          throw new ApiException('Partenaire non trouvé ou inactif', 403);
+        }
+
+        partenaireDetails = partenaireResponse.partenaire;
+
+        // Calculer jours_restants et est_expire si non fournis par PostgreSQL
+        if (partenaireDetails.valide_jusqua) {
+          const dateFinValidite = new Date(partenaireDetails.valide_jusqua);
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          dateFinValidite.setHours(0, 0, 0, 0);
+          const diffTime = dateFinValidite.getTime() - today.getTime();
+          partenaireDetails.jours_restants = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+          partenaireDetails.est_expire = partenaireDetails.jours_restants < 0;
+        } else {
+          partenaireDetails.jours_restants = 0;
+          partenaireDetails.est_expire = true;
+        }
+
+        // Vérifier si le partenaire est toujours actif et non expiré
+        if (!partenaireDetails.actif) {
+          throw new ApiException('Compte partenaire désactivé', 403);
+        }
+        if (partenaireDetails.est_expire) {
+          throw new ApiException('Compte partenaire expiré', 403);
+        }
+
+        structure = {
+          id_structure: 0, // Convention partenaire
+          code_structure: `PARTENAIRE-${partenaireDetails.id_partenaire}`,
+          nom_structure: partenaireDetails.nom_partenaire,
+          adresse: partenaireDetails.adresse || 'Sénégal',
+          mobile_om: partenaireDetails.telephone,
+          mobile_wave: '',
+          numautorisatioon: '',
+          nummarchand: '',
+          email: partenaireDetails.email || '',
+          id_localite: 0,
+          actif: true,
+          logo: '/fayclick.ico',
+          cachet: undefined,
+          createdat: new Date().toISOString(),
+          updatedat: new Date().toISOString(),
+          id_type: 0,
+          type_structure: 'PARTENAIRE',
+          num_unik_reversement: '',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          description: `Partenaire ${partenaireDetails.nom_partenaire} - Code: ${partenaireDetails.code_promo}`,
+          website: undefined,
+          siret: undefined,
+          responsable: partenaireDetails.nom_partenaire,
+          etat_abonnement: {
+            statut: 'ACTIF',
+            date_debut: new Date().toISOString().split('T')[0],
+            date_fin: partenaireDetails.valide_jusqua,
+            jours_restants: partenaireDetails.jours_restants,
+            type_abonnement: 'PARTENAIRE'
+          }
+        };
+
+        // Droits partenaire spécifiques (lecture seule sur leurs structures)
+        rights = {
+          id_profil: loginResult.user.id_profil,
+          profil: 'PARTENAIRE',
+          fonctionnalites: [
+            { name: 'VOIR_STRUCTURES', allowed: true },
+            { name: 'VOIR_STATS', allowed: true },
+            { name: 'VOIR_DASHBOARD', allowed: true }
+          ],
+          _index: {
+            'VOIR_STRUCTURES': true,
+            'VOIR_STATS': true,
+            'VOIR_DASHBOARD': true
+          }
+        };
+
+        console.log('🤝 [AUTH] Partenaire identifié:', {
+          id_partenaire: partenaireDetails.id_partenaire,
+          code_promo: partenaireDetails.code_promo,
+          jours_restants: partenaireDetails.jours_restants
+        });
       } else {
         // Utilisateur normal : récupérer la vraie structure depuis PostgreSQL
         structure = await this.fetchStructureDetails(loginResult.user.id_structure);
@@ -228,7 +322,9 @@ export class AuthService {
         structure,
         permissions,
         rights,
-        token: loginResult.token
+        token: loginResult.token,
+        // 🆕 Ajouter les infos partenaire si disponibles
+        ...(partenaireDetails && { partenaire: partenaireDetails })
       };
 
       console.log('✅ [AUTH] Connexion complète réussie:', {
@@ -237,7 +333,9 @@ export class AuthService {
         permissions: completeData.permissions.permissions.length,
         droits_profil: completeData.rights.profil,
         nb_fonctionnalites: completeData.rights.fonctionnalites.length,
-        isAdminSystem
+        isAdminSystem,
+        isPartenaire,
+        partenaire_code: partenaireDetails?.code_promo
       });
 
       return completeData;

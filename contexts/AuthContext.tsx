@@ -11,6 +11,7 @@ import {
   LoginCredentials,
   CompleteAuthData
 } from '@/types/auth';
+import { PartenaireDetails } from '@/types/partenaire.types';
 import { authService, ApiException } from '@/services/auth.service';
 import { getUserRedirectRoute } from '@/types/auth';
 import { hasRight, hasAllRights, hasAnyRight } from '@/utils/permissions';
@@ -76,7 +77,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
     user: null,
     structure: null,
     permissions: null,
-    rights: null, // 🆕
+    rights: null,
+    partenaire: null, // 🆕 Infos partenaire (si id_groupe = 4)
     isAuthenticated: false,
     isLoading: true,
     isHydrated: false,
@@ -105,7 +107,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
             user: completeData.user,
             structure: completeData.structure,
             permissions: completeData.permissions,
-            rights: completeData.rights, // 🆕
+            rights: completeData.rights,
+            partenaire: completeData.partenaire || null, // 🆕 Infos partenaire
             isAuthenticated: true,
             isLoading: false,
             isHydrated: true,
@@ -190,6 +193,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
                 structure,
                 permissions,
                 rights,
+                partenaire: null, // Ancien format ne supportait pas les partenaires
                 isAuthenticated: true,
                 isLoading: false,
                 isHydrated: true,
@@ -253,14 +257,18 @@ export function AuthProvider({ children }: AuthProviderProps) {
         user: completeData.user,
         structure: completeData.structure,
         permissions: completeData.permissions,
-        rights: completeData.rights, // 🆕
+        rights: completeData.rights,
+        partenaire: completeData.partenaire || null, // 🆕 Infos partenaire
         isAuthenticated: true,
         isLoading: false,
         isHydrated: true,
         error: null
       });
 
-      console.log('✅ [AUTH CONTEXT] Connexion réussie');
+      console.log('✅ [AUTH CONTEXT] Connexion réussie', {
+        isPartenaire: !!completeData.partenaire,
+        partenaire_code: completeData.partenaire?.code_promo
+      });
       
       // Redirection selon le type de structure
       const redirectRoute = getUserRedirectRoute(completeData.user);
@@ -292,7 +300,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
       user: null,
       structure: null,
       permissions: null,
-      rights: null, // 🆕
+      rights: null,
+      partenaire: null, // 🆕
       isAuthenticated: false,
       isLoading: false,
       isHydrated: true,
