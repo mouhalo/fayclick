@@ -33,6 +33,7 @@ import AdminVentesTab from '@/components/admin/AdminVentesTab';
 import AdminUsersTab from '@/components/admin/AdminUsersTab';
 import AdminPartenairesTab from '@/components/admin/AdminPartenairesTab';
 import AdminCodesPromoTab from '@/components/admin/AdminCodesPromoTab';
+import { ModalDetailStructure } from '@/components/admin/ModalDetailStructure';
 import {
   AdminStatsGlobal,
   AdminStructureItem,
@@ -265,6 +266,10 @@ export default function AdminDashboard() {
   type AbonnementSortColumn = 'structure' | 'type' | 'statut' | 'periode' | 'montant' | 'jours';
   const [abonnementSortColumn, setAbonnementSortColumn] = useState<AbonnementSortColumn | null>(null);
   const [abonnementSortDirection, setAbonnementSortDirection] = useState<'asc' | 'desc'>('asc');
+
+  // Modal détail structure
+  const [selectedStructureId, setSelectedStructureId] = useState<number | null>(null);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
 
   // Vérification auth - Admin système (id_structure = 0) ou groupe admin
   useEffect(() => {
@@ -961,9 +966,11 @@ export default function AdminDashboard() {
                             {s.logo ? (
                               <img src={s.logo} alt="" className="w-8 h-8 rounded-full object-cover" />
                             ) : (
-                              <div className="w-8 h-8 bg-gray-600 rounded-full flex items-center justify-center">
-                                <Building2 className="w-4 h-4" />
-                              </div>
+                              <img
+                                src="/images/mascotte.png"
+                                alt="Structure"
+                                className="w-8 h-8 rounded-full object-cover"
+                              />
                             )}
                             <div>
                               <p className="font-medium">{s.nom_structure}</p>
@@ -985,7 +992,14 @@ export default function AdminDashboard() {
                         <td className="py-3 text-sm">{s.stats.nombre_produits}</td>
                         <td className="py-3 text-sm">{formatMontant(s.stats.chiffre_affaire)} F</td>
                         <td className="py-3">
-                          <button className="p-1.5 hover:bg-gray-600 rounded-lg transition-colors">
+                          <button
+                            onClick={() => {
+                              setSelectedStructureId(s.id_structure);
+                              setIsDetailModalOpen(true);
+                            }}
+                            className="p-1.5 hover:bg-gray-600 rounded-lg transition-colors"
+                            title="Voir les détails"
+                          >
                             <Eye className="w-4 h-4" />
                           </button>
                         </td>
@@ -1160,6 +1174,16 @@ export default function AdminDashboard() {
           {activeTab === 'codes-promo' && <AdminCodesPromoTab />}
         </div>
       </div>
+
+      {/* Modal détail structure */}
+      <ModalDetailStructure
+        isOpen={isDetailModalOpen}
+        onClose={() => {
+          setIsDetailModalOpen(false);
+          setSelectedStructureId(null);
+        }}
+        idStructure={selectedStructureId}
+      />
     </div>
   );
 }
