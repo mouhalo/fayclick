@@ -33,7 +33,9 @@ import {
   ProlongerPartenaireResponse,
   AdminStatsCodesPromoResponse,
   AdminStatsCodesPromoParams,
-  ValidateCodePromoResponse
+  ValidateCodePromoResponse,
+  // Type détail structure
+  GetUneStructureResponse
 } from '@/types/admin.types';
 
 class AdminService {
@@ -710,6 +712,40 @@ class AdminService {
 
     } catch (error) {
       SecurityService.secureLog('error', '❌ [ADMIN] Erreur validation code promo', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Récupère les détails complets d'une structure
+   * Fonction PostgreSQL: get_une_structure(id_structure)
+   */
+  async getUneStructure(idStructure: number): Promise<GetUneStructureResponse> {
+    try {
+      SecurityService.secureLog('log', '🔍 [ADMIN] Récupération détails structure', { idStructure });
+
+      const query = `SELECT * FROM get_une_structure(${idStructure})`;
+      const result = await databaseService.query(query);
+
+      if (!result || result.length === 0) {
+        throw new Error('Aucune donnée retournée');
+      }
+
+      // Extraire le JSON de la réponse
+      const rawData = result[0].get_une_structure;
+      const data: GetUneStructureResponse = typeof rawData === 'string'
+        ? JSON.parse(rawData)
+        : rawData;
+
+      SecurityService.secureLog('log', '✅ [ADMIN] Détails structure récupérés', {
+        id: data.data?.id_structure,
+        nom: data.data?.nom_structure
+      });
+
+      return data;
+
+    } catch (error) {
+      SecurityService.secureLog('error', '❌ [ADMIN] Erreur récupération détails structure', error);
       throw error;
     }
   }

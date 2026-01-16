@@ -698,3 +698,74 @@ export interface ValidateCodePromoResponse {
     commission_pct: number;
   };
 }
+
+// ========================================
+// Réponse get_une_structure(id_structure)
+// Détails complets d'une structure
+// ========================================
+
+export interface StructureUtilisateur {
+  id_utilisateur: number;
+  nom_utilisateur: string;
+  login: string;
+  pwd?: string;
+  pwd_changed?: boolean;
+  telephone: string;
+  id_profil: number;
+  nom_du_profil: string;
+}
+
+export interface StructureEtatAbonnement {
+  id_abonnement: number;
+  statut: StatutAbonnement;
+  type_abonnement: TypeAbonnement;
+  date_debut: string;
+  date_fin: string;
+  montant: number;
+  methode: string;
+  jours_restants: number;
+}
+
+export interface StructureAbonnementHistorique {
+  id_abonnement: number;
+  date_debut: string;
+  date_fin: string;
+  montant: number;
+  numrecu: string;
+  methode: string;
+  status: StatutAbonnement;
+  tms_create: string;
+}
+
+export interface StructureDetailData {
+  id_structure: number;
+  code_structure: string;
+  nom_structure: string;
+  adresse: string;
+  mobile_om: string;
+  mobile_wave: string;
+  numautorisatioon?: string;
+  nummarchand?: string;
+  email: string;
+  id_localite: number;
+  actif: boolean;
+  logo: string;
+  cachet: string;
+  createdat: string;
+  updatedat: string;
+  id_type: number;
+  type_structure: TypeStructure;
+  utilisateurs: {
+    coalesce: StructureUtilisateur[];
+  };
+  num_unik_reversement?: string;
+  etat_abonnement: StructureEtatAbonnement | null;
+  abonnements?: {
+    coalesce: StructureAbonnementHistorique[];
+  };
+}
+
+export interface GetUneStructureResponse {
+  success: boolean;
+  data: StructureDetailData;
+}

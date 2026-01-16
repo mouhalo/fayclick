@@ -106,7 +106,9 @@ export function ModalAjoutProduitNew({
   // Liste des catégories prédéfinies selon le type de structure
   const categories = typeStructure === 'PRESTATAIRE DE SERVICES'
     ? ['Consultation', 'Formation', 'Installation', 'Maintenance', 'Support', 'Autre']
-    : ['Électronique', 'Vêtements', 'Alimentation', 'Mobilier', 'Automobile', 'Santé', 'Autre'];
+    : ['Électronique', 'Electroménager','Informatique','Vêtements', 'Alimentation', 'Bébé','Cosmetique',
+      'Mobilier','Outils','Meuble','Fripperie','Librairie', 'Automobile', 'Santé', 'Autre'];
+
 
   // Onglets disponibles
   const onglets = [

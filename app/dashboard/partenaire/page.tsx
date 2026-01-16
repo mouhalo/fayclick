@@ -32,6 +32,7 @@ import {
 import { useAuth } from '@/contexts/AuthContext';
 import partenaireService from '@/services/partenaire.service';
 import PartenaireVentesTab from '@/components/partenaire/PartenaireVentesTab';
+import { ModalDetailStructure } from '@/components/admin/ModalDetailStructure';
 import {
   PartenaireStats,
   PartenaireStructureItem,
@@ -159,6 +160,10 @@ export default function DashboardPartenairePage() {
   // Tri
   const [sortColumn, setSortColumn] = useState<SortColumn | null>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
+
+  // Modal détail structure
+  const [selectedStructureId, setSelectedStructureId] = useState<number | null>(null);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
 
   // ========================================
   // Vérification d'accès
@@ -617,13 +622,20 @@ export default function DashboardPartenairePage() {
                       {getSortIcon('nb_factures')}
                     </button>
                   </th>
+                  <th className="px-4 py-3 text-center text-sm font-medium text-gray-300 w-16">
+                    Actions
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-700/50">
                 {sortedStructures.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="px-4 py-8 text-center text-gray-400">
-                      <Building2 className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                    <td colSpan={6} className="px-4 py-8 text-center text-gray-400">
+                      <img
+                        src="/images/mascotte.png"
+                        alt="Aucune structure"
+                        className="w-12 h-12 mx-auto mb-2 opacity-50"
+                      />
                       <p>Aucune structure trouvée</p>
                       <p className="text-sm mt-1">Les structures inscrites avec votre code promo apparaîtront ici</p>
                     </td>
@@ -643,9 +655,11 @@ export default function DashboardPartenairePage() {
                       <tr key={structure.id_structure} className="hover:bg-gray-700/30 transition-colors">
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-gradient-to-br from-gray-600 to-gray-700 rounded-lg flex items-center justify-center">
-                              <Building2 className="w-5 h-5 text-gray-400" />
-                            </div>
+                            <img
+                              src="/images/mascotte.png"
+                              alt="Structure"
+                              className="w-10 h-10 rounded-lg object-cover"
+                            />
                             <div>
                               <p className="font-medium text-white">{structure.nom_structure}</p>
                               <p className="text-xs text-gray-400 md:hidden">{structure.type_structure}</p>
@@ -671,6 +685,18 @@ export default function DashboardPartenairePage() {
                         </td>
                         <td className="px-4 py-3 text-center hidden lg:table-cell">
                           <span className="text-gray-300">{structure.nb_factures}</span>
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          <button
+                            onClick={() => {
+                              setSelectedStructureId(structure.id_structure);
+                              setIsDetailModalOpen(true);
+                            }}
+                            className="p-1.5 hover:bg-gray-600 rounded-lg transition-colors"
+                            title="Voir les détails"
+                          >
+                            <Eye className="w-4 h-4 text-gray-400 hover:text-white" />
+                          </button>
                         </td>
                       </tr>
                     );
@@ -724,6 +750,16 @@ export default function DashboardPartenairePage() {
           />
         )}
       </div>
+
+      {/* Modal détail structure */}
+      <ModalDetailStructure
+        isOpen={isDetailModalOpen}
+        onClose={() => {
+          setIsDetailModalOpen(false);
+          setSelectedStructureId(null);
+        }}
+        idStructure={selectedStructureId}
+      />
     </div>
   );
 }
