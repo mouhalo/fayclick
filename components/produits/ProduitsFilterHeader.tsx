@@ -6,7 +6,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Search, Filter, Grid, LayoutList, LayoutGrid, RefreshCw, Printer } from 'lucide-react';
+import { Search, Filter, Grid, LayoutList, LayoutGrid, RefreshCw, Printer, FileDown } from 'lucide-react';
 
 interface ProduitsFilterHeaderProps {
   searchTerm: string;
@@ -18,6 +18,8 @@ interface ProduitsFilterHeaderProps {
   onRefresh: () => void;
   refreshing?: boolean;
   onPrintClick?: () => void;
+  onExportCSV?: () => void;
+  isExporting?: boolean;
 }
 
 export function ProduitsFilterHeader({
@@ -29,7 +31,9 @@ export function ProduitsFilterHeader({
   onToggleFilters,
   onRefresh,
   refreshing = false,
-  onPrintClick
+  onPrintClick,
+  onExportCSV,
+  isExporting = false
 }: ProduitsFilterHeaderProps) {
   return (
     <div className="space-y-4">
@@ -111,6 +115,19 @@ export function ProduitsFilterHeader({
               title="Imprimer la liste des produits"
             >
               <Printer className="w-5 h-5 text-white" />
+            </motion.button>
+          )}
+
+          {/* Bouton Export CSV */}
+          {onExportCSV && (
+            <motion.button
+              whileTap={{ scale: 0.95 }}
+              onClick={onExportCSV}
+              disabled={isExporting}
+              className="p-2 bg-white/10 rounded-lg hover:bg-white/20 transition-colors disabled:opacity-50"
+              title="Exporter en CSV"
+            >
+              <FileDown className={`w-5 h-5 text-white ${isExporting ? 'animate-pulse' : ''}`} />
             </motion.button>
           )}
 

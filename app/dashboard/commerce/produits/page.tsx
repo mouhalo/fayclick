@@ -70,6 +70,9 @@ export default function ProduitsCommercePage() {
   // État pour le modal d'impression
   const [showPrintModal, setShowPrintModal] = useState(false);
 
+  // État pour l'export CSV
+  const [isExporting, setIsExporting] = useState(false);
+
 
   // État pour le modal d'enrôlement par photo
   const [showEnrolementModal, setShowEnrolementModal] = useState(false);
@@ -405,6 +408,55 @@ export default function ProduitsCommercePage() {
     setShowPrintModal(true);
   };
 
+  // Export CSV des produits
+  const handleExportCSV = useCallback(() => {
+    if (produitsFiltered.length === 0) {
+      showToast('error', 'Aucun produit', 'Aucun produit à exporter');
+      return;
+    }
+
+    setIsExporting(true);
+
+    try {
+      // En-têtes CSV
+      const headers = ['Nom Produit', 'Prix Achat (FCFA)', 'Stock'];
+
+      // Données produits
+      const rows = produitsFiltered.map(p => [
+        (p.nom_produit || '').replace(/[;,]/g, ' '), // Échapper les séparateurs
+        (p.cout_revient ?? 0).toString(),
+        (p.niveau_stock ?? p.stock_actuel ?? 0).toString()
+      ]);
+
+      // Créer le contenu CSV avec BOM UTF-8 pour Excel
+      const BOM = '\uFEFF';
+      const csvContent = BOM + [
+        headers.join(';'),
+        ...rows.map(row => row.join(';'))
+      ].join('\n');
+
+      // Télécharger le fichier
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      const dateStr = new Date().toLocaleDateString('fr-FR').replace(/\//g, '-');
+      link.download = `produits_${(user?.nom_structure || 'export').replace(/\s+/g, '_')}_${dateStr}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      console.log(`✅ Export CSV: ${produitsFiltered.length} produits exportés`);
+      showToast('success', 'Export réussi', `${produitsFiltered.length} produits exportés`);
+    } catch (error) {
+      console.error('❌ Erreur export CSV:', error);
+      showToast('error', 'Erreur', 'Erreur lors de l\'export CSV');
+    } finally {
+      setIsExporting(false);
+    }
+  }, [produitsFiltered, user, showToast]);
+
   // Gestion de la pagination
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
@@ -526,6 +578,8 @@ export default function ProduitsCommercePage() {
               onRefresh={handleRefresh}
               refreshing={refreshing}
               onPrintClick={handlePrint}
+              onExportCSV={handleExportCSV}
+              isExporting={isExporting}
             />
           }
         />

@@ -2,6 +2,7 @@
  * Composant de filtres compact pour la gestion des clients
  * Style glassmorphism cohérent avec FilterHeaderGlass des factures
  * ✅ Export CSV et Impression des clients
+ * ✅ Filtres avancés : nombre factures, montant acheté, montant impayés
  */
 
 'use client';
@@ -11,6 +12,19 @@ import { motion } from 'framer-motion';
 import { Search, Filter, X, ChevronDown, RefreshCw, FileDown, Printer } from 'lucide-react';
 import { ClientWithStats } from '@/types/client';
 
+// Type pour les opérateurs de comparaison
+type FilterOperator = '=' | '<' | '>';
+
+// Interface pour les filtres avancés
+export interface ClientAdvancedFilters {
+  facturesOp: FilterOperator;
+  facturesValue: string;
+  payeOp: FilterOperator;
+  payeValue: string;
+  impayeOp: FilterOperator;
+  impayeValue: string;
+}
+
 interface FilterHeaderClientsGlassProps {
   searchTerm: string;
   onSearchChange: (value: string) => void;
@@ -18,6 +32,9 @@ interface FilterHeaderClientsGlassProps {
   isRefreshing?: boolean;
   clients?: ClientWithStats[];
   nomStructure?: string;
+  // Filtres avancés (optionnels pour rétrocompatibilité)
+  advancedFilters?: ClientAdvancedFilters;
+  onAdvancedFiltersChange?: (filters: ClientAdvancedFilters) => void;
 }
 
 export function FilterHeaderClientsGlass({
@@ -26,15 +43,17 @@ export function FilterHeaderClientsGlass({
   onRefresh,
   isRefreshing = false,
   clients = [],
-  nomStructure = 'Structure'
+  nomStructure = 'Structure',
+  advancedFilters,
+  onAdvancedFiltersChange
 }: FilterHeaderClientsGlassProps) {
   // État local pour l'input (mise à jour immédiate)
   const [localSearchTerm, setLocalSearchTerm] = useState(searchTerm);
   const [isExporting, setIsExporting] = useState(false);
 
   // Formater montant en FCFA
-  const formatMontant = (montant: number) => {
-    return montant.toLocaleString('fr-FR') + ' F';
+  const formatMontant = (montant: number | undefined | null) => {
+    return (montant ?? 0).toLocaleString('fr-FR') + ' F';
   };
 
   // ✅ Export CSV des clients
@@ -52,11 +71,11 @@ export function FilterHeaderClientsGlass({
 
       // Données clients
       const rows = clients.map(({ client, statistiques_factures }) => [
-        client.nom_client.replace(/[;,]/g, ' '), // Échapper les séparateurs
-        client.tel_client,
-        statistiques_factures.nombre_factures.toString(),
-        statistiques_factures.montant_total_paye.toString(),
-        statistiques_factures.montant_impaye.toString()
+        (client?.nom_client || '').replace(/[;,]/g, ' '), // Échapper les séparateurs
+        client?.tel_client || '',
+        (statistiques_factures?.nombre_factures ?? 0).toString(),
+        (statistiques_factures?.montant_total_paye ?? 0).toString(),
+        (statistiques_factures?.montant_impaye ?? 0).toString()
       ]);
 
       // Créer le contenu CSV avec BOM UTF-8 pour Excel
@@ -96,9 +115,9 @@ export function FilterHeaderClientsGlass({
 
     // Calculer les totaux
     const totaux = clients.reduce((acc, { statistiques_factures }) => ({
-      factures: acc.factures + statistiques_factures.nombre_factures,
-      paye: acc.paye + statistiques_factures.montant_total_paye,
-      impaye: acc.impaye + statistiques_factures.montant_impaye
+      factures: acc.factures + (statistiques_factures?.nombre_factures ?? 0),
+      paye: acc.paye + (statistiques_factures?.montant_total_paye ?? 0),
+      impaye: acc.impaye + (statistiques_factures?.montant_impaye ?? 0)
     }), { factures: 0, paye: 0, impaye: 0 });
 
     const dateStr = new Date().toLocaleDateString('fr-FR');
@@ -211,11 +230,11 @@ export function FilterHeaderClientsGlass({
           <tbody>
             ${clients.map(({ client, statistiques_factures }) => `
               <tr>
-                <td>${client.nom_client}</td>
-                <td>${client.tel_client}</td>
-                <td>${statistiques_factures.nombre_factures}</td>
-                <td class="paye">${formatMontant(statistiques_factures.montant_total_paye)}</td>
-                <td class="${statistiques_factures.montant_impaye > 0 ? 'impaye' : ''}">${formatMontant(statistiques_factures.montant_impaye)}</td>
+                <td>${client?.nom_client || '-'}</td>
+                <td>${client?.tel_client || '-'}</td>
+                <td>${statistiques_factures?.nombre_factures ?? 0}</td>
+                <td class="paye">${formatMontant(statistiques_factures?.montant_total_paye)}</td>
+                <td class="${(statistiques_factures?.montant_impaye ?? 0) > 0 ? 'impaye' : ''}">${formatMontant(statistiques_factures?.montant_impaye)}</td>
               </tr>
             `).join('')}
           </tbody>
@@ -380,7 +399,7 @@ export function FilterHeaderClientsGlass({
         </motion.button>
       </div>
 
-      {/* Filtres avancés (placeholder pour future implémentation) */}
+      {/* Filtres avancés */}
       <motion.div
         initial={{ height: 0, opacity: 0 }}
         animate={{
@@ -390,13 +409,129 @@ export function FilterHeaderClientsGlass({
         transition={{ duration: 0.3 }}
         className="overflow-hidden"
       >
-        <div className="space-y-3 sm:space-y-4 pt-2">
-          {/* Future : Filtres avancés (statut paiement, date création, etc.) */}
-          <div className="text-center py-4 bg-white/10 rounded-lg border border-white/20">
-            <p className="text-white/60 text-xs sm:text-sm">
-              Filtres avancés à venir...
-            </p>
-          </div>
+        <div className="space-y-3 pt-2">
+          {advancedFilters && onAdvancedFiltersChange ? (
+            <>
+              {/* Filtre par nombre de factures */}
+              <div className="bg-white/10 rounded-lg p-3 border border-white/20">
+                <label className="block text-white/80 text-xs font-medium mb-2">
+                  Nombre de factures
+                </label>
+                <div className="flex items-center gap-2">
+                  <select
+                    value={advancedFilters.facturesOp}
+                    onChange={(e) => onAdvancedFiltersChange({
+                      ...advancedFilters,
+                      facturesOp: e.target.value as FilterOperator
+                    })}
+                    className="px-2 py-1.5 bg-white/80 border border-gray-200 rounded-md text-xs text-gray-800 focus:outline-none focus:ring-2 focus:ring-emerald-300"
+                  >
+                    <option value="=">=</option>
+                    <option value=">">&gt;</option>
+                    <option value="<">&lt;</option>
+                  </select>
+                  <input
+                    type="number"
+                    min="0"
+                    value={advancedFilters.facturesValue}
+                    onChange={(e) => onAdvancedFiltersChange({
+                      ...advancedFilters,
+                      facturesValue: e.target.value
+                    })}
+                    placeholder="0"
+                    className="flex-1 px-2 py-1.5 bg-white/80 border border-gray-200 rounded-md text-xs text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-300"
+                  />
+                </div>
+              </div>
+
+              {/* Filtre par montant acheté (payé) */}
+              <div className="bg-white/10 rounded-lg p-3 border border-white/20">
+                <label className="block text-white/80 text-xs font-medium mb-2">
+                  Montant acheté (FCFA)
+                </label>
+                <div className="flex items-center gap-2">
+                  <select
+                    value={advancedFilters.payeOp}
+                    onChange={(e) => onAdvancedFiltersChange({
+                      ...advancedFilters,
+                      payeOp: e.target.value as FilterOperator
+                    })}
+                    className="px-2 py-1.5 bg-white/80 border border-gray-200 rounded-md text-xs text-gray-800 focus:outline-none focus:ring-2 focus:ring-emerald-300"
+                  >
+                    <option value="=">=</option>
+                    <option value=">">&gt;</option>
+                    <option value="<">&lt;</option>
+                  </select>
+                  <input
+                    type="number"
+                    min="0"
+                    value={advancedFilters.payeValue}
+                    onChange={(e) => onAdvancedFiltersChange({
+                      ...advancedFilters,
+                      payeValue: e.target.value
+                    })}
+                    placeholder="0"
+                    className="flex-1 px-2 py-1.5 bg-white/80 border border-gray-200 rounded-md text-xs text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-300"
+                  />
+                </div>
+              </div>
+
+              {/* Filtre par montant impayés */}
+              <div className="bg-white/10 rounded-lg p-3 border border-white/20">
+                <label className="block text-white/80 text-xs font-medium mb-2">
+                  Montant impayés (FCFA)
+                </label>
+                <div className="flex items-center gap-2">
+                  <select
+                    value={advancedFilters.impayeOp}
+                    onChange={(e) => onAdvancedFiltersChange({
+                      ...advancedFilters,
+                      impayeOp: e.target.value as FilterOperator
+                    })}
+                    className="px-2 py-1.5 bg-white/80 border border-gray-200 rounded-md text-xs text-gray-800 focus:outline-none focus:ring-2 focus:ring-emerald-300"
+                  >
+                    <option value="=">=</option>
+                    <option value=">">&gt;</option>
+                    <option value="<">&lt;</option>
+                  </select>
+                  <input
+                    type="number"
+                    min="0"
+                    value={advancedFilters.impayeValue}
+                    onChange={(e) => onAdvancedFiltersChange({
+                      ...advancedFilters,
+                      impayeValue: e.target.value
+                    })}
+                    placeholder="0"
+                    className="flex-1 px-2 py-1.5 bg-white/80 border border-gray-200 rounded-md text-xs text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-300"
+                  />
+                </div>
+              </div>
+
+              {/* Bouton pour réinitialiser les filtres */}
+              {(advancedFilters.facturesValue || advancedFilters.payeValue || advancedFilters.impayeValue) && (
+                <button
+                  onClick={() => onAdvancedFiltersChange({
+                    facturesOp: '=',
+                    facturesValue: '',
+                    payeOp: '=',
+                    payeValue: '',
+                    impayeOp: '=',
+                    impayeValue: ''
+                  })}
+                  className="w-full py-2 bg-red-500/20 text-red-200 rounded-lg text-xs hover:bg-red-500/30 transition-colors border border-red-400/30"
+                >
+                  Réinitialiser les filtres
+                </button>
+              )}
+            </>
+          ) : (
+            <div className="text-center py-4 bg-white/10 rounded-lg border border-white/20">
+              <p className="text-white/60 text-xs sm:text-sm">
+                Filtres avancés non configurés
+              </p>
+            </div>
+          )}
         </div>
       </motion.div>
     </div>
