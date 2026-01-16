@@ -6,7 +6,7 @@
 
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import {
@@ -17,7 +17,7 @@ import {
 import { authService } from '@/services/auth.service';
 import { clientsService, ClientsApiException } from '@/services/clients.service';
 import { useClients, useClientsUI } from '@/hooks/useClients';
-import { ModalClientMultiOnglets, FilterHeaderClientsGlass } from '@/components/clients';
+import { ModalClientMultiOnglets, FilterHeaderClientsGlass, ClientAdvancedFilters } from '@/components/clients';
 import { useToast } from '@/components/ui/Toast';
 import { GlassHeader } from '@/components/ui/GlassHeader';
 import { GlassPagination, usePagination } from '@/components/ui/GlassPagination';
@@ -33,7 +33,17 @@ export default function ClientsCommercePage() {
   const [searchInput, setSearchInput] = useState(''); // Pour l'affichage immédiat
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedClientId, setSelectedClientId] = useState<number | null>(null);
-  
+
+  // États filtres avancés
+  const [advancedFilters, setAdvancedFilters] = useState<ClientAdvancedFilters>({
+    facturesOp: '=',
+    facturesValue: '',
+    payeOp: '=',
+    payeValue: '',
+    impayeOp: '=',
+    impayeValue: ''
+  });
+
   // Configuration pagination
   const itemsPerPage = 10;
 
@@ -63,14 +73,61 @@ export default function ClientsCommercePage() {
 
   const { ToastComponent } = useToast();
 
-  // Pagination
-  const filteredCount = clientsFiltered.length;
+  // Fonction helper pour comparer avec opérateur
+  const compareWithOperator = useCallback((value: number, op: '=' | '<' | '>', target: number): boolean => {
+    switch (op) {
+      case '=': return value === target;
+      case '<': return value < target;
+      case '>': return value > target;
+      default: return true;
+    }
+  }, []);
+
+  // Application des filtres avancés sur clientsFiltered
+  const clientsWithAdvancedFilters = useMemo(() => {
+    let result = clientsFiltered;
+
+    // Filtre par nombre de factures
+    if (advancedFilters.facturesValue !== '') {
+      const targetFactures = parseInt(advancedFilters.facturesValue, 10);
+      if (!isNaN(targetFactures)) {
+        result = result.filter(({ statistiques_factures }) =>
+          compareWithOperator(statistiques_factures?.nombre_factures ?? 0, advancedFilters.facturesOp, targetFactures)
+        );
+      }
+    }
+
+    // Filtre par montant acheté (payé)
+    if (advancedFilters.payeValue !== '') {
+      const targetPaye = parseInt(advancedFilters.payeValue, 10);
+      if (!isNaN(targetPaye)) {
+        result = result.filter(({ statistiques_factures }) =>
+          compareWithOperator(statistiques_factures?.montant_paye ?? 0, advancedFilters.payeOp, targetPaye)
+        );
+      }
+    }
+
+    // Filtre par montant impayés
+    if (advancedFilters.impayeValue !== '') {
+      const targetImpaye = parseInt(advancedFilters.impayeValue, 10);
+      if (!isNaN(targetImpaye)) {
+        result = result.filter(({ statistiques_factures }) =>
+          compareWithOperator(statistiques_factures?.montant_impaye ?? 0, advancedFilters.impayeOp, targetImpaye)
+        );
+      }
+    }
+
+    return result;
+  }, [clientsFiltered, advancedFilters, compareWithOperator]);
+
+  // Pagination - utilise les clients avec filtres avancés
+  const filteredCount = clientsWithAdvancedFilters.length;
   const { 
     totalPages, 
     getPaginatedItems 
   } = usePagination(filteredCount, itemsPerPage);
   
-  const paginatedClients = getPaginatedItems(clientsFiltered, currentPage);
+  const paginatedClients = getPaginatedItems(clientsWithAdvancedFilters, currentPage);
 
   // Vérification authentification (même pattern que les produits)
   useEffect(() => {
@@ -323,8 +380,13 @@ export default function ClientsCommercePage() {
               }}
               onRefresh={handleRefresh}
               isRefreshing={refreshing}
-              clients={clientsFiltered}
+              clients={clientsWithAdvancedFilters}
               nomStructure={user?.nom_structure || 'Structure'}
+              advancedFilters={advancedFilters}
+              onAdvancedFiltersChange={(filters) => {
+                setAdvancedFilters(filters);
+                setCurrentPage(1);
+              }}
             />
           }
         />
@@ -367,7 +429,7 @@ export default function ClientsCommercePage() {
           <GlassPagination
             currentPage={currentPage}
             totalPages={totalPages}
-            totalItems={clientsFiltered.length}
+            totalItems={clientsWithAdvancedFilters.length}
             itemsPerPage={itemsPerPage}
             onPageChange={setCurrentPage}
             itemLabel="clients"

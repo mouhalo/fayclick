@@ -11,6 +11,7 @@ export { OngletHistoriqueProduits } from './OngletHistoriqueProduits';
 
 // Header avec filtres
 export { FilterHeaderClientsGlass } from './FilterHeaderClientsGlass';
+export type { ClientAdvancedFilters } from './FilterHeaderClientsGlass';
 
 // Types utiles pour l'importation
 export type {
