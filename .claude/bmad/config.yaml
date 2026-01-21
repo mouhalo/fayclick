@@ -1,0 +1,228 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# CONFIGURATION BMAD - FAYCLICK V2
+# ═══════════════════════════════════════════════════════════════════════════════
+# Généré par SUPER_BMAD_AGENT pour MoloDev / SYCAD Fintech
+# Date: 2026-01-21
+
+project:
+  name: "FayClick V2"
+  description: "Super App PWA de gestion commerciale pour le marché sénégalais"
+  type: "web-app"
+  level: 3  # 1=simple, 2=medium, 3=complex (Super App = complex)
+  owner: "MoloDev / SYCAD Fintech"
+  repository: "D:\\React_Prj\\fayclick"
+  
+  # Segments métier
+  business_segments:
+    - commerce        # Gestion commerciale
+    - scolaire        # Gestion scolaire
+    - immobilier      # Gestion immobilière
+    - prestataires    # Prestataires de services
+
+# ───────────────────────────────────────────────────────────────────────────────
+# CHEMINS DES DOCUMENTS BMAD
+# ───────────────────────────────────────────────────────────────────────────────
+paths:
+  docs: "docs/"
+  bmad: "docs/bmad/"
+  prd: "docs/bmad/prd/"
+  architecture: "docs/architecture/"
+  architecture_features: "docs/architecture/features/"
+  stories: "docs/stories/"
+  guides: "docs/guides/"
+  prompts: "prompts/"
+  prompts_context: "prompts/context/"
+  prompts_features: "prompts/features/"
+  templates: ".claude/bmad/templates/"
+
+# ───────────────────────────────────────────────────────────────────────────────
+# STACK TECHNIQUE
+# ───────────────────────────────────────────────────────────────────────────────
+tech_stack:
+  frontend:
+    framework: "Next.js 15"
+    language: "TypeScript"
+    styling: "Tailwind CSS v3.4.1"
+    state_management: "Zustand"
+    ui_library: "React 19"
+    pwa: true
+    
+  backend:
+    api_base_dev: "http://127.0.0.1:5000"
+    api_base_prod: "https://api.icelabsoft.com"
+    auth: "JWT"
+    
+  database:
+    type: "postgresql"
+    # L'APPLICATION utilise l'API REST pour communiquer avec PostgreSQL
+    connection_via: "api"
+    api_endpoint: "https://api.icelabsoft.com/api/psql_request/api/psql_request"
+    service_file: "services/database.service.ts"  # Service qui encapsule les appels
+
+    # IMPORTANT: Pour analyser la structure de la BD (tables, vues, schémas),
+    # utiliser l'agent dba_master qui a accès direct via MCP postgres-server
+    dba_agent: "dba_master"
+    dba_mcp_server: "postgres-server"  # Seul l'agent DBA utilise ce MCP
+    
+  integrations:
+    - name: "Orange Money"
+      type: "payment"
+      api: "OFMS"
+    - name: "Wave"
+      type: "payment"
+      api: "INTOUCH"
+    - name: "Free Money"
+      type: "payment"
+      api: "OFMS"
+    - name: "SMS Gateway"
+      type: "notification"
+      api: "send_o_sms"
+
+# ───────────────────────────────────────────────────────────────────────────────
+# GIT & VERSIONING
+# ───────────────────────────────────────────────────────────────────────────────
+git:
+  enabled: true
+  connection_via: "mcp"
+  branch_strategy: "feature-branch"
+  commit_format: "emoji"  # ✨ 🔧 🐛 📝 etc.
+
+# ───────────────────────────────────────────────────────────────────────────────
+# AGENTS BMAD ACTIVÉS
+# ───────────────────────────────────────────────────────────────────────────────
+agents:
+  enabled:
+    - orchestrator
+    - business_analyst
+    - product_manager
+    - system_architect
+    - scrum_master
+    - developer
+    - qa
+    - ux_designer
+    - documentation_specialist
+
+# ───────────────────────────────────────────────────────────────────────────────
+# WORKFLOWS
+# ───────────────────────────────────────────────────────────────────────────────
+workflows:
+  default: "reverse_bmad"  # Projet existant
+  available:
+    - standard           # Nouveau projet from scratch
+    - reverse_bmad       # Documenter projet existant
+    - feature_only       # Ajouter une fonctionnalité
+    - hotfix             # Correction urgente
+
+# ───────────────────────────────────────────────────────────────────────────────
+# CONTRAINTES SPÉCIFIQUES FAYCLICK
+# ───────────────────────────────────────────────────────────────────────────────
+constraints:
+  # Contraintes techniques
+  technical:
+    - mobile_first: true
+    - offline_support: true  # PWA avec Service Worker
+    - low_bandwidth: true    # Optimisation pour 3G
+    - responsive: true       # 5 breakpoints (xs, sm, md, lg, xl, 2xl)
+    
+  # Contraintes utilisateurs
+  users:
+    - low_literacy: true     # Utilisateurs peu alphabétisés → UI simple
+    - voice_support: false   # À implémenter
+    - image_recognition: false  # À implémenter (produits)
+    
+  # Contraintes business
+  business:
+    - mobile_money_required: true  # OM, Wave, Free Money obligatoires
+    - multi_tenant: true     # Multi-structures
+    - multi_segment: true    # 4 segments métier
+    
+  # Contraintes sécurité
+  security:
+    - jwt_auth: true
+    - otp_verification: true  # Pour retraits wallet
+    - permission_system: true
+
+# ───────────────────────────────────────────────────────────────────────────────
+# LANGUES
+# ───────────────────────────────────────────────────────────────────────────────
+language:
+  primary: "fr"           # Français
+  secondary: 
+    - "wo"                # Wolof (à implémenter)
+  code_comments: "fr"     # Commentaires en français
+  ui_text: "fr"
+
+# ───────────────────────────────────────────────────────────────────────────────
+# ENVIRONNEMENTS
+# ───────────────────────────────────────────────────────────────────────────────
+environments:
+  development:
+    url: "http://localhost:3000"
+    api: "http://127.0.0.1:5000"
+    
+  staging:
+    url: "https://staging.fayclick.net"
+    api: "https://api.icelabsoft.com"
+    
+  production:
+    url: "https://v2.fayclick.net"
+    api: "https://api.icelabsoft.com"
+
+# ───────────────────────────────────────────────────────────────────────────────
+# FONCTIONNALITÉS EXISTANTES (Référence)
+# ───────────────────────────────────────────────────────────────────────────────
+existing_features:
+  core:
+    - authentication      # Login/Register avec JWT
+    - multi_dashboard     # Commerce, Scolaire, Immobilier, Admin
+    - permission_system   # Droits granulaires
+    
+  commerce:
+    - product_management  # CRUD produits
+    - client_management   # Gestion clients
+    - invoicing           # Facturation
+    - vente_flash         # Ventes rapides
+    - inventory           # Inventaire
+    - expenses            # Dépenses
+    
+  payments:
+    - wallet_kalpe        # Coffre-fort wallet
+    - mobile_money        # OM/Wave/Free
+    - withdrawals         # Retraits avec OTP
+    - public_invoices     # Paiement factures publiques
+    
+  subscriptions:
+    - monthly             # Abonnement mensuel
+    - annual              # Abonnement annuel
+    
+  pwa:
+    - service_worker      # Cache et offline
+    - install_prompt      # Installation intelligente
+    - background_sync     # Sync offline
+
+# ───────────────────────────────────────────────────────────────────────────────
+# BACKLOG ÉVOLUTIONS (Référence)
+# ───────────────────────────────────────────────────────────────────────────────
+backlog:
+  high_priority:
+    - social_commerce     # Vente WhatsApp/TikTok
+    - ai_product_recognition  # Reconnaissance produits par IA
+    - voice_interface     # Interface vocale pour illettrés
+    
+  medium_priority:
+    - multi_store_sync    # Synchronisation multi-boutiques
+    - advanced_reports    # Rapports avancés
+    - wolof_language      # Support Wolof
+    
+  low_priority:
+    - barcode_scanner     # Scanner codes-barres amélioré
+    - loyalty_program     # Programme fidélité
+
+# ───────────────────────────────────────────────────────────────────────────────
+# MÉTADONNÉES
+# ───────────────────────────────────────────────────────────────────────────────
+metadata:
+  bmad_version: "1.0"
+  created_at: "2026-01-21"
+  created_by: "SUPER_BMAD_AGENT"
+  last_updated: "2026-01-21"
