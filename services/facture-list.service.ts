@@ -246,6 +246,110 @@ class FactureListService {
   }
 
   /**
+   * Récupérer les factures avec filtres côté BD via get_my_factures_filtered
+   * Tous les paramètres de filtre sont optionnels
+   */
+  async getMyFacturesFiltered(filtres?: {
+    dateDebut?: string;
+    dateFin?: string;
+    nomClient?: string;
+    telClient?: string;
+    statut?: string;
+  }): Promise<GetMyFactureResponse> {
+    try {
+      const user = authService.getUser();
+      if (!user) {
+        throw new FactureListApiException('Utilisateur non authentifié', 401);
+      }
+
+      const pDateDebut = filtres?.dateDebut || '';
+      const pDateFin = filtres?.dateFin || '';
+      const pNomClient = filtres?.nomClient || '';
+      const pTelClient = filtres?.telClient || '';
+      const pStatut = filtres?.statut || '';
+
+      console.log('📋 [FACTURE-LIST] getMyFacturesFiltered:', {
+        id_structure: user.id_structure,
+        pDateDebut, pDateFin, pNomClient, pTelClient, pStatut
+      });
+
+      const query = `SELECT * FROM get_my_factures_filtered(${user.id_structure}, '${pDateDebut}', '${pDateFin}', '${pNomClient}', '${pTelClient}', '${pStatut}')`;
+
+      const result = await DatabaseService.query(query);
+
+      if (!result || result.length === 0) {
+        return {
+          factures: [],
+          resume_global: {
+            nombre_factures: 0, montant_total: 0, montant_paye: 0,
+            montant_impaye: 0, nombre_payees: 0, nombre_impayees: 0
+          },
+          total_factures: 0, montant_total: 0, montant_paye: 0, montant_impaye: 0
+        };
+      }
+
+      // Parse identique à getMyFactures
+      const firstRow = result[0];
+      let factureData = firstRow.get_my_factures_filtered || firstRow;
+
+      if (typeof factureData === 'string') {
+        try {
+          factureData = JSON.parse(factureData);
+        } catch (parseError) {
+          throw new FactureListApiException('Impossible de parser les données des factures', 500);
+        }
+      }
+
+      let facturesFormatees: FactureComplete[] = [];
+
+      if (Array.isArray(factureData.factures)) {
+        facturesFormatees = factureData.factures.map((f: unknown) => {
+          const factureItem = f as ApiFactureItem;
+          if (factureItem.facture) {
+            const recusPaiements = (factureItem as any).recus_paiements;
+            return {
+              facture: factureItem.facture as ApiFactureData,
+              details: (factureItem.details as Record<string, unknown>[]) || [],
+              resume: (factureItem.resume as Record<string, unknown>) || {
+                nombre_articles: 0, quantite_totale: 0, cout_total_revient: 0, marge_totale: 0
+              },
+              recus_paiements: Array.isArray(recusPaiements) ? recusPaiements : undefined
+            };
+          }
+          return {
+            facture: f as ApiFactureData,
+            details: [],
+            resume: { nombre_articles: 0, quantite_totale: 0, cout_total_revient: 0, marge_totale: 0 }
+          };
+        });
+      } else if (Array.isArray(factureData)) {
+        facturesFormatees = factureData.map((f: unknown) => ({
+          facture: f as ApiFactureData,
+          details: [],
+          resume: { nombre_articles: 0, quantite_totale: 0, cout_total_revient: 0, marge_totale: 0 }
+        }));
+      }
+
+      return {
+        factures: facturesFormatees,
+        resume_global: factureData.resume_global || {
+          nombre_factures: facturesFormatees.length, montant_total: 0,
+          montant_paye: 0, montant_impaye: 0, nombre_payees: 0, nombre_impayees: 0
+        },
+        total_factures: factureData.resume_global?.nombre_factures || facturesFormatees.length,
+        montant_total: factureData.resume_global?.montant_total || 0,
+        montant_paye: factureData.resume_global?.montant_paye || 0,
+        montant_impaye: factureData.resume_global?.montant_impaye || 0
+      };
+
+    } catch (error) {
+      SecurityService.secureLog('error', 'Erreur récupération factures filtrées', error);
+      if (error instanceof FactureListApiException) throw error;
+      throw new FactureListApiException('Impossible de récupérer les factures filtrées', 500, error);
+    }
+  }
+
+  /**
    * Récupérer une facture spécifique par son ID
    */
   async getFactureById(id_facture: number): Promise<FactureComplete | null> {

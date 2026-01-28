@@ -5,7 +5,7 @@
 
 'use client';
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { AlertCircle, Loader } from 'lucide-react';
@@ -86,7 +86,29 @@ export default function FacturesGlassPage() {
     message: string;
   }>({ isOpen: false, type: 'info', message: '' });
 
-  // Chargement initial des factures et paiements
+  // Mapper filtres UI vers paramètres get_my_factures_filtered
+  const buildFiltresDB = useCallback((f: FiltresFactures) => {
+    const filtresDB: {
+      dateDebut?: string;
+      dateFin?: string;
+      nomClient?: string;
+      telClient?: string;
+      statut?: string;
+    } = {};
+
+    if (f.periode?.debut) filtresDB.dateDebut = f.periode.debut;
+    if (f.periode?.fin) filtresDB.dateFin = f.periode.fin;
+    if (f.nom_client) filtresDB.nomClient = f.nom_client;
+    if (f.tel_client) filtresDB.telClient = f.tel_client;
+    if (f.statut && f.statut !== 'TOUS') {
+      const statutMap: Record<string, string> = { 'PAYEE': 'payee', 'IMPAYEE': 'impayee' };
+      filtresDB.statut = statutMap[f.statut] || f.statut;
+    }
+
+    return Object.values(filtresDB).some(v => v) ? filtresDB : undefined;
+  }, []);
+
+  // Chargement initial des factures (sans filtres = toutes les factures)
   const loadFactures = useCallback(async () => {
     if (!user) return;
 
@@ -94,10 +116,9 @@ export default function FacturesGlassPage() {
       setLoading(true);
       setError('');
 
-      const response = await factureListService.getMyFactures();
+      const response = await factureListService.getMyFacturesFiltered();
       setFacturesResponse(response);
 
-      // Charger aussi le nombre de paiements
       const paiements = await recuService.getHistoriqueRecus({
         id_structure: user.id_structure!,
         limite: 100
@@ -113,77 +134,77 @@ export default function FacturesGlassPage() {
     }
   }, [user]);
 
+  // Rechargement avec filtres (pas de spinner plein écran)
+  const loadFacturesWithFilters = useCallback(async (currentFiltres: FiltresFactures) => {
+    if (!user) return;
+
+    try {
+      setIsRefreshing(true);
+      setError('');
+
+      const filtresDB = buildFiltresDB(currentFiltres);
+      const response = await factureListService.getMyFacturesFiltered(filtresDB);
+      setFacturesResponse(response);
+
+    } catch (err: unknown) {
+      console.error('Erreur chargement factures filtrées:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Impossible de charger les factures';
+      setError(errorMessage);
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, [user, buildFiltresDB]);
+
   // Rafraîchir les données
   const handleRefresh = async () => {
     setIsRefreshing(true);
-    await loadFactures();
-    setTimeout(() => setIsRefreshing(false), 500);
+    const filtresDB = buildFiltresDB(filtres);
+    try {
+      const response = await factureListService.getMyFacturesFiltered(filtresDB);
+      setFacturesResponse(response);
+    } catch (err) {
+      console.error('Erreur refresh:', err);
+    } finally {
+      setIsRefreshing(false);
+    }
   };
 
+  // Chargement initial
   useEffect(() => {
     loadFactures();
   }, [loadFactures]);
+
+  // Recharger depuis la BD quand les filtres changent (debounce 500ms)
+  const isInitialMount = useRef(true);
+  useEffect(() => {
+    // Ignorer le premier rendu (chargement initial déjà fait)
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      loadFacturesWithFilters(filtres);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [filtres, loadFacturesWithFilters]);
 
   // Réinitialiser la pagination quand les filtres changent
   useEffect(() => {
     setCurrentPage(1);
   }, [filtres]);
 
-  // Filtrer et trier les factures
+  // Tri côté client (les données sont déjà filtrées par la BD)
   const facturesFiltreesEtTriees = useMemo(() => {
     if (!facturesResponse?.factures) return [];
 
     let resultat = [...facturesResponse.factures];
 
-    // Filtrage par statut
-    if (filtres.statut && filtres.statut !== 'TOUS') {
-      resultat = resultat.filter(f => {
-        // Support des deux formats possibles
-        const statut = f.facture?.libelle_etat || (f as any).libelle_etat;
-        return statut === filtres.statut;
-      });
-    }
-
-    // Filtrage par période (dates début et fin)
-    if (filtres.periode?.debut && filtres.periode?.fin) {
-      const dateDebut = new Date(filtres.periode.debut);
-      dateDebut.setHours(0, 0, 0, 0);
-      const dateFin = new Date(filtres.periode.fin);
-      dateFin.setHours(23, 59, 59, 999);
-
-      resultat = resultat.filter(f => {
-        const dateFacture = f.facture?.date_facture || (f as any).date_facture;
-        if (!dateFacture) return false;
-        const date = new Date(dateFacture);
-        return date >= dateDebut && date <= dateFin;
-      });
-    }
-
-    // Filtrage par nom client spécifique
-    if (filtres.nom_client) {
-      const recherche = filtres.nom_client.toLowerCase().trim();
-      resultat = resultat.filter(f => {
-        const nomClient = f.facture?.nom_client || (f as any).nom_client || '';
-        return nomClient.toLowerCase().includes(recherche);
-      });
-    }
-
-    // Filtrage par téléphone client
-    if (filtres.tel_client) {
-      // Nettoyer le numéro (enlever espaces, tirets, etc.)
-      const telRecherche = filtres.tel_client.replace(/[\s\-\.]/g, '');
-      resultat = resultat.filter(f => {
-        const telClient = f.facture?.tel_client || (f as any).tel_client || '';
-        const telNettoye = telClient.replace(/[\s\-\.]/g, '');
-        return telNettoye.includes(telRecherche);
-      });
-    }
-
-    // Recherche générale (numéro facture ou client)
+    // Recherche locale par texte (num_facture, nom, tel) pour réactivité immédiate
     if (filtres.searchTerm) {
       const recherche = filtres.searchTerm.toLowerCase().trim();
       resultat = resultat.filter(f => {
-        // Support des deux formats possibles
         const nomClient = f.facture?.nom_client || (f as any).nom_client || '';
         const numFacture = f.facture?.num_facture || (f as any).num_facture || '';
         const telClient = f.facture?.tel_client || (f as any).tel_client || '';
