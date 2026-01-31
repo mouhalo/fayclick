@@ -195,12 +195,20 @@ class SubscriptionService {
         throw new Error('ID structure requis');
       }
 
+      // Préparer les valeurs optionnelles
+      const refAbonnement = params.ref_abonnement ? `'${params.ref_abonnement}'` : 'NULL';
+      const numRecu = params.numrecu ? `'${params.numrecu}'` : 'NULL';
+      const uuidPaiement = params.uuid_paiement ? `'${params.uuid_paiement}'::UUID` : 'NULL';
+
       // Appel fonction PostgreSQL: renouveler_abonnement
       // Note: databaseService.query() ne supporte pas les paramètres $1, $2
       const query = `SELECT renouveler_abonnement(
         ${params.id_structure}::INTEGER,
         '${params.type_abonnement}'::VARCHAR,
-        '${params.methode}'::VARCHAR
+        '${params.methode}'::VARCHAR,
+        ${refAbonnement}::VARCHAR,
+        ${numRecu}::VARCHAR,
+        ${uuidPaiement}
       )`;
 
       console.log('🔍 [SUBSCRIPTION] Requête SQL:', query);
@@ -211,10 +219,11 @@ class SubscriptionService {
         throw new Error('Aucune réponse de la fonction de renouvellement');
       }
 
-      // Parser la réponse JSON de PostgreSQL
-      const response: AbonnementResponse = JSON.parse(
-        result[0].renouveler_abonnement
-      );
+      // Parser la réponse JSON de PostgreSQL (peut être déjà un objet ou une chaîne)
+      const rawResponse = result[0].renouveler_abonnement;
+      const response: AbonnementResponse = typeof rawResponse === 'string'
+        ? JSON.parse(rawResponse)
+        : rawResponse as AbonnementResponse;
 
       if (!response.success) {
         console.error('❌ [SUBSCRIPTION] Échec renouvellement:', response.message);
