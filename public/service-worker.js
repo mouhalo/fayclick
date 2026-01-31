@@ -1,6 +1,6 @@
 // Service Worker FayClick V2 - PWA Complète
 // Version: 2.7.0 - 2026-01-02 - Audit PWA + Background Sync + Icons fix
-// Build: 2026-01-31T11:36:31.425Z - Force upload fix for ftp-deploy size comparison bug
+// Build: 2026-01-31T22:06:09.379Z - Force upload fix for ftp-deploy size comparison bug
 // Build: 2026-01-02T12:00:00.000Z
 
 const CACHE_NAME = 'fayclick-v2-cache-v2.7-20260102';

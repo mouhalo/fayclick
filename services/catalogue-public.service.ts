@@ -112,6 +112,37 @@ class CataloguePublicService {
   }
 
   /**
+   * Récupère les produits publics d'une structure par son ID
+   * Résout d'abord le nom_structure puis appelle getProduitsPublics
+   */
+  async getProduitsPublicsById(idStructure: number): Promise<unknown> {
+    try {
+      if (!idStructure || isNaN(idStructure)) {
+        throw new CataloguePublicException('ID de structure invalide', 400);
+      }
+
+      const database = (await import('./database.service')).default;
+      const result = await database.query(
+        `SELECT nom_structure FROM structures WHERE id_structure = ${idStructure}`
+      );
+
+      if (!result || result.length === 0) {
+        throw new CataloguePublicException('Structure introuvable', 404);
+      }
+
+      const nomStructure = (result[0] as Record<string, unknown>).nom_structure as string;
+      if (!nomStructure) {
+        throw new CataloguePublicException('Structure introuvable', 404);
+      }
+
+      return await this.getProduitsPublics(nomStructure);
+    } catch (error) {
+      if (error instanceof CataloguePublicException) throw error;
+      throw new CataloguePublicException('Impossible de récupérer le catalogue', 500);
+    }
+  }
+
+  /**
    * Vérifie si une structure existe et a des produits publics
    */
   async checkStructureHasProducts(nomStructure: string): Promise<{

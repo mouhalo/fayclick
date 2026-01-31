@@ -28,6 +28,7 @@ import { CarteProduit, CarteProduitSkeleton } from '@/components/produits/CarteP
 import { CarteProduitReduit } from '@/components/produits/CarteProduitReduit';
 import { CarteProduitReduitSkeleton } from '@/components/produits/CarteProduitReduitSkeleton';
 import { ModalAjoutProduitNew } from '@/components/produits/ModalAjoutProduitNew';
+import ModalPartagerProduit from '@/components/produit/ModalPartagerProduit';
 import { StatusBarPanier } from '@/components/panier/StatusBarPanier';
 import { ModalPanier } from '@/components/panier/ModalPanier';
 import { ModalFactureSuccess } from '@/components/panier/ModalFactureSuccess';
@@ -69,6 +70,7 @@ export default function ProduitsCommercePage() {
 
   // État pour le modal d'impression
   const [showPrintModal, setShowPrintModal] = useState(false);
+  const [produitPartage, setProduitPartage] = useState<Produit | null>(null);
 
   // État pour l'export CSV
   const [isExporting, setIsExporting] = useState(false);
@@ -527,6 +529,7 @@ export default function ProduitsCommercePage() {
           produit={produit}
           onEdit={handleEditProduit}
           onDelete={handleDeleteProduit}
+          onQrCode={setProduitPartage}
           typeStructure="COMMERCIALE"
           onSubscriptionRequired={showAbonnementModal}
         />
@@ -539,6 +542,7 @@ export default function ProduitsCommercePage() {
         produit={produit}
         onEdit={handleEditProduit}
         onDelete={handleDeleteProduit}
+        onQrCode={setProduitPartage}
         typeStructure="COMMERCIALE"
         compactMode={false}
         onSubscriptionRequired={showAbonnementModal}
@@ -892,6 +896,16 @@ export default function ProduitsCommercePage() {
         onClose={hideAbonnementModal}
         featureName={abonnementFeatureName}
       />
+
+      {/* Modal partage produit (Online Seller) */}
+      {produitPartage && user && (
+        <ModalPartagerProduit
+          isOpen={!!produitPartage}
+          onClose={() => setProduitPartage(null)}
+          produit={produitPartage}
+          idStructure={user.id_structure}
+        />
+      )}
     </div>
   );
 }

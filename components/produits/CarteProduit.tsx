@@ -29,6 +29,8 @@ interface CarteProduitProps {
   produit: Produit;
   onEdit: (produit: Produit) => void;
   onDelete: (produit: Produit) => void;
+  /** Callback QR Code / partage produit */
+  onQrCode?: (produit: Produit) => void;
   typeStructure: string;
   compactMode?: boolean;
   /** Callback appelé quand l'abonnement est requis */
@@ -39,6 +41,7 @@ export function CarteProduit({
   produit,
   onEdit,
   onDelete,
+  onQrCode,
   onSubscriptionRequired
 }: CarteProduitProps) {
   const [quantity, setQuantity] = useState(1);
@@ -214,13 +217,13 @@ export function CarteProduit({
 
         {/* 3 boutons d'actions circulaires */}
         <div className="flex items-center gap-2">
-          {/* Bouton QR Code */}
+          {/* Bouton QR Code / Partager produit */}
           <motion.button
             whileTap={{ scale: 0.9 }}
             whileHover={{ rotate: 5 }}
-            onClick={(e) => e.stopPropagation()}
+            onClick={(e) => { e.stopPropagation(); onQrCode?.(produit); }}
             className="w-12 h-12 bg-blue-500 text-white rounded-full flex items-center justify-center shadow-lg hover:bg-blue-600 transition-colors"
-            title="QR Code"
+            title="Partager ce produit"
           >
             <QrCode className="w-5 h-5" />
           </motion.button>

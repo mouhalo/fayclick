@@ -1,7 +1,7 @@
 /**
- * Utilitaire d'encodage/décodage sécurisé pour les URLs de factures FayClick
- * Encode {id_structure}-{id_facture} en une chaîne cryptée 
- * Format: http://localhost:3000/fay_xdmfdld5626dfdf
+ * Utilitaire d'encodage/décodage sécurisé pour les URLs FayClick
+ * Encode {id_structure}-{id} en Base64 URL-safe
+ * Utilisé pour les factures publiques et les produits Online Seller
  */
 
 // Clé secrète pour le salt (en production, utiliser une vraie variable d'environnement)
@@ -160,8 +160,111 @@ export function isValidEncodedToken(encoded: string): boolean {
 export function generateTestToken(): { token: string; id_structure: number; id_facture: number } {
   const id_structure = Math.floor(Math.random() * 999) + 1; // 1-999
   const id_facture = Math.floor(Math.random() * 9999) + 1;  // 1-9999
-  
+
   const token = encodeFactureParams(id_structure, id_facture);
-  
+
   return { token, id_structure, id_facture };
+}
+
+// ============================================================
+// ONLINE SELLER - Encodage/décodage produit
+// ============================================================
+
+/**
+ * Encode les paramètres d'un produit en token Base64 URL-safe
+ * Format interne : "{id_structure}-{id_produit}" encodé en Base64
+ *
+ * @param id_structure - ID de la structure (marchand)
+ * @param id_produit - ID du produit
+ * @returns Token URL-safe (ex: "MTgzLTQy")
+ */
+export function encodeProduitParams(id_structure: number, id_produit: number): string {
+  try {
+    if (!id_structure || !id_produit || isNaN(id_structure) || isNaN(id_produit)) {
+      throw new Error('Paramètres invalides pour l\'encodage produit');
+    }
+
+    const dataToEncode = `${id_structure}-${id_produit}`;
+
+    let encoded = '';
+    if (typeof window !== 'undefined') {
+      encoded = btoa(dataToEncode);
+    } else {
+      encoded = Buffer.from(dataToEncode).toString('base64');
+    }
+
+    const urlSafe = encoded
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=/g, '');
+
+    console.log('🔐 Encodage produit:', { original: dataToEncode, encoded: urlSafe });
+
+    return urlSafe;
+
+  } catch (error) {
+    console.error('❌ Erreur encodage produit:', error);
+    throw new Error('Impossible d\'encoder les paramètres du produit');
+  }
+}
+
+/**
+ * Décode un token pour récupérer id_structure et id_produit
+ *
+ * @param encoded - Token URL-safe (ex: "MTgzLTQy")
+ * @returns { id_structure, id_produit } ou null si invalide
+ */
+export function decodeProduitParams(encoded: string): { id_structure: number; id_produit: number } | null {
+  try {
+    if (!encoded || typeof encoded !== 'string' || encoded.length < 4) {
+      console.warn('⚠️ Token produit invalide:', encoded);
+      return null;
+    }
+
+    let restored = encoded
+      .replace(/-/g, '+')
+      .replace(/_/g, '/');
+
+    const padding = (4 - (restored.length % 4)) % 4;
+    restored = restored + '='.repeat(padding);
+
+    let decoded = '';
+    if (typeof window !== 'undefined') {
+      try {
+        decoded = atob(restored);
+      } catch {
+        console.warn('⚠️ Erreur décodage Base64 produit côté client');
+        return null;
+      }
+    } else {
+      try {
+        decoded = Buffer.from(restored, 'base64').toString('utf-8');
+      } catch {
+        console.warn('⚠️ Erreur décodage Base64 produit côté serveur');
+        return null;
+      }
+    }
+
+    const parts = decoded.split('-');
+    if (parts.length !== 2) {
+      console.warn('⚠️ Format token produit invalide:', decoded);
+      return null;
+    }
+
+    const id_structure = parseInt(parts[0]);
+    const id_produit = parseInt(parts[1]);
+
+    if (isNaN(id_structure) || isNaN(id_produit) || id_structure <= 0 || id_produit <= 0) {
+      console.warn('⚠️ IDs produit invalides:', { id_structure, id_produit });
+      return null;
+    }
+
+    console.log('🔓 Décodage produit réussi:', { encoded, id_structure, id_produit });
+
+    return { id_structure, id_produit };
+
+  } catch (error) {
+    console.error('❌ Erreur décodage produit:', error);
+    return null;
+  }
 }

@@ -18,9 +18,10 @@ interface CarteProduitProps {
   produit: ProduitPublic | ProduitPublicGlobal;
   index: number;
   showStructureName?: boolean;  // Afficher le nom de la structure (pour catalogue global)
+  onAcheter?: (produit: ProduitPublic | ProduitPublicGlobal) => void;
 }
 
-export default function CarteProduit({ produit, index, showStructureName = false }: CarteProduitProps) {
+export default function CarteProduit({ produit, index, showStructureName = false, onAcheter }: CarteProduitProps) {
   const [showModal, setShowModal] = useState(false);
 
   // Vérifier si le produit contient des informations de structure
@@ -218,6 +219,22 @@ export default function CarteProduit({ produit, index, showStructureName = false
           >
             Réf. #{produit.id_produit}
           </motion.div>
+
+          {/* Bouton Acheter */}
+          {onAcheter && produit.stock_disponible > 0 && (
+            <motion.button
+              initial={{ opacity: 0, y: 5 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.05 + 0.4 }}
+              onClick={(e) => {
+                e.stopPropagation();
+                onAcheter(produit);
+              }}
+              className="w-full mt-1.5 py-1.5 rounded-lg bg-gradient-to-r from-emerald-500 to-emerald-600 text-white text-xs font-semibold hover:from-emerald-600 hover:to-emerald-700 transition-all shadow-md active:scale-95"
+            >
+              Acheter
+            </motion.button>
+          )}
         </div>
 
         {/* Effet de brillance glassmorphe au hover - Vert/Orange FayClick */}

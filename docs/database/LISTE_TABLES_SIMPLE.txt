@@ -1,0 +1,132 @@
+╔══════════════════════════════════════════════════════════════════════════════════╗
+║                  LISTE COMPLÈTE DES TABLES - fayclick_db                         ║
+║                        Analyse Code Source 2026-01-21                            ║
+╚══════════════════════════════════════════════════════════════════════════════════╝
+
+📊 TOTAL ESTIMÉ: ~35 tables principales + ~5 vues + ~80 fonctions PostgreSQL
+
+═══════════════════════════════════════════════════════════════════════════════════
+
+🏢 STRUCTURES ET CONFIGURATION
+─────────────────────────────────────────────────────────────────────────────────────
+1.  type_structure                  Types de structures (COMMERCIALE, SCOLAIRE, etc.)
+2.  structures (list_structures)    Structures/entreprises inscrites
+3.  profils                         Profils/rôles utilisateurs (ADMIN, MANAGER, etc.)
+4.  groupes                         Groupes d'utilisateurs
+5.  droits                          Permissions système
+6.  parametres_systeme              Configuration globale
+
+👤 UTILISATEURS ET AUTHENTIFICATION
+─────────────────────────────────────────────────────────────────────────────────────
+7.  utilisateurs                    Comptes utilisateurs
+8.  demandes_password               Récupération mot de passe
+
+📦 PRODUITS ET INVENTAIRE
+─────────────────────────────────────────────────────────────────────────────────────
+9.  list_produits (produit_service) Catalogue produits/services
+10. produit_photos                  Photos multiples produits
+11. mouvement_stock                 Historique mouvements stock
+12. product_embeddings              Embeddings IA (reconnaissance visuelle)
+13. inventaire_periodique           Inventaires périodiques
+
+👥 CLIENTS
+─────────────────────────────────────────────────────────────────────────────────────
+14. clients                         Clients des structures
+
+💰 FACTURES ET PAIEMENTS
+─────────────────────────────────────────────────────────────────────────────────────
+15. list_factures_com (list_factures) Factures émises
+16. detail_facture_com              Lignes détail factures (articles)
+17. paiements                       Historique paiements factures
+18. recus_paiement                  Reçus générés
+
+💸 DÉPENSES
+─────────────────────────────────────────────────────────────────────────────────────
+19. depenses                        Dépenses structures
+20. type_depenses                   Types/catégories dépenses
+
+💳 ABONNEMENTS ET WALLET
+─────────────────────────────────────────────────────────────────────────────────────
+21. abonnements_structure           Abonnements MENSUEL/ANNUEL
+22. wallet_structure                Soldes wallet (OM/WAVE/FREE)
+23. transactions_wallet             Historique transactions wallet
+
+🤝 PARTENAIRES ET CODES PROMO
+─────────────────────────────────────────────────────────────────────────────────────
+24. partenaires                     Partenaires commerciaux
+25. codes_promo_utilises            Utilisation codes promo
+
+📱 SMS ET NOTIFICATIONS
+─────────────────────────────────────────────────────────────────────────────────────
+26. pending_sms                     SMS en attente d'envoi
+
+🛠️ SERVICES ET PRESTATIONS
+─────────────────────────────────────────────────────────────────────────────────────
+27. services_prestataire            Services proposés (type PRESTATAIRE)
+28. list_devis                      Devis clients
+
+📊 VUES (VIEWS) POSTGRESQL
+─────────────────────────────────────────────────────────────────────────────────────
+29. vw_produits                     Produits + structures (catalogues publics)
+
+📝 LOGS ET HISTORIQUE
+─────────────────────────────────────────────────────────────────────────────────────
+30. logs                            Historique actions système
+
+═══════════════════════════════════════════════════════════════════════════════════
+
+🔍 TABLES AVEC ALIAS (SYNONYMES)
+─────────────────────────────────────────────────────────────────────────────────────
+structures          = list_structures
+list_produits       = produit_service = produits
+list_factures_com   = list_factures
+
+═══════════════════════════════════════════════════════════════════════════════════
+
+🔧 FONCTIONS POSTGRESQL CRITIQUES (Top 20)
+─────────────────────────────────────────────────────────────────────────────────────
+✅ check_user_credentials(plogin, ppassword)
+✅ get_une_structure(pid_structure)
+✅ get_list_clients(pid_structure, ptel_client)
+✅ get_mes_droits(pid_structure, pid_profil)
+✅ get_mes_produits(pid_structure, pid_produit)
+✅ get_my_factures1(pid_structure, pannee, pmois, pid_facture)
+✅ create_facture_complete1(...)
+✅ add_acompte_facture(pid_structure, pid_facture, pmontant, ...)
+✅ get_historique_paiements_facture(pid_facture)
+✅ get_list_depenses(pid_structure, pannee, pperiode)
+✅ get_soldes_wallet_structure(pid_structure)
+✅ get_wallet_structure(pid_structure)
+✅ add_retrait_marchand(...)
+✅ historique_abonnements_structure(pid_structure, plimite)
+✅ get_etat_global(pid_structure, pannee)
+✅ get_inventaire_periodique(pid_structure, pannee, pmois, psemaine, pjour)
+✅ add_edit_produit(...)
+✅ add_edit_client(...)
+✅ add_edit_utilisateur(...)
+✅ validate_code_promo(pcode)
+
+═══════════════════════════════════════════════════════════════════════════════════
+
+📌 INDEX RECOMMANDÉS POUR OPTIMISATION
+─────────────────────────────────────────────────────────────────────────────────────
+CREATE INDEX idx_factures_structure_date ON list_factures_com(id_structure, date_facture);
+CREATE INDEX idx_produits_structure_actif ON list_produits(id_structure, actif);
+CREATE INDEX idx_clients_structure_tel ON clients(id_structure, tel_client);
+CREATE INDEX idx_paiements_facture ON paiements(id_facture);
+CREATE INDEX idx_transactions_wallet ON transactions_wallet(id_structure, date_transaction);
+CREATE INDEX idx_mouvement_stock_produit ON mouvement_stock(id_produit, date_mouvement);
+CREATE INDEX idx_utilisateurs_structure ON utilisateurs(id_structure, actif);
+CREATE INDEX idx_abonnements_structure_statut ON abonnements_structure(id_structure, statut);
+
+═══════════════════════════════════════════════════════════════════════════════════
+
+🚀 EXTENSIONS POSTGRESQL UTILISÉES
+─────────────────────────────────────────────────────────────────────────────────────
+- pgvector : Pour les embeddings IA (product_embeddings.embedding_vector)
+
+═══════════════════════════════════════════════════════════════════════════════════
+
+✅ Document généré par analyse exhaustive du code source
+📅 Date: 2026-01-21
+👨‍💼 DBA PostgreSQL Expert

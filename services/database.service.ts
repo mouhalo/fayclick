@@ -49,7 +49,7 @@ class DatabaseService {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), timeout);
 
-      const response = await fetch('/api/sql', {
+      const response = await fetch(API_CONFIG.ENDPOINT, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

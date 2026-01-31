@@ -1,0 +1,108 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# STATUT BMAD - FAYCLICK V2
+# ═══════════════════════════════════════════════════════════════════════════════
+# Suivi de l'avancement des workflows BMAD
+# Dernière mise à jour: 2026-01-21
+
+project_status:
+  overall_phase: "solutioning"  # discovery, analysis, solutioning, implementation
+  last_workflow: "architecture"
+  last_updated: "2026-01-21"
+
+# ───────────────────────────────────────────────────────────────────────────────
+# DOCUMENTS PRODUITS
+# ───────────────────────────────────────────────────────────────────────────────
+documents:
+  # Documents de base (Reverse BMAD)
+  product_brief:
+    status: "completed"
+    file: "docs/bmad/PRODUCT_BRIEF.md"
+    date: "2026-01-21"
+
+  backlog:
+    status: "completed"
+    file: "docs/bmad/BACKLOG.md"
+    date: "2026-01-21"
+
+  database_schema:
+    status: "completed"
+    file: "docs/architecture/DATABASE_SCHEMA.md"
+    date: "2026-01-21"
+
+# ───────────────────────────────────────────────────────────────────────────────
+# FONCTIONNALITÉS EN COURS
+# ───────────────────────────────────────────────────────────────────────────────
+features:
+  interface_vocale:
+    id: "VOC"
+    name: "Interface Vocale"
+    priority: "high"
+    phase: "solutioning"
+
+    # PRD
+    prd:
+      status: "approved"
+      file: "docs/bmad/prd/PRD_INTERFACE_VOCALE.md"
+      date: "2026-01-21"
+      version: "1.0"
+      frs_count: 14
+      nfrs_count: 6
+      epics_count: 6
+
+    # Architecture
+    architecture:
+      status: "draft"
+      file: "docs/architecture/ARCH_INTERFACE_VOCALE.md"
+      date: "2026-01-21"
+      version: "1.0"
+      pattern: "Modular Monolith + Client-Side Services"
+      components_count: 7
+
+    # Stories (à créer)
+    stories:
+      status: "pending"
+      count_estimated: "20-26"
+
+    # Implementation
+    implementation:
+      status: "not_started"
+      sprint: null
+
+# ───────────────────────────────────────────────────────────────────────────────
+# PROCHAINES ÉTAPES RECOMMANDÉES
+# ───────────────────────────────────────────────────────────────────────────────
+next_steps:
+  - workflow: "sprint-planning"
+    description: "Créer les stories détaillées pour l'Interface Vocale"
+    command: "/bmad:sprint-planning"
+    priority: 1
+
+  - workflow: "create-story"
+    description: "Créer les stories individuelles Epic par Epic"
+    command: "/bmad:create-story"
+    priority: 2
+
+  - workflow: "dev-story"
+    description: "Implémenter les stories"
+    command: "/bmad:dev-story"
+    priority: 3
+
+# ───────────────────────────────────────────────────────────────────────────────
+# HISTORIQUE DES WORKFLOWS
+# ───────────────────────────────────────────────────────────────────────────────
+workflow_history:
+  - date: "2026-01-21"
+    workflow: "reverse-bmad"
+    description: "Analyse projet existant, création PRODUCT_BRIEF et BACKLOG"
+
+  - date: "2026-01-21"
+    workflow: "prd"
+    feature: "Interface Vocale"
+    description: "Création PRD complet avec 14 FRs et 6 NFRs"
+    output: "docs/bmad/prd/PRD_INTERFACE_VOCALE.md"
+
+  - date: "2026-01-21"
+    workflow: "architecture"
+    feature: "Interface Vocale"
+    description: "Design architecture complète avec 7 composants"
+    output: "docs/architecture/ARCH_INTERFACE_VOCALE.md"

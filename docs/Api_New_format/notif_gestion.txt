@@ -1,0 +1,147 @@
+CREATE TABLE public.notifications (
+	id serial4 NOT NULL,
+	utilisateur_id int4 NOT NULL,
+	titre varchar(100) NOT NULL,
+	message text NOT NULL,
+	lue bool DEFAULT false NULL,
+	date_creation timestamp DEFAULT CURRENT_TIMESTAMP NULL,
+	"type" varchar(50) NOT NULL,
+	CONSTRAINT notifications_pkey PRIMARY KEY (id),
+	CONSTRAINT notifications_type_check CHECK (((type)::text = ANY (ARRAY[('abonnement'::character varying)::text, ('retrait'::character varying)::text, ('paiement'::character varying)::text, ('system'::character varying)::text, ('commande'::character varying)::text]))),
+	CONSTRAINT notifications_utilisateur_id_fkey FOREIGN KEY (utilisateur_id) REFERENCES public.utilisateur(id)
+);
+
+
+
+CREATE OR REPLACE FUNCTION public.add_new_notification(pid_user integer, ptitre character varying, pmessage text, ptype character varying)
+ RETURNS json
+ LANGUAGE plpgsql
+AS $function$
+DECLARE
+    v_id_notification INTEGER;
+    v_types_valides TEXT[] := ARRAY['abonnement', 'retrait', 'paiement', 'system', 'commande'];
+BEGIN
+    -- ========================================
+    -- VALIDATION DES PARAMÈTRES
+    -- ========================================
+    
+    IF pid_user IS NULL OR pid_user <= 0 THEN
+        RETURN json_build_object(
+            'success', false,
+            'code', 'INVALID_USER_ID',
+            'message', 'L''ID utilisateur doit être un entier positif valide',
+            'data', NULL
+        );
+    END IF;
+
+    IF ptitre IS NULL OR LENGTH(TRIM(ptitre)) = 0 THEN
+        RETURN json_build_object(
+            'success', false,
+            'code', 'INVALID_TITLE',
+            'message', 'Le titre de la notification est obligatoire',
+            'data', NULL
+        );
+    END IF;
+
+    IF pmessage IS NULL OR LENGTH(TRIM(pmessage)) = 0 THEN
+        RETURN json_build_object(
+            'success', false,
+            'code', 'INVALID_MESSAGE',
+            'message', 'Le message de la notification est obligatoire',
+            'data', NULL
+        );
+    END IF;
+
+    IF ptype IS NULL OR LENGTH(TRIM(ptype)) = 0 THEN
+        RETURN json_build_object(
+            'success', false,
+            'code', 'INVALID_TYPE',
+            'message', 'Le type de notification est obligatoire',
+            'data', NULL
+        );
+    END IF;
+
+    -- Vérifier que le type est valide
+    IF NOT (LOWER(TRIM(ptype)) = ANY(v_types_valides)) THEN
+        RETURN json_build_object(
+            'success', false,
+            'code', 'INVALID_TYPE_VALUE',
+            'message', 'Type invalide. Types autorisés: abonnement, retrait, paiement, system, commande',
+            'data', NULL
+        );
+    END IF;
+
+    -- Vérifier que l'utilisateur existe
+    IF NOT EXISTS (SELECT 1 FROM public.utilisateur WHERE id = pid_user) THEN
+        RETURN json_build_object(
+            'success', false,
+            'code', 'USER_NOT_FOUND',
+            'message', 'L''utilisateur avec l''ID ' || pid_user || ' n''existe pas',
+            'data', NULL
+        );
+    END IF;
+
+    -- ========================================
+    -- INSERTION DE LA NOTIFICATION
+    -- ========================================
+    
+    INSERT INTO public.notifications (
+        utilisateur_id,
+        titre,
+        message,
+        type,
+        lue,
+        date_creation
+    )
+    VALUES (
+        pid_user,
+        TRIM(ptitre),
+        TRIM(pmessage),
+        LOWER(TRIM(ptype)),
+        false,
+        NOW()
+    )
+    RETURNING id INTO v_id_notification;
+
+    -- ========================================
+    -- RETOUR DU RÉSULTAT
+    -- ========================================
+    
+    RETURN json_build_object(
+        'success', true,
+        'code', 'NOTIFICATION_CREATED',
+        'message', 'Notification créée avec succès',
+        'data', json_build_object(
+            'id', v_id_notification,
+            'utilisateur_id', pid_user,
+            'titre', TRIM(ptitre),
+            'type', LOWER(TRIM(ptype)),
+            'date_creation', NOW()
+        )
+    );
+
+EXCEPTION
+    WHEN OTHERS THEN
+        RETURN json_build_object(
+            'success', false,
+            'code', 'ERROR',
+            'message', 'Erreur lors de la création de la notification: ' || SQLERRM,
+            'data', json_build_object('sqlstate', SQLSTATE)
+        );
+END;
+$function$
+;
+
+COMMENT ON FUNCTION public.add_new_notification(int4, varchar, text, varchar) IS 'Crée une nouvelle notification pour un utilisateur.
+Paramètres:
+- pid_user: ID de l''utilisateur destinataire
+- ptitre: Titre de la notification (max 100 caractères)
+- pmessage: Message de la notification
+- ptype: Type de notification (abonnement, retrait, paiement, system, commande)
+
+La notification est créée avec lue=false par défaut.
+Retourne JSON avec success, code, message et data.';
+
+
+
+
