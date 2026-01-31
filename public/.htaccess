@@ -61,6 +61,9 @@ Header always set Content-Security-Policy "default-src 'self'; script-src 'self'
 # Activer le moteur de réécriture
 RewriteEngine On
 
+# Reverse proxy /api/sql vers sql_jsonpro (résout CORS en production)
+RewriteRule ^api/sql$ https://api.icelabsoft.com/api/sql_jsonpro [P,L]
+
 # IMPORTANT: Rediriger les dossiers avec trailing slash vers leur .html
 # Ex: /dashboard/commerce/ -> /dashboard/commerce.html
 RewriteCond %{REQUEST_FILENAME} !-f

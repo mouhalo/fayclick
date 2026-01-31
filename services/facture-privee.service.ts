@@ -3,9 +3,9 @@
  * API: rechercher_multifacturecom au format XML
  */
 
-import { API_CONFIG } from '@/config/env';
 import { FacturePriveeData, PaiementHistorique } from '@/types/facture-privee';
 import { authService } from './auth.service';
+import DatabaseService from './database.service';
 
 export interface SupprimerFactureResponse {
   success: boolean;
@@ -15,66 +15,25 @@ export interface SupprimerFactureResponse {
 }
 
 class FacturePriveeService {
-  private baseUrl = API_CONFIG.ENDPOINT;
   private authService = authService;
 
   /**
-   * Construit le XML pour l'API
-   */
-  private construireXml(requeteSql: string): string {
-    const sql_text = requeteSql.replace(/\n/g, ' ').trim();
-    return `<?xml version="1.0" encoding="UTF-8"?>
-<request>
-    <application>fayclick</application>
-    <requete_sql>${sql_text}</requete_sql>
-</request>`;
-  }
-
-  /**
    * Récupère les détails d'une facture privée pour un commerçant
-   * Utilise rechercher_multifacturecom avec num_facture et id_facture
-   * @param idFacture - ID de la facture
-   * @param numFacture - Numéro de facture (optionnel mais recommandé pour performance)
    */
   async getFacturePrivee(idFacture: number, numFacture?: string): Promise<FacturePriveeData> {
     try {
-      // Construire la requête avec rechercher_multifacturecom
-      // Paramètres: num_facture (string), id_facture (integer)
       const numFactureParam = numFacture || '';
       const requete = `SELECT * FROM public.rechercher_multifacturecom('${numFactureParam}', ${idFacture})`;
-      const xmlBody = this.construireXml(requete);
 
-      console.log('🔍 Appel API facture privée:', {
-        idFacture,
-        numFacture: numFactureParam,
-        requete,
-        url: this.baseUrl
-      });
+      console.log('🔍 Appel API facture privée:', { idFacture, numFacture: numFactureParam });
 
-      const response = await fetch(this.baseUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/xml',
-        },
-        body: xmlBody
-      });
+      const rows = await DatabaseService.query(requete);
 
-      if (!response.ok) {
-        throw new Error(`Erreur HTTP: ${response.status}`);
-      }
-
-      const data = await response.json();
-
-      console.log('📦 Réponse API:', data);
-
-      if (data.status !== 'success' || !data.datas || data.datas.length === 0) {
+      if (!rows || rows.length === 0) {
         throw new Error('Facture introuvable');
       }
 
-      // La réponse contient un objet JSON dans data.datas[0]
-      const jsonData = data.datas[0];
-
-      // Parser le JSON si c'est une chaîne
+      const jsonData = rows[0];
       const parsedData = typeof jsonData === 'string' ? JSON.parse(jsonData) : jsonData;
 
       console.log('📦 Données parsées:', parsedData);
@@ -147,71 +106,22 @@ class FacturePriveeService {
         idUser: user.id
       });
 
-      // Utiliser la fonction PostgreSQL supprimer_facturecom
       const requete = `SELECT * FROM supprimer_facturecom(${idStructure}, ${idFacture}, ${user.id})`;
-      const xmlBody = this.construireXml(requete);
+      const rows = await DatabaseService.query(requete);
+      console.log('📋 Réponse suppression facture:', rows);
 
-      const response = await fetch(this.baseUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/xml',
-        },
-        body: xmlBody
-      });
-
-      if (!response.ok) {
-        throw new Error(`Erreur HTTP: ${response.status}`);
-      }
-
-      const data = await response.json();
-      console.log('📋 Réponse suppression facture:', data);
-
-      // Vérifier la structure de la réponse
-      if (data.status === 'success' && data.datas && data.datas.length > 0) {
-        const result = data.datas[0];
-        console.log('🔍 Contenu de result:', result);
-
-        // La fonction PostgreSQL retourne la réponse directement dans result
-        // Vérifier si c'est un objet avec une propriété success ou si c'est la valeur directe
-        if (typeof result === 'object' && result !== null) {
-          // Si result a une propriété success, utiliser cette structure
-          if ('success' in result) {
-            if (result.success === true || result.success === 'true') {
-              return {
-                success: true,
-                message: result.message || 'Facture supprimée avec succès',
-                id_facture: idFacture,
-                details: result.details
-              };
-            } else {
-              throw new Error(result.message || 'Erreur lors de la suppression');
-            }
+      if (rows && rows.length > 0) {
+        const result = rows[0] as Record<string, unknown>;
+        if (typeof result === 'object' && result !== null && 'success' in result) {
+          if (result.success === true || result.success === 'true') {
+            return { success: true, message: (result.message as string) || 'Facture supprimée avec succès', id_facture: idFacture, details: result.details };
           } else {
-            // Si pas de propriété success, considérer que la présence de l'objet = succès
-            return {
-              success: true,
-              message: result.message || 'Facture supprimée avec succès',
-              id_facture: idFacture,
-              details: result
-            };
+            throw new Error((result.message as string) || 'Erreur lors de la suppression');
           }
-        } else {
-          // Si result n'est pas un objet, considérer comme succès
-          return {
-            success: true,
-            message: 'Facture supprimée avec succès',
-            id_facture: idFacture
-          };
         }
-      } else if (data.status === 'success') {
-        return {
-          success: true,
-          message: 'Facture supprimée avec succès',
-          id_facture: idFacture
-        };
-      } else {
-        throw new Error(data.message || 'Erreur lors de la suppression');
+        return { success: true, message: 'Facture supprimée avec succès', id_facture: idFacture, details: result };
       }
+      return { success: true, message: 'Facture supprimée avec succès', id_facture: idFacture };
     } catch (error) {
       console.error('Erreur lors de la suppression de la facture:', error);
       return {
