@@ -1,14 +1,18 @@
 /**
  * Configuration des URLs pour FayClick V2
- * Gestion centralisée des liens de factures, paiements et partage
+ * Gestion centralisée des liens de factures, produits, paiements et partage
  */
 
 /**
  * Obtient l'URL de base de l'application selon l'environnement
- * Utilise la variable d'environnement NEXT_PUBLIC_APP_BASE_URL ou fallback
+ * Côté client : utilise window.location.origin (détection automatique)
+ * Côté serveur (build) : fallback sur l'URL de production
  */
 export function getAppBaseUrl(): string {
-  return process.env.NEXT_PUBLIC_APP_BASE_URL || 'https://v2.fayclick.net';
+  if (typeof window !== 'undefined') {
+    return window.location.origin;
+  }
+  return 'https://v2.fayclick.net';
 }
 
 /**
@@ -93,7 +97,48 @@ export function formatPhoneForWhatsApp(phone: string): string {
  */
 export function isValidWhatsAppPhone(phone: string): boolean {
   const formatted = formatPhoneForWhatsApp(phone);
-  
+
   // Doit avoir au moins 8 caractères et commencer par des chiffres
   return formatted.length >= 8 && /^\d+$/.test(formatted);
+}
+
+// ============================================================
+// ONLINE SELLER - URLs produit public
+// ============================================================
+
+/**
+ * Génère l'URL publique d'un produit pour partage / QR code
+ * Format: https://v2.fayclick.net/produit?token=MTgzLTQy
+ *
+ * @param id_structure - ID de la structure (marchand)
+ * @param id_produit - ID du produit
+ * @returns URL publique du produit
+ */
+export function getProduitUrl(id_structure: number, id_produit: number): string {
+  const { encodeProduitParams } = require('./url-encoder');
+
+  const baseUrl = getAppBaseUrl();
+  const encodedToken = encodeProduitParams(id_structure, id_produit);
+
+  return `${baseUrl}/produit?token=${encodedToken}`;
+}
+
+/**
+ * Génère un lien WhatsApp pour partager un produit
+ * Ouvre wa.me sans destinataire (le marchand choisit à qui envoyer)
+ *
+ * @param id_structure - ID de la structure
+ * @param id_produit - ID du produit
+ * @param nomProduit - Nom du produit (pour le message)
+ * @returns URL WhatsApp avec message pré-rempli
+ */
+export function getWhatsAppProduitUrl(
+  id_structure: number,
+  id_produit: number,
+  nomProduit: string
+): string {
+  const produitUrl = getProduitUrl(id_structure, id_produit);
+  const message = `Découvrez ${nomProduit} sur FayClick !\n${produitUrl}`;
+
+  return `https://wa.me/?text=${encodeURIComponent(message)}`;
 }

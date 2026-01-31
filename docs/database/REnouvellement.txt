@@ -1,0 +1,186 @@
+Permettre l'activation au jour le jour est parfait pour les commerçants saisonniers et ceux avec des budgets serrés.
+Voici la fonction modifiée avec un nouveau paramètre p_nombre_jours :
+sql-- DROP FUNCTION public.renouveler_abonnement(int4, varchar, varchar, varchar, varchar, uuid, int4);
+
+CREATE OR REPLACE FUNCTION public.renouveler_abonnement(
+    p_id_structure integer, 
+    p_type_abonnement character varying,  -- 'JOURNALIER', 'MENSUEL', 'ANNUEL', etc.
+    p_methode character varying, 
+    p_ref_abonnement character varying DEFAULT NULL::character varying, 
+    p_numrecu character varying DEFAULT NULL::character varying, 
+    p_uuid_paiement uuid DEFAULT NULL::uuid,
+    p_nombre_jours integer DEFAULT NULL  -- Nouveau: nombre de jours (1, 3, 7, 30, etc.)
+)
+RETURNS json
+LANGUAGE plpgsql
+AS $function$
+DECLARE
+    v_dernier_abonnement RECORD;
+    v_date_debut DATE;
+    v_date_fin DATE;
+    v_type_effectif VARCHAR;
+    v_duree_jours INTEGER;
+BEGIN
+    -- Déterminer la durée en jours selon le type ou le paramètre explicite
+    IF p_nombre_jours IS NOT NULL AND p_nombre_jours > 0 THEN
+        -- Priorité au nombre de jours explicite
+        v_duree_jours := p_nombre_jours;
+        
+        -- Adapter le type d'abonnement selon la durée
+        v_type_effectif := CASE 
+            WHEN p_nombre_jours = 1 THEN 'JOURNALIER'
+            WHEN p_nombre_jours <= 7 THEN 'HEBDOMADAIRE'
+            WHEN p_nombre_jours <= 31 THEN 'MENSUEL'
+            WHEN p_nombre_jours <= 93 THEN 'TRIMESTRIEL'
+            WHEN p_nombre_jours <= 186 THEN 'SEMESTRIEL'
+            ELSE 'ANNUEL'
+        END;
+    ELSE
+        -- Utiliser le type d'abonnement classique
+        v_type_effectif := UPPER(p_type_abonnement);
+        v_duree_jours := CASE v_type_effectif
+            WHEN 'JOURNALIER' THEN 1
+            WHEN 'HEBDOMADAIRE' THEN 7
+            WHEN 'MENSUEL' THEN 30
+            WHEN 'TRIMESTRIEL' THEN 90
+            WHEN 'SEMESTRIEL' THEN 180
+            WHEN 'ANNUEL' THEN 365
+            ELSE 30  -- Par défaut mensuel
+        END;
+    END IF;
+
+    -- Validation: minimum 1 jour
+    IF v_duree_jours < 1 THEN
+        RETURN json_build_object(
+            'success', FALSE,
+            'error', 'La durée minimale est de 1 jour',
+            'code', 'DUREE_INVALIDE'
+        );
+    END IF;
+
+    -- Récupérer le dernier abonnement (actif ou expiré)
+    SELECT date_fin
+    INTO v_dernier_abonnement
+    FROM public.abonnements
+    WHERE id_structure = p_id_structure
+    ORDER BY date_fin DESC
+    LIMIT 1;
+
+    -- Déterminer la date de début
+    IF FOUND AND v_dernier_abonnement.date_fin >= CURRENT_DATE THEN
+        -- Abonnement encore actif: commencer le jour suivant la fin
+        v_date_debut := v_dernier_abonnement.date_fin + 1;
+    ELSE
+        -- Pas d'abonnement ou expiré: commencer aujourd'hui
+        v_date_debut := CURRENT_DATE;
+    END IF;
+
+    -- Calculer la date de fin
+    v_date_fin := v_date_debut + v_duree_jours - 1;
+
+    -- Créer le nouvel abonnement avec les dates calculées
+    RETURN add_abonnement_structure_avec_dates(
+        p_id_structure,
+        v_type_effectif,
+        p_methode,
+        v_date_debut,
+        v_date_fin,
+        v_duree_jours,
+        p_ref_abonnement,
+        p_numrecu,
+        p_uuid_paiement
+    );
+END;
+$function$;
+
+COMMENT ON FUNCTION public.renouveler_abonnement IS 
+'Renouvelle ou crée un abonnement. 
+Tarification: 100 FCFA/jour.
+- p_nombre_jours: permet de spécifier une durée exacte (1 jour, 3 jours, etc.)
+- Si p_nombre_jours est NULL, utilise le type d''abonnement classique';
+Et la fonction helper associée :
+sqlCREATE OR REPLACE FUNCTION public.add_abonnement_structure_avec_dates(
+    p_id_structure integer,
+    p_type_abonnement character varying,
+    p_methode character varying,
+    p_date_debut date,
+    p_date_fin date,
+    p_nombre_jours integer,
+    p_ref_abonnement character varying DEFAULT NULL,
+    p_numrecu character varying DEFAULT NULL,
+    p_uuid_paiement uuid DEFAULT NULL
+)
+RETURNS json
+LANGUAGE plpgsql
+AS $function$
+DECLARE
+    v_montant NUMERIC;
+    v_id_abonnement INTEGER;
+    v_tarif_jour NUMERIC := 100;  -- 100 FCFA par jour
+BEGIN
+    -- Calculer le montant basé sur le nombre de jours
+    v_montant := p_nombre_jours * v_tarif_jour;
+
+    -- Insérer le nouvel abonnement
+    INSERT INTO public.abonnements (
+        id_structure,
+        type_abonnement,
+        date_debut,
+        date_fin,
+        nombre_jours,
+        montant,
+        methode_paiement,
+        ref_abonnement,
+        numrecu,
+        uuid_paiement,
+        statut,
+        created_at
+    ) VALUES (
+        p_id_structure,
+        p_type_abonnement,
+        p_date_debut,
+        p_date_fin,
+        p_nombre_jours,
+        v_montant,
+        p_methode,
+        p_ref_abonnement,
+        p_numrecu,
+        p_uuid_paiement,
+        'ACTIF',
+        NOW()
+    )
+    RETURNING id INTO v_id_abonnement;
+
+    RETURN json_build_object(
+        'success', TRUE,
+        'id_abonnement', v_id_abonnement,
+        'date_debut', p_date_debut,
+        'date_fin', p_date_fin,
+        'nombre_jours', p_nombre_jours,
+        'montant', v_montant,
+        'type_abonnement', p_type_abonnement,
+        'message', format('Abonnement de %s jour(s) activé du %s au %s pour %s FCFA', 
+                         p_nombre_jours, p_date_debut, p_date_fin, v_montant)
+    );
+
+EXCEPTION WHEN OTHERS THEN
+    RETURN json_build_object(
+        'success', FALSE,
+        'error', SQLERRM,
+        'code', SQLSTATE
+    );
+END;
+$function$;
+Exemples d'utilisation
+sql-- 1 jour à 100 FCFA (commerçant occasionnel)
+SELECT renouveler_abonnement(123, 'JOURNALIER', 'ORANGE_MONEY', 'REF001', NULL, NULL, 1);
+
+-- 3 jours à 300 FCFA (week-end prolongé)
+SELECT renouveler_abonnement(123, 'CUSTOM', 'WAVE', 'REF002', NULL, NULL, 3);
+
+-- 7 jours à 700 FCFA (semaine)
+SELECT renouveler_abonnement(123, 'HEBDO', 'FREE_MONEY', 'REF003', NULL, NULL, 7);
+
+-- 30 jours classique (mensuel)
+SELECT renouveler_abonnement(123, 'MENSUEL', 'WAVE');
+Cette approche flexible permet aux commerçants saisonniers de payer exactement pour ce dont ils ont besoin 

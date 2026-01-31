@@ -21,7 +21,15 @@
       "Bash(cat:*)",
       "Bash(tee:*)",
       "Bash(xargs cat:*)",
-      "Bash(powershell:*)"
+      "Bash(powershell:*)",
+      "Bash(npx tsc:*)",
+      "Bash(curl -s -X POST http://localhost:3000/api/sql -H \"Content-Type: application/json\" -d '{\"\"application\"\":\"\"fayclick\"\",\"\"query\"\":\"\"SELECT * FROM check_user_credentials\\(''''admin@tech24.fay''''::varchar, ''''777301221@''''::varchar\\);\"\"}')",
+      "Bash(python3:*)",
+      "Bash(curl:*)",
+      "Bash(node:*)",
+      "mcp__chrome-devtools__fill_form",
+      "mcp__chrome-devtools__wait_for",
+      "mcp__chrome-devtools__evaluate_script"
     ],
     "deny": [],
     "ask": []

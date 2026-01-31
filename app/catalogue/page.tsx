@@ -1,7 +1,7 @@
 /**
  * Page publique du catalogue de produits
- * Route : /catalogue?structure=SYLVIACOM
- * Utilise query params comme /facture pour compatibilité output: export
+ * Route : /catalogue?id=183  (par ID structure - recommandé)
+ *         /catalogue?structure=SYLVIACOM  (par nom - legacy)
  */
 
 'use client';
@@ -13,19 +13,26 @@ import CataloguePublicClient from '@/components/catalogue/CataloguePublicClient'
 
 function CatalogueContent() {
   const searchParams = useSearchParams();
-  const nomstructure = searchParams.get('structure');
+  const idStructure = searchParams.get('id');
+  const nomStructure = searchParams.get('structure');
 
-  // Validation du paramètre
-  if (!nomstructure || nomstructure.length < 2) {
-    notFound();
+  // Priorité à l'ID, sinon fallback sur le nom (legacy)
+  if (idStructure) {
+    const id = parseInt(idStructure, 10);
+    if (isNaN(id) || id <= 0) {
+      notFound();
+    }
+    return <CataloguePublicClient idStructure={id} />;
   }
 
-  // Validation format : alphanumeric + underscore seulement
-  if (!/^[A-Z0-9_]+$/i.test(nomstructure)) {
-    notFound();
+  if (nomStructure && nomStructure.length >= 2) {
+    if (!/^[A-Z0-9_ ]+$/i.test(nomStructure)) {
+      notFound();
+    }
+    return <CataloguePublicClient nomStructure={nomStructure} />;
   }
 
-  return <CataloguePublicClient nomStructure={nomstructure} />;
+  notFound();
 }
 
 export default function CataloguePage() {

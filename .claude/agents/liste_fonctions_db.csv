@@ -1,0 +1,213 @@
+﻿fonctions;parametres;type retour
+add_abonnement_gratuit_initial;p_id_structure integer, p_periode character varying DEFAULT 'WEEK'::character varying;json
+add_abonnement_structure;p_id_structure integer, p_type_abonnement character varying, p_methode character varying, p_date_debut date DEFAULT CURRENT_DATE, p_ref_abonnement character varying DEFAULT NULL::character varying, p_numrecu character varying DEFAULT NULL::character varying, p_uuid_paiement uuid DEFAULT NULL::uuid, p_forcer_remplacement boolean DEFAULT false;json
+add_acompte_facture;pid_structure integer, pid_facture integer, pmontant_acompte numeric, ptransactionid character varying DEFAULT ''::character varying, puuid character varying DEFAULT 'face2face'::character varying, pmode_paiement character varying DEFAULT 'CASH'::character varying, ptel_client character varying DEFAULT '771234567'::character varying;json
+add_acompte_facture1;pid_structure integer, pid_facture integer, pmontant_acompte numeric, ptransactionid character varying DEFAULT ''::character varying, puuid character varying DEFAULT 'face2face'::character varying, pmode_paiement character varying DEFAULT 'CASH'::character varying, ptel_client character varying DEFAULT '771234567'::character varying;json
+add_check_demande;plogin character varying, ptelephone character varying, ppassword_temp character varying;json
+add_demande_password;plogin character varying, ptelephone character varying;json
+add_droits_profils;pid_structure integer;void
+add_edit_client;pid_structure integer, pnomclient character varying, ptelclient character varying, padresse character varying DEFAULT 'senegal'::character varying, pid_client integer DEFAULT 0;TABLE(result_id_client integer, result_nom_client character varying, result_tel_client character varying, result_adresse character varying, result_date_creation date, result_date_modification date, result_id_structure integer, result_action_effectuee character varying, result_factures_mises_a_jour integer)
+add_edit_depense;pid_structure integer, pdate date, pid_type integer, pmontant numeric, pdescription character varying, pid_depense integer DEFAULT 0;TABLE(result_id_depense integer, result_id_structure integer, result_date_depense date, result_id_type_depense integer, result_nom_type_depense character varying, result_montant numeric, result_description character varying, result_tms_update timestamp without time zone, result_action_effectuee character varying)
+add_edit_eleve;p_id_structure integer, p_nom_prenom character varying, p_telephone character varying, p_nom_classe character varying, p_photo_url character varying DEFAULT '/images/photos/logo-etudiant.png'::character varying, p_id_etudiant integer DEFAULT 0;TABLE(nid_etudiant integer, snom_classe character varying, stelephone character varying, snom_prenom character varying, sphoto_url character varying, bactif boolean, nid_structure integer)
+add_edit_etab;p_id_etablissement integer, p_nometab character varying, p_adresse character varying, p_telmobile character varying, p_numautorisatioon character varying, p_nummarchand character varying, p_email character varying, p_actif boolean, p_logo text;void
+add_edit_inscription;p_id_type integer, p_nom_structure character varying, p_adresse character varying, p_mobile_om character varying, p_mobile_wave character varying DEFAULT ''::character varying, p_numautorisatioon character varying DEFAULT ''::character varying, p_nummarchand character varying DEFAULT ''::character varying, p_email character varying DEFAULT ''::character varying, p_logo character varying DEFAULT ''::character varying, p_nom_service character varying DEFAULT 'SERVICES'::character varying, p_code_promo character varying DEFAULT 'FAYCLICK'::character varying, p_id_structure integer DEFAULT 0;character varying
+add_edit_partenaire;p_nom character varying, p_telephone character varying, p_email character varying DEFAULT ''::character varying, p_adresse character varying DEFAULT 'Sénégal'::character varying, p_code_promo character varying DEFAULT NULL::character varying, p_commission_pct numeric DEFAULT 0, p_valide_jusqua date DEFAULT ((CURRENT_DATE + '1 year'::interval))::date, p_id_partenaire integer DEFAULT 0;json
+add_edit_photo;p_id_structure integer, p_id_produit integer, p_url_photo character varying, p_id_photo integer DEFAULT NULL::integer;json
+add_edit_produit;p_id_structure integer, p_nom_produit character varying, p_cout_revient numeric, p_prix_vente numeric, p_est_service boolean DEFAULT false, p_nom_categorie character varying DEFAULT 'produit_service'::character varying, p_description character varying DEFAULT 'RAS'::character varying, p_presente_au_public boolean DEFAULT false, p_id_produit integer DEFAULT 0, pcode_barre character varying DEFAULT ''::character varying;TABLE(result_id_produit integer, result_id_structure integer, result_nom_produit character varying, result_cout_revient numeric, result_prix_vente numeric, result_est_service boolean, result_nom_categorie character varying, result_description character varying, result_code_barre character varying, result_action_effectuee character varying)
+add_edit_service;p_id_structure integer, p_nom_service character varying, p_prix_vente numeric, p_nom_categorie character varying DEFAULT 'service'::character varying, p_description character varying DEFAULT 'RAS'::character varying, p_presente_au_public boolean DEFAULT false, p_id_produit integer DEFAULT 0, pcode_barre character varying DEFAULT ''::character varying;TABLE(result_id_produit integer, result_id_structure integer, result_nom_service character varying, result_prix_vente numeric, result_nom_categorie character varying, result_description character varying, result_code_barre character varying, result_presente_au_public boolean, result_action_effectuee character varying)
+add_edit_structure;p_id_type integer, p_nom_structure character varying, p_adresse character varying, p_mobile_om character varying, p_mobile_wave character varying DEFAULT ''::character varying, p_numautorisatioon character varying DEFAULT ''::character varying, p_nummarchand character varying DEFAULT ''::character varying, p_email character varying DEFAULT ''::character varying, p_logo character varying DEFAULT ''::character varying, p_id_structure integer DEFAULT 0;character varying
+add_edit_type_depense;pid_structure integer, pnom_type character varying, pid_type_depense integer DEFAULT 0;TABLE(result_id_type_depense integer, result_id_structure integer, result_nom_type character varying, result_action_effectuee character varying, result_nb_depenses_associees integer)
+add_edit_utilisateur;pid_structure integer, pid_profil integer, pusername character varying, pteluser character varying, pid_user integer DEFAULT 0;json
+add_importdata;pid_structure integer, pnom_produit character varying, pnom_client character varying, ptel character varying, pmontant numeric;integer
+add_in_journal;pid_demande integer, ptransactionid character varying;integer
+add_mouvement_stock;p_id_produit integer, p_id_structure integer, p_type_mouvement character varying, p_quantite numeric, p_description text DEFAULT NULL::text, p_created_by integer DEFAULT NULL::integer;json
+add_multiproduit;p_id_structure integer, p_all_produits text;json
+add_new_demande;ptype_operation character varying, pnom_app character varying, pnom_structure character varying, p_num_facture character varying, p_telmobile character varying, pmontant double precision, pfrais real, pavec_infosms boolean, pautres_facture character varying DEFAULT ''::character varying, pmodeversement character varying DEFAULT ''::character varying, pid_compte integer DEFAULT '-1'::integer;integer
+add_new_devis_complet;p_date_devis date, p_id_structure integer, p_tel_client character varying, p_nom_client_payeur character varying, p_adresse_client character varying, p_montant numeric, p_articles_string text, p_lignes_equipements jsonb DEFAULT NULL::jsonb, p_id_utilisateur integer DEFAULT 0;json
+add_new_facture;p_date_facture timestamp without time zone, p_id_structure integer, p_tel_client character varying, p_nom_client_payeur character varying, p_montant numeric, p_description character varying, p_mt_remise numeric DEFAULT 0, p_mt_acompte numeric DEFAULT 0, p_avec_frais boolean DEFAULT true;integer
+add_new_facture_ticket;p_id_structure integer, p_tel_client character varying, p_nom_client_payeur character varying, p_montant numeric, p_avec_frais boolean DEFAULT true;character varying
+add_new_notification;pid_user integer, ptitre character varying, pmessage text, ptype character varying;json
+add_new_recupaiement;p_id_facture integer, p_id_structure integer, p_numero_recu character varying, p_methode_paiement character varying, p_montant_paye numeric, p_reference_transaction character varying, p_numero_telephone character varying DEFAULT NULL::character varying, p_date_paiement timestamp without time zone DEFAULT now();json
+add_paiement;;trigger
+add_retrait_marchand;pid_structure integer, ptransactionid character varying, p_numtelclient character varying, p_montant numeric, pmode_paiement character varying DEFAULT 'WAVE'::character varying, p_id_compte integer DEFAULT 0;TABLE(versement_id integer, message character varying)
+add_send_sms;pclient character varying, ptel character varying, pmessage character varying, pdata_origin character varying;integer
+add_versement_bank;p_nom_app character varying, p_nom_structure character varying, p_numfacture character varying, p_numtelclient character varying, p_montant numeric, p_frais numeric, p_avec_infosms boolean, p_others_num_facture character varying, p_mode_versement character varying, p_id_compte integer;TABLE(versement_id integer, message character varying)
+add_versement_wallet;pid_structure integer, ptransactionid character varying, p_numtelclient character varying, p_montant numeric, p_frais numeric, p_avec_infosms boolean, p_id_compte integer;TABLE(versement_id integer, message character varying)
+ajouter_demande_ticket;pnom_app character varying, pid_structure integer, p_telmobile character varying, pmontant numeric, pfrais real;character varying
+armor;bytea;text
+armor;bytea, text[], text[];text
+block_deblock_user;pid_utilisateur integer, paction boolean;character varying
+calcul_devis_frais;pid_structure integer;TABLE(nom_classe character varying, nombre_factures bigint, total_montant numeric, total_tarif_applique numeric)
+calculer_montant_abonnement;p_type_abonnement character varying, p_date_debut date DEFAULT CURRENT_DATE;numeric
+change_user_password;pid_utilisateur integer, pold_password character varying, pnew_password character varying;boolean
+check_one_client;pid_structure integer, ptel_or_name character varying;json
+check_otp_sms;pid_structure integer, pnom_agent character varying, pcode_otp character varying;character varying
+check_update_numrecu;;trigger
+check_user_credentials;p_login character varying, p_pwd character varying, p_session_id character varying DEFAULT NULL::character varying;TABLE(id integer, username character varying, nom_groupe character varying, id_structure integer, nom_structure character varying, pwd_changed boolean, actif boolean, type_structure character varying, logo text, login character varying, telephone character varying, nom_profil character varying, id_groupe integer, id_profil integer, date_limite_abonnement date, etat_abonnement character varying, abonnement_valide boolean, jours_restants_abonnement integer)
+check_user_credentials0;p_login character varying, p_pwd character varying, p_session_id character varying DEFAULT NULL::character varying;TABLE(id integer, username character varying, nom_groupe character varying, id_structure integer, nom_structure character varying, pwd_changed boolean, actif boolean, type_structure character varying, logo text, login character varying, pwd character varying, telephone character varying, nom_profil character varying, id_groupe integer, id_profil integer)
+check_user_credentials000;p_login character varying, p_pwd character varying, p_session_id character varying DEFAULT NULL::character varying;TABLE(id integer, username character varying, nom_groupe character varying, id_structure integer, nom_structure character varying, pwd_changed boolean, actif boolean, type_structure character varying, logo text, login character varying, telephone character varying, nom_profil character varying, id_groupe integer, id_profil integer, date_limite_abonnement date, etat_abonnement character varying, abonnement_valide boolean, jours_restants_abonnement integer)
+clean_expired_demandes;;json
+clean_old_numrecu_operations;;integer
+create_admin_user;;trigger
+create_facture_complete;p_date_facture date, p_id_structure integer, p_tel_client character varying, p_nom_client_payeur character varying, p_montant numeric, p_description text, p_articles_string text, p_mt_remise numeric DEFAULT 0, p_mt_acompte numeric DEFAULT 0, p_avec_frais boolean DEFAULT false;TABLE(id_facture integer, success boolean, message text, details_ids integer[], nb_details integer)
+create_facture_complete1;p_date_facture date, p_id_structure integer, p_tel_client character varying, p_nom_client_payeur character varying, p_montant numeric, p_description text, p_articles_string text, p_mt_remise numeric DEFAULT 0, p_mt_acompte numeric DEFAULT 0, p_avec_frais boolean DEFAULT false, p_est_devis boolean DEFAULT false, p_id_utilisateur integer DEFAULT 0;TABLE(id_facture integer, success boolean, message text, details_ids integer[], nb_details integer)
+create_facture_complete1;p_date_facture date, p_id_structure integer, p_tel_client character varying, p_nom_client_payeur character varying, p_montant numeric, p_description character varying, p_articles_string text, p_mt_remise numeric DEFAULT 0, p_mt_acompte numeric DEFAULT 0, p_avec_frais boolean DEFAULT false, p_est_devis boolean DEFAULT false, p_id_utilisateur integer DEFAULT 0;TABLE(id_facture integer, success boolean, message text, detail_ids integer[], detail_count integer)
+create_grille_tarif_for_existing_structures;p_code_promo character varying DEFAULT NULL::character varying;json
+create_priority_products_for_structure;p_id_structure integer;integer
+create_products_for_structure;p_id_structure integer, p_nom_structure character varying;integer
+create_user_for_partenaire;p_id_partenaire integer;json
+creer_code;p_type character, p_longueur integer;character varying
+crypt;text, text;text
+ctrl_utilisateur_fn;;trigger
+date_dist;date, date;integer
+del_detail_facture_com;p_id_facture integer, p_id_detail integer;json
+del_my_devis;pid_devis integer;json
+del_produit_photo;p_id_photo integer, p_id_structure integer;json
+delete_caissier;p_id_user integer;json
+delete_depense;pid_structure integer, pid_depense integer;json
+delete_my_notifications;pid_utilisateur integer, pid_notification integer DEFAULT 0;jsonb
+delete_product_embedding;p_id_produit integer, p_id_structure integer;jsonb
+delete_role;p_nom_role character varying;boolean
+delete_type_depense;pid_structure integer, pid_type_depense integer;json
+detail_facture_stock_trigger;;trigger
+digest;text, text;bytea
+digest;bytea, text;bytea
+edit_read_notification;pid_notification integer;jsonb
+encrypt;bytea, bytea, text;bytea
+expirer_abonnements;;json
+force_uppercase_fonctionnalite;;trigger
+force_uppercase_profil;;trigger
+force_uppercase_profil_droits;;trigger
+force_uppercase_type_depense;;trigger
+gen_random_bytes;integer;bytea
+gen_random_uuid;;uuid
+gen_salt;text;text
+gen_salt;text, integer;text
+generate_invoices_for_single_structure;p_id_structure integer, p_nb_factures integer DEFAULT 10, p_date_debut date DEFAULT ((CURRENT_DATE - '1 mon'::interval))::date, p_date_fin date DEFAULT CURRENT_DATE;json
+generate_random_invoices_for_structures;p_code_promo character varying DEFAULT 'FAYTEST26'::character varying, p_nb_factures_min integer DEFAULT 5, p_nb_factures_max integer DEFAULT 20, p_nb_articles_min integer DEFAULT 1, p_nb_articles_max integer DEFAULT 8, p_date_debut date DEFAULT ((CURRENT_DATE - '3 mons'::interval))::date, p_date_fin date DEFAULT CURRENT_DATE;json
+generate_ranked_invoices;p_code_promo character varying DEFAULT 'SIMULA26'::character varying, p_date_debut date DEFAULT '2025-01-01'::date, p_date_fin date DEFAULT '2025-12-31'::date;json
+generate_ranked_invoices_v2;p_code_promo character varying DEFAULT 'SIMULA26'::character varying, p_date_debut date DEFAULT '2025-01-01'::date, p_date_fin date DEFAULT '2025-12-31'::date;json
+generer_factures;pnombre_mois integer DEFAULT 1;integer
+generer_matricule_etudiant;;trigger
+gere_stock;pid_structure integer, pid_produit integer, ptypemouv character varying, pqte real, pprix real, pdesc text DEFAULT ''::text;integer
+get_admin_all_utilisateurs;p_limit integer DEFAULT 20, p_offset integer DEFAULT 0, p_search character varying DEFAULT NULL::character varying, p_id_structure integer DEFAULT NULL::integer, p_id_groupe integer DEFAULT NULL::integer, p_id_profil integer DEFAULT NULL::integer, p_actif boolean DEFAULT NULL::boolean, p_order_by character varying DEFAULT 'createdat'::character varying, p_order_dir character varying DEFAULT 'DESC'::character varying;json
+get_admin_detail_structure;p_id_structure integer;json
+get_admin_detail_utilisateur;p_id_utilisateur integer;json
+get_admin_list_abonnements;p_limit integer DEFAULT 20, p_offset integer DEFAULT 0, p_statut character varying DEFAULT NULL::character varying, p_type character varying DEFAULT NULL::character varying, p_date_debut date DEFAULT NULL::date, p_date_fin date DEFAULT NULL::date;json
+get_admin_list_partenaires;p_limit integer DEFAULT 20, p_offset integer DEFAULT 0, p_search character varying DEFAULT NULL::character varying, p_actif boolean DEFAULT NULL::boolean;json
+get_admin_list_structures;p_limit integer DEFAULT 20, p_offset integer DEFAULT 0, p_search character varying DEFAULT NULL::character varying, p_type_structure character varying DEFAULT NULL::character varying, p_statut_abonnement character varying DEFAULT NULL::character varying;json
+get_admin_produits_vendus_details;p_limit integer DEFAULT 50, p_offset integer DEFAULT 0, p_annee integer DEFAULT (date_part('year'::text, CURRENT_DATE))::integer, p_mois integer DEFAULT NULL::integer, p_id_structure integer DEFAULT NULL::integer, p_categorie character varying DEFAULT NULL::character varying, p_search character varying DEFAULT NULL::character varying, p_order_by character varying DEFAULT 'quantite'::character varying, p_order_dir character varying DEFAULT 'DESC'::character varying;json
+get_admin_reference_data;;json
+get_admin_stats_codes_promo;p_annee integer DEFAULT (date_part('year'::text, CURRENT_DATE))::integer, p_mois integer DEFAULT NULL::integer;json
+get_admin_stats_global;;json
+get_admin_stats_produits_vendus;p_annee integer DEFAULT (date_part('year'::text, CURRENT_DATE))::integer, p_mois integer DEFAULT NULL::integer, p_id_structure integer DEFAULT NULL::integer, p_categorie character varying DEFAULT NULL::character varying, p_limit_top integer DEFAULT 20;json
+get_admin_stats_produits_vendus_old;p_annee integer DEFAULT (date_part('year'::text, CURRENT_DATE))::integer, p_mois integer DEFAULT NULL::integer, p_id_structure integer DEFAULT NULL::integer, p_categorie character varying DEFAULT NULL::character varying, p_limit_top integer DEFAULT 20;json
+get_admin_stats_ventes;p_annee integer DEFAULT (date_part('year'::text, CURRENT_DATE))::integer, p_mois integer DEFAULT NULL::integer, p_id_structure integer DEFAULT NULL::integer;json
+get_all_produits_publics;;json
+get_auth_logs_summary;p_hours integer DEFAULT 24, p_login character varying DEFAULT NULL::character varying;TABLE(period character varying, total_attempts bigint, successful_attempts bigint, failed_attempts bigint, success_rate numeric, unique_logins bigint)
+get_client_facture_details;pid_structure integer, pid_facture integer DEFAULT 0, pid_client integer DEFAULT 0;json
+get_compte_depot;pid_structure integer, pnom_prenom character varying, pnum_tel character varying;TABLE(compte_id integer, compte_id_structure integer, compte_nom_prenom character varying, compte_num_wallet character varying, compte_operation character varying)
+get_dashboard;p_id_structure integer;json
+get_demandes_caurix;pattempts integer, plimit integer;TABLE(id_demande integer, nom_app character varying, num_facture character varying, montant real, frais real, telmobile character varying, ref_destinate character varying, others_num_facture character varying, avec_info_sms boolean, est_cashin boolean, nb_tentatives integer, code_demande character varying)
+get_etat_facture;pnumfacture character varying;json
+get_etat_global;pid_structure integer, pannee integer DEFAULT (date_part('year'::text, CURRENT_DATE))::integer;json
+get_etat_stock;pid_structure integer;TABLE(id_produit integer, nom_produit character varying, cout_revient numeric, prix_vente numeric, nom_categorie character varying, qte_entree_stock numeric, qte_sortie_stock numeric, qte_vendue numeric, stock_theorique numeric, ecart numeric)
+get_grille_structure;p_id_structure integer;json
+get_historic_recu;p_id_structure integer, p_date_debut date DEFAULT NULL::date, p_date_fin date DEFAULT NULL::date, p_limit integer DEFAULT 50;json
+get_historique_paiement_facture;p_id_facture integer;TABLE(id_historique integer, montant_recu numeric, nouveau_reliquat numeric, date_paiement timestamp with time zone)
+get_inventaire;pid_structure integer, pannee integer DEFAULT (date_part('year'::text, CURRENT_DATE))::integer, pperiode character varying DEFAULT 'semaine'::character varying;json
+get_inventaire_periodique;pid_structure integer, pannee integer DEFAULT 0, pmois integer DEFAULT 0, psemaine integer DEFAULT 0, pjour integer DEFAULT 0;json
+get_journal_structure;pid_structure integer, pdate_debut date DEFAULT NULL::date, pdate_fin date DEFAULT NULL::date, pperiode character varying DEFAULT 'jour'::character varying;json
+get_journal_structure_resume_mensuel;pid_structure integer, pannee integer DEFAULT NULL::integer;json
+get_journal_structure_simple;pid_structure integer, pdate_debut date DEFAULT NULL::date, pdate_fin date DEFAULT NULL::date, pperiode character varying DEFAULT 'jour'::character varying;json
+get_list_clients;pid_structure integer, ptelephone_client character varying DEFAULT ''::character varying;json
+get_list_depenses;pid_structure integer, pannee integer DEFAULT (date_part('year'::text, CURRENT_DATE))::integer, pperiode character varying DEFAULT 'annee'::character varying;json
+get_list_utilisateurs;pid_structure integer;json
+get_mes_droits;pid_structure integer, pid_profil integer;json
+get_mes_produits;p_id_structure integer, p_id_produit integer DEFAULT NULL::integer;json
+get_mes_services;p_id_structure integer, p_id_produit integer DEFAULT NULL::integer;json
+get_montant_net;p_id_structure integer, p_montant numeric, p_wallet character varying DEFAULT 'OM'::character varying;numeric
+get_montant_ttc;p_id_structure integer, p_montant numeric, p_wallet character varying DEFAULT 'OM'::character varying;numeric
+get_my_devis;pid_structure integer, pannee integer, pmois integer DEFAULT 0, pid_devis integer DEFAULT 0;json
+get_my_factures;pid_structure integer, pid_facture integer DEFAULT 0;json
+get_my_factures1;pid_structure integer, pannee integer, pmois integer DEFAULT 0, pid_facture integer DEFAULT 0;json
+get_my_notifications;pid_utilisateur integer, p_limit integer DEFAULT 50, p_offset integer DEFAULT 0, p_only_unread boolean DEFAULT false;jsonb
+get_one_payement;pnom_structure character varying, pnumfacture character varying;TABLE(id_facture integer, num_facture character varying, id_structure integer, nom_structure character varying, date_facture date, nannee integer, nmois integer, description character varying, nom_classe character varying, tel_client character varying, nom_client character varying, montant numeric, id_etat integer, libelle_etat character varying, numrecu character varying, logo text, tms_update character varying, avec_frais boolean, periode text)
+get_partenaire_by_user;p_id_utilisateur integer;json
+get_partenaire_detail_structure;p_id_partenaire integer, p_id_structure integer;json
+get_partenaire_stats;p_id_partenaire integer;json
+get_partenaire_stats_ventes;p_id_partenaire integer, p_annee integer DEFAULT (date_part('year'::text, CURRENT_DATE))::integer, p_mois integer DEFAULT NULL::integer, p_limit_top integer DEFAULT 10;json
+get_partenaire_structures;p_id_partenaire integer, p_limit integer DEFAULT 20, p_offset integer DEFAULT 0, p_search character varying DEFAULT NULL::character varying, p_type_structure character varying DEFAULT NULL::character varying, p_statut_abonnement character varying DEFAULT NULL::character varying;json
+get_product_embeddings;p_id_structure integer, p_limit integer DEFAULT 1000;jsonb
+get_produits_by_structure_name;p_nom_structure character varying;json
+get_real_montant;p_id_structure integer, p_montant numeric, p_wallet character varying DEFAULT 'OM'::character varying;json
+get_soldes_wallet_structure;p_id_structure integer;json
+get_superadmin_dashboard;p_admin_id integer DEFAULT NULL::integer;jsonb
+get_tarif_montant;pid_structure integer, pmontant numeric;numeric
+get_types_depense_structure;pid_structure integer;TABLE(id_type_depense integer, nom_type character varying, nb_depenses_associees integer)
+get_une_structure;pid_structure integer;json
+get_wallet_structure;p_id_structure integer;json
+historique_abonnements_structure;p_id_structure integer, p_limite integer DEFAULT 10;json
+log_auth_step;p_function_name character varying, p_step_name character varying, p_login character varying, p_message text, p_level character varying DEFAULT 'INFO'::character varying, p_session_id character varying DEFAULT NULL::character varying, p_success boolean DEFAULT NULL::boolean;void
+log_user_action;p_id_user integer, p_action_type action_type, p_ip_address character varying, p_user_agent text, p_table_name character varying, p_old_data jsonb, p_new_data jsonb, p_description text, p_session_id character varying;void
+log_user_login;p_id_user integer, p_ip_address character varying, p_user_agent text, p_session_id character varying, p_success boolean DEFAULT true;void
+maj_all_factures;pid_structure integer, puuid uuid, pall_factures text, ptransactionid text, pmontant numeric, pupdate_time timestamp without time zone, pnom_table text DEFAULT 'facture'::text, pest_cashin boolean DEFAULT false;json
+maj_detail_facture_com;p_id_facture integer, p_id_detail integer, p_quantite numeric, p_prix numeric;json
+maj_devis;p_date_devis date, p_id_structure integer, p_tel_client character varying, p_nom_client_payeur character varying, p_adresse_client character varying, p_montant numeric, p_services_string text, p_lignes_equipements jsonb DEFAULT NULL::jsonb, p_id_utilisateur integer DEFAULT 0, pid_devis integer DEFAULT 0;json
+maj_payment_status;p_id_demande integer;void
+maj_published_product;p_id_produit integer, p_id_structure integer, p_presente_au_public boolean;json
+maj_reclamation_factures;preference_structure text, puuid uuid, pall_factures text, ptransactionid text, pmontant numeric, pupdate_time timestamp without time zone, pnom_table text DEFAULT 'facture'::text, pest_cashin boolean DEFAULT false;json
+maj_une_facture;pref_facture character varying, ptransactionid character varying, pcreatedat timestamp with time zone, pmontant numeric, ptable character varying DEFAULT 'facture'::character varying;json
+maj_une_facture;pref_facture character varying, ptransactionid character varying, pcreatedat timestamp with time zone, ptable character varying DEFAULT 'facture'::character varying;json
+manage_db_user;;trigger
+manage_role;;trigger
+manage_structure_role;;trigger
+mark_all_notifications_read;pid_utilisateur integer;jsonb
+monitor_maj_une_facture_performance;;TABLE(table_name character varying, avg_execution_time_ms numeric, total_calls integer, success_rate numeric)
+prolonger_partenaire;p_id_partenaire integer, p_nouvelle_date date DEFAULT NULL::date, p_duree_mois integer DEFAULT 12;json
+recalculer_montant_facture;;trigger
+rechercher_multifacturecom;pnum_factures character varying DEFAULT NULL::character varying, pid_facture integer DEFAULT NULL::integer;json
+regul_montant_reverse;pid_structure integer;TABLE(id_facture integer, montant numeric, mt_reverser boolean)
+regulariser_stock;pid_structure integer, pmode_simulation boolean DEFAULT true;TABLE(id_produit integer, nom_produit character varying, ecart_detecte numeric, type_regularisation character varying, quantite_regularisee numeric, action_effectuee character varying, id_mouvement_cree integer)
+remove_accents;text;text
+renouveler_abonnement;p_id_structure integer, p_type_abonnement character varying, p_methode character varying, p_ref_abonnement character varying DEFAULT NULL::character varying, p_numrecu character varying DEFAULT NULL::character varying, p_uuid_paiement uuid DEFAULT NULL::uuid;json
+reset_password;pid_utilisateur integer;character varying
+reset_user_password;pid_utilisateur integer;character varying
+save_my_logo;pid_structure integer, purl_logo text;json
+save_product_embedding;p_id_produit integer, p_id_structure integer, p_embedding text, p_image_hash character varying, p_image_size integer DEFAULT NULL::integer, p_image_dimensions character varying DEFAULT NULL::character varying, p_confidence_score numeric DEFAULT NULL::numeric;jsonb
+save_product_json;p_id_produit integer, p_id_structure integer, p_embedding text, p_image_hash character varying, p_image_size integer DEFAULT NULL::integer, p_image_dimensions character varying DEFAULT NULL::character varying, p_confidence_score numeric DEFAULT NULL::numeric;jsonb
+supprimer_enregistrement_si_generer_vrai;;trigger
+supprimer_facturecom;pid_structure integer, pid_facture integer, pid_utilisateur integer;json
+supprimer_produit;pid_structure integer, pid_produit integer, pid_utilisateur integer;json
+sync_clients_existants;;json
+sync_existing_users;;void
+test_maj_une_facture;;json
+test_trigger_numrecu;p_id_facture integer, p_nouveau_numrecu text, p_nouvel_etat integer DEFAULT NULL::integer;json
+toggle_partenaire_actif;p_id_partenaire integer, p_actif boolean DEFAULT NULL::boolean;json
+trg_create_grille_tarif_for_structure;;trigger
+trg_create_user_for_partenaire;;trigger
+trg_facture_com_set_annee_mois;;trigger
+trg_produit_unite_normalize;;trigger
+trigger_sync_client_facture;;trigger
+update_achat;pcode_demande character varying, ptransaction_id character varying, ptelephone character varying;TABLE(success boolean, message character varying, id_demande integer, id_facture integer)
+update_caurix_facture;pupdate_time character varying, pnumfactures character varying, ptransaction_id character varying, pid_demande integer;json
+update_compte_info_on_versement;;trigger
+update_date_maj_photo;;trigger
+update_embedding_timestamp;;trigger
+update_facture_com_status;;trigger
+update_facture_on_etudiant_change;;trigger
+update_facture_reversement;;trigger
+update_factures;;trigger
+update_montant_retrait;;trigger
+update_or_insert_etudiant;;trigger
+update_payment_status;;trigger
+update_photo_disponible;;trigger
+update_produit_service;;trigger
+update_recu_by_reference;pid_structure integer, pfacturesselected text, preference text;json
+update_tms_update_column;;trigger
+uppercase_nom_banque;;trigger
+validate_code_promo;p_code_promo character varying;json
+verifier_abonnement_actif;p_id_structure integer;json
+verifier_chevauchement_abonnement;p_id_structure integer, p_date_debut date, p_date_fin date, p_id_abonnement_exclu integer DEFAULT NULL::integer;json
+verifier_connexion;pemail character varying, ppassword character varying;TABLE(nid_utilisateur integer, scode_structure character varying, snom_prenom character varying, snom_profil character varying, semail character varying, nid_structure integer, bpwd_changed boolean, dtms_create timestamp without time zone, dtms_update timestamp without time zone, slogo character varying, slogin character varying, spwd character varying, stelephone character varying, snom_structure character varying, nid_profil integer)
+versement_before_insert;;trigger

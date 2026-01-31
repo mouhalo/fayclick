@@ -16,19 +16,23 @@ import {
   ChevronRight,
   Package,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  ShoppingCart
 } from 'lucide-react';
 import Image from 'next/image';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { cataloguePublicService } from '@/services/catalogue-public.service';
 import { CatalogueResponse, ProduitPublic, FiltresCatalogue } from '@/types/catalogue';
 import CarteProduit from './CarteProduit';
+import PanierPublic from './PanierPublic';
+import { ArticlePanier } from '@/services/online-seller.service';
 
 interface CataloguePublicClientProps {
-  nomStructure: string;
+  nomStructure?: string;
+  idStructure?: number;
 }
 
-export default function CataloguePublicClient({ nomStructure }: CataloguePublicClientProps) {
+export default function CataloguePublicClient({ nomStructure, idStructure }: CataloguePublicClientProps) {
   const { isMobile, isMobileLarge } = useBreakpoint();
 
   // États principaux
@@ -45,6 +49,10 @@ export default function CataloguePublicClient({ nomStructure }: CataloguePublicC
   // État du panneau de filtres
   const [isFilterExpanded, setIsFilterExpanded] = useState(false);
 
+  // Panier
+  const [panier, setPanier] = useState<ArticlePanier[]>([]);
+  const [panierOuvert, setPanierOuvert] = useState(false);
+
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 12;
@@ -55,9 +63,11 @@ export default function CataloguePublicClient({ nomStructure }: CataloguePublicC
       setLoading(true);
       setError(null);
 
-      console.log('🛒 Chargement catalogue pour:', nomStructure);
+      console.log('🛒 Chargement catalogue pour:', idStructure || nomStructure);
 
-      const catalogueData = await cataloguePublicService.getProduitsPublics(nomStructure);
+      const catalogueData = idStructure
+        ? await cataloguePublicService.getProduitsPublicsById(idStructure)
+        : await cataloguePublicService.getProduitsPublics(nomStructure!);
 
       if (!catalogueData) {
         throw new Error('Catalogue introuvable');
@@ -122,6 +132,48 @@ export default function CataloguePublicClient({ nomStructure }: CataloguePublicC
   useEffect(() => {
     setCurrentPage(1);
   }, [filtres]);
+
+  // Fonctions panier
+  const ajouterAuPanier = useCallback((produit: ProduitPublic) => {
+    setPanier(prev => {
+      const existe = prev.find(a => a.id_produit === produit.id_produit);
+      if (existe) {
+        if (existe.quantite >= produit.stock_disponible) return prev;
+        return prev.map(a =>
+          a.id_produit === produit.id_produit
+            ? { ...a, quantite: a.quantite + 1 }
+            : a
+        );
+      }
+      return [...prev, {
+        id_produit: produit.id_produit,
+        nom_produit: produit.nom_produit,
+        prix_vente: produit.prix_vente,
+        quantite: 1,
+        stock_disponible: produit.stock_disponible
+      }];
+    });
+  }, []);
+
+  const modifierQuantite = useCallback((id_produit: number, delta: number) => {
+    setPanier(prev => {
+      return prev
+        .map(a => {
+          if (a.id_produit !== id_produit) return a;
+          const newQty = a.quantite + delta;
+          if (newQty <= 0) return null;
+          if (newQty > a.stock_disponible) return a;
+          return { ...a, quantite: newQty };
+        })
+        .filter(Boolean) as ArticlePanier[];
+    });
+  }, []);
+
+  const supprimerDuPanier = useCallback((id_produit: number) => {
+    setPanier(prev => prev.filter(a => a.id_produit !== id_produit));
+  }, []);
+
+  const nbArticlesPanier = panier.reduce((sum, a) => sum + a.quantite, 0);
 
   // Handler pour les filtres
   const handleSearchChange = (value: string) => {
@@ -310,18 +362,34 @@ export default function CataloguePublicClient({ nomStructure }: CataloguePublicC
               Catalogue de produits et services
             </motion.p>
 
-            {/* Badge total produits */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.4 }}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-500/20 backdrop-blur-sm rounded-full border border-emerald-400/30"
-            >
-              <Package className="w-4 h-4 text-emerald-200" />
-              <span className="font-bold text-emerald-100 text-sm">
-                {catalogue.total_produits} produit{catalogue.total_produits > 1 ? 's' : ''}
-              </span>
-            </motion.div>
+            {/* Badge total produits + badge panier */}
+            <div className="flex items-center justify-center gap-3">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.4 }}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-500/20 backdrop-blur-sm rounded-full border border-emerald-400/30"
+              >
+                <Package className="w-4 h-4 text-emerald-200" />
+                <span className="font-bold text-emerald-100 text-sm">
+                  {catalogue.total_produits} produit{catalogue.total_produits > 1 ? 's' : ''}
+                </span>
+              </motion.div>
+
+              {nbArticlesPanier > 0 && (
+                <motion.button
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
+                  onClick={() => setPanierOuvert(true)}
+                  className="relative inline-flex items-center gap-2 px-4 py-2 bg-orange-500/80 backdrop-blur-sm rounded-full border border-orange-400/50 hover:bg-orange-500 transition-colors"
+                >
+                  <ShoppingCart className="w-4 h-4 text-white" />
+                  <span className="font-bold text-white text-sm">{nbArticlesPanier}</span>
+                </motion.button>
+              )}
+            </div>
           </div>
         </motion.div>
 
@@ -486,6 +554,7 @@ export default function CataloguePublicClient({ nomStructure }: CataloguePublicC
                   produit={produit}
                   index={index}
                   showStructureName={false}
+                  onAcheter={(p) => ajouterAuPanier(p as ProduitPublic)}
                 />
               ))}
             </motion.div>
@@ -527,6 +596,42 @@ export default function CataloguePublicClient({ nomStructure }: CataloguePublicC
           </>
         )}
       </motion.div>
+
+      {/* Bouton flottant panier */}
+      {nbArticlesPanier > 0 && (
+        <motion.button
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.9 }}
+          onClick={() => setPanierOuvert(true)}
+          className="fixed bottom-6 right-6 z-40 w-14 h-14 bg-gradient-to-r from-orange-500 to-orange-600 rounded-full shadow-lg flex items-center justify-center"
+        >
+          <ShoppingCart className="w-6 h-6 text-white" />
+          <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+            {nbArticlesPanier}
+          </span>
+        </motion.button>
+      )}
+
+      {/* Drawer Panier */}
+      <AnimatePresence>
+        {panierOuvert && (
+          <PanierPublic
+            isOpen={panierOuvert}
+            onClose={() => setPanierOuvert(false)}
+            articles={panier}
+            onModifierQuantite={modifierQuantite}
+            onSupprimer={supprimerDuPanier}
+            idStructure={idStructure || catalogue.id_structure || 0}
+            nomStructure={catalogue.nom_structure}
+            onPaymentSuccess={() => {
+              setPanier([]);
+              loadCatalogue();
+            }}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }
