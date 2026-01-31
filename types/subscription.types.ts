@@ -127,6 +127,9 @@ export interface RenewAbonnementParams {
   id_structure: number;
   type_abonnement: SubscriptionType;
   methode: Exclude<PaymentMethod, 'CASH'>;
+  ref_abonnement?: string;
+  numrecu?: string;
+  uuid_paiement?: string;
 }
 
 /**

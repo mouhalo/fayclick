@@ -312,30 +312,37 @@ export default function ModalPaiementAbonnement({
         throw new Error('Formule ou méthode non sélectionnée');
       }
 
-      console.log('📝 [SUBSCRIPTION-MODAL] Création abonnement avec UUID:', uuid);
-      console.log('📝 [SUBSCRIPTION-MODAL] Paramètres envoyés à createSubscription:', {
+      console.log('📝 [SUBSCRIPTION-MODAL] Enregistrement abonnement avec UUID:', uuid);
+
+      // Essayer d'abord le renouvellement (cas le plus fréquent : abonnement existant)
+      console.log('🔄 [SUBSCRIPTION-MODAL] Tentative renouvellement...');
+      let response = await subscriptionService.renewSubscription({
         id_structure: idStructure,
         type_abonnement: formula,
         methode: method,
         uuid_paiement: uuid
       });
 
-      // Créer l'abonnement avec l'UUID du paiement validé
-      const response = await subscriptionService.createSubscription({
-        id_structure: idStructure,
-        type_abonnement: formula,
-        methode: method,
-        uuid_paiement: uuid
-      });
+      console.log('📋 [SUBSCRIPTION-MODAL] Réponse renewSubscription:', JSON.stringify(response, null, 2));
 
-      console.log('📋 [SUBSCRIPTION-MODAL] Réponse createSubscription:', JSON.stringify(response, null, 2));
+      // Si pas d'abonnement existant à renouveler, créer un nouveau
+      if (!response.success && response.message?.includes('aucun abonnement')) {
+        console.log('📝 [SUBSCRIPTION-MODAL] Pas d\'abonnement existant, création nouveau...');
+        response = await subscriptionService.createSubscription({
+          id_structure: idStructure,
+          type_abonnement: formula,
+          methode: method,
+          uuid_paiement: uuid
+        });
+        console.log('📋 [SUBSCRIPTION-MODAL] Réponse createSubscription:', JSON.stringify(response, null, 2));
+      }
 
       if (!response.success) {
-        console.error('❌ [SUBSCRIPTION-MODAL] createSubscription a retourné success=false:', response.message);
+        console.error('❌ [SUBSCRIPTION-MODAL] Échec abonnement:', response.message);
         throw new Error(response.message || 'Échec de la création');
       }
 
-      console.log('✅ [SUBSCRIPTION-MODAL] Abonnement créé avec succès:', response.data);
+      console.log('✅ [SUBSCRIPTION-MODAL] Abonnement enregistré avec succès:', response.data);
 
       setModalState('SUCCESS');
 
