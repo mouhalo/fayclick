@@ -529,3 +529,57 @@ const response = typeof rawResponse === 'string'
 - ✅ **OTP sessions** : Stockées en mémoire avec expiration 2 min et max 3 tentatives
 - ✅ **Callbacks polling** : Passer `formula` et `method` en paramètres (pas via useState)
 - ✅ **Réponses PostgreSQL** : Vérifier `typeof === 'string'` avant `JSON.parse()`
+
+---
+
+## 🚀 BMAD Method Integration
+
+Ce projet utilise la méthode BMAD pour le développement structuré.
+
+### Activation
+Pour activer l'agent BMAD, dis : "Active SUPER_BMAD_AGENT"
+
+### Documentation BMAD
+- Agent : `.claude/bmad/BMAD_AGENT.md`
+- Config : `.claude/bmad/config.yaml`
+- Templates : `.claude/bmad/templates/`
+
+### Commandes BMAD
+| Commande | Action |
+|----------|--------|
+| `/bmad-init` | Initialiser BMAD |
+| `/bmad-status` | État du projet |
+| `/bmad-discover` | Analyser l'existant |
+| `/bmad-prd` | Créer un PRD |
+| `/bmad-arch` | Architecture |
+| `/bmad-story` | Créer une story |
+| `/bmad-context` | Générer prompt contexte |
+
+### Référence
+@see .claude/bmad/BMAD_AGENT.md
+```
+
+---
+
+## 📁 **Structure Finale Recommandée**
+```
+fayclick/                          # ou payecole, etc.
+├── CLAUDE.md                      # ✅ Existant + section BMAD ajoutée
+├── .claude/
+│   ├── settings.json              # ✅ Existant préservé
+│   ├── commands/                  # ✅ Existant préservé
+│   │   └── [tes commandes]
+│   └── bmad/                      # 🆕 Nouveau
+│       ├── BMAD_AGENT.md          # Prompt complet
+│       ├── config.yaml            # Config BMAD
+│       └── templates/
+│           ├── PROJECT_CONTEXT.tpl.md
+│           ├── PRD.tpl.md
+│           └── STORY.tpl.md
+│
+├── docs/                          # 🆕 Structure BMAD
+│   ├── bmad/
+│   ├── architecture/
+│   └── stories/
+│
+└── src/                           # ✅ Code existant préservé

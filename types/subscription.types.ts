@@ -10,7 +10,7 @@ import { PaymentMethod } from './payment-wallet';
 // ========================================
 
 /** Types d'abonnement disponibles */
-export type SubscriptionType = 'MENSUEL' | 'ANNUEL';
+export type SubscriptionType = 'JOURNALIER' | 'HEBDOMADAIRE' | 'MENSUEL' | 'TRIMESTRIEL' | 'SEMESTRIEL' | 'ANNUEL';
 
 /** Statuts d'abonnement */
 export type SubscriptionStatus = 'ACTIF' | 'EXPIRE' | 'EN_ATTENTE' | 'ANNULE';
@@ -130,6 +130,7 @@ export interface RenewAbonnementParams {
   ref_abonnement?: string;
   numrecu?: string;
   uuid_paiement?: string;
+  nombre_jours?: number; // Nombre de jours explicite (prioritaire sur type_abonnement)
 }
 
 /**
@@ -179,9 +180,27 @@ export const SUBSCRIPTION_PRICING = {
 } as const;
 
 /**
- * Configuration des formules d'abonnement
+ * Presets de durée d'abonnement (100 FCFA/jour)
  */
-export const SUBSCRIPTION_FORMULAS: Record<SubscriptionType, Omit<SubscriptionFormula, 'montant'>> = {
+export interface DayPreset {
+  jours: number;
+  label: string;
+  description: string;
+  badge?: string;
+  badgeColor?: string;
+}
+
+export const DAY_PRESETS: DayPreset[] = [
+  { jours: 1, label: '1 jour', description: '100 FCFA', badge: 'Mini', badgeColor: 'blue' },
+  { jours: 7, label: '7 jours', description: '700 FCFA', badge: 'Semaine', badgeColor: 'blue' },
+  { jours: 30, label: '30 jours', description: '3 000 FCFA', badge: 'Mois', badgeColor: 'emerald' },
+  { jours: 365, label: '365 jours', description: '36 500 FCFA', badge: 'Annuel', badgeColor: 'emerald' },
+];
+
+/**
+ * Configuration des formules d'abonnement (legacy, kept for compatibility)
+ */
+export const SUBSCRIPTION_FORMULAS: Record<'MENSUEL' | 'ANNUEL', Omit<SubscriptionFormula, 'montant'>> = {
   MENSUEL: {
     type: 'MENSUEL',
     description: 'Facturation mensuelle flexible',
@@ -190,9 +209,9 @@ export const SUBSCRIPTION_FORMULAS: Record<SubscriptionType, Omit<SubscriptionFo
   },
   ANNUEL: {
     type: 'ANNUEL',
-    description: 'Économisez 10 FCFA par mois',
-    reduction: 120, // 10 FCFA × 12 mois
-    badge: 'Économie -120 FCFA',
+    description: 'Economisez 10 FCFA par mois',
+    reduction: 120,
+    badge: 'Economie -120 FCFA',
     badgeColor: 'emerald'
   }
 } as const;
