@@ -3,10 +3,9 @@
  * Utilise la méthodologie DatabaseService avec requêtes SQL et XML
  */
 
-import { API_CONFIG } from '@/config/env';
 import { RecuDetails, RecuGenere } from '@/types/recu';
 import { WalletType } from '@/components/facture/ModalPaiementWalletNew';
-import { authService } from './auth.service';
+import DatabaseService from './database.service';
 
 // Fonction utilitaire pour convertir les types de wallet
 function convertWalletType(wallet: string): string {
@@ -52,95 +51,17 @@ export interface HistoriqueRecusParams {
 }
 
 class RecuService {
-  private baseUrl = API_CONFIG.ENDPOINT;
-  private authService = authService;
+  private db = DatabaseService;
 
   /**
-   * Construit le XML pour l'API selon la méthodologie FayClick
+   * Exécute une requête SQL via DatabaseService (JSON sql_jsonpro)
+   * Retourne au format { datas: [...] } pour compatibilité interne
    */
-  private construireXml(requeteSql: string): string {
-    const sql_text = requeteSql.replace(/\n/g, ' ').trim();
-    return `<?xml version="1.0" encoding="UTF-8"?>
-<request>
-    <application>fayclick</application>
-    <requete_sql>${sql_text}</requete_sql>
-</request>`;
-  }
-
-  /**
-   * Exécute une requête SQL via l'API PostgreSQL
-   */
-  private async executerRequete(requeteSql: string): Promise<any> {
-    const xmlBody = this.construireXml(requeteSql);
-
-    console.log('🧾 [RECU-SERVICE] Exécution requête:', {
-      requete: requeteSql,
-      url: this.baseUrl
-    });
-
-    const response = await fetch(this.baseUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/xml',
-        'Accept': 'application/json'
-      },
-      body: xmlBody
-    });
-
-    if (!response.ok) {
-      throw new Error(`Erreur API: ${response.status} - ${response.statusText}`);
-    }
-
-    const responseText = await response.text();
-    console.log('📥 [RECU-SERVICE] Réponse brute API:', responseText);
-
-    let data;
-    try {
-      data = JSON.parse(responseText);
-    } catch (parseError) {
-      console.error('❌ [RECU-SERVICE] Erreur parsing JSON:', parseError);
-      throw new Error('Réponse API invalide (non JSON)');
-    }
-
-    console.log('📊 [RECU-SERVICE] Données parsées:', {
-      status: data.status,
-      hasMessage: !!data.message,
-      hasDatas: !!data.datas,
-      datasLength: data.datas?.length,
-      hasData: !!data.data,
-      dataLength: data.data?.length,
-      hasResult: !!data.result,
-      keys: Object.keys(data)
-    });
-
-    if (data.error) {
-      throw new Error(`Erreur SQL: ${data.error}`);
-    }
-
-    // Gérer différents formats de réponse de l'API
-    if (data.status === 'success') {
-      // Si la réponse contient un objet result avec datas
-      if (data.result && data.result.datas) {
-        console.log('✅ [RECU-SERVICE] Données trouvées dans result.datas');
-        return data.result;
-      }
-      // Si la réponse contient directement datas
-      if (data.datas !== undefined) {
-        console.log('✅ [RECU-SERVICE] Données trouvées dans datas');
-        return data;
-      }
-      // Si la réponse contient data
-      if (data.data !== undefined) {
-        console.log('✅ [RECU-SERVICE] Données trouvées dans data');
-        return { datas: data.data };
-      }
-      // Pour les INSERT qui peuvent ne rien retourner
-      console.log('⚠️ [RECU-SERVICE] Aucune donnée dans la réponse, mais status success');
-      return { datas: [], status: 'success' };
-    }
-
-    // Retourner les données telles quelles si pas de status
-    return data;
+  private async executerRequete(requeteSql: string): Promise<{ datas: any[] }> {
+    const sql = requeteSql.replace(/\n/g, ' ').trim();
+    console.log('🧾 [RECU-SERVICE] Exécution requête:', { requete: sql });
+    const rows = await this.db.query(sql);
+    return { datas: rows };
   }
 
   /**

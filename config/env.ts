@@ -11,7 +11,10 @@ interface ApiConfig {
   ORANGE_ENDPOINT: string;
 }
 
-// Le proxy local gere le forward vers sql_jsonpro
+// Dev: proxy Next.js /api/sql → sql_jsonpro (résout CORS)
+// Prod: .htaccess reverse proxy /api/sql → sql_jsonpro (résout CORS)
+// → Toujours utiliser /api/sql en relatif
+
 export const API_CONFIG: ApiConfig = {
   ENDPOINT: '/api/sql',
   TIMEOUT: 30000,
