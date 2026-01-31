@@ -145,7 +145,7 @@ export default function CommerceDashboard() {
           initial={{ y: -50, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 0.6 }}
-          className="bg-gradient-to-r from-[#18542e] to-[#16a34d] p-5 text-white relative overflow-hidden"
+          className="bg-gradient-to-r from-[#18542e] to-[#16a34d] p-4 pb-3 text-white relative overflow-hidden"
         >
           {/* Pattern Background */}
           <div className="absolute inset-0 opacity-10">
@@ -157,7 +157,7 @@ export default function CommerceDashboard() {
           </div>
 
           {/* Header Top */}
-          <div className="flex justify-between items-center mb-5 relative z-10">
+          <div className="flex justify-between items-center mb-3 relative z-10">
             <motion.button
               whileHover={{ scale: 1.1, rotate: 90 }}
               whileTap={{ scale: 0.9 }}
@@ -206,7 +206,7 @@ export default function CommerceDashboard() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.3 }}
-              className="text-base opacity-90 mb-2"
+              className="text-sm opacity-90 mb-1"
             >
               Bon retour,
             </motion.p>
@@ -214,7 +214,7 @@ export default function CommerceDashboard() {
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ delay: 0.4, type: "spring" as const }}
-              className="text-2xl font-bold mb-4"
+              className="text-xl font-bold mb-2"
             >
               {user.nom_structure}
             </motion.h1>
@@ -231,13 +231,13 @@ export default function CommerceDashboard() {
         </motion.div>
 
         {/* Content */}
-        <div className="p-5 pb-24 bg-gradient-to-b from-[#ecfae5] to-[#1b5307] min-h-[calc(100vh-180px)] overflow-y-auto">
+        <div className="p-4 pb-24 bg-gradient-to-b from-[#ecfae5] to-[#1b5307] min-h-[calc(100vh-160px)] overflow-y-auto">
           {/* Stats Section - Réduit de 1/3 */}
           <motion.div
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.6 }}
-            className="grid grid-cols-2 gap-3 mb-4"
+            className="grid grid-cols-2 gap-2 mb-3"
           >
             <motion.div
               whileHover={{ scale: 1.05 }}
@@ -245,8 +245,8 @@ export default function CommerceDashboard() {
               className="bg-white rounded-xl p-3 shadow-md border-l-4 border-orange-500 cursor-pointer"
               onClick={() => router.push('/dashboard/commerce/produits')}
             >
-              <span className="text-2xl mb-2 block">📦</span>
-              <div className="text-2xl font-bold text-gray-800 mb-1">
+              <span className="text-xl mb-1 block">📦</span>
+              <div className="text-xl font-bold text-gray-800 mb-0.5">
                 {loadingStats ? (
                   <div className="w-10 h-6 bg-gray-200 animate-pulse rounded"></div>
                 ) : (
@@ -291,8 +291,8 @@ export default function CommerceDashboard() {
                 )}
               </button>
 
-              <span className="text-2xl mb-2 block">💰</span>
-              <div className="text-lg font-bold text-gray-800 mb-1">
+              <span className="text-xl mb-1 block">💰</span>
+              <div className="text-base font-bold text-gray-800 mb-0.5">
                 {loadingStats ? (
                   <div className="w-10 h-5 bg-gray-200 animate-pulse rounded"></div>
                 ) : showValeurStock ? (
@@ -306,38 +306,6 @@ export default function CommerceDashboard() {
                 <span>📊</span> Voir Inventaires
               </div>
             </motion.div>
-          </motion.div>
-
-          {/* Clients info section */}
-          <motion.div
-            initial={{ y: 20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: 0.7 }}
-            className="bg-white rounded-2xl p-4 mb-4 shadow-lg"
-          >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <span className="text-2xl">👥</span>
-                <div>
-                  <div className="text-xl font-bold text-gray-800">
-                    {loadingStats ? (
-                      <div className="w-8 h-5 bg-gray-200 animate-pulse rounded"></div>
-                    ) : (
-                      <AnimatedCounter value={stats?.total_clients || 0} />
-                    )}
-                  </div>
-                  <div className="text-xs text-gray-600 font-semibold uppercase">Clients actifs</div>
-                </div>
-              </div>
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="px-4 py-2 bg-blue-500 text-white text-sm rounded-lg font-semibold"
-                onClick={() => router.push('/dashboard/commerce/clients')}
-              >
-                Voir tous
-              </motion.button>
-            </div>
           </motion.div>
 
           {/* Bouton Vente Flash - Ultra compact */}

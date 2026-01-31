@@ -1,9 +1,7 @@
 /**
  * Configuration environnement pour FayClick V2
- * Compatible avec l'architecture old_services XML
+ * API JSON via sql_jsonpro (proxy Next.js /api/sql)
  */
-
-import { getApiBaseUrl } from '@/lib/api-config';
 
 // Interface pour la configuration API
 interface ApiConfig {
@@ -13,17 +11,15 @@ interface ApiConfig {
   ORANGE_ENDPOINT: string;
 }
 
-// Configuration principale avec détection automatique d'environnement
+// Le proxy local gere le forward vers sql_jsonpro
 export const API_CONFIG: ApiConfig = {
-  // Utilise le système de détection automatique existant (l'endpoint complet est déjà configuré)
-  ENDPOINT: getApiBaseUrl(),
+  ENDPOINT: '/api/sql',
   TIMEOUT: 30000,
   APPLICATION_NAME: 'fayclick',
-  // Endpoint Orange Money depuis .env
   ORANGE_ENDPOINT: process.env.ORANGE_ENDPOINT || 'https://api.icelabsoft.com/orange/pay_om'
 };
 
-// Configuration des applications supportées (compatible old_services)
+// Configuration des applications supportees
 export const APPLICATIONS_CONFIG = {
   payecole: {
     name: 'payecole',
@@ -37,18 +33,16 @@ export const APPLICATIONS_CONFIG = {
   },
   sms: {
     name: 'sms',
-    description: 'Application d\'envoi de SMS via add_pending_sms',
+    description: "Application d'envoi de SMS via add_pending_sms",
     defaultTimeout: 10000
   }
 } as const;
 
-// Export pour compatibilité avec old_services
 export { API_CONFIG as default };
 
-// Logs de configuration en développement
 if (process.env.NODE_ENV === 'development') {
-  console.log('🔧 [CONFIG] Configuration API XML activée:');
-  console.log('📍 Endpoint:', API_CONFIG.ENDPOINT);
+  console.log('🔧 [CONFIG] Configuration API JSON (sql_jsonpro):');
+  console.log('📍 Proxy:', API_CONFIG.ENDPOINT);
   console.log('⏱️ Timeout:', API_CONFIG.TIMEOUT + 'ms');
   console.log('📱 Application:', API_CONFIG.APPLICATION_NAME);
 }

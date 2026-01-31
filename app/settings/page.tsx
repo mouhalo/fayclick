@@ -126,7 +126,7 @@ const TABS_CONFIG = [
 
 export default function StructureEditPage() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, refreshAuth } = useAuth();
   const [activeTab, setActiveTab] = useState<TabId>('general');
   const [structure, setStructure] = useState<StructureData>({
     id_structure: 0,
@@ -416,7 +416,9 @@ export default function StructureEditPage() {
   const handleSubscriptionSuccess = () => {
     showMessage('success', 'Abonnement activé avec succès !');
     loadSubscriptionHistory();
-    // Recharger les données de la structure pour mettre à jour l'état
+    // Rafraîchir le contexte global d'auth (propage l'état abonnement partout)
+    refreshAuth();
+    // Recharger les données de la structure pour mettre à jour l'état local
     if (user?.id_structure) {
       databaseService.getStructureDetails(user.id_structure).then((data) => {
         if (data && data.length > 0) {

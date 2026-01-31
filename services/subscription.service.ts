@@ -200,15 +200,19 @@ class SubscriptionService {
       const numRecu = params.numrecu ? `'${params.numrecu}'` : 'NULL';
       const uuidPaiement = params.uuid_paiement ? `'${params.uuid_paiement}'::UUID` : 'NULL';
 
+      // Préparer nombre_jours (nouveau paramètre optionnel)
+      const nombreJours = params.nombre_jours ? `${params.nombre_jours}::INTEGER` : 'NULL';
+
       // Appel fonction PostgreSQL: renouveler_abonnement
-      // Note: databaseService.query() ne supporte pas les paramètres $1, $2
+      // Signature: (p_id_structure, p_type_abonnement, p_methode, p_ref_abonnement, p_numrecu, p_uuid_paiement, p_nombre_jours)
       const query = `SELECT renouveler_abonnement(
         ${params.id_structure}::INTEGER,
         '${params.type_abonnement}'::VARCHAR,
         '${params.methode}'::VARCHAR,
         ${refAbonnement}::VARCHAR,
         ${numRecu}::VARCHAR,
-        ${uuidPaiement}
+        ${uuidPaiement},
+        ${nombreJours}
       )`;
 
       console.log('🔍 [SUBSCRIPTION] Requête SQL:', query);
