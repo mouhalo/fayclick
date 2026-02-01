@@ -15,6 +15,11 @@ export class OnlineSellerException extends Error {
   }
 }
 
+export interface PhotoProduit {
+  id_photo: number;
+  url_photo: string;
+}
+
 export interface ProduitPublic {
   id_produit: number;
   nom_produit: string;
@@ -24,6 +29,7 @@ export interface ProduitPublic {
   nom_categorie: string;
   photo_disponible: boolean;
   logo_structure: string | null;
+  photos: PhotoProduit[];
 }
 
 export interface CreateFactureOnlineParams {
@@ -61,6 +67,8 @@ export interface CreateFactureOnlineResult {
   success: boolean;
   id_facture: number;
   num_facture: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  acompte?: any;
 }
 
 class OnlineSellerService {
@@ -88,19 +96,19 @@ class OnlineSellerService {
 
       const query = `
         SELECT
-          p.id_produit,
-          p.nom_produit,
-          p.prix_vente,
-          p.description,
-          p.niveau_stock,
-          p.nom_categorie,
-          p.photo_disponible,
-          s.nom_structure,
-          s.logo
-        FROM list_produits p
-        JOIN structures s ON s.id_structure = p.id_structure
-        WHERE p.id_structure = ${idStructure}
-          AND p.id_produit = ${idProduit}
+          id_produit,
+          nom_produit,
+          prix_vente,
+          description,
+          niveau_stock,
+          nom_categorie,
+          photo_disponible,
+          photos,
+          nom_structure,
+          logo
+        FROM list_produits
+        WHERE id_structure = ${idStructure}
+          AND id_produit = ${idProduit}
       `;
       console.log('📤 [ONLINE-SELLER] Requête produit public:', query);
 
@@ -126,7 +134,19 @@ class OnlineSellerService {
           niveau_stock: Number(row.niveau_stock) || 0,
           nom_categorie: (row.nom_categorie as string) || '',
           photo_disponible: Boolean(row.photo_disponible),
-          logo_structure: (row.logo as string) || null
+          logo_structure: (row.logo as string) || null,
+          photos: (() => {
+            const raw = row.photos;
+            if (!raw) return [];
+            if (Array.isArray(raw)) return raw;
+            if (typeof raw === 'string') {
+              try { return JSON.parse(raw); } catch {
+                // Simple URL string — wrap as PhotoProduit
+                return [{ id_photo: 0, url_photo: raw }];
+              }
+            }
+            return [];
+          })()
         },
         nom_structure: (row.nom_structure as string) || '',
         logo_structure: (row.logo as string) || null
@@ -164,8 +184,8 @@ class OnlineSellerService {
    * Crée une facture + enregistre le paiement en une opération
    * Appelée APRÈS confirmation du paiement wallet (COMPLETED)
    *
-   * Étape 1 : create_facture_complete1() - Crée la facture avec les détails
-   * Étape 2 : add_acompte_facture() - Enregistre le paiement
+   * Étape 1 : create_facture_online() - Crée la facture impayée avec les détails
+   * Étape 2 : add_acompte_facture1() - Enregistre le paiement + journal + reçu
    */
   async createFactureOnline(params: CreateFactureOnlineParams): Promise<CreateFactureOnlineResult> {
     try {
@@ -195,21 +215,16 @@ class OnlineSellerService {
       // Format articles_string : "id_produit-quantite-prix#"
       const articlesString = `${params.id_produit}-${params.quantite}-${prixUnitaire}#`;
 
-      // Étape 1 : Créer la facture
+      // Étape 1 : Créer la facture (impayée, le paiement sera géré par add_acompte_facture1)
       const createQuery = `
-        SELECT * FROM create_facture_complete1(
+        SELECT * FROM create_facture_online(
           '${new Date().toISOString().split('T')[0]}',
           ${params.id_structure},
           '${params.telephone}',
           '${prenomSafe}',
           ${params.montant},
           'Achat en ligne - ${prenomSafe}',
-          '${articlesString}',
-          0,
-          ${params.montant},
-          false,
-          false,
-          0
+          '${articlesString}'
         )
       `;
       console.log('📤 [ONLINE-SELLER] Requête création facture:', createQuery);
@@ -220,9 +235,15 @@ class OnlineSellerService {
         throw new OnlineSellerException('Aucune réponse de create_facture_complete1', 500);
       }
 
+      console.log('🔍 [ONLINE-SELLER] Raw factureResult[0]:', JSON.stringify(factureResult[0]));
       const facture = this.parseResult(factureResult[0] as Record<string, unknown>);
+      console.log('🔍 [ONLINE-SELLER] Parsed facture:', JSON.stringify(facture));
 
-      if (!facture.success) {
+      // create_facture_online retourne: {id_facture, success, message, detail_ids, detail_count}
+      const isSuccess = facture.success === true || facture.id_facture;
+      const idFacture = facture.id_facture;
+
+      if (!isSuccess || !idFacture) {
         throw new OnlineSellerException(
           facture.message || 'Erreur lors de la création de la facture',
           500
@@ -230,33 +251,41 @@ class OnlineSellerService {
       }
 
       console.log('✅ [ONLINE-SELLER] Facture créée:', {
-        id_facture: facture.id_facture,
-        nb_details: facture.nb_details
+        id_facture: idFacture,
+        detail_count: facture.detail_count
       });
 
-      // Étape 2 : Enregistrer le paiement (5 params : id_structure, id_facture, montant, transaction_id, uuid)
+      // Étape 2 : Enregistrer le paiement + créer le reçu en une seule requête
+      const modePaiement = params.mode_paiement;
       const acompteQuery = `
-        SELECT * FROM add_acompte_facture(
+        SELECT * FROM add_acompte_facture1(
           ${params.id_structure},
-          ${facture.id_facture},
+          ${idFacture},
           ${params.montant},
           '${params.transaction_id}',
-          '${params.uuid}'
+          '${params.uuid}',
+          '${modePaiement}',
+          '${params.telephone}'
         )
       `;
-      console.log('📤 [ONLINE-SELLER] Requête acompte:', acompteQuery);
+      console.log('📤 [ONLINE-SELLER] Requête acompte1:', acompteQuery);
 
       const acompteResult = await DatabaseService.query(acompteQuery);
+      let acompteData = null;
 
       if (acompteResult && acompteResult.length > 0) {
-        const acompte = this.parseResult(acompteResult[0] as Record<string, unknown>);
-        console.log('✅ [ONLINE-SELLER] Paiement enregistré:', acompte);
+        acompteData = this.parseResult(acompteResult[0] as Record<string, unknown>);
+        console.log('✅ [ONLINE-SELLER] Paiement + reçu enregistrés:', acompteData);
       }
+
+      // num_facture vient de add_acompte_facture1 → facture.num_facture
+      const numFacture = acompteData?.facture?.num_facture || `FAC-${idFacture}`;
 
       return {
         success: true,
-        id_facture: facture.id_facture,
-        num_facture: facture.num_facture || `FAC-${facture.id_facture}`
+        id_facture: idFacture,
+        num_facture: numFacture,
+        acompte: acompteData
       };
 
     } catch (error) {
@@ -297,21 +326,16 @@ class OnlineSellerService {
         .map(a => `${a.id_produit}-${a.quantite}-${a.prix_vente}`)
         .join('#') + '#';
 
-      // Étape 1 : Créer la facture
+      // Étape 1 : Créer la facture (impayée, le paiement sera géré par add_acompte_facture1)
       const createQuery = `
-        SELECT * FROM create_facture_complete1(
+        SELECT * FROM create_facture_online(
           '${new Date().toISOString().split('T')[0]}',
           ${params.id_structure},
           '${params.telephone}',
           '${prenomSafe}',
           ${params.montant_total},
           'Achat en ligne - ${prenomSafe}',
-          '${articlesString}',
-          0,
-          ${params.montant_total},
-          false,
-          false,
-          0
+          '${articlesString}'
         )
       `;
       console.log('📤 [ONLINE-SELLER] Requête création facture panier:', createQuery);
@@ -319,7 +343,7 @@ class OnlineSellerService {
       const factureResult = await DatabaseService.query(createQuery);
 
       if (!factureResult || factureResult.length === 0) {
-        throw new OnlineSellerException('Aucune réponse de create_facture_complete1', 500);
+        throw new OnlineSellerException('Aucune réponse de create_facture_online', 500);
       }
 
       const facture = this.parseResult(factureResult[0] as Record<string, unknown>);
@@ -333,32 +357,39 @@ class OnlineSellerService {
 
       console.log('✅ [ONLINE-SELLER] Facture panier créée:', {
         id_facture: facture.id_facture,
-        nb_details: facture.nb_details
+        detail_count: facture.detail_count
       });
 
-      // Étape 2 : Enregistrer le paiement
+      // Étape 2 : Enregistrer le paiement + créer le reçu en une seule requête
+      const modePaiement = params.mode_paiement;
       const acompteQuery = `
-        SELECT * FROM add_acompte_facture(
+        SELECT * FROM add_acompte_facture1(
           ${params.id_structure},
           ${facture.id_facture},
           ${params.montant_total},
           '${params.transaction_id}',
-          '${params.uuid}'
+          '${params.uuid}',
+          '${modePaiement}',
+          '${params.telephone}'
         )
       `;
-      console.log('📤 [ONLINE-SELLER] Requête acompte panier:', acompteQuery);
+      console.log('📤 [ONLINE-SELLER] Requête acompte1 panier:', acompteQuery);
 
       const acompteResult = await DatabaseService.query(acompteQuery);
+      let acompteData = null;
 
       if (acompteResult && acompteResult.length > 0) {
-        const acompte = this.parseResult(acompteResult[0] as Record<string, unknown>);
-        console.log('✅ [ONLINE-SELLER] Paiement panier enregistré:', acompte);
+        acompteData = this.parseResult(acompteResult[0] as Record<string, unknown>);
+        console.log('✅ [ONLINE-SELLER] Paiement + reçu panier enregistrés:', acompteData);
       }
+
+      const numFacture = acompteData?.facture?.num_facture || `FAC-${facture.id_facture}`;
 
       return {
         success: true,
         id_facture: facture.id_facture,
-        num_facture: facture.num_facture || `FAC-${facture.id_facture}`
+        num_facture: numFacture,
+        acompte: acompteData
       };
 
     } catch (error) {
@@ -374,8 +405,13 @@ class OnlineSellerService {
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private parseResult(row: Record<string, unknown>): any {
-    const key = Object.keys(row)[0];
-    const data = row[key];
+    const keys = Object.keys(row);
+    // Si l'objet a plusieurs clés, c'est déjà le résultat plat (ex: {id_facture, success, message, ...})
+    if (keys.length > 1) {
+      return row;
+    }
+    // Sinon c'est wrappé dans une clé de fonction (ex: {create_facture_complete1: "{...}"})
+    const data = row[keys[0]];
     if (typeof data === 'string') {
       try {
         return JSON.parse(data);

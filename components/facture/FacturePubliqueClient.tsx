@@ -22,6 +22,7 @@ import {
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { decodeFactureParams } from '@/lib/url-encoder';
 import { facturePubliqueService } from '@/services/facture-publique.service';
+import { recuService } from '@/services/recu.service';
 import { FactureComplete } from '@/types/facture';
 import { ModalPaiementQRCode } from '@/components/factures/ModalPaiementQRCode';
 import { PaymentMethod, PaymentContext } from '@/types/payment-wallet';
@@ -224,21 +225,30 @@ export default function FacturePubliqueClient({ token }: FacturePubliqueClientPr
       console.log('📋 [FACTURE-PUBLIQUE] Résultat enregistrement:', result);
 
       if (result.success) {
-        console.log('✅ [FACTURE-PUBLIQUE] Paiement enregistré avec succès');
+        console.log('✅ [FACTURE-PUBLIQUE] Paiement + reçu enregistrés par add_acompte_facture1:', result.data);
         setPaymentSuccess(true);
+
+        // Le reçu est créé automatiquement par add_acompte_facture1 côté BD
+        // Rediriger vers la page reçu public après 2.5s
+        const recuUrl = recuService.generateUrlPartage(
+          facture.facture.id_structure,
+          facture.facture.id_facture
+        );
+        console.log('🔗 [FACTURE-PUBLIQUE] Redirection vers reçu:', recuUrl);
+        setTimeout(() => {
+          window.location.href = recuUrl;
+        }, 2500);
+        return;
       } else {
         console.error('❌ [FACTURE-PUBLIQUE] Échec enregistrement:', result.message);
-        // On affiche quand même le succès car le paiement wallet a réussi
-        // L'erreur d'enregistrement sera loggée pour investigation
         setPaymentSuccess(true);
       }
     } catch (err) {
       console.error('❌ [FACTURE-PUBLIQUE] Erreur lors de l\'enregistrement:', err);
-      // On affiche quand même le succès car le paiement wallet a réussi
       setPaymentSuccess(true);
     }
 
-    // Recharger la facture pour voir le nouveau statut
+    // Recharger la facture pour voir le nouveau statut (fallback si pas de redirection reçu)
     setTimeout(() => {
       loadFacture();
     }, 2000);

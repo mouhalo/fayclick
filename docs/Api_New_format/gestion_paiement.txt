@@ -1,0 +1,366 @@
+-- DROP FUNCTION public.add_acompte_facture1(int4, int4, numeric, varchar, varchar, varchar, varchar);
+
+CREATE OR REPLACE FUNCTION public.add_acompte_facture1(pid_structure integer, pid_facture integer, pmontant_acompte numeric, ptransactionid character varying DEFAULT ''::character varying, puuid character varying DEFAULT 'face2face'::character varying, pmode_paiement character varying DEFAULT 'CASH'::character varying, ptel_client character varying DEFAULT '771234567'::character varying)
+ RETURNS json
+ LANGUAGE plpgsql
+AS $function$
+DECLARE
+    v_facture_record RECORD;
+    v_nouveau_acompte numeric(10,2);
+    v_nouveau_restant numeric(10,2);
+    v_nouvel_etat integer;
+    v_result_json json;
+    v_details_json JSON;
+    v_numrecugenere varchar;
+    v_recus_json json;
+    v_uuid varchar;
+    v_recu_result json;
+    v_step varchar := 'INIT';
+BEGIN
+    -- ========================================
+    -- LOG: PARAMÈTRES D'ENTRÉE
+    -- ========================================
+    v_step := 'PARAMS';
+    RAISE NOTICE '=== ÉTAPE 1: PARAMÈTRES ===';
+    RAISE NOTICE 'pid_structure: %', pid_structure;
+    RAISE NOTICE 'pid_facture: %', pid_facture;
+    RAISE NOTICE 'pmontant_acompte: %', pmontant_acompte;
+    RAISE NOTICE 'ptransactionid: %', ptransactionid;
+    RAISE NOTICE 'puuid: %', puuid;
+    RAISE NOTICE 'pmode_paiement: %', pmode_paiement;
+    RAISE NOTICE 'ptel_client: %', ptel_client;
+
+    -- ========================================
+    -- GÉNÉRATION UUID
+    -- ========================================
+    v_step := 'UUID_GEN';
+    RAISE NOTICE '=== ÉTAPE 2: GÉNÉRATION UUID ===';
+    
+    IF puuid = 'face2face' OR puuid = '' OR puuid IS NULL THEN
+        v_uuid := gen_random_uuid()::text;
+        RAISE NOTICE 'UUID généré automatiquement: %', v_uuid;
+    ELSE
+        v_uuid := puuid;
+        RAISE NOTICE 'UUID fourni utilisé: %', v_uuid;
+    END IF;
+    
+    RAISE NOTICE 'Type v_uuid: %', pg_typeof(v_uuid);
+
+    -- ========================================
+    -- VALIDATION DES PARAMÈTRES D'ENTRÉE
+    -- ========================================
+    v_step := 'VALIDATION';
+    RAISE NOTICE '=== ÉTAPE 3: VALIDATION ===';
+    
+    IF pid_structure IS NULL OR pid_structure <= 0 THEN
+        RAISE NOTICE 'ERREUR: pid_structure invalide';
+        RETURN json_build_object(
+            'success', false,
+            'code', 'INVALID_STRUCTURE',
+            'message', 'L''ID structure doit être un entier positif valide',
+            'step', v_step
+        );
+    END IF;
+    RAISE NOTICE 'pid_structure OK';
+
+    IF pid_facture IS NULL OR pid_facture <= 0 THEN
+        RAISE NOTICE 'ERREUR: pid_facture invalide';
+        RETURN json_build_object(
+            'success', false,
+            'code', 'INVALID_FACTURE',
+            'message', 'L''ID facture doit être un entier positif valide',
+            'step', v_step
+        );
+    END IF;
+    RAISE NOTICE 'pid_facture OK';
+
+    IF pmontant_acompte IS NULL OR pmontant_acompte <= 0 THEN
+        RAISE NOTICE 'ERREUR: pmontant_acompte invalide';
+        RETURN json_build_object(
+            'success', false,
+            'code', 'INVALID_AMOUNT',
+            'message', 'Le montant de l''acompte doit être supérieur à 0',
+            'step', v_step
+        );
+    END IF;
+    RAISE NOTICE 'pmontant_acompte OK';
+
+    -- ========================================
+    -- RÉCUPÉRATION DE LA FACTURE
+    -- ========================================
+    v_step := 'FETCH_FACTURE';
+    RAISE NOTICE '=== ÉTAPE 4: RÉCUPÉRATION FACTURE ===';
+    
+    SELECT 
+        fc.id_facture,
+        fc.num_facture,
+        fc.id_structure,
+        fc.montant,
+        fc.mt_remise,
+        fc.mt_acompte,
+        fc.mt_restant,
+        fc.id_etat,
+        fc.tel_client,
+        fc.nom_client_payeur
+    INTO v_facture_record
+    FROM public.facture_com fc
+    WHERE fc.id_facture = pid_facture 
+      AND fc.id_structure = pid_structure;
+
+    IF NOT FOUND THEN
+        RAISE NOTICE 'ERREUR: Facture non trouvée';
+        RETURN json_build_object(
+            'success', false,
+            'code', 'FACTURE_NOT_FOUND',
+            'message', 'Aucune facture trouvée avec l''ID ' || pid_facture,
+            'step', v_step
+        );
+    END IF;
+    
+    RAISE NOTICE 'Facture trouvée:';
+    RAISE NOTICE '  - id_facture: %', v_facture_record.id_facture;
+    RAISE NOTICE '  - num_facture: %', v_facture_record.num_facture;
+    RAISE NOTICE '  - montant: %', v_facture_record.montant;
+    RAISE NOTICE '  - mt_remise: %', v_facture_record.mt_remise;
+    RAISE NOTICE '  - mt_acompte: %', v_facture_record.mt_acompte;
+    RAISE NOTICE '  - mt_restant: %', v_facture_record.mt_restant;
+    RAISE NOTICE '  - id_etat: %', v_facture_record.id_etat;
+
+    -- Vérifier que la facture n'est pas déjà payée
+    IF v_facture_record.id_etat = 2 THEN
+        RAISE NOTICE 'ERREUR: Facture déjà payée';
+        RETURN json_build_object(
+            'success', false,
+            'code', 'ALREADY_PAID',
+            'message', 'La facture est déjà entièrement payée',
+            'step', v_step
+        );
+    END IF;
+
+    -- ========================================
+    -- CALCULS DES MONTANTS
+    -- ========================================
+    v_step := 'CALCULS';
+    RAISE NOTICE '=== ÉTAPE 5: CALCULS ===';
+    
+    v_nouveau_acompte := v_facture_record.mt_acompte + pmontant_acompte;
+    RAISE NOTICE 'v_nouveau_acompte: % + % = %', v_facture_record.mt_acompte, pmontant_acompte, v_nouveau_acompte;
+
+    IF v_nouveau_acompte > v_facture_record.montant THEN
+        RAISE NOTICE 'ERREUR: Montant dépassé (% > %)', v_nouveau_acompte, v_facture_record.montant;
+        RETURN json_build_object(
+            'success', false,
+            'code', 'AMOUNT_EXCEEDED',
+            'message', 'Montant dépassé',
+            'step', v_step
+        );
+    END IF;
+
+    v_nouveau_restant := v_facture_record.montant - v_nouveau_acompte;
+    RAISE NOTICE 'v_nouveau_restant: % - % = %', v_facture_record.montant, v_nouveau_acompte, v_nouveau_restant;
+
+    IF v_nouveau_restant = 0 THEN
+        v_nouvel_etat := 2;
+    ELSIF v_nouveau_restant = v_facture_record.mt_remise THEN
+        v_nouvel_etat := 2;
+        v_nouveau_restant := 0;
+    ELSE
+        v_nouvel_etat := 1;
+    END IF;
+    RAISE NOTICE 'v_nouvel_etat: %', v_nouvel_etat;
+
+    -- ========================================
+    -- MISE À JOUR DE LA FACTURE
+    -- ========================================
+    v_step := 'UPDATE_FACTURE';
+    RAISE NOTICE '=== ÉTAPE 6: UPDATE FACTURE ===';
+    
+    UPDATE public.facture_com 
+    SET montant = montant - v_facture_record.mt_remise,
+        mt_acompte = v_nouveau_acompte,
+        mt_restant = v_nouveau_restant,
+        id_etat = v_nouvel_etat,
+        numrecu = ptransactionid,
+        tms_update = NOW()::varchar
+    WHERE id_facture = pid_facture;
+    
+    RAISE NOTICE 'UPDATE facture_com OK - Rows affected: %', FOUND;
+
+    -- ========================================
+    -- INSERTION JOURNAL COMPTE
+    -- ========================================
+    v_step := 'INSERT_JOURNAL';
+    RAISE NOTICE '=== ÉTAPE 7: INSERT JOURNAL_COMPTE ===';
+    RAISE NOTICE 'Valeurs à insérer:';
+    RAISE NOTICE '  - date_journal: %', CURRENT_DATE;
+    RAISE NOTICE '  - id_structure: %', v_facture_record.id_structure;
+    RAISE NOTICE '  - reference_trx: %', ptransactionid;
+    RAISE NOTICE '  - mt_credit: %', pmontant_acompte;
+    RAISE NOTICE '  - mt_debit: 0';
+    RAISE NOTICE '  - uuid_trx: %', v_uuid;
+    RAISE NOTICE '  - Type uuid_trx: %', pg_typeof(v_uuid);
+    
+    INSERT INTO public.journal_compte (
+        date_journal,
+        id_structure,
+        reference_trx,
+        mt_credit,
+        mt_debit,
+        uuid_trx
+    )
+    VALUES (
+        CURRENT_DATE,
+        v_facture_record.id_structure,
+        ptransactionid,
+        pmontant_acompte,
+        0,
+        v_uuid
+    );
+    
+    RAISE NOTICE 'INSERT journal_compte OK';
+
+    -- ========================================
+    -- CRÉATION DU REÇU DE PAIEMENT
+    -- ========================================
+    v_step := 'INSERT_RECU';
+    RAISE NOTICE '=== ÉTAPE 8: INSERT RECUS_PAIEMENT ===';
+    
+    v_numrecugenere := 'REC-' || 
+                       pid_structure || '-' || 
+                       pid_facture || '-' || 
+                       FLOOR(EXTRACT(EPOCH FROM clock_timestamp()) * 1000)::BIGINT;
+    RAISE NOTICE 'Numéro reçu généré: %', v_numrecugenere;
+    
+    RAISE NOTICE 'Valeurs à insérer:';
+    RAISE NOTICE '  - id_facture: %', pid_facture;
+    RAISE NOTICE '  - id_structure: %', pid_structure;
+    RAISE NOTICE '  - numero_recu: %', v_numrecugenere;
+    RAISE NOTICE '  - methode_paiement: %', pmode_paiement;
+    RAISE NOTICE '  - montant_paye: %', pmontant_acompte;
+    RAISE NOTICE '  - reference_transaction: %', ptransactionid;
+    RAISE NOTICE '  - numero_telephone: %', ptel_client;
+
+    INSERT INTO public.recus_paiement (
+        id_facture,
+        id_structure,
+        numero_recu,
+        methode_paiement,
+        montant_paye,
+        reference_transaction,
+        numero_telephone
+    ) VALUES (
+        pid_facture,
+        pid_structure,
+        v_numrecugenere,
+        pmode_paiement,
+        pmontant_acompte,
+        ptransactionid,
+        ptel_client
+    );
+    
+    RAISE NOTICE 'INSERT recus_paiement OK';
+
+    -- ========================================
+    -- RÉCUPÉRATION DE TOUS LES REÇUS
+    -- ========================================
+    v_step := 'FETCH_RECUS';
+    RAISE NOTICE '=== ÉTAPE 9: FETCH RECUS ===';
+    
+    SELECT COALESCE(
+        json_agg(
+            json_build_object(
+                'id_recu', rp.id_recu,
+                'id_facture', rp.id_facture,
+                'numero_recu', rp.numero_recu,
+                'methode_paiement', rp.methode_paiement,
+                'montant_paye', rp.montant_paye,
+                'reference_transaction', rp.reference_transaction,
+                'date_paiement', rp.date_creation,
+                'telephone_client', rp.numero_telephone
+            )
+            ORDER BY rp.id_recu DESC
+        ),
+        '[]'::JSON
+    ) INTO v_recus_json
+    FROM public.recus_paiement rp
+    WHERE rp.id_facture = pid_facture;
+    
+    RAISE NOTICE 'FETCH recus OK: %', v_recus_json;
+	
+	 -- Récupérer les détails de la facture
+        SELECT COALESCE(
+            json_agg(
+                json_build_object(
+                    'id_detail', ldv.id_detail,
+                    'nom_produit', ldv.nom_produit,
+                    'quantite', ldv.quantite,
+                    'prix', ldv.prix,
+                    'sous_total', (ldv.quantite * ldv.prix)
+                )
+            ),
+            '[]'::JSON
+        ) INTO v_details_json
+        FROM public.list_detailventes ldv
+        WHERE ldv.id_facture = pid_facture;
+
+
+    -- ========================================
+    -- CONSTRUCTION DU JSON DE RETOUR
+    -- ========================================
+    v_step := 'BUILD_JSON';
+    RAISE NOTICE '=== ÉTAPE 10: BUILD JSON ===';
+    
+    v_result_json := json_build_object(
+        'success', true,
+        'code', CASE WHEN v_nouvel_etat = 2 THEN 'FULLY_PAID' ELSE 'PARTIAL_PAYMENT' END,
+        'message', CASE WHEN v_nouvel_etat = 2 THEN 'Facture entièrement payée' ELSE 'Acompte ajouté avec succès' END,
+        'facture', json_build_object(
+            'id_facture', v_facture_record.id_facture,
+            'num_facture', v_facture_record.num_facture,
+            'client', v_facture_record.nom_client_payeur,
+            'tel_client', v_facture_record.tel_client,
+            'montant_facture', v_facture_record.montant,
+            'ancien_acompte', v_facture_record.mt_acompte,
+            'montant_verse', pmontant_acompte,
+            'nouveau_acompte', v_nouveau_acompte,
+            'ancien_restant', v_facture_record.mt_restant,
+            'nouveau_restant', v_nouveau_restant,
+            'ancien_etat', v_facture_record.id_etat,
+            'nouvel_etat', v_nouvel_etat,
+            'statut', CASE WHEN v_nouvel_etat = 2 THEN 'PAYEE' ELSE 'IMPAYEE' END
+        ),
+        'paiement', json_build_object(
+            'mode_paiement', pmode_paiement,
+            'reference_transaction', ptransactionid,
+            'telephone', ptel_client,
+            'numero_recu', v_numrecugenere,
+            'uuid', v_uuid
+        ),
+		'detail_facture', v_details_json,
+        'recus_paiement', v_recus_json,
+        'timestamp_operation', NOW()
+    );
+    
+    RAISE NOTICE '=== ÉTAPE 11: SUCCÈS ===';
+    RAISE NOTICE 'Résultat: %', v_result_json;
+
+    RETURN v_result_json;
+
+EXCEPTION
+    WHEN OTHERS THEN
+        RAISE NOTICE '=== ERREUR EXCEPTION ===';
+        RAISE NOTICE 'Étape: %', v_step;
+        RAISE NOTICE 'SQLSTATE: %', SQLSTATE;
+        RAISE NOTICE 'SQLERRM: %', SQLERRM;
+        
+        RETURN json_build_object(
+            'success', false,
+            'code', 'ERROR',
+            'message', 'Erreur: ' || SQLERRM,
+            'step', v_step,
+            'data', json_build_object('sqlstate', SQLSTATE),
+            'timestamp_operation', NOW()
+        );
+END;
+$function$
+;
