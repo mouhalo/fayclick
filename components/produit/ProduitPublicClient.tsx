@@ -123,7 +123,7 @@ export default function ProduitPublicClient({ token }: ProduitPublicClientProps)
     return {
       facture: {
         id_facture: 0, // Pas encore de facture
-        num_facture: `ONLINE-${idStructure}-${timestamp}`,
+        num_facture: `ON${idStructure}-${String(timestamp).slice(-8)}`,
         nom_client: prenom.trim(),
         tel_client: telephone,
         nom_structure: nomStructure,
