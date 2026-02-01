@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   ShoppingBag,
   Package,
@@ -17,6 +17,7 @@ import {
 import Image from 'next/image';
 import { decodeProduitParams } from '@/lib/url-encoder';
 import { onlineSellerService, ProduitPublic } from '@/services/online-seller.service';
+import { recuService } from '@/services/recu.service';
 import { ModalPaiementQRCode } from '@/components/factures/ModalPaiementQRCode';
 import { PaymentMethod, PaymentContext } from '@/types/payment-wallet';
 
@@ -24,7 +25,7 @@ interface ProduitPublicClientProps {
   token: string;
 }
 
-type PageState = 'LOADING' | 'PRODUCT' | 'PAYING' | 'SUCCESS' | 'ERROR';
+type PageState = 'LOADING' | 'PRODUCT' | 'PAYING' | 'SUCCESS' | 'MASCOTTE' | 'ERROR';
 
 export default function ProduitPublicClient({ token }: ProduitPublicClientProps) {
   // Données produit
@@ -46,6 +47,7 @@ export default function ProduitPublicClient({ token }: ProduitPublicClientProps)
 
   // Résultat
   const [numFacture, setNumFacture] = useState('');
+  const [idFacture, setIdFacture] = useState<number | null>(null);
 
   // STORY-010 : Anti-abus - empêcher les doubles clics et soumissions multiples
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -168,16 +170,23 @@ export default function ProduitPublicClient({ token }: ProduitPublicClientProps)
 
       if (result.success) {
         setNumFacture(result.num_facture);
+        setIdFacture(result.id_facture);
         setPageState('SUCCESS');
+
+        // Le reçu est créé automatiquement par add_acompte_facture1 côté BD
+        console.log('🧾 [PRODUIT-PUBLIC] Paiement + reçu enregistrés par add_acompte_facture1:', result.acompte);
+
+        // Transition vers mascotte après 2.5s
+        setTimeout(() => setPageState('MASCOTTE'), 2500);
       } else {
         throw new Error('Échec création facture');
       }
     } catch (err) {
       console.error('❌ [PRODUIT-PUBLIC] Erreur création facture:', err);
-      // Le paiement wallet a réussi mais la facture a échoué
-      // On affiche quand même un succès partiel
       setPageState('SUCCESS');
       setNumFacture('En cours de traitement');
+      // Transition vers mascotte même en cas d'erreur (le paiement wallet a réussi)
+      setTimeout(() => setPageState('MASCOTTE'), 2500);
     }
   };
 
@@ -224,62 +233,108 @@ export default function ProduitPublicClient({ token }: ProduitPublicClientProps)
     );
   }
 
-  // Succès après paiement
-  if (pageState === 'SUCCESS') {
+  // Génération URL reçu
+  const recuUrl = idFacture
+    ? recuService.generateUrlPartage(idStructure, idFacture)
+    : null;
+
+  // Succès après paiement (fade-out vers mascotte)
+  if (pageState === 'SUCCESS' || pageState === 'MASCOTTE') {
     return (
       <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-green-100 flex items-center justify-center p-4">
-        <motion.div
-          initial={{ scale: 0.8, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          className="bg-white rounded-3xl shadow-xl p-8 max-w-sm w-full text-center"
-        >
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ delay: 0.2, type: 'spring', stiffness: 200 }}
-          >
-            <CheckCircle className="w-20 h-20 text-emerald-500 mx-auto mb-4" />
-          </motion.div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Paiement réussi !</h2>
-          <p className="text-gray-600 mb-4">Votre achat a été confirmé.</p>
+        <AnimatePresence mode="wait">
+          {pageState === 'SUCCESS' && (
+            <motion.div
+              key="success"
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.6, opacity: 0 }}
+              transition={{ duration: 0.5 }}
+              className="bg-white rounded-3xl shadow-xl p-6 max-w-sm w-full text-center"
+            >
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ delay: 0.2, type: 'spring', stiffness: 200 }}
+              >
+                <CheckCircle className="w-16 h-16 text-emerald-500 mx-auto mb-3" />
+              </motion.div>
+              <h2 className="text-xl font-bold text-gray-900 mb-1">Paiement réussi !</h2>
+              <p className="text-sm text-gray-600 mb-3">Votre achat a été confirmé.</p>
 
-          <div className="bg-emerald-50 rounded-2xl p-4 mb-6 text-left space-y-2">
-            <div className="flex justify-between">
-              <span className="text-gray-500 text-sm">Produit</span>
-              <span className="font-medium text-gray-900 text-sm">{produit?.nom_produit}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-500 text-sm">Quantité</span>
-              <span className="font-medium text-gray-900 text-sm">{quantite}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-500 text-sm">Montant payé</span>
-              <span className="font-bold text-emerald-600">{formatMontant(montantTotal)}</span>
-            </div>
-            {numFacture && (
-              <div className="flex justify-between">
-                <span className="text-gray-500 text-sm">N° Facture</span>
-                <span className="font-medium text-gray-900 text-sm">{numFacture}</span>
+              <div className="bg-emerald-50 rounded-xl p-3 mb-4 text-left space-y-1.5 text-xs">
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Produit</span>
+                  <span className="font-medium text-gray-900">{produit?.nom_produit}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Quantité</span>
+                  <span className="font-medium text-gray-900">{quantite}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Montant payé</span>
+                  <span className="font-bold text-emerald-600 text-sm">{formatMontant(montantTotal)}</span>
+                </div>
               </div>
-            )}
-            <div className="flex justify-between">
-              <span className="text-gray-500 text-sm">Client</span>
-              <span className="font-medium text-gray-900 text-sm">{prenom}</span>
-            </div>
-          </div>
 
-          <p className="text-gray-400 text-xs mb-4">
-            Un reçu vous sera envoyé par SMS au {telephone}
-          </p>
+              <p className="text-gray-400 text-[11px]">Préparation de votre reçu...</p>
+            </motion.div>
+          )}
 
-          <button
-            onClick={handleShare}
-            className="w-full bg-green-500 text-white py-3 rounded-xl font-medium flex items-center justify-center gap-2 hover:bg-green-600 transition-colors"
-          >
-            <Share2 className="w-5 h-5" />
-            Partager sur WhatsApp
-          </button>
-        </motion.div>
+          {pageState === 'MASCOTTE' && (
+            <motion.div
+              key="mascotte"
+              initial={{ scale: 0.5, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ duration: 0.6, type: 'spring', stiffness: 150 }}
+              className="max-w-sm w-full text-center"
+            >
+              <motion.div
+                initial={{ y: -20 }}
+                animate={{ y: 0 }}
+                transition={{ delay: 0.3 }}
+              >
+                <Image
+                  src="/images/mascotte.png"
+                  alt="FayClick Mascotte"
+                  width={180}
+                  height={180}
+                  className="mx-auto mb-4"
+                />
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.5 }}
+                className="bg-white rounded-2xl shadow-xl p-5"
+              >
+                <h2 className="text-lg font-bold text-gray-900 mb-1">Merci pour votre achat !</h2>
+                <p className="text-sm text-gray-500 mb-4">
+                  Partagez le reçu au vendeur pour vous faire livrer.
+                </p>
+
+                {recuUrl ? (
+                  <a
+                    href={recuUrl}
+                    className="w-full inline-flex items-center justify-center gap-2 bg-green-600 text-white py-3 rounded-xl font-medium hover:bg-green-700 transition-colors text-sm"
+                  >
+                    <CheckCircle className="w-4 h-4" />
+                    Voir mon reçu
+                  </a>
+                ) : (
+                  <button
+                    onClick={handleShare}
+                    className="w-full bg-green-500 text-white py-3 rounded-xl font-medium flex items-center justify-center gap-2 hover:bg-green-600 transition-colors text-sm"
+                  >
+                    <Share2 className="w-5 h-5" />
+                    Partager sur WhatsApp
+                  </button>
+                )}
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     );
   }
@@ -343,11 +398,12 @@ export default function ProduitPublicClient({ token }: ProduitPublicClientProps)
           {/* Image produit */}
           <div className="flex justify-center pt-4 pb-2">
             <Image
-              src="/images/mascotte.png"
+              src={produit.photos?.[0]?.url_photo || '/images/mascotte.png'}
               alt={produit.nom_produit}
               width={120}
               height={120}
-              className="object-contain"
+              className="object-contain rounded-lg"
+              onError={(e) => { (e.target as HTMLImageElement).src = '/images/mascotte.png'; }}
             />
           </div>
 

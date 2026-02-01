@@ -144,15 +144,18 @@ class FacturePubliqueService {
       }
 
       const telephone = params.telephone || '000000000';
-      const query = `SELECT * FROM add_acompte_facture(${params.id_structure}, ${params.id_facture}, ${params.montant_acompte}, '${params.transaction_id}', '${params.uuid}', '${params.mode_paiement}', '${telephone}')`;
-      console.log('📤 [FACTURE-PUBLIQUE] Requête acompte:', query);
+      // Mapper le mode de paiement vers le format BD (identique à walletDisplayConfig)
+      const modePaiement = params.mode_paiement;
+
+      const query = `SELECT * FROM add_acompte_facture1(${params.id_structure}, ${params.id_facture}, ${params.montant_acompte}, '${params.transaction_id}', '${params.uuid}', '${modePaiement}', '${telephone}')`;
+      console.log('📤 [FACTURE-PUBLIQUE] Requête acompte1:', query);
 
       const data = await DatabaseService.query(query);
 
       let acompteResult: unknown;
       if (Array.isArray(data) && data.length > 0) {
         const firstRow = data[0] as Record<string, unknown>;
-        acompteResult = firstRow.add_acompte_facture || firstRow;
+        acompteResult = firstRow.add_acompte_facture1 || firstRow;
       } else {
         acompteResult = data;
       }

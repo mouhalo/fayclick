@@ -1,22 +1,18 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Receipt,
-  User,
-  Package,
   AlertCircle,
   Loader,
-  Eye,
-  EyeOff,
   ChevronDown,
   CheckCircle,
-  CreditCard,
-  Share,
+  Share2,
   Copy,
-  Check
+  Check,
+  Printer
 } from 'lucide-react';
+import Image from 'next/image';
 import { decodeFactureParams } from '@/lib/url-encoder';
 import { RecuDetails, WalletDisplayConfig } from '@/types/recu';
 import { recuService } from '@/services/recu.service';
@@ -25,8 +21,15 @@ interface RecuPubliqueClientProps {
   token: string;
 }
 
-// Configuration d'affichage des wallets pour reçus
 const walletDisplayConfig: WalletDisplayConfig = {
+  'OM': {
+    name: 'OM',
+    displayName: 'Orange Money',
+    color: '#FF6B00',
+    bgGradient: 'from-orange-500 to-orange-600',
+    icon: '/images/om.png',
+    description: 'Mobile Money Orange'
+  },
   'orange-money': {
     name: 'orange-money',
     displayName: 'Orange Money',
@@ -34,6 +37,14 @@ const walletDisplayConfig: WalletDisplayConfig = {
     bgGradient: 'from-orange-500 to-orange-600',
     icon: '/images/om.png',
     description: 'Mobile Money Orange'
+  },
+  'WAVE': {
+    name: 'WAVE',
+    displayName: 'Wave',
+    color: '#00D4FF',
+    bgGradient: 'from-blue-400 to-cyan-500',
+    icon: '/images/wave.png',
+    description: 'Wave Mobile Money'
   },
   'wave': {
     name: 'wave',
@@ -43,6 +54,14 @@ const walletDisplayConfig: WalletDisplayConfig = {
     icon: '/images/wave.png',
     description: 'Wave Mobile Money'
   },
+  'FREE': {
+    name: 'FREE',
+    displayName: 'Free Money',
+    color: '#1E40AF',
+    bgGradient: 'from-blue-600 to-blue-700',
+    icon: '/images/free.png',
+    description: 'Free Money Mobile'
+  },
   'free-money': {
     name: 'free-money',
     displayName: 'Free Money',
@@ -50,34 +69,32 @@ const walletDisplayConfig: WalletDisplayConfig = {
     bgGradient: 'from-blue-600 to-blue-700',
     icon: '/images/free.png',
     description: 'Free Money Mobile'
+  },
+  'espèces': {
+    name: 'espèces',
+    displayName: 'Espèces',
+    color: '#16a34a',
+    bgGradient: 'from-green-500 to-green-600',
+    icon: '',
+    description: 'Paiement en espèces'
   }
 };
 
 export default function RecuPubliqueClient({ token }: RecuPubliqueClientProps) {
-
   const [recu, setRecu] = useState<RecuDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  // États pour l'affichage
-  const [showPrices, setShowPrices] = useState(true); // Montants visibles par défaut pour reçus
   const [showDetails, setShowDetails] = useState(false);
   const [urlCopied, setUrlCopied] = useState(false);
+  const printRef = useRef<HTMLDivElement>(null);
 
-  // Charger les données du reçu
   useEffect(() => {
     const loadRecuData = async () => {
       try {
         setLoading(true);
         setError(null);
-
-        // Décoder le token pour extraire les paramètres
         const params = decodeFactureParams(token);
-        if (!params) {
-          throw new Error('Token de reçu invalide');
-        }
-
-        // Récupérer le reçu via le service
+        if (!params) throw new Error('Token de reçu invalide');
         const recuData = await recuService.getRecuPublique(params.id_structure, params.id_facture);
         setRecu(recuData);
       } catch (err: unknown) {
@@ -87,35 +104,24 @@ export default function RecuPubliqueClient({ token }: RecuPubliqueClientProps) {
         setLoading(false);
       }
     };
-
-    if (token) {
-      loadRecuData();
-    }
+    if (token) loadRecuData();
   }, [token]);
 
   const formatMontant = (montant: number): string => {
-    return new Intl.NumberFormat('fr-SN', {
-      style: 'currency',
-      currency: 'XOF',
-      minimumFractionDigits: 0
-    }).format(montant);
+    return montant.toLocaleString('fr-FR') + ' F CFA';
   };
 
   const formatDate = (dateString: string): string => {
     return new Date(dateString).toLocaleDateString('fr-SN', {
       weekday: 'long',
-      year: 'numeric',
+      day: 'numeric',
       month: 'long',
-      day: 'numeric'
+      year: 'numeric'
     });
   };
 
-  const formatDateTime = (dateString: string): string => {
-    return new Date(dateString).toLocaleString('fr-SN', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
+  const formatHeure = (dateString: string): string => {
+    return new Date(dateString).toLocaleTimeString('fr-SN', {
       hour: '2-digit',
       minute: '2-digit'
     });
@@ -133,18 +139,21 @@ export default function RecuPubliqueClient({ token }: RecuPubliqueClientProps) {
 
   const handleWhatsAppShare = () => {
     if (!recu) return;
+    const walletName = getWalletConfig(recu.paiement.methode_paiement).displayName;
+    const datePaiement = formatDate(recu.paiement.date_paiement);
 
-    const message = `🧾 *Reçu de Paiement*\n\n` +
-      `📋 Reçu N°: ${recu.facture.numrecu}\n` +
-      `🏪 ${recu.facture.nom_structure}\n` +
-      `👤 Client: ${recu.facture.nom_client}\n` +
-      `💰 Montant: ${formatMontant(recu.paiement.montant_paye)}\n` +
-      `💳 Paiement: ${walletDisplayConfig[recu.paiement.methode_paiement]?.displayName}\n` +
-      `📅 Payé le: ${formatDate(recu.paiement.date_paiement)}\n\n` +
-      `🔗 Voir le reçu: ${window.location.href}`;
+    const message =
+      `Salut *${recu.facture.nom_structure}*, je viens de vous acheter pour *${formatMontant(recu.paiement.montant_paye)}* ` +
+      `un de vos articles en ligne.\n\n` +
+      `Ceci est mon Recu N°: *${recu.facture.numrecu}*\n` +
+      `ce ${datePaiement} avec *${walletName}*\n\n` +
+      `Voir le recu : ${window.location.href}`;
 
-    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
-    window.open(whatsappUrl, '_blank');
+    window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
+  };
+
+  const handlePrint = () => {
+    window.print();
   };
 
   const getWalletConfig = (walletType: string) => {
@@ -154,51 +163,44 @@ export default function RecuPubliqueClient({ token }: RecuPubliqueClientProps) {
       color: '#6B7280',
       bgGradient: 'from-gray-500 to-gray-600',
       icon: '',
-      description: 'Paiement Mobile'
+      description: 'Paiement'
     };
   };
 
+  // --- LOADING ---
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100 flex items-center justify-center p-3">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full text-center"
+          className="bg-white rounded-2xl shadow-xl p-6 max-w-sm w-full text-center"
         >
-          <Loader className="w-12 h-12 text-green-600 animate-spin mx-auto mb-4" />
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">
-            Chargement du reçu
-          </h2>
-          <p className="text-gray-600">
-            Récupération des informations de paiement...
-          </p>
+          <Loader className="w-8 h-8 text-green-600 animate-spin mx-auto mb-3" />
+          <p className="text-sm text-gray-600">Chargement du reçu...</p>
         </motion.div>
       </div>
     );
   }
 
+  // --- ERROR ---
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-red-50 to-red-100 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-br from-red-50 to-red-100 flex items-center justify-center p-3">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full text-center"
+          className="bg-white rounded-2xl shadow-xl p-6 max-w-sm w-full text-center"
         >
-          <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-          <h2 className="text-xl font-semibold text-red-800 mb-2">
-            Reçu introuvable
-          </h2>
-          <p className="text-red-600 mb-4">{error}</p>
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
+          <AlertCircle className="w-10 h-10 text-red-500 mx-auto mb-3" />
+          <h2 className="text-base font-semibold text-red-800 mb-1">Reçu introuvable</h2>
+          <p className="text-sm text-red-600 mb-3">{error}</p>
+          <button
             onClick={() => window.location.reload()}
-            className="px-6 py-3 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors"
+            className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 transition-colors"
           >
             Réessayer
-          </motion.button>
+          </button>
         </motion.div>
       </div>
     );
@@ -207,118 +209,132 @@ export default function RecuPubliqueClient({ token }: RecuPubliqueClientProps) {
   if (!recu) return null;
 
   const walletConfig = getWalletConfig(recu.paiement.methode_paiement);
+  const nbArticles = recu.details_articles?.length || 0;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-green-100 p-4">
-      <div className="max-w-2xl mx-auto">
-        {/* Header avec badge "Reçu Payé" */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-white rounded-2xl shadow-xl overflow-hidden mb-6"
-        >
-          {/* En-tête avec gradient vert succès */}
-          <div className="bg-gradient-to-r from-green-600 to-emerald-600 p-6 text-white">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-white/20 rounded-xl">
-                  <Receipt className="w-8 h-8" />
-                </div>
-                <div>
-                  <h1 className="text-2xl font-bold">Reçu de Paiement</h1>
-                  <p className="text-green-100 text-sm">
-                    {recu.facture.nom_structure}
-                  </p>
-                </div>
-              </div>
-              <div className="text-right">
-                <div className="bg-white/20 rounded-lg px-3 py-1 mb-2">
-                  <span className="text-sm font-medium">PAYÉ</span>
-                </div>
-                <CheckCircle className="w-6 h-6 mx-auto" />
-              </div>
+    <>
+      {/* Styles d'impression */}
+      <style jsx global>{`
+        @media print {
+          body * { visibility: hidden; }
+          .print-zone, .print-zone * { visibility: visible; }
+          .print-zone { position: absolute; left: 0; top: 0; width: 100%; }
+          .no-print { display: none !important; }
+        }
+      `}</style>
+
+      <div className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-green-100">
+        {/* Header structure identique à /produit?token */}
+        <div className="bg-gradient-to-r from-green-700 to-green-800 px-4 py-3 shadow-md no-print">
+          <div className="max-w-md mx-auto flex items-center gap-3">
+            <div className="flex-shrink-0">
+              <Image
+                src={recu.facture.logo && recu.facture.logo.trim() !== '' ? recu.facture.logo : '/images/logofayclick.png'}
+                alt={recu.facture.nom_structure}
+                width={40}
+                height={40}
+                className="rounded-full object-cover border-2 border-white/30"
+                onError={(e) => { (e.target as HTMLImageElement).src = '/images/logofayclick.png'; }}
+              />
+            </div>
+            <div className="flex-1 min-w-0">
+              <h1 className="font-bold text-white text-sm truncate">{recu.facture.nom_structure}</h1>
+              <p className="text-green-200 text-xs">Reçu de paiement</p>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={handlePrint}
+                className="p-2 rounded-full bg-white/20 text-white hover:bg-white/30 transition-colors"
+                title="Imprimer / PDF"
+              >
+                <Printer className="w-5 h-5" />
+              </button>
+              <button
+                onClick={handleWhatsAppShare}
+                className="p-2 rounded-full bg-white/20 text-white hover:bg-white/30 transition-colors"
+                title="Partager via WhatsApp"
+              >
+                <Share2 className="w-5 h-5" />
+              </button>
             </div>
           </div>
+        </div>
 
-          {/* Contenu principal */}
-          <div className="p-6">
-            {/* Informations du reçu */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-              {/* Informations client */}
-              <div className="bg-gray-50 rounded-xl p-4">
-                <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                  <User className="w-5 h-5 text-green-600" />
-                  Informations Client
-                </h3>
-                <div className="space-y-2 text-gray-700">
-                  <p><strong>Nom:</strong> {recu.facture.nom_client}</p>
-                  <p><strong>Téléphone:</strong> {recu.facture.tel_client}</p>
-                  <p><strong>Description:</strong> {recu.facture.description}</p>
-                </div>
-              </div>
+        <div className="max-w-md mx-auto px-3 py-4">
 
-              {/* Informations paiement */}
-              <div className="bg-gray-50 rounded-xl p-4">
-                <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                  <CreditCard className="w-5 h-5 text-green-600" />
-                  Détails Paiement
-                </h3>
-                <div className="space-y-2 text-gray-700">
-                  <p><strong>Méthode:</strong> {walletConfig.displayName}</p>
-                  <p><strong>Référence:</strong> {recu.paiement.reference_transaction}</p>
-                  <p><strong>Date:</strong> {formatDateTime(recu.paiement.date_paiement)}</p>
-                </div>
+          {/* === CARTE RECU === */}
+          <motion.div
+            ref={printRef}
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-white rounded-2xl shadow-xl overflow-hidden print-zone"
+          >
+            {/* Badge PAYÉ */}
+            <div className="bg-gradient-to-r from-green-600 to-emerald-600 px-4 py-2 text-white flex items-center justify-center gap-1.5">
+              <CheckCircle className="w-4 h-4" />
+              <span className="text-xs font-semibold">PAIEMENT CONFIRMÉ</span>
+            </div>
+
+            {/* Montant principal */}
+            <div className="px-4 pt-4 pb-3 text-center border-b border-dashed border-gray-200">
+              <p className="text-[11px] text-gray-500 uppercase tracking-wide mb-0.5">Montant payé</p>
+              <p className="text-2xl font-bold text-green-600">{formatMontant(recu.paiement.montant_paye)}</p>
+              <div className="flex items-center justify-center gap-1.5 mt-1.5">
+                <div className={`w-3 h-3 bg-gradient-to-r ${walletConfig.bgGradient} rounded-full`}></div>
+                <span className="text-xs text-gray-500">via {walletConfig.displayName}</span>
               </div>
             </div>
 
-            {/* Numéro de reçu et montant */}
-            <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-6 mb-6">
-              <div className="text-center">
-                <p className="text-gray-600 text-sm mb-2">Numéro de Reçu</p>
-                <p className="text-lg font-mono font-semibold text-gray-900 mb-4">
-                  {recu.facture.numrecu}
-                </p>
-
-                <div className="flex items-center justify-center gap-2 mb-2">
-                  <button
-                    onClick={() => setShowPrices(!showPrices)}
-                    className="p-2 text-green-600 hover:bg-green-100 rounded-lg transition-colors"
-                    title={showPrices ? 'Masquer le montant' : 'Afficher le montant'}
-                  >
-                    {showPrices ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                  </button>
-                </div>
-
-                <p className="text-gray-600 text-sm mb-2">Montant Payé</p>
-                <p className="text-4xl font-bold text-green-600">
-                  {showPrices ? formatMontant(recu.paiement.montant_paye) : '••••••'}
-                </p>
-
-                <div className="mt-4 flex items-center justify-center gap-2">
-                  <div className={`w-4 h-4 bg-gradient-to-r ${walletConfig.bgGradient} rounded-full`}></div>
-                  <span className="text-sm text-gray-600">
-                    Payé via {walletConfig.displayName}
-                  </span>
-                </div>
+            {/* Infos condensées */}
+            <div className="px-4 py-3 space-y-2 text-xs">
+              {/* N° reçu */}
+              <div className="flex justify-between items-center">
+                <span className="text-gray-500">N° Reçu</span>
+                <span className="font-mono font-semibold text-gray-800 text-[11px]">{recu.facture.numrecu}</span>
               </div>
+              {/* Client */}
+              <div className="flex justify-between items-center">
+                <span className="text-gray-500">Client</span>
+                <span className="font-medium text-gray-800">{recu.facture.nom_client}</span>
+              </div>
+              {/* Téléphone */}
+              {recu.facture.tel_client && recu.facture.tel_client !== '000000000' && (
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-500">Téléphone</span>
+                  <span className="text-gray-800">{recu.facture.tel_client}</span>
+                </div>
+              )}
+              {/* N° Facture */}
+              <div className="flex justify-between items-center">
+                <span className="text-gray-500">N° Facture</span>
+                <span className="font-mono text-gray-800">{recu.facture.num_facture}</span>
+              </div>
+              {/* Date */}
+              <div className="flex justify-between items-center">
+                <span className="text-gray-500">Date</span>
+                <span className="text-gray-800">{formatDate(recu.paiement.date_paiement)} à {formatHeure(recu.paiement.date_paiement)}</span>
+              </div>
+              {/* Référence */}
+              {recu.paiement.reference_transaction && (
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-500">Réf. transaction</span>
+                  <span className="font-mono text-[10px] text-gray-600 max-w-[55%] truncate text-right">{recu.paiement.reference_transaction}</span>
+                </div>
+              )}
             </div>
 
-            {/* Détails des articles */}
-            {recu.details_articles && recu.details_articles.length > 0 && (
-              <div className="bg-gray-50 rounded-xl p-4 mb-6">
+            {/* Détails articles (dépliable) */}
+            {nbArticles > 0 && (
+              <div className="border-t border-gray-100 px-4 py-2.5">
                 <button
                   onClick={() => setShowDetails(!showDetails)}
-                  className="w-full flex items-center justify-between text-left"
+                  className="w-full flex items-center justify-between no-print"
                 >
-                  <h3 className="font-semibold text-gray-900 flex items-center gap-2">
-                    <Package className="w-5 h-5 text-green-600" />
-                    Détails de la commande ({recu.details_articles.length} article{recu.details_articles.length > 1 ? 's' : ''})
-                  </h3>
-                  <motion.div
-                    animate={{ rotate: showDetails ? 180 : 0 }}
-                    transition={{ duration: 0.2 }}
-                  >
-                    <ChevronDown className="w-5 h-5 text-gray-400" />
+                  <span className="text-xs font-medium text-gray-700">
+                    {nbArticles} article{nbArticles > 1 ? 's' : ''}
+                  </span>
+                  <motion.div animate={{ rotate: showDetails ? 180 : 0 }} transition={{ duration: 0.2 }}>
+                    <ChevronDown className="w-4 h-4 text-gray-400" />
                   </motion.div>
                 </button>
 
@@ -328,79 +344,64 @@ export default function RecuPubliqueClient({ token }: RecuPubliqueClientProps) {
                       initial={{ opacity: 0, height: 0 }}
                       animate={{ opacity: 1, height: 'auto' }}
                       exit={{ opacity: 0, height: 0 }}
-                      className="mt-4 overflow-hidden"
+                      className="overflow-hidden"
                     >
-                      <div className="overflow-x-auto">
-                        <table className="w-full text-sm">
-                          <thead>
-                            <tr className="border-b border-gray-200">
-                              <th className="text-left py-2 px-2 font-medium text-gray-900">Article</th>
-                              <th className="text-center py-2 px-2 font-medium text-gray-900">Qté</th>
-                              <th className="text-right py-2 px-2 font-medium text-gray-900">Prix Unit.</th>
-                              <th className="text-right py-2 px-2 font-medium text-gray-900">Total</th>
+                      <table className="w-full text-[11px] mt-2">
+                        <thead>
+                          <tr className="border-b border-gray-200 text-gray-500">
+                            <th className="text-left py-1.5 font-medium">Article</th>
+                            <th className="text-center py-1.5 font-medium w-10">Qté</th>
+                            <th className="text-right py-1.5 font-medium">P.U.</th>
+                            <th className="text-right py-1.5 font-medium">Total</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {recu.details_articles.map((article, i) => (
+                            <tr key={i} className="border-b border-gray-50">
+                              <td className="py-1.5 text-gray-800 font-medium pr-2 max-w-[120px] truncate">{article.nom_produit}</td>
+                              <td className="text-center py-1.5 text-gray-600">{article.quantite}</td>
+                              <td className="text-right py-1.5 text-gray-600">{formatMontant(article.prix)}</td>
+                              <td className="text-right py-1.5 font-medium text-gray-800">{formatMontant(article.sous_total)}</td>
                             </tr>
-                          </thead>
-                          <tbody>
-                            {recu.details_articles.map((article, index) => (
-                              <tr key={index} className="border-b border-gray-100">
-                                <td className="py-2 px-2 font-medium text-gray-900">
-                                  {article.nom_produit}
-                                </td>
-                                <td className="text-center py-2 px-2">
-                                  {article.quantite}
-                                </td>
-                                <td className="text-right py-2 px-2">
-                                  {showPrices ? formatMontant(article.prix) : '•••••'}
-                                </td>
-                                <td className="text-right py-2 px-2 font-medium">
-                                  {showPrices ? formatMontant(article.sous_total) : '•••••'}
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
+                          ))}
+                        </tbody>
+                        <tfoot>
+                          <tr className="border-t border-gray-200">
+                            <td colSpan={3} className="text-right py-2 font-semibold text-gray-800">Total</td>
+                            <td className="text-right py-2 font-bold text-green-600">{formatMontant(recu.paiement.montant_paye)}</td>
+                          </tr>
+                        </tfoot>
+                      </table>
                     </motion.div>
                   )}
                 </AnimatePresence>
               </div>
             )}
 
-            {/* Actions de partage */}
-            <div className="flex flex-col sm:flex-row gap-3">
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={handleWhatsAppShare}
-                className="flex-1 px-4 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
-              >
-                <Share className="w-5 h-5" />
-                Partager via WhatsApp
-              </motion.button>
-
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={handleCopyUrl}
-                className="px-4 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
-              >
-                {urlCopied ? <Check className="w-5 h-5" /> : <Copy className="w-5 h-5" />}
-                {urlCopied ? 'Copié !' : 'Copier le lien'}
-              </motion.button>
+            {/* Footer FayClick */}
+            <div className="border-t border-gray-100 py-2 text-center">
+              <p className="text-[10px] text-gray-400">Reçu généré par FayClick</p>
             </div>
-          </div>
-        </motion.div>
+          </motion.div>
 
-        {/* Footer */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.3 }}
-          className="text-center text-gray-500 text-sm"
-        >
-          <p>Reçu généré par FayClick • Paiement sécurisé</p>
-        </motion.div>
+          {/* Copier le lien */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.15 }}
+            className="mt-3 no-print"
+          >
+            <button
+              onClick={handleCopyUrl}
+              className="w-full flex items-center justify-center gap-1.5 py-2.5 bg-white border border-gray-200 text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors"
+            >
+              {urlCopied ? <Check className="w-4 h-4 text-green-600" /> : <Copy className="w-4 h-4" />}
+              {urlCopied ? 'Lien copié !' : 'Copier le lien du reçu'}
+            </button>
+          </motion.div>
+
+        </div>
       </div>
-    </div>
+    </>
   );
 }

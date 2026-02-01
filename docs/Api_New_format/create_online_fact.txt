@@ -1,0 +1,96 @@
+CREATE OR REPLACE FUNCTION public.create_facture_online(p_date_facture date, p_id_structure integer, p_tel_client character varying,
+p_nom_client_payeur character varying, p_montant numeric, p_description character varying, p_articles_string text)
+ RETURNS TABLE(id_facture integer, success boolean, message text, detail_ids integer[], detail_count integer)
+ LANGUAGE plpgsql
+AS $function$
+DECLARE
+    v_new_document_id INTEGER;
+    v_articles_array TEXT[];
+    v_article_parts TEXT[];
+    v_article_string TEXT;
+    v_detail_ids INTEGER[] := '{}';
+    v_detail_id INTEGER;
+    v_count INTEGER := 0;
+    v_expected_count INTEGER;
+    v_id_produit INTEGER;
+    v_quantite FLOAT;
+    v_prix NUMERIC(10,2);
+    v_type_document VARCHAR(10);
+BEGIN
+    v_type_document :=  'Facture';
+
+    IF p_articles_string IS NULL OR LENGTH(TRIM(p_articles_string)) = 0 THEN
+        RETURN QUERY SELECT NULL::INTEGER, FALSE, 'Aucun article fourni'::TEXT, '{}'::INTEGER[], 0;
+        RETURN;
+    END IF;
+
+    v_articles_array := string_to_array(TRIM(p_articles_string, '#'), '#');
+    v_expected_count := array_length(v_articles_array, 1);
+
+    IF v_expected_count IS NULL OR v_expected_count = 0 THEN
+        RETURN QUERY SELECT NULL::INTEGER, FALSE, 'Format articles invalide'::TEXT, '{}'::INTEGER[], 0;
+        RETURN;
+    END IF;
+
+    BEGIN
+  
+            SELECT public.add_new_facture(
+                p_date_facture, p_id_structure, p_tel_client, p_nom_client_payeur,
+                p_montant, p_description, 0, 0, 0
+            ) INTO v_new_document_id;
+
+
+
+        FOR i IN 1..v_expected_count LOOP
+            v_article_string := v_articles_array[i];
+            v_article_parts := string_to_array(v_article_string, '-');
+
+            IF array_length(v_article_parts, 1) != 3 THEN
+                RAISE EXCEPTION 'Format article invalide: "%" (attendu: id-quantite-prix)', v_article_string;
+            END IF;
+
+            BEGIN
+                v_id_produit := v_article_parts[1]::INTEGER;
+                v_quantite := v_article_parts[2]::FLOAT;
+                v_prix := v_article_parts[3]::NUMERIC(10,2);
+
+                IF v_id_produit <= 0 OR v_quantite <= 0 OR v_prix < 0 THEN
+                    RAISE EXCEPTION 'Valeurs invalides pour article: ID=%, QTE=%, PRIX=%', v_id_produit, v_quantite, v_prix;
+                END IF;
+            EXCEPTION
+                WHEN invalid_text_representation THEN
+                    RAISE EXCEPTION 'Conversion impossible pour article: "%"', v_article_string;
+            END;
+
+           
+                -- CORRECTION: Ajout de date_facture dans l'INSERT
+                INSERT INTO public.detail_facture_com (id_facture, date_facture, id_produit, quantite, prix)
+                VALUES (v_new_document_id, p_date_facture, v_id_produit, v_quantite, v_prix)
+                RETURNING id_detail INTO v_detail_id;
+   
+
+            IF v_detail_id IS NULL OR v_detail_id <= 0 THEN
+                RAISE EXCEPTION 'Échec insertion détail pour produit ID %', v_id_produit;
+            END IF;
+
+            v_detail_ids := array_append(v_detail_ids, v_detail_id);
+            v_count := v_count + 1;
+        END LOOP;
+
+        IF v_count != v_expected_count THEN
+            RAISE EXCEPTION 'Nombre de détails créés (%) différent du nombre attendu (%)', v_count, v_expected_count;
+        END IF;
+
+        RETURN QUERY SELECT v_new_document_id, TRUE, 
+            format('%s créé avec %s détails', v_type_document, v_count)::TEXT, 
+            v_detail_ids, v_count;
+
+    EXCEPTION
+        WHEN OTHERS THEN
+            RETURN QUERY SELECT NULL::INTEGER, FALSE, 
+                format('Erreur création %s: %s', v_type_document, SQLERRM)::TEXT, 
+                '{}'::INTEGER[], 0;
+    END;
+END;
+$function$
+;
