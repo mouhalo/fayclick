@@ -72,6 +72,18 @@ export interface SeuilsStock {
   seuilAlerte: number;
 }
 
+// Opérateur de comparaison pour filtres avancés
+export type ComparisonOperator = '<' | '>' | '=' | '<=' | '>=';
+
+// Filtre avancé avec opérateurs de comparaison
+export interface FiltreAvance {
+  categorie?: string;
+  stockOperator?: ComparisonOperator;
+  stockValue?: number;
+  prixOperator?: ComparisonOperator;
+  prixValue?: number;
+}
+
 // Filtre pour la recherche de produits
 export interface FiltreProduits {
   searchTerm?: string;
@@ -79,6 +91,11 @@ export interface FiltreProduits {
   enStock?: boolean;
   prixMin?: number;
   prixMax?: number;
+  // Filtres avancés avec opérateurs de comparaison
+  stockOperator?: ComparisonOperator;
+  stockValue?: number;
+  prixOperator?: ComparisonOperator;
+  prixValue?: number;
   sortBy?: 'nom' | 'prix' | 'stock' | 'marge';
   sortOrder?: 'asc' | 'desc';
 }

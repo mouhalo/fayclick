@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AlertTriangle, X, Shield, ArrowRight } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
@@ -11,12 +12,16 @@ import { useAuth } from '@/contexts/AuthContext';
  */
 export default function PasswordChangeNotification() {
   const { user, isAuthenticated } = useAuth();
+  const pathname = usePathname();
   const [isVisible, setIsVisible] = useState(false);
   const [isDismissed, setIsDismissed] = useState(false);
 
+  // Visible uniquement sur les pages dashboard
+  const isDashboardPage = pathname.startsWith('/dashboard');
+
   useEffect(() => {
-    // Vérifier si l'utilisateur est connecté et n'a pas changé son mot de passe
-    if (isAuthenticated && user && user.pwd_changed === false && !isDismissed) {
+    // Vérifier si l'utilisateur est connecté, sur le dashboard, et n'a pas changé son mot de passe
+    if (isAuthenticated && isDashboardPage && user && user.pwd_changed === false && !isDismissed) {
       // Petit délai pour laisser la page se charger
       const timer = setTimeout(() => {
         setIsVisible(true);
@@ -26,7 +31,7 @@ export default function PasswordChangeNotification() {
     } else {
       setIsVisible(false);
     }
-  }, [isAuthenticated, user, isDismissed]);
+  }, [isAuthenticated, isDashboardPage, user, isDismissed]);
 
   const handleGoToProfile = () => {
     setIsVisible(false);

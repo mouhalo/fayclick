@@ -8,7 +8,8 @@ import { ModalDeconnexion } from '@/components/auth/ModalDeconnexion';
 import { type UserCredentialsResult } from '@/types';
 import DatabaseService from '@/services/database.service';
 import { useAuth } from '@/contexts/AuthContext';
-import { Lock, LockOpen, User, Phone, Shield, Check, X, Eye, EyeOff } from 'lucide-react';
+import { Lock, LockOpen, User, Phone, Shield, Check, X, Eye, EyeOff, KeyRound } from 'lucide-react';
+import OTPInput from '@/components/coffre-fort/OTPInput';
 import PopMessage from '@/components/ui/PopMessage';
 
 interface MenuProps {
@@ -180,6 +181,24 @@ export default function MainMenu({ isOpen, onClose, userName, businessName }: Me
   );
 }
 
+// Utilitaires PIN (connexion rapide)
+const PIN_STORAGE_KEY = 'fayclick_quick_pin';
+
+function savePinData(login: string, pwd: string, pin: string) {
+  const data = JSON.stringify({ login, pwd, pin, lastMode: 'pin' });
+  localStorage.setItem(PIN_STORAGE_KEY, btoa(data));
+}
+
+function getPinData(): { login: string; pwd: string; pin: string; lastMode: string } | null {
+  const raw = localStorage.getItem(PIN_STORAGE_KEY);
+  if (!raw) return null;
+  try { return JSON.parse(atob(raw)); } catch { return null; }
+}
+
+function removePinData() {
+  localStorage.removeItem(PIN_STORAGE_KEY);
+}
+
 // Modal de profil
 interface ProfileModalProps {
   isOpen: boolean;
@@ -199,7 +218,19 @@ function ProfileModal({ isOpen, onClose, user }: ProfileModalProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
-  
+
+  // États PIN
+  const [showPinSetup, setShowPinSetup] = useState(false);
+  const [pinPassword, setPinPassword] = useState('');
+  const [pinError, setPinError] = useState('');
+  const [hasPinConfigured, setHasPinConfigured] = useState(false);
+  const [pendingPin, setPendingPin] = useState('');
+
+  // Détecter si un PIN est configuré
+  useEffect(() => {
+    setHasPinConfigured(!!getPinData());
+  }, []);
+
   // État pour PopMessage
   const [popMessage, setPopMessage] = useState<{
     show: boolean;
@@ -260,6 +291,38 @@ function ProfileModal({ isOpen, onClose, user }: ProfileModalProps) {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // Handlers PIN
+  const handlePinComplete = (pin: string) => {
+    setPendingPin(pin);
+  };
+
+  const handlePinValidate = () => {
+    if (!pinPassword) {
+      setPinError('Entrez votre mot de passe actuel');
+      return;
+    }
+    if (!pendingPin || pendingPin.length !== 4) {
+      setPinError('Saisissez un code PIN à 4 chiffres');
+      return;
+    }
+    savePinData(user?.login || '', pinPassword, pendingPin);
+    setHasPinConfigured(true);
+    setShowPinSetup(false);
+    setPinPassword('');
+    setPendingPin('');
+    setPinError('');
+    showMessage('success', 'Code PIN configuré avec succès ! Vous pourrez l\'utiliser pour vous connecter rapidement.', 'PIN activé');
+  };
+
+  const handlePinRemove = () => {
+    removePinData();
+    setHasPinConfigured(false);
+    setShowPinSetup(false);
+    setPinPassword('');
+    setPendingPin('');
+    showMessage('info', 'Code PIN supprimé. Vous utiliserez le login classique.', 'PIN désactivé');
   };
 
   return (
@@ -412,6 +475,90 @@ function ProfileModal({ isOpen, onClose, user }: ProfileModalProps) {
                         {showPassword ? <EyeOff className="w-3 h-3 sm:w-4 sm:h-4" /> : <Eye className="w-3 h-3 sm:w-4 sm:h-4" />}
                       </button>
                     </div>
+                  </div>
+
+                  {/* Code PIN rapide */}
+                  <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg sm:rounded-xl p-3 sm:p-4 border border-blue-100">
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="text-xs sm:text-sm font-medium text-gray-700 flex items-center gap-1 sm:gap-2">
+                        <KeyRound className="w-3 h-3 sm:w-4 sm:h-4 text-blue-500" />
+                        Code PIN rapide
+                      </label>
+                      <div className="flex items-center gap-2">
+                        {hasPinConfigured && (
+                          <>
+                            <span className="text-[10px] sm:text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">
+                              PIN actif
+                            </span>
+                            <button
+                              type="button"
+                              onClick={handlePinRemove}
+                              className="text-red-500 hover:text-red-600 text-[10px] sm:text-xs font-medium hover:bg-red-50 px-1.5 py-0.5 rounded transition-colors"
+                            >
+                              Supprimer
+                            </button>
+                          </>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowPinSetup(!showPinSetup);
+                            setPinError('');
+                            setPinPassword('');
+                            setPendingPin('');
+                          }}
+                          className="text-blue-600 hover:text-blue-700 flex items-center gap-1 text-xs sm:text-sm font-medium bg-blue-50 hover:bg-blue-100 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg transition-colors"
+                        >
+                          <KeyRound className="w-3 h-3 sm:w-4 sm:h-4" />
+                          {hasPinConfigured ? 'Modifier' : 'Configurer'}
+                        </button>
+                      </div>
+                    </div>
+
+                    <p className="text-[10px] sm:text-xs text-gray-500 mb-2">
+                      Connectez-vous plus vite avec un code à 4 chiffres
+                    </p>
+
+                    {/* Formulaire de configuration PIN inline */}
+                    {showPinSetup && (
+                      <div className="mt-3 space-y-3 bg-white/80 rounded-lg p-3 border border-blue-100">
+                        {/* Mot de passe actuel */}
+                        <div>
+                          <label className="block text-[10px] sm:text-xs font-medium text-gray-600 mb-1">
+                            Mot de passe actuel (vérification)
+                          </label>
+                          <input
+                            type="password"
+                            value={pinPassword}
+                            onChange={(e) => { setPinPassword(e.target.value); setPinError(''); }}
+                            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            placeholder="Entrez votre mot de passe"
+                          />
+                        </div>
+
+                        {/* Saisie PIN */}
+                        <div>
+                          <label className="block text-[10px] sm:text-xs font-medium text-gray-600 mb-2">
+                            Nouveau code PIN (4 chiffres)
+                          </label>
+                          <OTPInput
+                            length={4}
+                            onComplete={handlePinComplete}
+                            error={pinError}
+                            helperText="Choisissez 4 chiffres faciles à retenir"
+                          />
+                        </div>
+
+                        {/* Bouton valider */}
+                        <button
+                          type="button"
+                          onClick={handlePinValidate}
+                          className="w-full py-2 bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white text-sm font-medium rounded-lg transition-all"
+                        >
+                          Valider le code PIN
+                        </button>
+                      </div>
+                    )}
                   </div>
 
                   {/* Statut actif - Version compacte */}

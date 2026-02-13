@@ -25,7 +25,8 @@ import {
   AlertTriangle,
   Grid3X3,
   LayoutGrid,
-  Square
+  Square,
+  Filter
 } from 'lucide-react';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { usePrintJob } from '@/hooks/usePrintJob';
@@ -42,6 +43,8 @@ interface ModalImpressionProduitsProps {
   produits: Produit[];
   nomStructure: string;
   logoStructure?: string;
+  isFiltered?: boolean;
+  totalProduitsCount?: number;
 }
 
 type ViewState = 'main' | 'qr-options';
@@ -188,7 +191,9 @@ export function ModalImpressionProduits({
   onClose,
   produits,
   nomStructure,
-  logoStructure
+  logoStructure,
+  isFiltered = false,
+  totalProduitsCount
 }: ModalImpressionProduitsProps) {
   const { isMobile, isMobileLarge } = useBreakpoint();
 
@@ -354,7 +359,7 @@ export function ModalImpressionProduits({
                   <div>
                     <h2 className={`${styles.titleSize} font-bold`}>Impression Produits</h2>
                     <p className={`text-emerald-100 ${styles.subtitleSize}`}>
-                      {stats.totalProduits} produits
+                      {stats.totalProduits} produits{isFiltered ? ' (filtrés)' : ''}
                     </p>
                   </div>
                 </div>
@@ -376,6 +381,20 @@ export function ModalImpressionProduits({
                   {isProcessing ? 'GÉNÉRATION EN COURS' : 'IMPRESSION PDF'}
                 </div>
               </div>
+
+              {/* Bandeau filtres actifs */}
+              {isFiltered && !isProcessing && (
+                <div className={`bg-orange-50 border border-orange-200 rounded-xl ${isMobile ? 'p-2.5' : 'p-3'} mb-4`}>
+                  <div className="flex items-center gap-2 text-orange-800">
+                    <Filter className="w-4 h-4 flex-shrink-0" />
+                    <span className={isMobile ? 'text-xs' : 'text-sm'}>
+                      <strong>{stats.totalProduits} produit{stats.totalProduits > 1 ? 's' : ''} filtré{stats.totalProduits > 1 ? 's' : ''}</strong>
+                      {totalProduitsCount ? ` sur ${totalProduitsCount} au total` : ''}
+                      {' — seuls les produits filtrés seront imprimés'}
+                    </span>
+                  </div>
+                </div>
+              )}
 
               {/* Barre de progression */}
               {isProcessing && (

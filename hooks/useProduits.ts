@@ -64,6 +64,35 @@ export function useProduits() {
       filteredProducts = filteredProducts.filter(p => p.prix_vente <= filtres.prixMax!);
     }
 
+    // Filtre stock avec opérateur de comparaison
+    if (filtres.stockOperator && filtres.stockValue !== undefined) {
+      filteredProducts = filteredProducts.filter(p => {
+        const stock = p.niveau_stock || 0;
+        switch (filtres.stockOperator) {
+          case '<': return stock < filtres.stockValue!;
+          case '>': return stock > filtres.stockValue!;
+          case '=': return stock === filtres.stockValue!;
+          case '<=': return stock <= filtres.stockValue!;
+          case '>=': return stock >= filtres.stockValue!;
+          default: return true;
+        }
+      });
+    }
+
+    // Filtre prix avec opérateur de comparaison
+    if (filtres.prixOperator && filtres.prixValue !== undefined) {
+      filteredProducts = filteredProducts.filter(p => {
+        switch (filtres.prixOperator) {
+          case '<': return p.prix_vente < filtres.prixValue!;
+          case '>': return p.prix_vente > filtres.prixValue!;
+          case '=': return p.prix_vente === filtres.prixValue!;
+          case '<=': return p.prix_vente <= filtres.prixValue!;
+          case '>=': return p.prix_vente >= filtres.prixValue!;
+          default: return true;
+        }
+      });
+    }
+
     // Tri
     if (filtres.sortBy) {
       filteredProducts.sort((a, b) => {
