@@ -7,7 +7,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   Plus,
   RefreshCw,
@@ -37,7 +37,7 @@ import { GlassHeader } from '@/components/ui/GlassHeader';
 import { ProduitsList } from '@/components/produits/ProduitsList';
 import { ProduitsFilterHeader } from '@/components/produits/ProduitsFilterHeader';
 import { GlassPagination, usePagination } from '@/components/ui/GlassPagination';
-import { Produit, AddEditProduitResponse } from '@/types/produit';
+import { Produit, AddEditProduitResponse, ComparisonOperator } from '@/types/produit';
 import { User } from '@/types/auth';
 import { ModalScanCodeBarre } from '@/components/produits/ModalScanCodeBarre';
 import { ModalImpressionProduits } from '@/components/produits/ModalImpressionProduits';
@@ -45,6 +45,7 @@ import { usePanierStore } from '@/stores/panierStore';
 import { ModalAbonnementExpire, useModalAbonnementExpire } from '@/components/subscription/ModalAbonnementExpire';
 import { ModalEnrolementProduits } from '@/components/visual-recognition';
 import { ModalOptionsAjout } from '@/components/produits/ModalOptionsAjout';
+import { ProduitsFilterPanel } from '@/components/produits/ProduitsFilterPanel';
 
 export default function ProduitsCommercePage() {
   const router = useRouter();
@@ -85,6 +86,9 @@ export default function ProduitsCommercePage() {
   // État pour l'accordéon des statistiques (replié par défaut)
   const [showStats, setShowStats] = useState(false);
 
+  // État pour la pagination sticky en bas
+  const [showStickyPagination, setShowStickyPagination] = useState(false);
+
   // Configuration pagination
   const itemsPerPage = 10;
 
@@ -103,7 +107,8 @@ export default function ProduitsCommercePage() {
     ajouterProduit,
     modifierProduit,
     supprimerProduit,
-    resetFiltres
+    resetFiltres,
+    setFiltres
   } = useProduits();
 
   const { ToastComponent, showToast } = useToast();
@@ -194,6 +199,28 @@ export default function ProduitsCommercePage() {
       loadProduits();
     }
   }, [user, isAuthLoading, loadProduits]);
+
+  // Scroll listener pour la pagination sticky : afficher uniquement quand l'utilisateur atteint le bas de la page
+  useEffect(() => {
+    if (totalPages <= 1) {
+      setShowStickyPagination(false);
+      return;
+    }
+
+    const handleScroll = () => {
+      const scrollTop = window.scrollY || document.documentElement.scrollTop;
+      const windowHeight = window.innerHeight;
+      const documentHeight = document.documentElement.scrollHeight;
+      const distanceFromBottom = documentHeight - scrollTop - windowHeight;
+
+      // Afficher la sticky uniquement quand on est à moins de 150px du bas de la page
+      setShowStickyPagination(distanceFromBottom < 150);
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    handleScroll(); // Vérifier la position initiale
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [totalPages, filteredCount, isLoadingProduits]);
 
   // Rechargement manuel
   const handleRefresh = async () => {
@@ -462,6 +489,7 @@ export default function ProduitsCommercePage() {
   // Gestion de la pagination
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   // Gestion des filtres avec reset de pagination
@@ -473,8 +501,34 @@ export default function ProduitsCommercePage() {
 
   const handleClearFilters = () => {
     resetFiltres();
+    setShowFilters(false);
     setCurrentPage(1); // Reset à la première page
   };
+
+  // Gestion des filtres avancés (mappe FiltreAvance -> FiltreProduits)
+  const handleApplyAdvancedFilters = (advancedFilters: {
+    categorie?: string;
+    stockOperator?: ComparisonOperator;
+    stockValue?: number;
+    prixOperator?: ComparisonOperator;
+    prixValue?: number;
+  }) => {
+    setFiltres({
+      nom_categorie: advancedFilters.categorie,
+      stockOperator: advancedFilters.stockOperator,
+      stockValue: advancedFilters.stockValue,
+      prixOperator: advancedFilters.prixOperator,
+      prixValue: advancedFilters.prixValue,
+    });
+    setCurrentPage(1);
+  };
+
+  // Compteur de filtres actifs
+  const activeFiltersCount = [
+    filtres.nom_categorie,
+    filtres.stockOperator && filtres.stockValue !== undefined,
+    filtres.prixOperator && filtres.prixValue !== undefined,
+  ].filter(Boolean).length;
 
   // Handlers pour la vue tableau
   const handleProduitClickTable = (produit: Produit) => {
@@ -588,9 +642,20 @@ export default function ProduitsCommercePage() {
           }
         />
 
+        {/* Panneau de filtres avancés */}
+        <div className="px-5 pt-2">
+          <ProduitsFilterPanel
+            isOpen={showFilters}
+            produits={produits}
+            onApplyFilters={handleApplyAdvancedFilters}
+            onResetFilters={handleClearFilters}
+            activeFiltersCount={activeFiltersCount}
+          />
+        </div>
+
         {/* Contenu principal */}
         <div className="p-5 pb-24">
-          
+
           {/* Accordéon Statistiques */}
           <div className="mb-4">
             {/* Header accordéon */}
@@ -707,11 +772,14 @@ export default function ProduitsCommercePage() {
             isEmpty={!isLoadingProduits && produits.length === 0}
             hasNoResults={!isLoadingProduits && produits.length > 0 && filteredCount === 0}
             searchTerm={searchTerm}
-            hasFilters={Object.keys(filtres).length > 0}
+            hasFilters={Object.values(filtres).some(v => v !== undefined && v !== '')}
             skeletonCount={itemsPerPage}
             onProduitClick={handleProduitClickTable}
             onVendreClick={handleVendreClick}
           />
+
+          {/* Sentinel bas de page pour l'espacement */}
+          <div className="h-4" />
         </div>
 
         {/* Bouton flottant vert sombre - Ouvre modal options d'ajout */}
@@ -749,6 +817,31 @@ export default function ProduitsCommercePage() {
           </span>
         </motion.button>
       
+        {/* Pagination sticky fixed en bas - visible quand on scrolle et la pagination statique n'est plus visible */}
+        <AnimatePresence>
+          {showStickyPagination && totalPages > 1 && (
+            <motion.div
+              initial={{ y: 80, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 80, opacity: 0 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+              className="fixed bottom-16 left-0 right-0 z-[45] px-4 pb-2"
+            >
+              <div className="max-w-md md:max-w-full md:px-6 lg:px-8 xl:px-12 mx-auto">
+                <GlassPagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  totalItems={filteredCount}
+                  itemsPerPage={itemsPerPage}
+                  onPageChange={handlePageChange}
+                  itemLabel="produits"
+                  className="shadow-2xl bg-green-600/90 backdrop-blur-md border border-white/30 rounded-xl"
+                />
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {/* StatusBar Panier - fixe en bas */}
         <StatusBarPanier />
       </div>
@@ -874,6 +967,8 @@ export default function ProduitsCommercePage() {
         onClose={() => setShowPrintModal(false)}
         produits={produitsFiltered}
         nomStructure={user.nom_structure}
+        isFiltered={activeFiltersCount > 0 || !!searchTerm}
+        totalProduitsCount={produits.length}
       />
 
 

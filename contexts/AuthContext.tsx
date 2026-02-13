@@ -311,12 +311,20 @@ export function AuthProvider({ children }: AuthProviderProps) {
     // Solution Senior Developer : Cache busting agressif
     // Couche 1 : Nettoyage complet des données en cache
     if (typeof window !== 'undefined') {
+      // Sauvegarder le PIN avant clear
+      const pinData = localStorage.getItem('fayclick_quick_pin');
+
       // Nettoyer tous les storages (sauf cookies essentiels)
       try {
         localStorage.clear();
         sessionStorage.clear();
       } catch (e) {
         console.warn('[AUTH] Erreur nettoyage storage:', e);
+      }
+
+      // Restaurer le PIN après clear
+      if (pinData) {
+        localStorage.setItem('fayclick_quick_pin', pinData);
       }
 
       // Couche 2 : Cache busting avec timestamp pour forcer rechargement HTML/JS

@@ -9,6 +9,7 @@ interface OTPInputProps {
   disabled?: boolean;
   error?: string;
   autoFocus?: boolean;
+  helperText?: string;
 }
 
 export default function OTPInput({
@@ -16,7 +17,8 @@ export default function OTPInput({
   onComplete,
   disabled = false,
   error,
-  autoFocus = true
+  autoFocus = true,
+  helperText
 }: OTPInputProps) {
   const [otp, setOtp] = useState<string[]>(new Array(length).fill(''));
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
@@ -173,7 +175,12 @@ export default function OTPInput({
         </motion.p>
       )}
 
-      {!error && (
+      {!error && helperText !== undefined && (
+        <p className="text-center text-[9px] text-gray-500">
+          {helperText}
+        </p>
+      )}
+      {!error && helperText === undefined && (
         <p className="text-center text-[9px] text-gray-500">
           Entrez le code reçu par SMS
         </p>
