@@ -278,8 +278,8 @@ export class RegistrationService {
    * Extrait les informations de login depuis le message de réponse
    */
   extractLoginInfo(message: string): { login?: string; password?: string } {
-    const loginMatch = message.match(/login:\s*([^\s]+)/);
-    const passwordMatch = message.match(/mot de passe:\s*([^\s.]+)/);
+    const loginMatch = message.match(/login:\s*([^\s|]+)/i);
+    const passwordMatch = message.match(/mot de passe:\s*([^\s.]+)/i);
     
     return {
       login: loginMatch ? loginMatch[1] : undefined,
