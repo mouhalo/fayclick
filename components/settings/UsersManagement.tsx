@@ -34,6 +34,9 @@ export default function UsersManagement({ onShowMessage }: UsersManagementProps)
   const { user } = useAuth();
   const canManageUsers = useHasRight("GESTION DES UTILISATEURS");
 
+  // Extraire le suffixe du login connecté (ex: "admin@tech24.fay" → "@tech24.fay")
+  const loginSuffix = user?.login?.includes('@') ? user.login.substring(user.login.indexOf('@')) : '@structure.fay';
+
   const [users, setUsers] = useState<UtilisateurData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -381,7 +384,7 @@ export default function UsersManagement({ onShowMessage }: UsersManagementProps)
                 <div className="space-y-1 text-sm text-gray-600">
                   <div className="flex items-center gap-2">
                     <span className="text-blue-600">✉️</span>
-                    <span>{userData.telephone}@sylviacom.fay</span>
+                    <span>{userData.login || `${userData.telephone}${loginSuffix}`}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Phone className="h-3.5 w-3.5 text-blue-600" />
@@ -486,7 +489,7 @@ export default function UsersManagement({ onShowMessage }: UsersManagementProps)
                     </label>
                     <div className="w-full px-4 py-3 bg-gray-100 border-2 border-gray-200 rounded-xl text-gray-600 flex items-center gap-2">
                       <span>✉️</span>
-                      <span className="text-sm">{editingUser.telephone}@sylviacom.fay</span>
+                      <span className="text-sm">{editingUser.telephone}{loginSuffix}</span>
                     </div>
                     <p className="text-xs text-orange-600 mt-1 flex items-center gap-1">
                       <span>⚠️</span>
@@ -672,7 +675,7 @@ export default function UsersManagement({ onShowMessage }: UsersManagementProps)
                     <div className="w-full px-4 py-3 bg-gray-100 border-2 border-gray-200 rounded-xl text-gray-600 flex items-center gap-2">
                       <span>✉️</span>
                       <span className="text-sm">
-                        {newUser.telephone ? `${newUser.telephone}@sylviacom.fay` : 'téléphone@sylviacom.fay'}
+                        {newUser.telephone ? `${newUser.telephone}${loginSuffix}` : `téléphone${loginSuffix}`}
                       </span>
                     </div>
                     <p className="text-xs text-blue-600 mt-1 flex items-center gap-1">
