@@ -35,6 +35,12 @@ interface CarteProduitProps {
   compactMode?: boolean;
   /** Callback appelé quand l'abonnement est requis */
   onSubscriptionRequired?: (featureName?: string) => void;
+  /** Mode sélection multiple activé */
+  selectionMode?: boolean;
+  /** Produit actuellement sélectionné */
+  isSelected?: boolean;
+  /** Callback toggle sélection */
+  onToggleSelect?: (id_produit: number) => void;
 }
 
 export function CarteProduit({
@@ -42,7 +48,10 @@ export function CarteProduit({
   onEdit,
   onDelete,
   onQrCode,
-  onSubscriptionRequired
+  onSubscriptionRequired,
+  selectionMode = false,
+  isSelected = false,
+  onToggleSelect
 }: CarteProduitProps) {
   const [quantity, setQuantity] = useState(1);
   const { addArticle } = usePanierStore();
@@ -99,33 +108,60 @@ export function CarteProduit({
   return (
     <motion.div
       whileHover={{
-        y: -4,
-        scale: 1.02,
+        y: selectionMode ? 0 : -4,
+        scale: selectionMode ? 1 : 1.02,
         transition: { type: "spring" as const, stiffness: 300, damping: 20 }
       }}
-      onClick={() => onEdit(produit)}
-      className="bg-white/90 backdrop-blur-sm rounded-2xl p-5 shadow-lg shadow-black/10 hover:bg-white/95 hover:shadow-xl hover:shadow-black/20 transition-all duration-300 border border-gray-200/50 relative overflow-hidden cursor-pointer"
+      onClick={() => {
+        if (selectionMode && onToggleSelect) {
+          onToggleSelect(produit.id_produit);
+        } else {
+          onEdit(produit);
+        }
+      }}
+      className={`bg-white/90 backdrop-blur-sm rounded-2xl p-5 shadow-lg shadow-black/10 hover:bg-white/95 hover:shadow-xl hover:shadow-black/20 transition-all duration-300 border relative overflow-hidden cursor-pointer ${
+        selectionMode && isSelected
+          ? 'border-blue-500 ring-2 ring-blue-500 ring-offset-1'
+          : 'border-gray-200/50'
+      }`}
     >
       {/* Effet de brillance subtil */}
       <div className="absolute inset-0 bg-gradient-to-br from-emerald-50/30 via-transparent to-emerald-100/20 pointer-events-none" />
       
       <div className="relative z-10">
-      {/* Header avec nom et check vert - exactement comme l'image */}
+      {/* Header avec nom et check vert / checkbox sélection */}
       <div className="flex items-start justify-between mb-6">
+        {selectionMode && (
+          <div className="flex-shrink-0 mr-3 pt-1">
+            <div className={`w-6 h-6 rounded border-2 flex items-center justify-center transition-colors ${
+              isSelected
+                ? 'bg-blue-500 border-blue-500'
+                : 'border-gray-300 bg-white'
+            }`}>
+              {isSelected && (
+                <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+              )}
+            </div>
+          </div>
+        )}
         <div className="flex-1">
           <h3 className="font-semibold text-gray-900 text-lg leading-tight pr-2">
             {produit?.nom_produit || 'Produit sans nom'}
           </h3>
         </div>
-        <div className="flex-shrink-0">
-          <motion.div
-            whileHover={{ rotate: 360 }}
-            transition={{ duration: 0.3 }}
-            className="w-8 h-8 bg-emerald-500 rounded-full flex items-center justify-center shadow-md"
-          >
-            <Check className="w-4 h-4 text-white" />
-          </motion.div>
-        </div>
+        {!selectionMode && (
+          <div className="flex-shrink-0">
+            <motion.div
+              whileHover={{ rotate: 360 }}
+              transition={{ duration: 0.3 }}
+              className="w-8 h-8 bg-emerald-500 rounded-full flex items-center justify-center shadow-md"
+            >
+              <Check className="w-4 h-4 text-white" />
+            </motion.div>
+          </div>
+        )}
       </div>
 
       {/* Section Prix et Stock en grille horizontale */}

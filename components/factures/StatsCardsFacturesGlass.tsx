@@ -19,6 +19,8 @@ interface StatsCardsFacturesGlassProps {
   montantImpaye?: number;
   resumeGlobal?: ResumeGlobal;
   loading?: boolean;
+  /** Si false, remplace les montants par *** (caissier) */
+  canViewMontants?: boolean;
 }
 
 // Fonction utilitaire pour calculer les stats dynamiques
@@ -86,7 +88,8 @@ export function StatsCardsFacturesGlass({
   montantPaye,
   montantImpaye,
   resumeGlobal,
-  loading = false
+  loading = false,
+  canViewMontants = true
 }: StatsCardsFacturesGlassProps) {
   // Utiliser directement les données du resume_global avec fallback sur calcul dynamique
   const stats = useMemo(() => {
@@ -125,6 +128,12 @@ export function StatsCardsFacturesGlass({
   }, [resumeGlobal, factures]);
   
   // Configuration des 4 cards avec données dynamiques - Affichage complet sans formatage K/M
+  // Nombre d'impayés (toujours visible, même pour caissier)
+  const nombreImpayes = useMemo(() => {
+    if (!factures) return 0;
+    return factures.filter(f => (f.facture?.mt_restant || 0) > 0).length;
+  }, [factures]);
+
   const statsCards = useMemo(() => [
     {
       id: 'total-ventes',
@@ -139,8 +148,8 @@ export function StatsCardsFacturesGlass({
     {
       id: 'montant-total',
       title: 'Montant Total',
-      value: stats ? `${stats.montantTotal.toLocaleString('fr-FR')}` : '0',
-      subtitle: stats ? `${stats.totalProduitsDifferents} produits` : '0 produits',
+      value: canViewMontants ? (stats ? `${stats.montantTotal.toLocaleString('fr-FR')}` : '0') : '******',
+      subtitle: canViewMontants ? (stats ? `${stats.totalProduitsDifferents} produits` : '0 produits') : '',
       icon: DollarSign,
       iconColor: 'text-white',
       iconBg: 'bg-emerald-500',
@@ -149,8 +158,8 @@ export function StatsCardsFacturesGlass({
     {
       id: 'montant-paye',
       title: 'Montant Payé',
-      value: stats ? `${stats.montantPaye.toLocaleString('fr-FR')}` : '0',
-      subtitle: stats ? `${((stats.montantPaye / (stats.montantTotal || 1)) * 100).toFixed(0)}%` : '0%',
+      value: canViewMontants ? (stats ? `${stats.montantPaye.toLocaleString('fr-FR')}` : '0') : '******',
+      subtitle: canViewMontants ? (stats ? `${((stats.montantPaye / (stats.montantTotal || 1)) * 100).toFixed(0)}%` : '0%') : '',
       icon: CreditCard,
       iconColor: 'text-white',
       iconBg: 'bg-cyan-500',
@@ -158,15 +167,15 @@ export function StatsCardsFacturesGlass({
     },
     {
       id: 'restant-payer',
-      title: 'Restant à Payer',
-      value: stats ? `${stats.restantPayer.toLocaleString('fr-FR')}` : '0',
-      subtitle: stats ? `${stats.margeTotale.toLocaleString('fr-FR')} marge` : '0 marge',
+      title: 'Impayés',
+      value: canViewMontants ? (stats ? `${stats.restantPayer.toLocaleString('fr-FR')}` : '0') : `${nombreImpayes}`,
+      subtitle: canViewMontants ? (stats ? `${stats.margeTotale.toLocaleString('fr-FR')} marge` : '0 marge') : 'factures impayées',
       icon: TrendingUp,
       iconColor: 'text-white',
       iconBg: 'bg-orange-500',
       delay: 0.3
     }
-  ], [stats]);
+  ], [stats, canViewMontants, nombreImpayes]);
 
   if (loading) {
     return <StatsCardsFacturesGlassLoading />;

@@ -131,6 +131,76 @@ class UsersService {
   }
 
   /**
+   * Met à jour un droit pour un profil d'une structure
+   * Appelle update_profils_droits(pid_structure, pid_profil, pid_droit, pautorise)
+   *
+   * @param id_structure - ID de la structure
+   * @param id_profil - ID du profil (ex: 9 = CAISSIER)
+   * @param id_droit - ID de la fonctionnalité
+   * @param autorise - true = affecter, false = révoquer
+   * @returns Résultat avec success et action
+   */
+  async updateUserRight(
+    id_structure: number,
+    id_profil: number,
+    id_droit: number,
+    autorise: boolean
+  ): Promise<{ success: boolean; action: string; id_droit: number }> {
+    try {
+      console.log('🛡️ [USERS SERVICE] Mise à jour droit:', {
+        id_structure, id_profil, id_droit, autorise
+      });
+
+      const query = `SELECT * FROM update_profils_droits(${id_structure}, ${id_profil}, ${id_droit}, ${autorise});`;
+      const results = await DatabaseService.query(query);
+
+      console.log('📊 [USERS SERVICE] Résultat update droit:', results);
+
+      // Parser la réponse
+      let response: any;
+
+      if (Array.isArray(results) && results.length > 0) {
+        const firstResult = results[0] as any;
+        if (typeof firstResult === 'string') {
+          response = JSON.parse(firstResult);
+        } else if (firstResult.update_profils_droits) {
+          const dataStr = firstResult.update_profils_droits;
+          response = typeof dataStr === 'string' ? JSON.parse(dataStr) : dataStr;
+        } else {
+          response = firstResult;
+        }
+      } else if (typeof results === 'object') {
+        response = results;
+      } else {
+        throw new Error('Format de réponse invalide');
+      }
+
+      if (!response.success) {
+        throw new Error(response.message || 'Erreur lors de la mise à jour du droit');
+      }
+
+      console.log('✅ [USERS SERVICE] Droit mis à jour:', {
+        id_droit: response.id_droit,
+        action: response.action
+      });
+
+      return {
+        success: true,
+        action: response.action,
+        id_droit: response.id_droit || id_droit
+      };
+
+    } catch (error) {
+      console.error('❌ [USERS SERVICE] Erreur mise à jour droit:', error);
+      throw new Error(
+        `Impossible de mettre à jour le droit: ${
+          error instanceof Error ? error.message : 'Erreur inconnue'
+        }`
+      );
+    }
+  }
+
+  /**
    * Récupère uniquement les utilisateurs non-admin (éditables)
    *
    * @param id_structure - ID de la structure

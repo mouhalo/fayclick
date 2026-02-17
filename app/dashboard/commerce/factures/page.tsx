@@ -10,6 +10,7 @@ import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { AlertCircle, Loader } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useHasRight } from '@/hooks/useRights';
 import { GlassHeader } from '@/components/ui/GlassHeader';
 import { StatsCardsFacturesGlass } from '@/components/factures/StatsCardsFacturesGlass';
 import { FilterHeaderGlass } from '@/components/factures/FilterHeaderGlass';
@@ -35,6 +36,7 @@ import {
 export default function FacturesGlassPage() {
   const router = useRouter();
   const { user } = useAuth();
+  const canViewMontants = useHasRight("VOIR CHIFFRE D'AFFAIRE");
 
   // États principaux
   const [facturesResponse, setFacturesResponse] = useState<GetMyFactureResponse | null>(null);
@@ -421,6 +423,7 @@ export default function FacturesGlassPage() {
           montantTotal={facturesFiltreesEtTriees.reduce((sum, f) => sum + (f.facture?.montant || 0), 0)}
           montantPaye={facturesFiltreesEtTriees.reduce((sum, f) => sum + (f.facture?.mt_acompte || 0), 0)}
           montantImpaye={facturesFiltreesEtTriees.reduce((sum, f) => sum + (f.facture?.mt_restant || 0), 0)}
+          canViewMontants={canViewMontants}
         />
       )}
 
@@ -451,6 +454,7 @@ export default function FacturesGlassPage() {
         onVoirRecu={handleVoirRecuFacture}
         onSupprimer={handleDeleteFacture}
         userProfileId={user?.id_profil}
+        canViewMontants={canViewMontants}
       />
     </>
   );
@@ -460,6 +464,7 @@ export default function FacturesGlassPage() {
     <ListePaiements
       onViewRecu={handleViewRecu}
       onDownloadRecu={handleDownloadRecu}
+      canViewMontants={canViewMontants}
     />
   );
 

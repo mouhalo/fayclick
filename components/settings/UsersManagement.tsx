@@ -17,10 +17,12 @@ import {
   getUserInitials,
   formatUserDate
 } from '@/types/users';
+import ModalDroitsUtilisateur from './ModalDroitsUtilisateur';
 
 interface EditingUser {
   id: number;
   username: string;
+  login: string;
   telephone: string;
   id_profil: number;
   statut?: 'ACTIF' | 'DESACTIVE';
@@ -51,6 +53,8 @@ export default function UsersManagement({ onShowMessage }: UsersManagementProps)
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [userToDelete, setUserToDelete] = useState<{ id: number; username: string } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showDroitsModal, setShowDroitsModal] = useState(false);
+  const [droitsUser, setDroitsUser] = useState<UtilisateurData | null>(null);
 
   // Récupération des utilisateurs
   const loadUsers = useCallback(async () => {
@@ -99,6 +103,7 @@ export default function UsersManagement({ onShowMessage }: UsersManagementProps)
     setEditingUser({
       id: userData.id,
       username: userData.username,
+      login: userData.login || '',
       telephone: userData.telephone,
       id_profil: userData.profil.id_profil,
       statut: userData.statut || 'ACTIF'
@@ -397,6 +402,13 @@ export default function UsersManagement({ onShowMessage }: UsersManagementProps)
               {/* Boutons d'action */}
               <div className="flex gap-2 flex-shrink-0">
                 <button
+                  onClick={() => { setDroitsUser(userData); setShowDroitsModal(true); }}
+                  className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                  title="Gérer les droits"
+                >
+                  <Shield className="h-5 w-5" />
+                </button>
+                <button
                   onClick={() => handleEditUser(userData)}
                   className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                   title="Modifier l'utilisateur"
@@ -489,7 +501,7 @@ export default function UsersManagement({ onShowMessage }: UsersManagementProps)
                     </label>
                     <div className="w-full px-4 py-3 bg-gray-100 border-2 border-gray-200 rounded-xl text-gray-600 flex items-center gap-2">
                       <span>✉️</span>
-                      <span className="text-sm">{editingUser.telephone}{loginSuffix}</span>
+                      <span className="text-sm">{editingUser.login || `${editingUser.telephone}${loginSuffix}`}</span>
                     </div>
                     <p className="text-xs text-orange-600 mt-1 flex items-center gap-1">
                       <span>⚠️</span>
@@ -813,6 +825,17 @@ export default function UsersManagement({ onShowMessage }: UsersManagementProps)
               </div>
             </motion.div>
           </>
+        )}
+
+        {/* Modal de gestion des droits */}
+        {showDroitsModal && droitsUser && user?.id_structure && (
+          <ModalDroitsUtilisateur
+            userData={droitsUser}
+            id_structure={user.id_structure}
+            onClose={() => { setShowDroitsModal(false); setDroitsUser(null); }}
+            onShowMessage={onShowMessage}
+            onRightsUpdated={loadUsers}
+          />
         )}
       </AnimatePresence>
     </div>

@@ -53,11 +53,14 @@ interface FiltresPaiements {
 interface ListePaiementsProps {
   onViewRecu?: (paiement: Paiement) => void;
   onDownloadRecu?: (paiement: Paiement) => void;
+  /** Si false, remplace les montants par *** (caissier) */
+  canViewMontants?: boolean;
 }
 
 export function ListePaiements({
   onViewRecu,
-  onDownloadRecu
+  onDownloadRecu,
+  canViewMontants = true
 }: ListePaiementsProps) {
   const { user } = useAuth();
 
@@ -318,12 +321,12 @@ export function ListePaiements({
 
                 {/* Valeur principale */}
                 <p className="text-white text-sm font-bold leading-tight break-words">
-                  {stats.montantTotal.toLocaleString('fr-FR')} FCFA
+                  {canViewMontants ? `${stats.montantTotal.toLocaleString('fr-FR')} FCFA` : '******'}
                 </p>
 
                 {/* Sous-titre */}
                 <p className="text-white/70 text-[9px] leading-tight">
-                  encaissés
+                  {canViewMontants ? 'encaissés' : ''}
                 </p>
               </div>
             </div>
@@ -413,7 +416,7 @@ export function ListePaiements({
                   {/* Montant principal - EXACTEMENT comme FactureCard */}
                   <div className="text-center mb-3 sm:mb-4 overflow-hidden">
                     <p className="text-white text-base sm:text-lg lg:text-xl font-bold break-words">
-                      {paiement.montant_paye.toLocaleString('fr-FR')} <span className="text-sm">FCFA</span>
+                      {canViewMontants ? <>{paiement.montant_paye.toLocaleString('fr-FR')} <span className="text-sm">FCFA</span></> : '******'}
                     </p>
                     <p className="text-emerald-300 text-xs sm:text-sm font-medium">
                       Via {methodeInfo.label}

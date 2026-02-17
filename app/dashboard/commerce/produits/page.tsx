@@ -17,12 +17,16 @@ import {
   Printer,
   Camera,
   ChevronDown,
-  BarChart3
+  BarChart3,
+  CheckSquare,
+  X,
+  Loader2
 } from 'lucide-react';
 import { authService } from '@/services/auth.service';
 import { produitsService, ProduitsApiException } from '@/services/produits.service';
 import { useProduits, useProduitsUI } from '@/hooks/useProduits';
 import { useSubscriptionStatus } from '@/contexts/AuthContext';
+import { useHasRight } from '@/hooks/useRights';
 import { StatsCardsNouveaux, StatsCardsNouveauxLoading } from '@/components/produits/StatsCardsNouveaux';
 import { CarteProduit, CarteProduitSkeleton } from '@/components/produits/CarteProduit';
 import { CarteProduitReduit } from '@/components/produits/CarteProduitReduit';
@@ -89,6 +93,13 @@ export default function ProduitsCommercePage() {
   // État pour la pagination sticky en bas
   const [showStickyPagination, setShowStickyPagination] = useState(false);
 
+  // États pour la sélection multiple
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [showBatchDeleteConfirmation, setShowBatchDeleteConfirmation] = useState(false);
+  const [isDeletingBatch, setIsDeletingBatch] = useState(false);
+  const [batchDeleteProgress, setBatchDeleteProgress] = useState(0);
+
   // Configuration pagination
   const itemsPerPage = 10;
 
@@ -115,6 +126,12 @@ export default function ProduitsCommercePage() {
 
   // Hook état abonnement pour bloquer les fonctionnalités si expiré
   const { canAccessFeature } = useSubscriptionStatus();
+
+  // Droit de voir le chiffre d'affaire (masquer montants pour caissier)
+  const canViewCA = useHasRight("VOIR CHIFFRE D'AFFAIRE");
+
+  // Seul l'Admin peut sélectionner/supprimer en lot
+  const isAdmin = user?.nom_profil === 'ADMIN';
 
   // Hook pour le modal d'abonnement expiré
   const {
@@ -293,6 +310,101 @@ export default function ProduitsCommercePage() {
     setShowDeleteConfirmation(false);
     setProduitToDelete(null);
   };
+
+  // --- Sélection multiple ---
+  const toggleSelectionMode = () => {
+    if (selectionMode) {
+      // Quitter le mode sélection
+      setSelectionMode(false);
+      setSelectedIds(new Set());
+    } else {
+      setSelectionMode(true);
+    }
+  };
+
+  const toggleSelection = (id_produit: number) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id_produit)) {
+        next.delete(id_produit);
+      } else {
+        next.add(id_produit);
+      }
+      return next;
+    });
+  };
+
+  const selectAllPage = () => {
+    const allPageIds = paginatedItems.map(p => p.id_produit);
+    const allSelected = allPageIds.every(id => selectedIds.has(id));
+
+    if (allSelected) {
+      // Désélectionner tous ceux de la page
+      setSelectedIds(prev => {
+        const next = new Set(prev);
+        allPageIds.forEach(id => next.delete(id));
+        return next;
+      });
+    } else {
+      // Sélectionner tous ceux de la page
+      setSelectedIds(prev => {
+        const next = new Set(prev);
+        allPageIds.forEach(id => next.add(id));
+        return next;
+      });
+    }
+  };
+
+  const clearSelection = () => {
+    setSelectionMode(false);
+    setSelectedIds(new Set());
+  };
+
+  const handleDeleteSelected = () => {
+    if (selectedIds.size === 0) return;
+    setShowBatchDeleteConfirmation(true);
+  };
+
+  const handleConfirmBatchDelete = async () => {
+    const idsToDelete = Array.from(selectedIds);
+    setIsDeletingBatch(true);
+    setBatchDeleteProgress(0);
+
+    let successCount = 0;
+    let errorCount = 0;
+
+    for (let i = 0; i < idsToDelete.length; i++) {
+      try {
+        await produitsService.deleteProduit(idsToDelete[i]);
+        supprimerProduit(idsToDelete[i]);
+        successCount++;
+      } catch (error) {
+        console.error(`❌ Erreur suppression produit ${idsToDelete[i]}:`, error);
+        errorCount++;
+      }
+      setBatchDeleteProgress(Math.round(((i + 1) / idsToDelete.length) * 100));
+    }
+
+    setIsDeletingBatch(false);
+    setShowBatchDeleteConfirmation(false);
+    clearSelection();
+
+    if (errorCount > 0) {
+      showToast('error', 'Suppression partielle', `${successCount} supprimé(s), ${errorCount} erreur(s)`);
+    } else {
+      showToast('success', 'Suppression réussie', `${successCount} produit(s) supprimé(s)`);
+    }
+
+    // Recharger la liste
+    await loadProduits();
+  };
+
+  const handleCancelBatchDelete = () => {
+    setShowBatchDeleteConfirmation(false);
+  };
+
+  // Noms des produits sélectionnés (pour le modal de confirmation)
+  const selectedProduits = produits.filter(p => selectedIds.has(p.id_produit));
 
   // Gestion du modal - simplifié car la logique est maintenant dans le modal
 
@@ -586,6 +698,9 @@ export default function ProduitsCommercePage() {
           onQrCode={setProduitPartage}
           typeStructure="COMMERCIALE"
           onSubscriptionRequired={showAbonnementModal}
+          selectionMode={isAdmin ? selectionMode : false}
+          isSelected={isAdmin ? selectedIds.has(produit.id_produit) : false}
+          onToggleSelect={isAdmin ? toggleSelection : undefined}
         />
       );
     }
@@ -600,6 +715,9 @@ export default function ProduitsCommercePage() {
         typeStructure="COMMERCIALE"
         compactMode={false}
         onSubscriptionRequired={showAbonnementModal}
+        selectionMode={isAdmin ? selectionMode : false}
+        isSelected={isAdmin ? selectedIds.has(produit.id_produit) : false}
+        onToggleSelect={isAdmin ? toggleSelection : undefined}
       />
     );
   };
@@ -638,6 +756,8 @@ export default function ProduitsCommercePage() {
               onPrintClick={handlePrint}
               onExportCSV={handleExportCSV}
               isExporting={isExporting}
+              selectionMode={isAdmin ? selectionMode : false}
+              onToggleSelectionMode={isAdmin ? toggleSelectionMode : undefined}
             />
           }
         />
@@ -720,6 +840,7 @@ export default function ProduitsCommercePage() {
               ) : (
                 <StatsCardsNouveaux
                   articles={produitsFiltered}
+                  canViewMontants={canViewCA}
                 />
               )}
             </motion.div>
@@ -776,13 +897,71 @@ export default function ProduitsCommercePage() {
             skeletonCount={itemsPerPage}
             onProduitClick={handleProduitClickTable}
             onVendreClick={handleVendreClick}
+            selectionMode={isAdmin ? selectionMode : false}
+            selectedIds={isAdmin ? selectedIds : undefined}
+            onToggleSelect={isAdmin ? toggleSelection : undefined}
+            onSelectAll={isAdmin ? selectAllPage : undefined}
           />
 
           {/* Sentinel bas de page pour l'espacement */}
           <div className="h-4" />
         </div>
 
-        {/* Bouton flottant vert sombre - Ouvre modal options d'ajout */}
+        {/* Barre d'action flottante - Mode sélection */}
+        <AnimatePresence>
+          {isAdmin && selectionMode && selectedIds.size > 0 && (
+            <motion.div
+              initial={{ y: 100, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 100, opacity: 0 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+              className="fixed bottom-20 left-4 right-4 z-[50] flex justify-center"
+            >
+              <div className="bg-slate-900/90 backdrop-blur-xl rounded-2xl px-4 py-3 flex items-center gap-3 shadow-2xl border border-white/10 max-w-md w-full">
+                {/* Compteur */}
+                <div className="flex items-center gap-2 text-white">
+                  <CheckSquare className="w-5 h-5 text-blue-400" />
+                  <span className="font-semibold text-sm">
+                    {selectedIds.size} produit{selectedIds.size > 1 ? 's' : ''}
+                  </span>
+                </div>
+
+                <div className="flex-1" />
+
+                {/* Tout sélectionner */}
+                <motion.button
+                  whileTap={{ scale: 0.95 }}
+                  onClick={selectAllPage}
+                  className="px-3 py-1.5 text-xs font-medium text-blue-300 hover:text-blue-200 hover:bg-white/10 rounded-lg transition-colors"
+                >
+                  {paginatedItems.every(p => selectedIds.has(p.id_produit)) ? 'Tout désélect.' : 'Tout sélect.'}
+                </motion.button>
+
+                {/* Supprimer */}
+                <motion.button
+                  whileTap={{ scale: 0.95 }}
+                  onClick={handleDeleteSelected}
+                  className="px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white text-xs font-semibold rounded-lg transition-colors flex items-center gap-1.5"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  Supprimer
+                </motion.button>
+
+                {/* Annuler */}
+                <motion.button
+                  whileTap={{ scale: 0.95 }}
+                  onClick={clearSelection}
+                  className="p-1.5 hover:bg-white/10 rounded-lg transition-colors"
+                >
+                  <X className="w-4 h-4 text-gray-400" />
+                </motion.button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Bouton flottant vert sombre - Ouvre modal options d'ajout (masqué en mode sélection Admin) */}
+        {!(isAdmin && selectionMode) && (
         <motion.button
           whileHover={{ scale: 1.08 }}
           whileTap={{ scale: 0.95 }}
@@ -816,7 +995,8 @@ export default function ProduitsCommercePage() {
             Ajouter
           </span>
         </motion.button>
-      
+        )}
+
         {/* Pagination sticky fixed en bas - visible quand on scrolle et la pagination statique n'est plus visible */}
         <AnimatePresence>
           {showStickyPagination && totalPages > 1 && (
@@ -864,6 +1044,7 @@ export default function ProduitsCommercePage() {
         produitToEdit={produitSelectionne}
         typeStructure="COMMERCIALE"
         defaultTab={produitSelectionne ? 'gestion-stock' : 'informations'}
+        canViewMontants={canViewCA}
       />
 
       <ModalPanier />
@@ -946,6 +1127,81 @@ export default function ProduitsCommercePage() {
                   className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors"
                 >
                   Supprimer
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Modal de confirmation de suppression en lot */}
+      {showBatchDeleteConfirmation && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[100] p-4">
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.9, opacity: 0 }}
+            className="bg-white rounded-xl p-6 max-w-md w-full shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="text-center">
+              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Trash2 className="w-8 h-8 text-red-600" />
+              </div>
+              <h3 className="text-xl font-bold text-slate-900 mb-2">
+                Supprimer {selectedIds.size} produit{selectedIds.size > 1 ? 's' : ''} ?
+              </h3>
+
+              {/* Liste des produits à supprimer */}
+              <div className="max-h-40 overflow-y-auto mb-4 text-left bg-slate-50 rounded-lg p-3">
+                {selectedProduits.map(p => (
+                  <div key={p.id_produit} className="text-sm text-slate-700 py-1 border-b border-slate-100 last:border-0">
+                    {p.nom_produit}
+                  </div>
+                ))}
+              </div>
+
+              <p className="text-slate-600 mb-6 text-sm">
+                Cette action est irréversible. Les produits et toutes leurs données associées seront définitivement supprimés.
+              </p>
+
+              {/* Barre de progression pendant la suppression */}
+              {isDeletingBatch && (
+                <div className="mb-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Loader2 className="w-4 h-4 text-red-500 animate-spin" />
+                    <span className="text-sm text-slate-600">Suppression en cours... {batchDeleteProgress}%</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div
+                      className="bg-red-500 h-2 rounded-full transition-all duration-300"
+                      style={{ width: `${batchDeleteProgress}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+
+              <div className="flex gap-3">
+                <button
+                  onClick={handleCancelBatchDelete}
+                  disabled={isDeletingBatch}
+                  className="flex-1 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-medium transition-colors disabled:opacity-50"
+                >
+                  Annuler
+                </button>
+                <button
+                  onClick={handleConfirmBatchDelete}
+                  disabled={isDeletingBatch}
+                  className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {isDeletingBatch ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Suppression...
+                    </>
+                  ) : (
+                    'Supprimer tout'
+                  )}
                 </button>
               </div>
             </div>

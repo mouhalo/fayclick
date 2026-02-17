@@ -12,6 +12,7 @@ import { ModalDeconnexion } from '@/components/auth/ModalDeconnexion';
 import { ModalNotifications } from '@/components/notifications/ModalNotifications';
 import { formatAmount } from '@/utils/formatAmount';
 import { User } from '@/types/auth';
+import { useHasRight } from '@/hooks/useRights';
 import { StatusBarPanier } from '@/components/panier/StatusBarPanier';
 import { ModalPanier } from '@/components/panier/ModalPanier';
 import { ModalFactureSuccess } from '@/components/panier/ModalFactureSuccess';
@@ -49,6 +50,15 @@ export default function CommerceDashboard() {
     statsCardData,
     isLoading: loadingStats
   } = useDashboardData(user?.id_structure || 0);
+
+  // Droits utilisateur
+  const canViewProducts = useHasRight("VOIR NOMBRE PRODUITS");
+  const canViewStockValue = useHasRight("VOIR VALEUR STOCK PA");
+  const canViewCA = useHasRight("VOIR CHIFFRE D'AFFAIRE");
+  const canViewInventaire = useHasRight("VOIR INVENTAIRE");
+  const canAddDepense = useHasRight("AJOUTER DEPENSE");
+  const canViewTotalFactures = useHasRight("VOIR TOTAL FACTURES");
+  const canManageSettings = useHasRight("GERER PARAMETRAGES");
 
   // Hook pour les notifications
   const {
@@ -247,20 +257,24 @@ export default function CommerceDashboard() {
             >
               <span className="text-xl mb-1 block">📦</span>
               <div className="text-xl font-bold text-gray-800 mb-0.5">
-                {loadingStats ? (
+                {!canViewProducts ? (
+                  <span className="text-gray-400">---</span>
+                ) : loadingStats ? (
                   <div className="w-10 h-6 bg-gray-200 animate-pulse rounded"></div>
                 ) : (
                   <AnimatedCounter value={statsCardData?.primaryCount || 0} />
                 )}
               </div>
               <div className="text-xs text-gray-600 font-semibold uppercase tracking-wide">Produits</div>
-              <div className="text-xs text-green-600 mt-1 font-semibold">
-                {loadingStats ? (
-                  <div className="w-14 h-3 bg-gray-200 animate-pulse rounded"></div>
-                ) : (
-                  `+${statsCardData?.primaryGrowth || 0} cette semaine`
-                )}
-              </div>
+              {canViewProducts && (
+                <div className="text-xs text-green-600 mt-1 font-semibold">
+                  {loadingStats ? (
+                    <div className="w-14 h-3 bg-gray-200 animate-pulse rounded"></div>
+                  ) : (
+                    `+${statsCardData?.primaryGrowth || 0} cette semaine`
+                  )}
+                </div>
+              )}
             </motion.div>
 
             <motion.div
@@ -268,6 +282,7 @@ export default function CommerceDashboard() {
               whileTap={{ scale: 0.95 }}
               className="bg-white rounded-xl p-3 shadow-md border-l-4 border-green-500 cursor-pointer relative"
               onClick={() => {
+                if (!canViewInventaire) return;
                 if (!canAccessFeature('Inventaires')) {
                   showAbonnementModal('Gestion des inventaires');
                   return;
@@ -275,25 +290,28 @@ export default function CommerceDashboard() {
                 router.push('/dashboard/commerce/inventaire');
               }}
             >
-              {/* Bouton Œil en haut à droite */}
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setShowValeurStock(!showValeurStock);
-                }}
-                className="absolute top-2 right-2 p-1 hover:bg-gray-100 rounded-full transition-colors z-10"
-                aria-label={showValeurStock ? "Masquer le montant" : "Afficher le montant"}
-              >
-                {showValeurStock ? (
-                  <Eye className="w-4 h-4 text-gray-600" />
-                ) : (
-                  <EyeOff className="w-4 h-4 text-gray-400" />
-                )}
-              </button>
+              {canViewStockValue && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowValeurStock(!showValeurStock);
+                  }}
+                  className="absolute top-2 right-2 p-1 hover:bg-gray-100 rounded-full transition-colors z-10"
+                  aria-label={showValeurStock ? "Masquer le montant" : "Afficher le montant"}
+                >
+                  {showValeurStock ? (
+                    <Eye className="w-4 h-4 text-gray-600" />
+                  ) : (
+                    <EyeOff className="w-4 h-4 text-gray-400" />
+                  )}
+                </button>
+              )}
 
               <span className="text-xl mb-1 block">💰</span>
               <div className="text-base font-bold text-gray-800 mb-0.5">
-                {loadingStats ? (
+                {!canViewStockValue ? (
+                  <span className="text-gray-400">---</span>
+                ) : loadingStats ? (
                   <div className="w-10 h-5 bg-gray-200 animate-pulse rounded"></div>
                 ) : showValeurStock ? (
                   `${(statsCardData?.totalAmount || 0).toLocaleString('fr-FR')} FCFA`
@@ -302,9 +320,11 @@ export default function CommerceDashboard() {
                 )}
               </div>
               <div className="text-xs text-gray-600 font-semibold uppercase tracking-wide">Valeur Stock</div>
-              <div className="text-xs text-emerald-600 mt-1 font-semibold flex items-center justify-center gap-1">
-                <span>📊</span> Voir Inventaires
-              </div>
+              {canViewInventaire && (
+                <div className="text-xs text-emerald-600 mt-1 font-semibold flex items-center justify-center gap-1">
+                  <span>📊</span> Voir Inventaires
+                </div>
+              )}
             </motion.div>
           </motion.div>
 
@@ -357,11 +377,11 @@ export default function CommerceDashboard() {
           >
             <div className="grid grid-cols-2 gap-3">
               {[
-                { icon: '📦', title: 'Liste Produits', subtitle: 'Gérer votre stock', color: 'orange', path: '/produits' },
-                { icon: '🧾', title: 'Mes Factures', subtitle: 'Gestion des factures', color: 'purple', path: '/factures' },
-                { icon: '👥', title: 'Liste Clients', subtitle: "Carnet d'adresses", color: 'blue', path: '/clients' },
-                { icon: '💸', title: 'Liste Dépenses', subtitle: 'Gérer les dépenses', color: 'red', path: '/depenses' }
-              ].map((action, index) => (
+                { icon: '📦', title: 'Liste Produits', subtitle: 'Gérer votre stock', color: 'orange', path: '/produits', visible: true },
+                { icon: '🧾', title: 'Mes Factures', subtitle: 'Gestion des factures', color: 'purple', path: '/factures', visible: true },
+                { icon: '👥', title: 'Liste Clients', subtitle: "Carnet d'adresses", color: 'blue', path: '/clients', visible: true },
+                { icon: '💸', title: 'Liste Dépenses', subtitle: 'Gérer les dépenses', color: 'red', path: '/depenses', visible: true }
+              ].filter(a => a.visible).map((action, index) => (
                 <motion.div
                   key={index}
                   initial={{ scale: 0.8, opacity: 0 }}
@@ -387,22 +407,24 @@ export default function CommerceDashboard() {
               ))}
             </div>
 
-            {/* Coffre-Fort Button - Réduit de 1/3 */}
-            <motion.div
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 1.4 }}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              className="mt-3 bg-gradient-to-br from-yellow-100 to-yellow-200 rounded-xl p-3 cursor-pointer shadow-lg hover:shadow-xl transition-all"
-              onClick={() => setShowCoffreModal(true)}
-            >
-              <div className="text-center">
-                <span className="text-3xl mb-2 block">🏦</span>
-                <div className="text-sm font-bold text-gray-800 mb-0.5">Coffre-Fort</div>
-                <div className="text-[10px] text-gray-600">CA réel, ventes, charges & solde</div>
-              </div>
-            </motion.div>
+            {/* Coffre-Fort Button - toujours visible, restrictions internes */}
+            {(
+              <motion.div
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 1.4 }}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                className="mt-3 bg-gradient-to-br from-yellow-100 to-yellow-200 rounded-xl p-3 cursor-pointer shadow-lg hover:shadow-xl transition-all"
+                onClick={() => setShowCoffreModal(true)}
+              >
+                <div className="text-center">
+                  <span className="text-3xl mb-2 block">🏦</span>
+                  <div className="text-sm font-bold text-gray-800 mb-0.5">Coffre-Fort</div>
+                  <div className="text-[10px] text-gray-600">CA réel, ventes, charges & solde</div>
+                </div>
+              </motion.div>
+            )}
           </motion.div>
         </div>
 

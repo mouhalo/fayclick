@@ -1,0 +1,94 @@
+On a 
+Fonction update_profils_droits(pid_structure, pid_profil, pid_droit, pautorise)                                                                  
+  ┌───────────────┬─────────┬───────────────────────────────────┐                                                                                  
+  │   Paramètre   │  Type   │            Description            │                                                                                  
+  ├───────────────┼─────────┼───────────────────────────────────┤                                                                                  
+  │ pid_structure │ INTEGER │ ID de la structure                │                                                                                  
+  ├───────────────┼─────────┼───────────────────────────────────┤                                                                                  
+  │ pid_profil    │ INTEGER │ ID du profil                      │                                                                                  
+  ├───────────────┼─────────┼───────────────────────────────────┤                                                                                  
+  │ pid_droit     │ INTEGER │ ID de la fonctionnalité           │                                                                                  
+  ├───────────────┼─────────┼───────────────────────────────────┤                                                                                  
+  │ pautorise     │ BOOLEAN │ true = affecter, false = révoquer │                                                                                  
+  └───────────────┴─────────┴───────────────────────────────────┘
+   - Retourne un JSON avec le résultat (success, id_droit, action: "affecté"/"révoqué")
+   
+   
+   -gestion de suppression multi produis
+
+et cette fonction pour lister : 
+CREATE OR REPLACE FUNCTION public.get_mes_droits(pid_structure integer, pid_profil integer)
+ RETURNS json
+ LANGUAGE plpgsql
+AS $function$
+DECLARE
+    result JSON;
+    profil_nom VARCHAR(120);
+    fonctionnalites_array JSON[];
+    fonc_record RECORD;
+BEGIN
+    -- Récupérer le nom du profil
+    SELECT nom_profil INTO profil_nom 
+    FROM public.profil 
+    WHERE id_profil = pid_profil;
+    
+    -- Vérifier si le profil existe
+    IF profil_nom IS NULL THEN
+        RAISE EXCEPTION 'Profil avec id % non trouvé', pid_profil;
+    END IF;
+    
+    -- Construire le tableau des fonctionnalités avec leurs autorisations
+    FOR fonc_record IN
+        SELECT 
+            f.nom_fonctionnalite,
+            COALESCE(pd.autorise, false) as autorise
+        FROM public.fonctionnalite f
+        LEFT JOIN public.profil_droits pd ON (
+            pd.id_fonctionnalite = f.id_fonctionnalite 
+            AND pd.id_profil = pid_profil 
+            AND pd.id_structure = pid_structure
+        )
+        ORDER BY f.nom_fonctionnalite
+    LOOP
+        -- Créer un objet JSON pour chaque fonctionnalité
+        fonctionnalites_array := array_append(
+            fonctionnalites_array,
+            json_build_object(
+                fonc_record.nom_fonctionnalite, 
+                CASE WHEN fonc_record.autorise THEN 'oui' ELSE 'non' END
+            )
+        );
+    END LOOP;
+    
+    -- Construire le résultat final
+    result := json_build_object(
+        'id_profil', pid_profil,
+        'profil', profil_nom,
+        'fonctionnalites', array_to_json(fonctionnalites_array)
+    );
+    
+    RETURN result;
+END;
+$function$
+;
+
+On souhaite creer une fonction nommée update_profils_droits (pid_structure,pid_profil, pid_droit, pautorise)
+pour affecter/revoquer un droit à un profil d'une structure.
+
+
+
+table fonctionnalite:
+|id_fonctionnalite|nom_fonctionnalite    |
+|-----------------|----------------------|
+|1                |VOIR VALEUR STOCK PA  |
+|2                |VOIR NOMBRE PRODUITS  |
+|3                |VOIR CHIFFRE D'AFFAIRE|
+|4                |VOIR BENEFICE         |
+|5                |VOIR VALEUR MARCH PV  |
+|6                |MODIFIER PRODUIT      |
+|7                |SUPPRIMER PRODUIT     |
+|8                |EXPORTER PRODUIT      |
+|10               |AJOUTER DEPENSE       |
+|11               |GERER PARAMETRAGES    |
+|12               |VOIR INVENTAIRE       |
+|13               |VOIR TOTAL FACTURES   |

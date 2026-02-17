@@ -26,6 +26,11 @@ interface ProduitsListProps {
   skeletonCount?: number;
   onProduitClick?: (produit: Produit) => void;
   onVendreClick?: (produit: Produit) => void;
+  /** Props de sélection multiple */
+  selectionMode?: boolean;
+  selectedIds?: Set<number>;
+  onToggleSelect?: (id_produit: number) => void;
+  onSelectAll?: () => void;
 }
 
 export function ProduitsList({
@@ -42,7 +47,11 @@ export function ProduitsList({
   hasFilters = false,
   skeletonCount = 6,
   onProduitClick,
-  onVendreClick
+  onVendreClick,
+  selectionMode = false,
+  selectedIds,
+  onToggleSelect,
+  onSelectAll
 }: ProduitsListProps) {
 
   // Classes de grille selon le mode de vue
@@ -169,6 +178,10 @@ export function ProduitsList({
         produits={items}
         onProduitClick={onProduitClick}
         onVendreClick={onVendreClick}
+        selectionMode={selectionMode}
+        selectedIds={selectedIds}
+        onToggleSelect={onToggleSelect}
+        onSelectAll={onSelectAll}
       />
     );
   }

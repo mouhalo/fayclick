@@ -11,7 +11,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   X, ShoppingCart, Trash2, Plus, Minus,
-  ChevronDown, ChevronUp, Calculator, CreditCard, User, Edit3, XCircle
+  Calculator, CreditCard, User, XCircle
 } from 'lucide-react';
 import { usePanierStore } from '@/stores/panierStore';
 import { factureService } from '@/services/facture.service';
@@ -30,7 +30,6 @@ export function ModalPanier() {
   } = usePanierStore();
 
   const { showToast } = useToast();
-  const [isClientSectionOpen, setIsClientSectionOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { openModal: openFactureSuccess } = useFactureSuccessStore();
   const [isModalRechercheOpen, setIsModalRechercheOpen] = useState(false);
@@ -163,66 +162,93 @@ export function ModalPanier() {
 
               {/* Contenu scrollable */}
               <div className="flex-1 overflow-y-auto">
-                {/* Section Articles */}
-                <div className="p-6 space-y-4">
+                {/* Bouton Fidéliser le client */}
+                <div className="px-5 pt-3 pb-1">
+                  <button
+                    onClick={() => setIsModalRechercheOpen(true)}
+                    className="
+                      w-full flex items-center gap-3 py-2.5 px-3
+                      hover:bg-blue-50 rounded-xl transition-colors
+                    "
+                  >
+                    <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
+                      <User className="w-5 h-5 text-white" />
+                    </div>
+                    <div className="text-left flex-1 min-w-0">
+                      {infosClient.id_client || (infosClient.nom_client_payeur && infosClient.nom_client_payeur !== 'CLIENT_ANONYME') ? (
+                        <>
+                          <span className="font-semibold text-gray-900 block truncate text-sm">
+                            {infosClient.nom_client_payeur}
+                          </span>
+                          <span className="text-xs text-gray-500">{infosClient.tel_client}</span>
+                        </>
+                      ) : (
+                        <span className="font-bold text-gray-900 text-base">Fidéliser le client</span>
+                      )}
+                    </div>
+                  </button>
+                </div>
+
+                {/* Section Articles - Compact */}
+                <div className="px-5 py-2 space-y-2">
                   {articles.map((article) => (
                     <motion.div
                       key={article.id_produit}
                       layout
                       className="
                         bg-gradient-to-r from-blue-50 to-blue-100/50
-                        rounded-xl p-4 border border-blue-200/50
+                        rounded-lg p-2.5 border border-blue-200/50
                       "
                     >
-                      <div className="flex items-center justify-between mb-3">
-                        <h3 className="font-semibold text-gray-900 flex-1">{article.nom_produit}</h3>
+                      <div className="flex items-start justify-between mb-1.5">
+                        <h3 className="font-semibold text-gray-900 text-xs flex-1 pr-2 line-clamp-2 leading-tight">{article.nom_produit}</h3>
                         <button
                           onClick={() => handleRemoveArticle(article.id_produit)}
-                          className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center hover:bg-red-200 transition-colors"
+                          className="w-6 h-6 bg-red-100 rounded-full flex items-center justify-center hover:bg-red-200 transition-colors flex-shrink-0"
                         >
-                          <Trash2 className="w-4 h-4 text-red-600" />
+                          <Trash2 className="w-3 h-3 text-red-600" />
                         </button>
                       </div>
-                      
-                      <div className="grid grid-cols-2 gap-4 mb-3">
+
+                      <div className="grid grid-cols-2 gap-2 mb-1.5">
                         <div>
-                          <div className="text-sm text-gray-600">Prix unitaire</div>
-                          <div className="font-bold text-blue-600">
+                          <div className="text-[10px] text-gray-500">Prix unitaire</div>
+                          <div className="font-bold text-blue-600 text-xs">
                             {article.prix_vente.toLocaleString('fr-FR')} FCFA
                           </div>
                         </div>
                         <div>
-                          <div className="text-sm text-gray-600">Sous-total</div>
-                          <div className="font-bold text-gray-900">
+                          <div className="text-[10px] text-gray-500">Sous-total</div>
+                          <div className="font-bold text-gray-900 text-xs">
                             {(article.prix_vente * article.quantity).toLocaleString('fr-FR')} FCFA
                           </div>
                         </div>
                       </div>
 
-                      {/* Contrôles quantité */}
+                      {/* Contrôles quantité - Compact */}
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-gray-600">Quantité</span>
-                        <div className="flex items-center gap-3">
+                        <span className="text-[10px] text-gray-500">Quantité</span>
+                        <div className="flex items-center gap-2">
                           <button
                             onClick={() => handleUpdateQuantity(article.id_produit, article.quantity - 1)}
-                            className="w-8 h-8 bg-white rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-50 transition-colors"
+                            className="w-6 h-6 bg-white rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-50 transition-colors"
                             disabled={article.quantity <= 1}
                           >
-                            <Minus className="w-4 h-4" />
+                            <Minus className="w-3 h-3" />
                           </button>
-                          <span className="w-12 text-center font-semibold">{article.quantity}</span>
+                          <span className="w-8 text-center font-semibold text-sm">{article.quantity}</span>
                           <button
                             onClick={() => handleUpdateQuantity(article.id_produit, article.quantity + 1)}
-                            className="w-8 h-8 bg-white rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-50 transition-colors"
+                            className="w-6 h-6 bg-white rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-50 transition-colors"
                             disabled={article.quantity >= (article.niveau_stock || 0)}
                           >
-                            <Plus className="w-4 h-4" />
+                            <Plus className="w-3 h-3" />
                           </button>
                         </div>
                       </div>
 
                       {article.quantity >= (article.niveau_stock || 0) && (
-                        <div className="mt-2 text-xs text-orange-600 bg-orange-50 px-2 py-1 rounded">
+                        <div className="mt-1 text-[10px] text-orange-600 bg-orange-50 px-1.5 py-0.5 rounded">
                           Stock maximum atteint
                         </div>
                       )}
@@ -230,85 +256,8 @@ export function ModalPanier() {
                   ))}
                 </div>
 
-                {/* Section Client */}
-                <div className="px-6 pb-4">
-                  <button
-                    onClick={() => setIsClientSectionOpen(!isClientSectionOpen)}
-                    className="
-                      w-full flex items-center justify-between p-4
-                      bg-gray-50 rounded-xl border border-gray-200/50
-                      hover:bg-gray-100 transition-colors
-                    "
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center">
-                        <User className="w-5 h-5 text-white" />
-                      </div>
-                      <div className="text-left">
-                        <span className="font-semibold text-gray-900 block">
-                          {infosClient.nom_client_payeur || 'CLIENT ANONYME'}
-                        </span>
-                        {infosClient.tel_client && (
-                          <span className="text-xs text-gray-500">
-                            {infosClient.tel_client}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setIsModalRechercheOpen(true);
-                        }}
-                        className="
-                          w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center
-                          hover:bg-blue-200 transition-colors
-                        "
-                      >
-                        <Edit3 className="w-4 h-4 text-blue-600" />
-                      </button>
-                      {isClientSectionOpen ? (
-                        <ChevronUp className="w-5 h-5 text-gray-500" />
-                      ) : (
-                        <ChevronDown className="w-5 h-5 text-gray-500" />
-                      )}
-                    </div>
-                  </button>
-
-                  <AnimatePresence>
-                    {isClientSectionOpen && (
-                      <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: 'auto', opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        className="overflow-hidden"
-                      >
-                        <div className="pt-4 space-y-4">
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Description (optionnelle)
-                            </label>
-                            <textarea
-                              value={infosClient.description || ''}
-                              onChange={(e) => updateInfosClient({ description: e.target.value })}
-                              placeholder="Note sur la commande..."
-                              rows={2}
-                              className="
-                                w-full px-4 py-3 rounded-xl border border-gray-300
-                                focus:ring-2 focus:ring-blue-500 focus:border-transparent
-                                transition-all resize-none
-                              "
-                            />
-                          </div>
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
-
                 {/* Section Remise uniquement */}
-                <div className="px-6 pb-6">
+                <div className="px-5 pb-4">
                   <div className="bg-gray-50 rounded-xl p-4 space-y-4">
                     <div className="flex items-center gap-2 mb-3">
                       <Calculator className="w-5 h-5 text-gray-600" />

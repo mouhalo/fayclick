@@ -19,6 +19,7 @@ interface WalletFlipCardProps {
   nomStructure: string;
   isLoading?: boolean;
   onRetraitSuccess?: () => void;
+  masquerChiffres?: boolean; // Masquer les montants avec ****
 }
 
 type RetraitStep = 'idle' | 'form' | 'otp' | 'processing' | 'success' | 'error';
@@ -34,7 +35,8 @@ export default function WalletFlipCard({
   idStructure,
   nomStructure,
   isLoading = false,
-  onRetraitSuccess
+  onRetraitSuccess,
+  masquerChiffres = false
 }: WalletFlipCardProps) {
   const [isFlipped, setIsFlipped] = useState(false);
   const [step, setStep] = useState<RetraitStep>('idle');
@@ -47,7 +49,7 @@ export default function WalletFlipCard({
   const [isTimerExpired, setIsTimerExpired] = useState<boolean>(false);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
-  const canFlip = solde > 0 && !isLoading;
+  const canFlip = solde > 0 && !isLoading && !masquerChiffres;
 
   // Fonction pour formater le temps restant (mm:ss)
   const formatTime = useCallback((seconds: number): string => {
@@ -329,6 +331,8 @@ export default function WalletFlipCard({
               <div className="text-xs font-bold text-green-600">
                 {isLoading ? (
                   <div className="w-12 h-4 bg-gray-200 animate-pulse rounded mx-auto"></div>
+                ) : masquerChiffres ? (
+                  '****'
                 ) : (
                   formatCompact(totalNet)
                 )}
@@ -341,6 +345,8 @@ export default function WalletFlipCard({
               <div className="text-xs font-bold text-red-600">
                 {isLoading ? (
                   <div className="w-12 h-4 bg-gray-200 animate-pulse rounded mx-auto"></div>
+                ) : masquerChiffres ? (
+                  '****'
                 ) : (
                   formatCompact(totalRetire)
                 )}
@@ -353,6 +359,8 @@ export default function WalletFlipCard({
               <div className={`text-sm font-bold ${config.textColor}`}>
                 {isLoading ? (
                   <div className="w-14 h-4 bg-gray-200 animate-pulse rounded mx-auto"></div>
+                ) : masquerChiffres ? (
+                  '****'
                 ) : (
                   formatCompact(solde)
                 )}
