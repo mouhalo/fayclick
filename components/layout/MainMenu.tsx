@@ -11,6 +11,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Lock, LockOpen, User, Phone, Shield, Check, X, Eye, EyeOff, KeyRound } from 'lucide-react';
 import OTPInput from '@/components/coffre-fort/OTPInput';
 import PopMessage from '@/components/ui/PopMessage';
+import { useHasRight } from '@/hooks/useRights';
 
 interface MenuProps {
   isOpen: boolean;
@@ -24,6 +25,7 @@ export default function MainMenu({ isOpen, onClose, userName, businessName }: Me
   const menuRef = useRef<HTMLDivElement>(null);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const canManageSettings = useHasRight("GERER PARAMETRAGES");
 
   // Fermer le menu si on clique à l'extérieur
   useEffect(() => {
@@ -138,13 +140,15 @@ export default function MainMenu({ isOpen, onClose, userName, businessName }: Me
                   <span className="font-medium">Tableau de bord</span>
                 </button>
 
-                <button
-                  onClick={() => router.push('/settings')}
-                  className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-100 transition-colors text-left"
-                >
-                  <span className="text-2xl">⚙️</span>
-                  <span className="font-medium">Paramètres</span>
-                </button>
+                {canManageSettings && (
+                  <button
+                    onClick={() => router.push('/settings')}
+                    className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-100 transition-colors text-left"
+                  >
+                    <span className="text-2xl">⚙️</span>
+                    <span className="font-medium">Paramètres</span>
+                  </button>
+                )}
 
                 <hr className="my-4" />
 

@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useCoffreFort } from '@/hooks/useCoffreFort';
 import { useWalletStructure } from '@/hooks/useWalletStructure';
 import { useStructure } from '@/hooks/useStructure';
+import { useHasRight } from '@/hooks/useRights';
 import WalletFlipCard from './WalletFlipCard';
 
 interface ModalCoffreFortProps {
@@ -20,6 +21,7 @@ type TransactionFilter = 'all' | 'recu' | 'retrait';
 export default function ModalCoffreFort({ isOpen, onClose, structureId }: ModalCoffreFortProps) {
   const [activeTab, setActiveTab] = useState<TabType>('ca');
   const [transactionFilter, setTransactionFilter] = useState<TransactionFilter>('all');
+  const [searchPhone, setSearchPhone] = useState('');
   const { data: coffreData, isLoading: coffreLoading } = useCoffreFort(structureId);
   const {
     soldes,
@@ -36,8 +38,29 @@ export default function ModalCoffreFort({ isOpen, onClose, structureId }: ModalC
   const mobileWave = contact?.mobileWave || '';
   const nomStructure = structure?.nom_structure || '';
 
+  // Droit de voir les chiffres financiers (CA, soldes KALPE)
+  const canViewCA = useHasRight("VOIR CHIFFRE D'AFFAIRE");
+
   const formatCurrency = (amount: number) => {
     return amount.toLocaleString('fr-FR') + ' FCFA';
+  };
+
+  /** Affiche le montant ou **** selon le droit */
+  const displayAmount = (amount: number) => {
+    if (!canViewCA) return '****';
+    return formatCurrency(amount);
+  };
+
+  /** Affiche un pourcentage ou **** selon le droit */
+  const displayPercent = (value: number) => {
+    if (!canViewCA) return '****';
+    return `${value.toFixed(2)}%`;
+  };
+
+  /** Affiche un nombre ou **** selon le droit */
+  const displayNumber = (value: number) => {
+    if (!canViewCA) return '****';
+    return String(value);
   };
 
   const formatDate = (dateString: string) => {
@@ -60,11 +83,17 @@ export default function ModalCoffreFort({ isOpen, onClose, structureId }: ModalC
     return phone;
   };
 
-  // Filtrer les transactions selon le filtre actif
+  // Filtrer les transactions selon le filtre actif + recherche téléphone
   const filteredTransactions = transactions.filter((t) => {
-    if (transactionFilter === 'all') return true;
-    if (transactionFilter === 'recu') return t.sens === 'ENTREE';
-    if (transactionFilter === 'retrait') return t.sens === 'SORTIE';
+    // Filtre par sens
+    if (transactionFilter === 'recu' && t.sens !== 'ENTREE') return false;
+    if (transactionFilter === 'retrait' && t.sens !== 'SORTIE') return false;
+    // Filtre par téléphone
+    if (searchPhone.trim()) {
+      const search = searchPhone.replace(/\s/g, '');
+      const phone = (t.telephone || '').replace(/\s/g, '');
+      if (!phone.includes(search)) return false;
+    }
     return true;
   });
 
@@ -159,7 +188,7 @@ export default function ModalCoffreFort({ isOpen, onClose, structureId }: ModalC
                         {coffreLoading ? (
                           <div className="w-24 h-6 bg-white/20 animate-pulse rounded mx-auto"></div>
                         ) : (
-                          formatCurrency(coffreData?.ca_total || 0)
+                          displayAmount(coffreData?.ca_total || 0)
                         )}
                       </motion.div>
                       <div className="text-xs opacity-90 mb-1">Chiffre d&apos;Affaires Total</div>
@@ -168,7 +197,7 @@ export default function ModalCoffreFort({ isOpen, onClose, structureId }: ModalC
                         {coffreLoading ? (
                           <div className="w-12 h-2 bg-white/20 animate-pulse rounded"></div>
                         ) : (
-                          <span>{coffreData?.nb_ventes || 0} ventes</span>
+                          <span>{displayNumber(coffreData?.nb_ventes || 0)} ventes</span>
                         )}
                       </div>
                     </div>
@@ -190,7 +219,7 @@ export default function ModalCoffreFort({ isOpen, onClose, structureId }: ModalC
                         {coffreLoading ? (
                           <div className="w-16 h-3 bg-gray-200 animate-pulse rounded"></div>
                         ) : (
-                          formatCurrency(coffreData?.details?.couts?.charges_exploitation || 0)
+                          displayAmount(coffreData?.details?.couts?.charges_exploitation || 0)
                         )}
                       </div>
                     </motion.div>
@@ -209,7 +238,7 @@ export default function ModalCoffreFort({ isOpen, onClose, structureId }: ModalC
                         {coffreLoading ? (
                           <div className="w-16 h-3 bg-gray-200 animate-pulse rounded"></div>
                         ) : (
-                          formatCurrency(coffreData?.details?.couts?.cout_achats_marchandises || 0)
+                          displayAmount(coffreData?.details?.couts?.cout_achats_marchandises || 0)
                         )}
                       </div>
                     </motion.div>
@@ -229,7 +258,7 @@ export default function ModalCoffreFort({ isOpen, onClose, structureId }: ModalC
                           {coffreLoading ? (
                             <div className="w-16 h-3 bg-gray-200 animate-pulse rounded"></div>
                           ) : (
-                            formatCurrency(coffreData?.solde_net || 0)
+                            displayAmount(coffreData?.solde_net || 0)
                           )}
                         </div>
                       </div>
@@ -245,7 +274,7 @@ export default function ModalCoffreFort({ isOpen, onClose, structureId }: ModalC
                             {coffreLoading ? (
                               <div className="w-14 h-2.5 bg-gray-200 animate-pulse rounded"></div>
                             ) : (
-                              formatCurrency(coffreData?.details?.rentabilite?.marge_brute || 0)
+                              displayAmount(coffreData?.details?.rentabilite?.marge_brute || 0)
                             )}
                           </span>
                         </div>
@@ -259,7 +288,7 @@ export default function ModalCoffreFort({ isOpen, onClose, structureId }: ModalC
                             {coffreLoading ? (
                               <div className="w-10 h-2.5 bg-gray-200 animate-pulse rounded"></div>
                             ) : (
-                              `${(coffreData?.details?.rentabilite?.taux_marge_nette || 0).toFixed(2)}%`
+                              displayPercent(coffreData?.details?.rentabilite?.taux_marge_nette || 0)
                             )}
                           </span>
                         </div>
@@ -305,18 +334,26 @@ export default function ModalCoffreFort({ isOpen, onClose, structureId }: ModalC
                         {walletLoading ? (
                           <div className="w-28 h-7 bg-white/20 animate-pulse rounded mx-auto"></div>
                         ) : (
-                          formatCurrency(soldes?.solde_total || 0)
+                          displayAmount(soldes?.solde_total || 0)
                         )}
                       </div>
                     </div>
                   </div>
 
                   {/* Info retrait */}
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-2 text-center">
-                    <p className="text-xs text-blue-700">
-                      Cliquez sur une carte pour effectuer un retrait
-                    </p>
-                  </div>
+                  {canViewCA ? (
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-2 text-center">
+                      <p className="text-xs text-blue-700">
+                        Cliquez sur une carte pour effectuer un retrait
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="bg-amber-50 border border-amber-200 rounded-lg p-2 text-center">
+                      <p className="text-xs text-amber-700">
+                        🔒 Montants masqués — droits insuffisants
+                      </p>
+                    </div>
+                  )}
 
                   {/* WalletFlipCard Orange Money */}
                   <WalletFlipCard
@@ -329,6 +366,7 @@ export default function ModalCoffreFort({ isOpen, onClose, structureId }: ModalC
                     nomStructure={nomStructure}
                     isLoading={walletLoading}
                     onRetraitSuccess={refreshWallet}
+                    masquerChiffres={!canViewCA}
                   />
 
                   {/* WalletFlipCard Wave */}
@@ -342,6 +380,7 @@ export default function ModalCoffreFort({ isOpen, onClose, structureId }: ModalC
                     nomStructure={nomStructure}
                     isLoading={walletLoading}
                     onRetraitSuccess={refreshWallet}
+                    masquerChiffres={!canViewCA}
                   />
 
                   {/* WalletFlipCard Free Money (utilise le même numéro que OM) */}
@@ -355,6 +394,7 @@ export default function ModalCoffreFort({ isOpen, onClose, structureId }: ModalC
                     nomStructure={nomStructure}
                     isLoading={walletLoading}
                     onRetraitSuccess={refreshWallet}
+                    masquerChiffres={!canViewCA}
                   />
 
                   {/* Bouton Rafraîchir */}
@@ -401,6 +441,8 @@ export default function ModalCoffreFort({ isOpen, onClose, structureId }: ModalC
                       <div className="text-sm font-bold text-green-600">
                         {walletLoading ? (
                           <div className="w-16 h-4 bg-gray-200 animate-pulse rounded"></div>
+                        ) : !canViewCA ? (
+                          '****'
                         ) : (
                           formatCurrency(totaux.totalRecus)
                         )}
@@ -428,6 +470,8 @@ export default function ModalCoffreFort({ isOpen, onClose, structureId }: ModalC
                       <div className="text-sm font-bold text-red-600">
                         {walletLoading ? (
                           <div className="w-16 h-4 bg-gray-200 animate-pulse rounded"></div>
+                        ) : !canViewCA ? (
+                          '****'
                         ) : (
                           formatCurrency(totaux.totalRetraits)
                         )}
@@ -435,8 +479,39 @@ export default function ModalCoffreFort({ isOpen, onClose, structureId }: ModalC
                     </motion.button>
                   </div>
 
+                  {/* Barre de recherche + Actualiser */}
+                  <div className="flex gap-2 items-center">
+                    <div className="flex-1 relative">
+                      <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm">🔍</span>
+                      <input
+                        type="tel"
+                        value={searchPhone}
+                        onChange={(e) => setSearchPhone(e.target.value)}
+                        placeholder="Rechercher un téléphone..."
+                        className="w-full pl-8 pr-8 py-2 text-xs border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-300 focus:border-blue-400 outline-none transition-all bg-white"
+                      />
+                      {searchPhone && (
+                        <button
+                          onClick={() => setSearchPhone('')}
+                          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-sm"
+                        >
+                          ✕
+                        </button>
+                      )}
+                    </div>
+                    <button
+                      onClick={refreshWallet}
+                      disabled={walletLoading}
+                      className="flex items-center gap-1.5 px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg border border-blue-200 transition-all disabled:opacity-50 flex-shrink-0"
+                      title="Actualiser les transactions"
+                    >
+                      <span className={`text-sm ${walletLoading ? 'animate-spin inline-block' : ''}`}>🔄</span>
+                      <span className="text-xs font-medium hidden sm:inline">Actualiser</span>
+                    </button>
+                  </div>
+
                   {/* Indicateur de filtre actif */}
-                  {transactionFilter !== 'all' && (
+                  {(transactionFilter !== 'all' || searchPhone.trim()) && (
                     <motion.div
                       initial={{ opacity: 0, height: 0 }}
                       animate={{ opacity: 1, height: 'auto' }}
@@ -444,13 +519,19 @@ export default function ModalCoffreFort({ isOpen, onClose, structureId }: ModalC
                       className="flex items-center justify-between bg-gray-100 rounded-lg px-3 py-1.5"
                     >
                       <span className="text-xs text-gray-600">
-                        Filtre: <strong>{transactionFilter === 'recu' ? 'Réceptions' : 'Retraits'}</strong>
+                        {transactionFilter !== 'all' && (
+                          <>Filtre: <strong>{transactionFilter === 'recu' ? 'Réceptions' : 'Retraits'}</strong></>
+                        )}
+                        {transactionFilter !== 'all' && searchPhone.trim() && ' + '}
+                        {searchPhone.trim() && (
+                          <>Tél: <strong>{searchPhone}</strong></>
+                        )}
                       </span>
                       <button
-                        onClick={() => setTransactionFilter('all')}
+                        onClick={() => { setTransactionFilter('all'); setSearchPhone(''); }}
                         className="text-xs text-blue-600 hover:text-blue-800 font-medium"
                       >
-                        Voir tout
+                        Tout effacer
                       </button>
                     </motion.div>
                   )}
@@ -482,13 +563,15 @@ export default function ModalCoffreFort({ isOpen, onClose, structureId }: ModalC
                             <tr className="border-b border-gray-100">
                               <td colSpan={4} className="text-center py-8 text-gray-400">
                                 <div className="flex flex-col items-center gap-2">
-                                  <span className="text-3xl">📭</span>
+                                  <span className="text-3xl">{searchPhone.trim() ? '🔍' : '📭'}</span>
                                   <span>
-                                    {transactionFilter === 'all'
-                                      ? 'Aucune transaction pour le moment'
-                                      : transactionFilter === 'recu'
-                                        ? 'Aucune réception trouvée'
-                                        : 'Aucun retrait trouvé'
+                                    {searchPhone.trim()
+                                      ? `Aucun résultat pour "${searchPhone}"`
+                                      : transactionFilter === 'all'
+                                        ? 'Aucune transaction pour le moment'
+                                        : transactionFilter === 'recu'
+                                          ? 'Aucune réception trouvée'
+                                          : 'Aucun retrait trouvé'
                                     }
                                   </span>
                                 </div>
@@ -538,7 +621,7 @@ export default function ModalCoffreFort({ isOpen, onClose, structureId }: ModalC
                   {!walletLoading && filteredTransactions.length > 0 && (
                     <div className="text-center text-xs text-gray-500">
                       {filteredTransactions.length} transaction{filteredTransactions.length > 1 ? 's' : ''}
-                      {transactionFilter !== 'all' && ` (sur ${transactions.length} au total)`}
+                      {(transactionFilter !== 'all' || searchPhone.trim()) && ` (sur ${transactions.length} au total)`}
                     </div>
                   )}
                 </motion.div>

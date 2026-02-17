@@ -21,6 +21,8 @@ interface FactureCardProps {
   onSupprimer?: (facture: FactureComplete) => void;
   delay?: number;
   userProfileId?: number; // ID du profil utilisateur (1 = ADMIN)
+  /** Si false, remplace les montants par *** (caissier) */
+  canViewMontants?: boolean;
 }
 
 export const FactureCard = ({
@@ -31,7 +33,8 @@ export const FactureCard = ({
   onVoirRecu,
   onSupprimer,
   delay = 0,
-  userProfileId
+  userProfileId,
+  canViewMontants = true
 }: FactureCardProps) => {
   const { facture: factureData } = facture;
 
@@ -111,7 +114,7 @@ export const FactureCard = ({
               {factureData.nom_client}
               {factureData.mt_remise > 0 && (
                 <span className="text-orange-300 ml-1">
-                  (Remise: {formatAmount(factureData.mt_remise)})
+                  (Remise: {canViewMontants ? formatAmount(factureData.mt_remise) : '******'})
                 </span>
               )}
             </span>
@@ -125,11 +128,11 @@ export const FactureCard = ({
         {/* Montant principal responsive */}
         <div className="text-center mb-3 sm:mb-4">
           <p className="text-white text-xl sm:text-2xl font-bold">
-            {formatAmount(factureData.montant)}
+            {canViewMontants ? formatAmount(factureData.montant) : '******'}
           </p>
           {factureData.mt_restant > 0 && (
             <p className="text-orange-300 text-xs sm:text-sm font-medium">
-              Reste: {formatAmount(factureData.mt_restant)}
+              Reste: {canViewMontants ? formatAmount(factureData.mt_restant) : '******'}
             </p>
           )}
         </div>

@@ -1,0 +1,48 @@
+-- DROP FUNCTION public.add_new_recupaiement(int4, int4, varchar, varchar, numeric, varchar, varchar, timestamp);
+
+CREATE OR REPLACE FUNCTION public.add_new_recupaiement(p_id_facture integer, p_id_structure integer, p_numero_recu character varying, p_methode_paiement character varying, p_montant_paye numeric, p_reference_transaction character varying, p_numero_telephone character varying DEFAULT NULL::character varying, p_date_paiement timestamp without time zone DEFAULT now())
+ RETURNS json
+ LANGUAGE plpgsql
+AS $function$
+DECLARE
+    v_id_recu INTEGER;
+BEGIN
+    INSERT INTO public.recus_paiement (
+        id_facture,
+        id_structure,
+        numero_recu,
+        methode_paiement,
+        montant_paye,
+        reference_transaction,
+        numero_telephone,
+        date_paiement
+    ) VALUES (
+        p_id_facture,
+        p_id_structure,
+        p_numero_recu,
+        p_methode_paiement,
+        p_montant_paye,
+        p_reference_transaction,
+        p_numero_telephone,
+        p_date_paiement
+    )
+    RETURNING id_recu INTO v_id_recu;
+
+    RETURN json_build_object(
+        'success', true,
+        'code', 'RECEIPT_CREATED',
+        'message', 'Reçu de paiement créé avec succès',
+        'data', json_build_object('new_id', v_id_recu)
+    );
+
+EXCEPTION
+    WHEN OTHERS THEN
+        RETURN json_build_object(
+            'success', false,
+            'code', 'ERROR',
+            'message', SQLERRM,
+            'data', NULL
+        );
+END;
+$function$
+;

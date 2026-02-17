@@ -19,6 +19,8 @@ interface FacturesListProps {
   onVoirRecu?: (facture: FactureComplete) => void;
   onSupprimer?: (facture: FactureComplete) => void;
   userProfileId?: number; // ID du profil utilisateur (1 = ADMIN)
+  /** Si false, remplace les montants par *** (caissier) */
+  canViewMontants?: boolean;
 }
 
 // Variants pour le container avec stagger
@@ -68,7 +70,8 @@ export const FacturesList = ({
   onPartager,
   onVoirRecu,
   onSupprimer,
-  userProfileId
+  userProfileId,
+  canViewMontants = true
 }: FacturesListProps) => {
 
   // État de loading
@@ -152,6 +155,7 @@ export const FacturesList = ({
               onSupprimer={onSupprimer}
               delay={index * 0.05} // Délai plus court pour la fluidité
               userProfileId={userProfileId}
+              canViewMontants={canViewMontants}
             />
           </motion.div>
         ))}

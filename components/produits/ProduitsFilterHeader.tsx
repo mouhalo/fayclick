@@ -6,7 +6,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Search, Filter, Grid, LayoutList, LayoutGrid, RefreshCw, Printer, FileDown } from 'lucide-react';
+import { Search, Filter, Grid, LayoutList, LayoutGrid, RefreshCw, Printer, FileDown, CheckSquare } from 'lucide-react';
 
 interface ProduitsFilterHeaderProps {
   searchTerm: string;
@@ -20,6 +20,8 @@ interface ProduitsFilterHeaderProps {
   onPrintClick?: () => void;
   onExportCSV?: () => void;
   isExporting?: boolean;
+  selectionMode?: boolean;
+  onToggleSelectionMode?: () => void;
 }
 
 export function ProduitsFilterHeader({
@@ -33,7 +35,9 @@ export function ProduitsFilterHeader({
   refreshing = false,
   onPrintClick,
   onExportCSV,
-  isExporting = false
+  isExporting = false,
+  selectionMode = false,
+  onToggleSelectionMode
 }: ProduitsFilterHeaderProps) {
   return (
     <div className="space-y-4">
@@ -106,6 +110,22 @@ export function ProduitsFilterHeader({
 
         {/* Boutons actions */}
         <div className="flex items-center gap-2">
+          {/* Bouton Mode Sélection */}
+          {onToggleSelectionMode && (
+            <motion.button
+              whileTap={{ scale: 0.95 }}
+              onClick={onToggleSelectionMode}
+              className={`p-2 rounded-lg transition-colors ${
+                selectionMode
+                  ? 'bg-blue-500 text-white shadow-sm'
+                  : 'bg-white/10 hover:bg-white/20'
+              }`}
+              title={selectionMode ? 'Quitter la sélection' : 'Sélectionner des produits'}
+            >
+              <CheckSquare className={`w-5 h-5 ${selectionMode ? 'text-white' : 'text-white'}`} />
+            </motion.button>
+          )}
+
           {/* Bouton Impression */}
           {onPrintClick && (
             <motion.button

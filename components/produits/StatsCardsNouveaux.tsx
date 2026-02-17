@@ -14,9 +14,11 @@ import { Produit } from '@/types/produit';
 interface StatsCardsNouveauxProps {
   articles: Produit[];
   ventes?: any[]; // TODO: Typer correctement les ventes
+  /** Si false, remplace les montants par ****** (caissier sans droit VOIR CA) */
+  canViewMontants?: boolean;
 }
 
-export function StatsCardsNouveaux({ articles, ventes = [] }: StatsCardsNouveauxProps) {
+export function StatsCardsNouveaux({ articles, ventes = [], canViewMontants = true }: StatsCardsNouveauxProps) {
   const { isMobile, isMobileLarge } = useBreakpoint();
 
   // Calculs dynamiques des statistiques
@@ -111,7 +113,7 @@ export function StatsCardsNouveaux({ articles, ventes = [] }: StatsCardsNouveaux
     {
       id: 'marchandise-pa',
       title: 'Valeur Marchandise (PA)',
-      value: `${stats.valeurMarchandisePA.toLocaleString('fr-FR')} FCFA`,
+      value: canViewMontants ? `${stats.valeurMarchandisePA.toLocaleString('fr-FR')} FCFA` : '******',
       subtitle: `Total Articles: ${stats.totalArticles}`,
       icon: Package,
       gradient: 'from-blue-400 to-blue-500',
@@ -121,7 +123,7 @@ export function StatsCardsNouveaux({ articles, ventes = [] }: StatsCardsNouveaux
     {
       id: 'stock-pv',
       title: 'Valeur Stock (PV)',
-      value: `${stats.valeurStockPV.toLocaleString('fr-FR')} FCFA`,
+      value: canViewMontants ? `${stats.valeurStockPV.toLocaleString('fr-FR')} FCFA` : '******',
       subtitle: '',
       icon: Store,
       gradient: 'from-cyan-400 to-cyan-500',
@@ -131,7 +133,7 @@ export function StatsCardsNouveaux({ articles, ventes = [] }: StatsCardsNouveaux
     {
       id: 'ventes-realisees',
       title: 'Valeur Ventes réalisées',
-      value: `${stats.valeurVentesRealisees.toLocaleString('fr-FR')} FCFA`,
+      value: canViewMontants ? `${stats.valeurVentesRealisees.toLocaleString('fr-FR')} FCFA` : '******',
       subtitle: '',
       icon: TrendingUp,
       gradient: 'from-emerald-400 to-emerald-500',
@@ -141,8 +143,8 @@ export function StatsCardsNouveaux({ articles, ventes = [] }: StatsCardsNouveaux
     {
       id: 'benefice-potentiel',
       title: 'Bénéfice Potentiel',
-      value: `${stats.beneficePotentiel.toLocaleString('fr-FR')} FCFA`,
-      subtitle: `(${stats.beneficePotentielPct.toFixed(2)}%)`,
+      value: canViewMontants ? `${stats.beneficePotentiel.toLocaleString('fr-FR')} FCFA` : '******',
+      subtitle: canViewMontants ? `(${stats.beneficePotentielPct.toFixed(2)}%)` : '',
       icon: DollarSign,
       gradient: 'from-amber-400 to-amber-500',
       bgGradient: 'from-amber-50 to-amber-100',

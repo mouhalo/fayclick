@@ -42,6 +42,8 @@ interface ModalAjoutProduitNewProps {
   onRequestStockAddition?: (produit: AddEditProduitResponse) => void;
   produitToEdit?: Produit | null;
   typeStructure: string;
+  /** Si false, masque la marge avec ****** (caissier sans droit VOIR CA) */
+  canViewMontants?: boolean;
 }
 
 type OngletType = 'informations' | 'photos' | 'gestion-stock' | 'historique';
@@ -53,7 +55,8 @@ export function ModalAjoutProduitNew({
   onStockUpdate,
   onRequestStockAddition,
   produitToEdit,
-  typeStructure
+  typeStructure,
+  canViewMontants = true
 }: ModalAjoutProduitNewProps) {
   // Hook pour vérifier si l'utilisateur est ADMIN
   const { isAdmin } = useUserProfile();
@@ -627,14 +630,18 @@ export function ModalAjoutProduitNew({
                     <div className="bg-gradient-to-r from-emerald-50/60 to-green-50/60 backdrop-blur-sm p-2.5 sm:p-4 rounded-lg sm:rounded-xl border border-emerald-200/50 shadow-sm">
                       <div className="flex items-center justify-between text-xs sm:text-sm">
                         <span className="text-slate-600">Marge:</span>
-                        <div className="text-right">
-                          <div className="font-semibold text-sky-900 text-xs sm:text-sm">
-                            {formatMontant(marge)}
+                        {canViewMontants ? (
+                          <div className="text-right">
+                            <div className="font-semibold text-sky-900 text-xs sm:text-sm">
+                              {formatMontant(marge)}
+                            </div>
+                            <div className="text-sky-700 text-[10px] sm:text-xs">
+                              ({margePercentage}%)
+                            </div>
                           </div>
-                          <div className="text-sky-700 text-[10px] sm:text-xs">
-                            ({margePercentage}%)
-                          </div>
-                        </div>
+                        ) : (
+                          <span className="font-semibold text-sky-900 text-xs sm:text-sm">******</span>
+                        )}
                       </div>
                     </div>
                   )}
