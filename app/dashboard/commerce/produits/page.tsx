@@ -5,11 +5,12 @@
 
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Plus,
+  Minus,
   RefreshCw,
   Package,
   AlertCircle,
@@ -20,7 +21,8 @@ import {
   BarChart3,
   CheckSquare,
   X,
-  Loader2
+  Loader2,
+  ShoppingCart
 } from 'lucide-react';
 import { authService } from '@/services/auth.service';
 import { produitsService, ProduitsApiException } from '@/services/produits.service';
@@ -100,6 +102,14 @@ export default function ProduitsCommercePage() {
   const [isDeletingBatch, setIsDeletingBatch] = useState(false);
   const [batchDeleteProgress, setBatchDeleteProgress] = useState(0);
 
+  // États Mode Vente
+  const [modeVente, setModeVente] = useState(false);
+  const [showQuantityModal, setShowQuantityModal] = useState(false);
+  const [modeVenteProduit, setModeVenteProduit] = useState<Produit | null>(null);
+  const [modeVenteQuantity, setModeVenteQuantity] = useState(1);
+  const lastModeVenteTrigger = useRef<string>('');
+  const quantityInputRef = useRef<HTMLInputElement>(null);
+
   // Configuration pagination
   const itemsPerPage = 10;
 
@@ -143,6 +153,8 @@ export default function ProduitsCommercePage() {
 
   // Store panier
   const addArticle = usePanierStore(state => state.addArticle);
+  const panierArticles = usePanierStore(state => state.articles);
+  const setModalOpen = usePanierStore(state => state.setModalOpen);
 
   // Pagination
   const filteredCount = produitsFiltered.length;
@@ -217,6 +229,45 @@ export default function ProduitsCommercePage() {
     }
   }, [user, isAuthLoading, loadProduits]);
 
+  // Initialisation Mode Vente
+  useEffect(() => {
+    if (!user) return;
+    if (user.nom_profil !== 'ADMIN') {
+      // Non-ADMIN → mode vente activé par défaut
+      setModeVente(true);
+    } else {
+      // ADMIN → restaurer depuis localStorage
+      const stored = localStorage.getItem(`fayclick_mode_vente_${user.id_structure}`);
+      setModeVente(stored === 'true');
+    }
+  }, [user]);
+
+  // Détection produit unique en Mode Vente
+  useEffect(() => {
+    if (!modeVente || searchTerm.length < 2 || produitsFiltered.length !== 1) return;
+
+    // Bloquer si mot de passe non changé
+    if (user && user.pwd_changed === false) return;
+
+    const produit = produitsFiltered[0];
+    const triggerKey = `${produit.id_produit}-${searchTerm}`;
+
+    // Éviter double déclenchement pour le même produit/recherche
+    if (lastModeVenteTrigger.current === triggerKey) return;
+    lastModeVenteTrigger.current = triggerKey;
+
+    const stock = produit.niveau_stock || 0;
+    if (stock <= 0) {
+      showToast('error', 'Stock épuisé', `"${produit.nom_produit}" n'est plus en stock`);
+      return;
+    }
+
+    // Ouvrir modal quantité
+    setModeVenteProduit(produit);
+    setModeVenteQuantity(1);
+    setShowQuantityModal(true);
+  }, [modeVente, searchTerm, produitsFiltered, showToast, user]);
+
   // Scroll listener pour la pagination sticky : afficher uniquement quand l'utilisateur atteint le bas de la page
   useEffect(() => {
     if (totalPages <= 1) {
@@ -245,6 +296,77 @@ export default function ProduitsCommercePage() {
     await loadProduits();
     setRefreshing(false);
   };
+
+  // Toggle Mode Vente
+  const handleToggleModeVente = () => {
+    const newValue = !modeVente;
+    setModeVente(newValue);
+    lastModeVenteTrigger.current = ''; // Reset pour permettre nouveau déclenchement
+    if (user) {
+      localStorage.setItem(`fayclick_mode_vente_${user.id_structure}`, String(newValue));
+    }
+    showToast('info', newValue ? 'Mode Vente activé' : 'Mode Vente désactivé',
+      newValue ? 'La recherche ajoutera automatiquement au panier' : 'Recherche en mode filtrage normal');
+  };
+
+  // Confirmation ajout panier depuis Mode Vente
+  const handleModeVenteConfirm = () => {
+    if (!modeVenteProduit) return;
+
+    // Vérifier que le mot de passe a été changé
+    if (user && user.pwd_changed === false) {
+      showToast('warning', 'Mot de passe requis', 'Veuillez d\'abord modifier votre mot de passe initial pour effectuer des ventes.');
+      setShowQuantityModal(false);
+      setModeVenteProduit(null);
+      return;
+    }
+
+    // Vérifier l'abonnement
+    if (!canAccessFeature('Vente produit')) {
+      setShowQuantityModal(false);
+      setModeVenteProduit(null);
+      showAbonnementModal('Vente de produit');
+      return;
+    }
+
+    addArticle(modeVenteProduit, modeVenteQuantity);
+    showToast('success', 'Ajouté au panier',
+      `${modeVenteQuantity}x "${modeVenteProduit.nom_produit}" ajouté${modeVenteQuantity > 1 ? 's' : ''}`);
+    setShowQuantityModal(false);
+    setModeVenteProduit(null);
+    setSearchTerm('');
+    lastModeVenteTrigger.current = '';
+  };
+
+  // Annulation modal quantité Mode Vente
+  const handleModeVenteCancel = () => {
+    setShowQuantityModal(false);
+    setModeVenteProduit(null);
+  };
+
+  // Auto-focus sur le champ quantité quand le modal s'ouvre
+  useEffect(() => {
+    if (showQuantityModal) {
+      setTimeout(() => {
+        quantityInputRef.current?.focus();
+        quantityInputRef.current?.select();
+      }, 100);
+    }
+  }, [showQuantityModal]);
+
+  // Raccourci clavier Ctrl+7 → ouvrir le panier
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.ctrlKey && e.key === '7') {
+        e.preventDefault();
+        if (panierArticles.length > 0) {
+          setModalOpen(true);
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [panierArticles.length, setModalOpen]);
 
   // Retour au dashboard
   const handleRetour = () => {
@@ -508,6 +630,13 @@ export default function ProduitsCommercePage() {
   const handleScanSuccess = (code: string) => {
     console.log('📸 [PRODUITS COMMERCE] Code-barres scanné:', code);
 
+    // Vérifier que le mot de passe a été changé
+    if (user && user.pwd_changed === false) {
+      showToast('warning', 'Mot de passe requis', 'Veuillez d\'abord modifier votre mot de passe initial pour effectuer des ventes.');
+      setShowScanModal(false);
+      return;
+    }
+
     // Vérifier l'abonnement avant d'autoriser l'ajout au panier
     if (!canAccessFeature('Vente produit')) {
       setShowScanModal(false);
@@ -515,9 +644,8 @@ export default function ProduitsCommercePage() {
       return;
     }
 
-    // Rechercher le produit par code-barres dans la liste filtrée
-    // Note: L'API retourne 'code_barre' (sans 's')
-    const produitTrouve = produitsFiltered.find(p => p.code_barre === code);
+    // Rechercher dans la liste complète (pas filtrée) pour le scan
+    const produitTrouve = produits.find(p => p.code_barre === code);
 
     if (produitTrouve) {
       console.log('✅ [PRODUITS COMMERCE] Produit trouvé:', produitTrouve.nom_produit);
@@ -530,14 +658,21 @@ export default function ProduitsCommercePage() {
         return;
       }
 
-      // Ajouter au panier
-      addArticle(produitTrouve);
-      showToast('success', 'Produit ajouté', `"${produitTrouve.nom_produit}" a été ajouté au panier`);
       setShowScanModal(false);
+
+      // Si Mode Vente → ouvrir modal quantité
+      if (modeVente) {
+        setModeVenteProduit(produitTrouve);
+        setModeVenteQuantity(1);
+        setShowQuantityModal(true);
+      } else {
+        // Mode classique → ajout direct
+        addArticle(produitTrouve);
+        showToast('success', 'Produit ajouté', `"${produitTrouve.nom_produit}" a été ajouté au panier`);
+      }
     } else {
       console.log('❌ [PRODUITS COMMERCE] Produit non trouvé pour le code:', code);
       showToast('error', 'Produit non trouvé', `Aucun produit trouvé avec le code-barres ${code}`);
-      // Ne pas fermer le modal pour permettre un nouveau scan
     }
   };
 
@@ -649,23 +784,28 @@ export default function ProduitsCommercePage() {
   };
 
   const handleVendreClick = (produit: Produit) => {
+    // Vérifier que le mot de passe a été changé
+    if (user && user.pwd_changed === false) {
+      showToast('warning', 'Mot de passe requis', 'Veuillez d\'abord modifier votre mot de passe initial pour effectuer des ventes.');
+      return;
+    }
+
     // Vérifier l'abonnement avant d'autoriser la vente
     if (!canAccessFeature('Vente produit')) {
       showAbonnementModal('Vente de produit');
       return;
     }
 
-    // Bouton Vendre = Ajouter au panier
     const stock = produit.niveau_stock || 0;
-    if (stock > 0) {
-      addArticle({
-        ...produit,
-        quantity: 1 // Quantité par défaut
-      });
-      showToast('success', 'Produit ajouté', `${produit.nom_produit} ajouté au panier`);
-    } else {
+    if (stock <= 0) {
       showToast('error', 'Stock épuisé', 'Ce produit n\'est plus disponible');
+      return;
     }
+
+    // Ouvrir le modal quantité
+    setModeVenteProduit(produit);
+    setModeVenteQuantity(1);
+    setShowQuantityModal(true);
   };
 
   // Loading state
@@ -701,6 +841,7 @@ export default function ProduitsCommercePage() {
           selectionMode={isAdmin ? selectionMode : false}
           isSelected={isAdmin ? selectedIds.has(produit.id_produit) : false}
           onToggleSelect={isAdmin ? toggleSelection : undefined}
+          onVendreClick={handleVendreClick}
         />
       );
     }
@@ -718,6 +859,7 @@ export default function ProduitsCommercePage() {
         selectionMode={isAdmin ? selectionMode : false}
         isSelected={isAdmin ? selectedIds.has(produit.id_produit) : false}
         onToggleSelect={isAdmin ? toggleSelection : undefined}
+        onVendreClick={handleVendreClick}
       />
     );
   };
@@ -758,6 +900,8 @@ export default function ProduitsCommercePage() {
               isExporting={isExporting}
               selectionMode={isAdmin ? selectionMode : false}
               onToggleSelectionMode={isAdmin ? toggleSelectionMode : undefined}
+              modeVente={modeVente}
+              onToggleModeVente={handleToggleModeVente}
             />
           }
         />
@@ -1208,6 +1352,97 @@ export default function ProduitsCommercePage() {
           </motion.div>
         </div>
       )}
+
+      {/* Modal quantité Mode Vente */}
+      <AnimatePresence>
+        {showQuantityModal && modeVenteProduit && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100] p-4">
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              className="bg-white rounded-2xl p-5 max-w-sm w-full shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center">
+                  <ShoppingCart className="w-5 h-5 text-green-600" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-bold text-slate-900 truncate">{modeVenteProduit.nom_produit}</h3>
+                  <p className="text-sm text-slate-500">
+                    {(modeVenteProduit.prix_vente || 0).toLocaleString('fr-FR')} FCFA
+                    <span className="ml-2 text-xs">• Stock: {modeVenteProduit.niveau_stock || 0}</span>
+                  </p>
+                </div>
+              </div>
+
+              {/* Sélecteur quantité */}
+              <div className="flex items-center justify-center gap-4 my-5">
+                <motion.button
+                  whileTap={{ scale: 0.9 }}
+                  onClick={() => setModeVenteQuantity(q => Math.max(1, q - 1))}
+                  className="w-12 h-12 rounded-xl bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition-colors"
+                >
+                  <Minus className="w-5 h-5 text-slate-700" />
+                </motion.button>
+
+                <input
+                  ref={quantityInputRef}
+                  type="number"
+                  value={modeVenteQuantity}
+                  onChange={(e) => {
+                    const val = parseInt(e.target.value) || 1;
+                    setModeVenteQuantity(Math.min(Math.max(1, val), modeVenteProduit.niveau_stock || 1));
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleModeVenteConfirm();
+                    }
+                  }}
+                  className="w-20 h-12 text-center text-2xl font-bold text-slate-900 border-2 border-slate-200 rounded-xl focus:outline-none focus:border-green-400"
+                  min={1}
+                  max={modeVenteProduit.niveau_stock || 1}
+                />
+
+                <motion.button
+                  whileTap={{ scale: 0.9 }}
+                  onClick={() => setModeVenteQuantity(q => Math.min(q + 1, modeVenteProduit.niveau_stock || 1))}
+                  className="w-12 h-12 rounded-xl bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition-colors"
+                >
+                  <Plus className="w-5 h-5 text-slate-700" />
+                </motion.button>
+              </div>
+
+              {/* Sous-total */}
+              <div className="bg-green-50 rounded-xl p-3 mb-5 text-center">
+                <span className="text-sm text-green-700">Sous-total : </span>
+                <span className="text-lg font-bold text-green-800">
+                  {((modeVenteProduit.prix_vente || 0) * modeVenteQuantity).toLocaleString('fr-FR')} FCFA
+                </span>
+              </div>
+
+              {/* Boutons */}
+              <div className="flex gap-3">
+                <button
+                  onClick={handleModeVenteCancel}
+                  className="flex-1 px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-medium transition-colors"
+                >
+                  Annuler
+                </button>
+                <button
+                  onClick={handleModeVenteConfirm}
+                  className="flex-1 px-4 py-3 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white rounded-xl font-semibold transition-all shadow-md"
+                >
+                  Ajouter au panier
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* Modal scanner de code-barres */}
       <ModalScanCodeBarre

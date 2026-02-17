@@ -333,10 +333,10 @@ export function ModalEncaissementVenteFlash({
   if (!isOpen) return null;
 
   // Styles responsive
-  const cardHeight = isCompact ? 'h-24' : 'h-44'; // x2 pour PC
-  const iconSize = isCompact ? 'w-8 h-8' : 'w-14 h-14'; // x1.4 pour PC
-  const textSize = isCompact ? 'text-xs' : 'text-lg'; // x2 pour PC
-  const inputPadding = isCompact ? 'py-2 px-3' : 'py-4 px-5'; // x2 pour PC
+  const cardHeight = isCompact ? 'h-28' : 'h-40';
+  const iconSize = isCompact ? 'w-8 h-8' : 'w-10 h-10';
+  const textSize = isCompact ? 'text-xs' : 'text-sm';
+  const inputPadding = isCompact ? 'py-2 px-3' : 'py-3 px-4';
 
   return (
     <AnimatePresence>
@@ -353,7 +353,7 @@ export function ModalEncaissementVenteFlash({
           exit={{ scale: 0.9, opacity: 0 }}
           transition={{ type: 'spring', damping: 25 }}
           onClick={(e) => e.stopPropagation()}
-          className={`bg-white rounded-2xl w-full ${isCompact ? 'max-w-sm' : 'max-w-xl'} shadow-2xl overflow-hidden max-h-[95vh] overflow-y-auto`}
+          className={`bg-white rounded-2xl w-full ${isCompact ? 'max-w-sm max-h-[95vh] overflow-y-auto' : 'max-w-md'} shadow-2xl overflow-hidden`}
         >
           {/* Header compact */}
           <div className="bg-gradient-to-r from-green-600 to-emerald-600 p-3 sm:p-4 text-white">
@@ -391,13 +391,21 @@ export function ModalEncaissementVenteFlash({
                 {/* Grille 3 colonnes Flip Cards */}
                 <div className={`grid grid-cols-3 ${isCompact ? 'gap-2' : 'gap-4'}`}>
                   {/* CASH Card */}
-                  <div className="flip-card-container">
+                  <div style={{ perspective: '1000px' }}>
                     <div
-                      className={`flip-card ${cardHeight} ${flippedCards.has('CASH') ? 'flipped' : ''}`}
+                      className={`${cardHeight} relative`}
+                      style={{
+                        transformStyle: 'preserve-3d',
+                        transition: 'transform 0.6s',
+                        transform: flippedCards.has('CASH') ? 'rotateY(180deg)' : 'rotateY(0deg)'
+                      }}
                       onClick={() => !flippedCards.has('CASH') && toggleFlip('CASH')}
                     >
                       {/* Front */}
-                      <div className="flip-card-face flip-card-front bg-gradient-to-br from-green-400 to-emerald-500 rounded-xl p-2 sm:p-3 flex flex-col items-center justify-center cursor-pointer shadow-lg border-2 border-green-300 vf-touch-target">
+                      <div
+                        className="bg-gradient-to-br from-green-400 to-emerald-500 rounded-xl p-2 sm:p-3 flex flex-col items-center justify-center cursor-pointer shadow-lg border-2 border-green-300 vf-touch-target"
+                        style={{ position: 'absolute', width: '100%', height: '100%', backfaceVisibility: 'hidden', top: 0, left: 0 }}
+                      >
                         <div className={`${iconSize} bg-white/30 rounded-full flex items-center justify-center mb-1`}>
                           <Banknote className={isCompact ? 'w-4 h-4' : 'w-5 h-5'} color="white" />
                         </div>
@@ -406,7 +414,8 @@ export function ModalEncaissementVenteFlash({
 
                       {/* Back */}
                       <div
-                        className={`flip-card-face flip-card-back bg-green-50 rounded-xl ${isCompact ? 'p-1.5' : 'p-4'} flex flex-col justify-center border-2 border-green-300`}
+                        className={`bg-green-50 rounded-xl ${isCompact ? 'p-1.5' : 'p-3'} flex flex-col justify-center border-2 border-green-300`}
+                        style={{ position: 'absolute', width: '100%', height: '100%', backfaceVisibility: 'hidden', transform: 'rotateY(180deg)', top: 0, left: 0 }}
                         onClick={(e) => e.stopPropagation()}
                       >
                         <button
@@ -425,14 +434,22 @@ export function ModalEncaissementVenteFlash({
                               setMontantRecu(val);
                             }
                           }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              if ((parseFloat(montantRecu) || 0) >= montantTotal) {
+                                handleCashValidate();
+                              }
+                            }
+                          }}
                           placeholder="Reçu"
                           min={0}
                           max={montantTotal * 10}
-                          className={`w-full ${isCompact ? 'py-1 px-1 text-[11px]' : 'py-3 px-4 text-xl'} border border-green-300 rounded-lg text-center font-semibold mb-1`}
+                          className={`w-full ${isCompact ? 'py-1 px-1 text-[11px]' : 'py-2 px-3 text-base'} border border-green-300 rounded-lg text-center font-semibold mb-1`}
                           autoFocus={flippedCards.has('CASH')}
                         />
                         {/* Label monnaie toujours visible */}
-                        <div className={`text-center font-bold ${isCompact ? 'text-[9px] mb-0.5' : 'text-base mb-2'} ${
+                        <div className={`text-center font-bold ${isCompact ? 'text-[9px] mb-0.5' : 'text-xs mb-1'} ${
                           parseFloat(montantRecu) >= montantTotal
                             ? 'text-amber-600'
                             : 'text-gray-400'
@@ -446,7 +463,7 @@ export function ModalEncaissementVenteFlash({
                           whileTap={{ scale: 0.95 }}
                           onClick={handleCashValidate}
                           disabled={isProcessing || parseFloat(montantRecu) < montantTotal}
-                          className={`w-full ${isCompact ? 'py-1 text-[9px]' : 'py-3 text-base'} bg-green-500 text-white font-bold rounded-lg disabled:opacity-50`}
+                          className={`w-full ${isCompact ? 'py-1 text-[9px]' : 'py-1.5 text-sm'} bg-green-500 text-white font-bold rounded-lg disabled:opacity-50`}
                         >
                           {isProcessing ? '...' : 'OK'}
                         </motion.button>
@@ -455,13 +472,21 @@ export function ModalEncaissementVenteFlash({
                   </div>
 
                   {/* WAVE Card */}
-                  <div className="flip-card-container">
+                  <div style={{ perspective: '1000px' }}>
                     <div
-                      className={`flip-card ${cardHeight} ${flippedCards.has('WAVE') ? 'flipped' : ''}`}
+                      className={`${cardHeight} relative`}
+                      style={{
+                        transformStyle: 'preserve-3d',
+                        transition: 'transform 0.6s',
+                        transform: flippedCards.has('WAVE') ? 'rotateY(180deg)' : 'rotateY(0deg)'
+                      }}
                       onClick={() => !flippedCards.has('WAVE') && toggleFlip('WAVE')}
                     >
                       {/* Front */}
-                      <div className="flip-card-face flip-card-front bg-gradient-to-br from-blue-400 to-blue-600 rounded-xl p-2 sm:p-3 flex flex-col items-center justify-center cursor-pointer shadow-lg border-2 border-blue-300 vf-touch-target">
+                      <div
+                        className="bg-gradient-to-br from-blue-400 to-blue-600 rounded-xl p-2 sm:p-3 flex flex-col items-center justify-center cursor-pointer shadow-lg border-2 border-blue-300 vf-touch-target"
+                        style={{ position: 'absolute', width: '100%', height: '100%', backfaceVisibility: 'hidden', top: 0, left: 0 }}
+                      >
                         <div className={`${iconSize} bg-white rounded-full flex items-center justify-center mb-1 p-1 relative overflow-hidden`}>
                           <Image
                             src="/images/wave.png"
@@ -475,7 +500,8 @@ export function ModalEncaissementVenteFlash({
 
                       {/* Back */}
                       <div
-                        className={`flip-card-face flip-card-back bg-blue-50 rounded-xl ${isCompact ? 'p-1.5' : 'p-4'} flex flex-col justify-center border-2 border-blue-300`}
+                        className={`bg-blue-50 rounded-xl ${isCompact ? 'p-1.5' : 'p-3'} flex flex-col justify-center border-2 border-blue-300`}
+                        style={{ position: 'absolute', width: '100%', height: '100%', backfaceVisibility: 'hidden', transform: 'rotateY(180deg)', top: 0, left: 0 }}
                         onClick={(e) => e.stopPropagation()}
                       >
                         <button
@@ -491,9 +517,17 @@ export function ModalEncaissementVenteFlash({
                             setTelephone(e.target.value.replace(/[^0-9]/g, ''));
                             setTelephoneError('');
                           }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              if (telephone.length === 9) {
+                                handleWalletInitiate('WAVE');
+                              }
+                            }
+                          }}
                           placeholder="7X XXX XX XX"
                           maxLength={9}
-                          className={`w-full ${isCompact ? 'py-1 px-1 text-[11px]' : 'py-3 px-4 text-xl'} border ${telephoneError ? 'border-red-300' : 'border-blue-300'} rounded-lg text-center font-semibold mb-2`}
+                          className={`w-full ${isCompact ? 'py-1 px-1 text-[11px]' : 'py-2 px-3 text-base'} border ${telephoneError ? 'border-red-300' : 'border-blue-300'} rounded-lg text-center font-semibold mb-1`}
                           autoFocus={flippedCards.has('WAVE')}
                         />
                         {telephoneError && (
@@ -503,7 +537,7 @@ export function ModalEncaissementVenteFlash({
                           whileTap={{ scale: 0.95 }}
                           onClick={() => handleWalletInitiate('WAVE')}
                           disabled={isProcessing || telephone.length !== 9}
-                          className={`w-full ${isCompact ? 'py-1 text-[9px]' : 'py-3 text-base'} bg-blue-500 text-white font-bold rounded-lg disabled:opacity-50 flex items-center justify-center gap-2`}
+                          className={`w-full ${isCompact ? 'py-1 text-[9px]' : 'py-1.5 text-sm'} bg-blue-500 text-white font-bold rounded-lg disabled:opacity-50 flex items-center justify-center gap-2`}
                         >
                           {isProcessing ? <Loader2 className={isCompact ? 'w-3 h-3' : 'w-5 h-5'} /> : <QrCode className={isCompact ? 'w-3 h-3' : 'w-5 h-5'} />}
                           QR
@@ -513,13 +547,21 @@ export function ModalEncaissementVenteFlash({
                   </div>
 
                   {/* OM Card */}
-                  <div className="flip-card-container">
+                  <div style={{ perspective: '1000px' }}>
                     <div
-                      className={`flip-card ${cardHeight} ${flippedCards.has('OM') ? 'flipped' : ''}`}
+                      className={`${cardHeight} relative`}
+                      style={{
+                        transformStyle: 'preserve-3d',
+                        transition: 'transform 0.6s',
+                        transform: flippedCards.has('OM') ? 'rotateY(180deg)' : 'rotateY(0deg)'
+                      }}
                       onClick={() => !flippedCards.has('OM') && toggleFlip('OM')}
                     >
                       {/* Front */}
-                      <div className="flip-card-face flip-card-front bg-gradient-to-br from-orange-400 to-orange-600 rounded-xl p-2 sm:p-3 flex flex-col items-center justify-center cursor-pointer shadow-lg border-2 border-orange-300 vf-touch-target">
+                      <div
+                        className="bg-gradient-to-br from-orange-400 to-orange-600 rounded-xl p-2 sm:p-3 flex flex-col items-center justify-center cursor-pointer shadow-lg border-2 border-orange-300 vf-touch-target"
+                        style={{ position: 'absolute', width: '100%', height: '100%', backfaceVisibility: 'hidden', top: 0, left: 0 }}
+                      >
                         <div className={`${iconSize} bg-white rounded-full flex items-center justify-center mb-1 p-1 relative overflow-hidden`}>
                           <Image
                             src="/images/om.png"
@@ -533,7 +575,8 @@ export function ModalEncaissementVenteFlash({
 
                       {/* Back */}
                       <div
-                        className={`flip-card-face flip-card-back bg-orange-50 rounded-xl ${isCompact ? 'p-1.5' : 'p-4'} flex flex-col justify-center border-2 border-orange-300`}
+                        className={`bg-orange-50 rounded-xl ${isCompact ? 'p-1.5' : 'p-3'} flex flex-col justify-center border-2 border-orange-300`}
+                        style={{ position: 'absolute', width: '100%', height: '100%', backfaceVisibility: 'hidden', transform: 'rotateY(180deg)', top: 0, left: 0 }}
                         onClick={(e) => e.stopPropagation()}
                       >
                         <button
@@ -549,9 +592,17 @@ export function ModalEncaissementVenteFlash({
                             setTelephone(e.target.value.replace(/[^0-9]/g, ''));
                             setTelephoneError('');
                           }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              if (telephone.length === 9) {
+                                handleWalletInitiate('OM');
+                              }
+                            }
+                          }}
                           placeholder="77/78 XXX XX"
                           maxLength={9}
-                          className={`w-full ${isCompact ? 'py-1 px-1 text-[11px]' : 'py-3 px-4 text-xl'} border ${telephoneError ? 'border-red-300' : 'border-orange-300'} rounded-lg text-center font-semibold mb-2`}
+                          className={`w-full ${isCompact ? 'py-1 px-1 text-[11px]' : 'py-2 px-3 text-base'} border ${telephoneError ? 'border-red-300' : 'border-orange-300'} rounded-lg text-center font-semibold mb-1`}
                           autoFocus={flippedCards.has('OM')}
                         />
                         {telephoneError && (
@@ -561,7 +612,7 @@ export function ModalEncaissementVenteFlash({
                           whileTap={{ scale: 0.95 }}
                           onClick={() => handleWalletInitiate('OM')}
                           disabled={isProcessing || telephone.length !== 9}
-                          className={`w-full ${isCompact ? 'py-1 text-[9px]' : 'py-3 text-base'} bg-orange-500 text-white font-bold rounded-lg disabled:opacity-50 flex items-center justify-center gap-2`}
+                          className={`w-full ${isCompact ? 'py-1 text-[9px]' : 'py-1.5 text-sm'} bg-orange-500 text-white font-bold rounded-lg disabled:opacity-50 flex items-center justify-center gap-2`}
                         >
                           {isProcessing ? <Loader2 className={isCompact ? 'w-3 h-3' : 'w-5 h-5'} /> : <QrCode className={isCompact ? 'w-3 h-3' : 'w-5 h-5'} />}
                           QR

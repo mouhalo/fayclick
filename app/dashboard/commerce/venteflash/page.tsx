@@ -5,9 +5,10 @@
 
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { Loader2 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Loader2, Minus, Plus, X } from 'lucide-react';
 import { authService } from '@/services/auth.service';
 import database from '@/services/database.service';
 import { Produit } from '@/types/produit';
@@ -50,6 +51,12 @@ export default function VenteFlashPage() {
 
   // État pour le modal de refresh
   const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // États pour le modal de quantité (avant ajout au panier)
+  const [showQuantityModal, setShowQuantityModal] = useState(false);
+  const [vfProduit, setVfProduit] = useState<Produit | null>(null);
+  const [vfQuantity, setVfQuantity] = useState(1);
+  const quantityInputRef = useRef<HTMLInputElement>(null);
 
   // États pour le reçu (ancien modal)
   const [showRecu, setShowRecu] = useState(false);
@@ -399,6 +406,17 @@ export default function VenteFlashPage() {
     }
   }, [user, loadProduits, loadVentesJour]);
 
+  // Auto-focus sur le champ quantité quand le modal s'ouvre
+  useEffect(() => {
+    if (showQuantityModal && quantityInputRef.current) {
+      const timer = setTimeout(() => {
+        quantityInputRef.current?.focus();
+        quantityInputRef.current?.select();
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [showQuantityModal]);
+
   /**
    * Rafraîchir manuellement les données
    */
@@ -423,9 +441,15 @@ export default function VenteFlashPage() {
   }, [loadProduits, loadVentesJour]);
 
   /**
-   * Ajouter un produit au panier
+   * Ouvrir le modal de quantité avant d'ajouter au panier
    */
   const handleAddToPanier = useCallback((produit: Produit) => {
+    // Vérifier que le mot de passe a été changé
+    if (user && user.pwd_changed === false) {
+      showToast('warning', 'Mot de passe requis', 'Veuillez d\'abord modifier votre mot de passe initial pour effectuer des ventes.');
+      return;
+    }
+
     const stockDisponible = produit.niveau_stock || 0;
 
     if (stockDisponible <= 0) {
@@ -433,9 +457,33 @@ export default function VenteFlashPage() {
       return;
     }
 
-    addArticle(produit);
-    showToast('success', 'Ajouté au panier', produit.nom_produit);
-  }, [addArticle, showToast]);
+    setVfProduit(produit);
+    setVfQuantity(1);
+    setShowQuantityModal(true);
+  }, [showToast, user]);
+
+  /**
+   * Confirmer l'ajout au panier avec la quantité choisie
+   */
+  const handleConfirmQuantity = useCallback(() => {
+    if (!vfProduit || vfQuantity < 1) return;
+
+    addArticle(vfProduit, vfQuantity);
+    showToast('success', 'Ajouté au panier', `${vfQuantity} x ${vfProduit.nom_produit}`);
+
+    setShowQuantityModal(false);
+    setVfProduit(null);
+    setVfQuantity(1);
+  }, [vfProduit, vfQuantity, addArticle, showToast]);
+
+  /**
+   * Annuler le modal de quantité
+   */
+  const handleCancelQuantity = useCallback(() => {
+    setShowQuantityModal(false);
+    setVfProduit(null);
+    setVfQuantity(1);
+  }, []);
 
   /**
    * Supprimer une facture (Admin uniquement)
@@ -786,6 +834,118 @@ export default function VenteFlashPage() {
           onViewReceipt={handleViewReceipt}
         />
       </div>
+
+      {/* Modal Quantité - Saisie rapide avant ajout au panier */}
+      <AnimatePresence>
+        {showQuantityModal && vfProduit && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[200] flex items-center justify-center p-4"
+            onClick={handleCancelQuantity}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden"
+            >
+              {/* Header */}
+              <div className="bg-gradient-to-r from-green-500 to-emerald-600 p-4 flex items-center justify-between">
+                <div className="flex-1 min-w-0 pr-3">
+                  <h3 className="text-white font-bold text-base truncate">{vfProduit.nom_produit}</h3>
+                  <p className="text-white/80 text-sm">{vfProduit.prix_vente.toLocaleString('fr-FR')} FCFA</p>
+                </div>
+                <button
+                  onClick={handleCancelQuantity}
+                  className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center hover:bg-white/30 transition-colors flex-shrink-0"
+                >
+                  <X className="w-4 h-4 text-white" />
+                </button>
+              </div>
+
+              {/* Body */}
+              <div className="p-5 space-y-4">
+                {/* Stock disponible */}
+                <div className="text-center text-sm text-gray-500">
+                  Stock disponible : <span className="font-bold text-gray-900">{vfProduit.niveau_stock || 0}</span> unités
+                </div>
+
+                {/* Sélecteur quantité */}
+                <div className="flex items-center justify-center gap-4">
+                  <motion.button
+                    whileTap={{ scale: 0.9 }}
+                    onClick={() => setVfQuantity(q => Math.max(1, q - 1))}
+                    disabled={vfQuantity <= 1}
+                    className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center hover:bg-gray-200 transition-colors disabled:opacity-40"
+                  >
+                    <Minus className="w-5 h-5 text-gray-600" />
+                  </motion.button>
+
+                  <input
+                    ref={quantityInputRef}
+                    type="number"
+                    value={vfQuantity}
+                    onChange={(e) => {
+                      const val = parseInt(e.target.value);
+                      if (!isNaN(val) && val >= 1 && val <= (vfProduit.niveau_stock || 0)) {
+                        setVfQuantity(val);
+                      }
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleConfirmQuantity();
+                      }
+                    }}
+                    onFocus={(e) => e.target.select()}
+                    min={1}
+                    max={vfProduit.niveau_stock || 0}
+                    className="w-20 h-12 text-center text-2xl font-bold border-2 border-gray-300 rounded-xl focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-300 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  />
+
+                  <motion.button
+                    whileTap={{ scale: 0.9 }}
+                    onClick={() => setVfQuantity(q => Math.min((vfProduit.niveau_stock || 0), q + 1))}
+                    disabled={vfQuantity >= (vfProduit.niveau_stock || 0)}
+                    className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center hover:bg-gray-200 transition-colors disabled:opacity-40"
+                  >
+                    <Plus className="w-5 h-5 text-gray-600" />
+                  </motion.button>
+                </div>
+
+                {/* Sous-total */}
+                <div className="text-center bg-green-50 rounded-xl py-3">
+                  <span className="text-sm text-gray-600">Sous-total : </span>
+                  <span className="text-lg font-bold text-green-700">
+                    {(vfProduit.prix_vente * vfQuantity).toLocaleString('fr-FR')} FCFA
+                  </span>
+                </div>
+              </div>
+
+              {/* Footer boutons */}
+              <div className="grid grid-cols-2 gap-3 p-4 border-t border-gray-100">
+                <button
+                  onClick={handleCancelQuantity}
+                  className="py-3 rounded-xl font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 transition-colors"
+                >
+                  Annuler
+                </button>
+                <motion.button
+                  whileTap={{ scale: 0.97 }}
+                  onClick={handleConfirmQuantity}
+                  className="py-3 rounded-xl font-semibold text-white bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 transition-all shadow-md"
+                >
+                  Ajouter
+                </motion.button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Modal Reçu */}
       {recuData && (

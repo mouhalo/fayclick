@@ -43,6 +43,8 @@ interface CarteProduitReduitProps {
   isSelected?: boolean;
   /** Callback toggle sélection */
   onToggleSelect?: (id_produit: number) => void;
+  /** Callback vente externe (ouvre modal quantité dans le parent) */
+  onVendreClick?: (produit: Produit) => void;
 }
 
 export function CarteProduitReduit({
@@ -54,7 +56,8 @@ export function CarteProduitReduit({
   onSubscriptionRequired,
   selectionMode = false,
   isSelected = false,
-  onToggleSelect
+  onToggleSelect,
+  onVendreClick
 }: CarteProduitReduitProps) {
   const { addArticle, articles } = usePanierStore();
   const { success: showSuccessToast } = useToast();
@@ -79,8 +82,14 @@ export function CarteProduitReduit({
     }
   };
 
-  // Ajout au panier - COPIE EXACTE de CarteProduit
+  // Ajout au panier
   const handleVendre = () => {
+    // Si callback externe fourni → déléguer au parent (modal quantité)
+    if (onVendreClick) {
+      onVendreClick(produit);
+      return;
+    }
+
     // Vérifier abonnement actif
     if (!canAccessFeature('Vente produit')) {
       if (onSubscriptionRequired) {
@@ -92,20 +101,15 @@ export function CarteProduitReduit({
     const niveauStock = produit?.niveau_stock || 0;
 
     if (quantite > 0 && quantite <= niveauStock) {
-      // Le produit est déjà au bon format pour ArticlePanier
-
-      // Ajouter au panier via le store
       for (let i = 0; i < quantite; i++) {
         addArticle(produit);
       }
 
-      // Toast de succès
       showSuccessToast(
         'Article ajouté !',
         `${quantite} x ${produit.nom_produit} ajouté${quantite > 1 ? 's' : ''} au panier`
       );
 
-      // Reset de la quantité
       setQuantite(1);
     }
   };

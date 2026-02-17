@@ -236,7 +236,20 @@ export function ModalPanier() {
                           >
                             <Minus className="w-3 h-3" />
                           </button>
-                          <span className="w-8 text-center font-semibold text-sm">{article.quantity}</span>
+                          <input
+                            type="number"
+                            value={article.quantity}
+                            onChange={(e) => {
+                              const val = parseInt(e.target.value);
+                              if (!isNaN(val) && val >= 1 && val <= (article.niveau_stock || 0)) {
+                                handleUpdateQuantity(article.id_produit, val);
+                              }
+                            }}
+                            onFocus={(e) => e.target.select()}
+                            min={1}
+                            max={article.niveau_stock || 0}
+                            className="w-12 h-7 text-center font-semibold text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-300 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                          />
                           <button
                             onClick={() => handleUpdateQuantity(article.id_produit, article.quantity + 1)}
                             className="w-6 h-6 bg-white rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-50 transition-colors"

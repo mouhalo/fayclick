@@ -6,7 +6,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Search, Filter, Grid, LayoutList, LayoutGrid, RefreshCw, Printer, FileDown, CheckSquare } from 'lucide-react';
+import { Search, Filter, Grid, LayoutList, LayoutGrid, RefreshCw, Printer, FileDown, CheckSquare, ShoppingCart } from 'lucide-react';
 
 interface ProduitsFilterHeaderProps {
   searchTerm: string;
@@ -22,6 +22,8 @@ interface ProduitsFilterHeaderProps {
   isExporting?: boolean;
   selectionMode?: boolean;
   onToggleSelectionMode?: () => void;
+  modeVente?: boolean;
+  onToggleModeVente?: () => void;
 }
 
 export function ProduitsFilterHeader({
@@ -37,20 +39,41 @@ export function ProduitsFilterHeader({
   onExportCSV,
   isExporting = false,
   selectionMode = false,
-  onToggleSelectionMode
+  onToggleSelectionMode,
+  modeVente = false,
+  onToggleModeVente
 }: ProduitsFilterHeaderProps) {
   return (
     <div className="space-y-4">
       {/* Barre de recherche avec bouton Actualiser */}
       <div className="flex gap-2">
+        {/* Toggle Mode Vente */}
+        {onToggleModeVente && (
+          <motion.button
+            whileTap={{ scale: 0.95 }}
+            onClick={onToggleModeVente}
+            className={`px-3 py-3 rounded-lg font-medium flex items-center gap-1.5 transition-all shadow-md hover:shadow-lg ${
+              modeVente
+                ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white ring-2 ring-green-300'
+                : 'bg-white/80 text-gray-500 hover:bg-white'
+            }`}
+            aria-label={modeVente ? 'Mode Vente actif' : 'Activer Mode Vente'}
+            title={modeVente ? 'Mode Vente actif - Cliquez pour désactiver' : 'Activer Mode Vente'}
+          >
+            <ShoppingCart className="w-5 h-5" />
+          </motion.button>
+        )}
+
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input
             type="text"
             value={searchTerm}
             onChange={(e) => onSearchChange(e.target.value)}
-            placeholder="Nom ou code-barres..."
-            className="w-full pl-10 pr-4 py-3 rounded-lg text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-green-300 bg-white/90 backdrop-blur-sm"
+            placeholder={modeVente ? "Scannez ou tapez pour vendre..." : "Nom ou code-barres..."}
+            className={`w-full pl-10 pr-4 py-3 rounded-lg text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 bg-white/90 backdrop-blur-sm ${
+              modeVente ? 'focus:ring-green-400 ring-1 ring-green-300' : 'focus:ring-green-300'
+            }`}
           />
         </div>
 
