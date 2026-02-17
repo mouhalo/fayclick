@@ -32,7 +32,7 @@ interface PanierStore {
   acompte: number;
   
   // Actions articles
-  addArticle: (produit: any) => void;
+  addArticle: (produit: any, quantity?: number) => void;
   removeArticle: (id_produit: number) => void;
   updateQuantity: (id_produit: number, quantity: number) => void;
   clearPanier: () => void;
@@ -67,38 +67,38 @@ export const usePanierStore = create<PanierStore>()(
       isModalOpen: false,
 
       // Actions articles
-      addArticle: (produit) => {
+      addArticle: (produit, quantity = 1) => {
         const articles = get().articles;
         const stockDisponible = produit.niveau_stock || 0;
         const existingIndex = articles.findIndex(a => a.id_produit === produit.id_produit);
-        
+
         if (existingIndex !== -1) {
           // Produit déjà dans le panier - augmenter quantité
-          const newQuantity = articles[existingIndex].quantity + 1;
-          
+          const newQuantity = articles[existingIndex].quantity + quantity;
+
           // Vérifier stock disponible
           if (newQuantity > stockDisponible) {
             return; // Stock insuffisant
           }
-          
+
           const updatedArticles = [...articles];
           updatedArticles[existingIndex] = {
             ...updatedArticles[existingIndex],
             quantity: newQuantity
           };
-          
+
           set({ articles: updatedArticles });
         } else {
           // Nouveau produit
-          if (stockDisponible < 1) {
+          if (stockDisponible < quantity) {
             return; // Stock insuffisant
           }
-          
+
           const nouvelArticle: ArticlePanier = {
             ...produit,
-            quantity: 1
+            quantity
           };
-          
+
           set({ articles: [...articles, nouvelArticle] });
         }
       },

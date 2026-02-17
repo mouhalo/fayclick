@@ -1,6 +1,6 @@
 // Service Worker FayClick V2 - PWA Complète
 // Version: 2.8.0 - 2026-02-01 - Intégration add_acompte_facture1 + photo produit
-// Build: 2026-02-14T13:53:46.248Z - Force upload fix for ftp-deploy size comparison bug
+// Build: 2026-02-17T01:35:07.974Z - Force upload fix for ftp-deploy size comparison bug
 // Build: 2026-02-01T21:12:32.816Z
 
 const CACHE_NAME = 'fayclick-v2-cache-v2.8-20260201';

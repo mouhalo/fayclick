@@ -80,6 +80,46 @@ interface AddEditStructureResponse {
 
 type TabId = 'general' | 'wallets' | 'users' | 'sales' | 'subscription';
 
+// Règles de vente stockées en localStorage
+interface SalesRules {
+  creditAutorise: boolean;
+  limiteCredit: number;
+  acompteAutorise: boolean;
+}
+
+const SALES_RULES_KEY = 'fayclick_regles_ventes';
+
+const DEFAULT_SALES_RULES: SalesRules = {
+  creditAutorise: true,
+  limiteCredit: 50000,
+  acompteAutorise: true,
+};
+
+function getSalesRulesKey(idStructure: number): string {
+  return `${SALES_RULES_KEY}_${idStructure}`;
+}
+
+function loadSalesRules(idStructure: number): SalesRules {
+  try {
+    const stored = localStorage.getItem(getSalesRulesKey(idStructure));
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      return { ...DEFAULT_SALES_RULES, ...parsed };
+    }
+  } catch (e) {
+    console.warn('Erreur lecture règles ventes localStorage:', e);
+  }
+  return { ...DEFAULT_SALES_RULES };
+}
+
+function saveSalesRules(idStructure: number, rules: SalesRules): void {
+  try {
+    localStorage.setItem(getSalesRulesKey(idStructure), JSON.stringify(rules));
+  } catch (e) {
+    console.warn('Erreur sauvegarde règles ventes localStorage:', e);
+  }
+}
+
 // Configuration des onglets avec les couleurs vert/orange
 const TABS_CONFIG = [
   { 
@@ -161,6 +201,9 @@ export default function StructureEditPage() {
     fileName: '',
     uploadProgress: 0
   });
+
+  // États règles de vente
+  const [salesRules, setSalesRules] = useState<SalesRules>(DEFAULT_SALES_RULES);
 
   // États abonnements
   const [showModalAbonnement, setShowModalAbonnement] = useState(false);
@@ -384,6 +427,13 @@ export default function StructureEditPage() {
     setPopMessage({ show: true, type, title, message });
   };
 
+  // Charger les règles de vente depuis localStorage
+  useEffect(() => {
+    if (user?.id_structure) {
+      setSalesRules(loadSalesRules(user.id_structure));
+    }
+  }, [user?.id_structure]);
+
   // Charger l'historique des abonnements quand l'onglet est actif
   useEffect(() => {
     if (activeTab === 'subscription' && user?.id_structure) {
@@ -448,6 +498,14 @@ export default function StructureEditPage() {
 
   const handleSubscriptionError = (message: string) => {
     showMessage('error', message || 'Erreur lors de l\'abonnement');
+  };
+
+  // Mise à jour des règles de vente avec sauvegarde localStorage
+  const updateSalesRules = (updates: Partial<SalesRules>) => {
+    if (!user?.id_structure) return;
+    const newRules = { ...salesRules, ...updates };
+    setSalesRules(newRules);
+    saveSalesRules(user.id_structure, newRules);
   };
 
   // Fonction wrapper pour les composants enfants (utilisée par UsersManagement)
@@ -819,7 +877,7 @@ export default function StructureEditPage() {
               {activeTab === 'sales' && (
                 <div className="space-y-6">
                   {/* Crédit autorisé */}
-                  <motion.div 
+                  <motion.div
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.1 }}
@@ -832,38 +890,47 @@ export default function StructureEditPage() {
                         </div>
                         <div>
                           <h3 className="font-bold text-gray-900">Crédit autorisé</h3>
-                          <p className="text-sm text-gray-600">Permettre aux clients d&diapos;acheter à crédit</p>
+                          <p className="text-sm text-gray-600">Permettre aux clients d&apos;acheter à crédit</p>
                         </div>
                       </div>
                       <label className="relative inline-flex items-center cursor-pointer">
-                        <input type="checkbox" className="sr-only peer" defaultChecked />
+                        <input
+                          type="checkbox"
+                          className="sr-only peer"
+                          checked={salesRules.creditAutorise}
+                          onChange={(e) => updateSalesRules({ creditAutorise: e.target.checked })}
+                        />
                         <div className="w-14 h-7 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-green-500"></div>
                       </label>
                     </div>
                   </motion.div>
 
                   {/* Limite crédit */}
-                  <motion.div 
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.2 }}
-                    className="p-6 bg-white rounded-xl border-2 border-gray-200"
-                  >
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">Limite maximum de crédit</label>
-                    <p className="text-sm text-gray-600 mb-4">Montant maximum autorisé en crédit par client</p>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="number"
-                        value={50000}
-                        className="flex-1 px-4 py-3 rounded-xl border-2 border-gray-200 bg-gray-50 focus:ring-2 focus:ring-orange-500 focus:border-transparent text-lg font-medium"
-                        readOnly
-                      />
-                      <span className="text-gray-600 font-medium">FCFA</span>
-                    </div>
-                  </motion.div>
+                  {salesRules.creditAutorise && (
+                    <motion.div
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.2 }}
+                      className="p-6 bg-white rounded-xl border-2 border-gray-200"
+                    >
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">Limite maximum de crédit</label>
+                      <p className="text-sm text-gray-600 mb-4">Montant maximum autorisé en crédit par client</p>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="number"
+                          value={salesRules.limiteCredit}
+                          onChange={(e) => updateSalesRules({ limiteCredit: Math.max(0, Number(e.target.value)) })}
+                          min={0}
+                          step={1000}
+                          className="flex-1 px-4 py-3 rounded-xl border-2 border-gray-200 bg-gray-50 focus:ring-2 focus:ring-orange-500 focus:border-transparent text-lg font-medium"
+                        />
+                        <span className="text-gray-600 font-medium">FCFA</span>
+                      </div>
+                    </motion.div>
+                  )}
 
                   {/* Acompte autorisé */}
-                  <motion.div 
+                  <motion.div
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.3 }}
@@ -880,7 +947,12 @@ export default function StructureEditPage() {
                         </div>
                       </div>
                       <label className="relative inline-flex items-center cursor-pointer">
-                        <input type="checkbox" className="sr-only peer" defaultChecked />
+                        <input
+                          type="checkbox"
+                          className="sr-only peer"
+                          checked={salesRules.acompteAutorise}
+                          onChange={(e) => updateSalesRules({ acompteAutorise: e.target.checked })}
+                        />
                         <div className="w-14 h-7 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-green-500"></div>
                       </label>
                     </div>
