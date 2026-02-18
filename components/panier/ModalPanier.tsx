@@ -7,7 +7,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   X, ShoppingCart, Trash2, Plus, Minus,
@@ -34,7 +34,43 @@ export function ModalPanier() {
   const { openModal: openFactureSuccess } = useFactureSuccessStore();
   const [isModalRechercheOpen, setIsModalRechercheOpen] = useState(false);
 
+  // Mode remise : '%' (pourcentage) ou 'F' (valeur fixe)
+  const [remiseMode, setRemiseMode] = useState<'%' | 'F'>(() => {
+    if (typeof window !== 'undefined') {
+      return (localStorage.getItem('vf_remise_mode') as '%' | 'F') || '%';
+    }
+    return '%';
+  });
+  const [remiseInput, setRemiseInput] = useState<number>(0);
+
   const montants = getMontantsFacture();
+  const sousTotal = montants.sous_total;
+
+  // Changer le mode de remise et persister dans localStorage
+  const handleRemiseModeChange = (mode: '%' | 'F') => {
+    setRemiseMode(mode);
+    localStorage.setItem('vf_remise_mode', mode);
+    setRemiseInput(0);
+    updateRemise(0);
+  };
+
+  // Mettre à jour la remise dans le store
+  const handleRemiseInputChange = (value: number) => {
+    setRemiseInput(value);
+    if (remiseMode === '%') {
+      const pct = Math.max(0, Math.min(100, value));
+      updateRemise(Math.round(sousTotal * pct / 100));
+    } else {
+      updateRemise(Math.max(0, Math.min(sousTotal, value)));
+    }
+  };
+
+  // Recalculer la remise store si le sous-total change en mode %
+  useEffect(() => {
+    if (remiseMode === '%' && remiseInput > 0) {
+      updateRemise(Math.round(sousTotal * Math.min(100, remiseInput) / 100));
+    }
+  }, [sousTotal]);
 
   if (!isModalOpen) return null;
 
@@ -278,20 +314,46 @@ export function ModalPanier() {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Remise (FCFA)
-                      </label>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="text-sm font-medium text-gray-700">
+                          Remise
+                        </label>
+                        {/* Toggle % / F */}
+                        <div className="flex rounded-lg overflow-hidden border border-gray-300">
+                          <button
+                            onClick={() => handleRemiseModeChange('%')}
+                            className={`px-2.5 py-0.5 text-xs font-bold transition-colors ${
+                              remiseMode === '%'
+                                ? 'bg-blue-500 text-white'
+                                : 'bg-white text-blue-500 hover:bg-blue-50'
+                            }`}
+                          >
+                            %
+                          </button>
+                          <button
+                            onClick={() => handleRemiseModeChange('F')}
+                            className={`px-2.5 py-0.5 text-xs font-bold transition-colors ${
+                              remiseMode === 'F'
+                                ? 'bg-blue-500 text-white'
+                                : 'bg-white text-blue-500 hover:bg-blue-50'
+                            }`}
+                          >
+                            FCFA
+                          </button>
+                        </div>
+                      </div>
                       <input
                         type="number"
-                        value={remise}
-                        onChange={(e) => updateRemise(Number(e.target.value))}
+                        value={remiseInput}
+                        onChange={(e) => handleRemiseInputChange(Number(e.target.value))}
                         min="0"
-                        max={montants.sous_total}
+                        max={remiseMode === '%' ? 100 : sousTotal}
                         className="
                           w-full px-3 py-2 rounded-lg border border-gray-300
                           focus:ring-2 focus:ring-blue-500 focus:border-transparent
                           text-sm
                         "
+                        placeholder={remiseMode === '%' ? '0 %' : '0 FCFA'}
                       />
                     </div>
 
@@ -303,7 +365,7 @@ export function ModalPanier() {
                       </div>
                       {montants.remise > 0 && (
                         <div className="flex justify-between text-sm text-green-600">
-                          <span>Remise:</span>
+                          <span>Remise{remiseMode === '%' ? ` (${remiseInput}%)` : ''}:</span>
                           <span>-{montants.remise.toLocaleString('fr-FR')} FCFA</span>
                         </div>
                       )}

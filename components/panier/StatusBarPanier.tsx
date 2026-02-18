@@ -1,25 +1,44 @@
 /**
  * StatusBar Panier - Barre de statut fixe en bas d'écran
  * Affiche le total et nombre d'articles dans le panier
- * Design glassmorphisme avec animations
+ * Visible UNIQUEMENT sur /produits et /venteflash
+ * Vide le panier automatiquement quand l'utilisateur quitte ces pages
  */
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 import { ShoppingCart, Trash2, AlertTriangle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { usePanierStore } from '@/stores/panierStore';
 
+// Pages autorisées pour le panier
+const PANIER_ALLOWED_PATHS = ['/commerce/produits', '/commerce/venteflash'];
+
 export function StatusBarPanier() {
+  const pathname = usePathname();
   const { articles, getTotalItems, getSousTotal, isModalOpen, setModalOpen, clearPanier } = usePanierStore();
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+
+  const isAllowedPage = PANIER_ALLOWED_PATHS.some(p => pathname?.includes(p));
+
+  // Vider le panier quand on quitte les pages autorisées
+  useEffect(() => {
+    if (!isAllowedPage) {
+      const items = usePanierStore.getState().articles;
+      if (items.length > 0) {
+        console.log('🧹 [PANIER] Nettoyage auto - navigation hors pages panier');
+        clearPanier();
+      }
+    }
+  }, [isAllowedPage, clearPanier]);
 
   const totalItems = getTotalItems();
   const totalAmount = getSousTotal();
 
-  // Ne pas afficher si panier vide
-  if (totalItems === 0) return null;
+  // Ne pas afficher si panier vide OU page non autorisée
+  if (!isAllowedPage || totalItems === 0) return null;
 
   const handleOpenModal = () => {
     setModalOpen(true);

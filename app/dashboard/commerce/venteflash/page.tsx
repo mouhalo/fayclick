@@ -28,7 +28,15 @@ import MainMenu from '@/components/layout/MainMenu';
 export default function VenteFlashPage() {
   const router = useRouter();
   const { showToast, ToastComponent } = useToast();
-  const { addArticle, getTotalItems } = usePanierStore();
+  const { addArticle, getTotalItems, clearPanier } = usePanierStore();
+
+  // Vider le panier quand on quitte la page venteflash
+  useEffect(() => {
+    return () => {
+      console.log('🧹 [VENTE FLASH] Nettoyage panier - sortie de page');
+      usePanierStore.getState().clearPanier();
+    };
+  }, []);
 
   const [user, setUser] = useState<User | null>(null);
   const [structure, setStructure] = useState<any | null>(null);

@@ -6,7 +6,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Trash2, Minus, Plus, ShoppingCart, CreditCard, XCircle, Receipt, ChevronDown
@@ -52,6 +52,16 @@ export function PanierVenteFlashInline({
   const [isExpanded, setIsExpanded] = useState(true);
   const [showEncaissementModal, setShowEncaissementModal] = useState(false);
 
+  // Mode remise : '%' (pourcentage) ou 'F' (valeur fixe)
+  const [remiseMode, setRemiseMode] = useState<'%' | 'F'>(() => {
+    if (typeof window !== 'undefined') {
+      return (localStorage.getItem('vf_remise_mode') as '%' | 'F') || '%';
+    }
+    return '%';
+  });
+  // Valeur saisie dans l'input (pourcentage ou FCFA selon le mode)
+  const [remiseInput, setRemiseInput] = useState<number>(0);
+
   // État pour le nouveau modal reçu ticket
   const [showRecuModal, setShowRecuModal] = useState(false);
   const [recuData, setRecuData] = useState<{
@@ -73,6 +83,35 @@ export function PanierVenteFlashInline({
   const sousTotal = getSousTotal();
   const montants = getMontantsFacture();
   const total = montants.montant_net;
+
+  // Changer le mode de remise et persister dans localStorage
+  const handleRemiseModeChange = (mode: '%' | 'F') => {
+    setRemiseMode(mode);
+    localStorage.setItem('vf_remise_mode', mode);
+    // Réinitialiser la saisie et la remise store
+    setRemiseInput(0);
+    updateRemise(0);
+  };
+
+  // Mettre à jour la remise dans le store à chaque changement d'input ou de sous-total
+  const handleRemiseInputChange = (value: number) => {
+    setRemiseInput(value);
+    if (remiseMode === '%') {
+      const pct = Math.max(0, Math.min(100, value));
+      const remiseValeur = Math.round(sousTotal * pct / 100);
+      updateRemise(remiseValeur);
+    } else {
+      updateRemise(Math.max(0, Math.min(sousTotal, value)));
+    }
+  };
+
+  // Recalculer la remise store si le sous-total change en mode %
+  useEffect(() => {
+    if (remiseMode === '%' && remiseInput > 0) {
+      const remiseValeur = Math.round(sousTotal * Math.min(100, remiseInput) / 100);
+      updateRemise(remiseValeur);
+    }
+  }, [sousTotal]);
 
   // Ne pas afficher le panier si vide, MAIS afficher le modal reçu si actif
   if (articles.length === 0 && !showRecuModal) {
@@ -345,19 +384,44 @@ export function PanierVenteFlashInline({
 
               {/* Section Remise + Totaux en ligne */}
               <div className="grid grid-cols-2 gap-3">
-                {/* Remise */}
+                {/* Remise avec toggle % / F */}
                 <div className="bg-orange-50 rounded-xl p-2 border border-orange-200">
-                  <label className="block text-xs font-medium text-gray-600 mb-1">
-                    Remise (F)
-                  </label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-xs font-medium text-gray-600">
+                      Remise
+                    </label>
+                    {/* Toggle % / F */}
+                    <div className="flex rounded-lg overflow-hidden border border-orange-300">
+                      <button
+                        onClick={() => handleRemiseModeChange('%')}
+                        className={`px-2 py-0.5 text-xs font-bold transition-colors ${
+                          remiseMode === '%'
+                            ? 'bg-orange-500 text-white'
+                            : 'bg-white text-orange-500 hover:bg-orange-50'
+                        }`}
+                      >
+                        %
+                      </button>
+                      <button
+                        onClick={() => handleRemiseModeChange('F')}
+                        className={`px-2 py-0.5 text-xs font-bold transition-colors ${
+                          remiseMode === 'F'
+                            ? 'bg-orange-500 text-white'
+                            : 'bg-white text-orange-500 hover:bg-orange-50'
+                        }`}
+                      >
+                        F
+                      </button>
+                    </div>
+                  </div>
                   <input
                     type="number"
                     min="0"
-                    max={sousTotal}
-                    value={remise}
-                    onChange={(e) => updateRemise(Math.max(0, Math.min(sousTotal, Number(e.target.value))))}
+                    max={remiseMode === '%' ? 100 : sousTotal}
+                    value={remiseInput}
+                    onChange={(e) => handleRemiseInputChange(Number(e.target.value))}
                     className="w-full px-2 py-1.5 text-sm border border-orange-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-                    placeholder="0"
+                    placeholder={remiseMode === '%' ? '0 %' : '0 F'}
                   />
                 </div>
 
@@ -369,7 +433,7 @@ export function PanierVenteFlashInline({
                   </div>
                   {remise > 0 && (
                     <div className="flex justify-between text-xs text-orange-600">
-                      <span>Remise</span>
+                      <span>Remise{remiseMode === '%' ? ` (${remiseInput}%)` : ''}</span>
                       <span>- {remise.toLocaleString('fr-FR')} F</span>
                     </div>
                   )}
