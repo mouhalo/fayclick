@@ -48,6 +48,8 @@ import { User } from '@/types/auth';
 import { ModalScanCodeBarre } from '@/components/produits/ModalScanCodeBarre';
 import { ModalImpressionProduits } from '@/components/produits/ModalImpressionProduits';
 import { usePanierStore } from '@/stores/panierStore';
+import { useBreakpoint } from '@/hooks/useBreakpoint';
+import { PanierSidePanel } from '@/components/panier/PanierSidePanel';
 import { ModalAbonnementExpire, useModalAbonnementExpire } from '@/components/subscription/ModalAbonnementExpire';
 import { ModalEnrolementProduits } from '@/components/visual-recognition';
 import { ModalOptionsAjout } from '@/components/produits/ModalOptionsAjout';
@@ -102,6 +104,13 @@ export default function ProduitsCommercePage() {
   const [isDeletingBatch, setIsDeletingBatch] = useState(false);
   const [batchDeleteProgress, setBatchDeleteProgress] = useState(0);
 
+  // Détection desktop pour panier latéral
+  const { isDesktop, isDesktopLarge } = useBreakpoint();
+  const isDesktopView = isDesktop || isDesktopLarge;
+
+  // État panier latéral (desktop uniquement, persisté dans localStorage)
+  const [showPanierSide, setShowPanierSide] = useState(false);
+
   // États Mode Vente
   const [modeVente, setModeVente] = useState(false);
   const [showQuantityModal, setShowQuantityModal] = useState(false);
@@ -155,6 +164,14 @@ export default function ProduitsCommercePage() {
   const addArticle = usePanierStore(state => state.addArticle);
   const panierArticles = usePanierStore(state => state.articles);
   const setModalOpen = usePanierStore(state => state.setModalOpen);
+
+  // Vider le panier quand on quitte la page produits
+  useEffect(() => {
+    return () => {
+      console.log('🧹 [PRODUITS] Nettoyage panier - sortie de page');
+      usePanierStore.getState().clearPanier();
+    };
+  }, []);
 
   // Pagination
   const filteredCount = produitsFiltered.length;
@@ -241,6 +258,22 @@ export default function ProduitsCommercePage() {
       setModeVente(stored === 'true');
     }
   }, [user]);
+
+  // Initialisation panier latéral depuis localStorage
+  useEffect(() => {
+    if (!user) return;
+    const stored = localStorage.getItem(`fayclick_panier_side_${user.id_structure}`);
+    setShowPanierSide(stored === 'true');
+  }, [user]);
+
+  // Toggle panier latéral
+  const handleTogglePanierSide = () => {
+    const newValue = !showPanierSide;
+    setShowPanierSide(newValue);
+    if (user) {
+      localStorage.setItem(`fayclick_panier_side_${user.id_structure}`, String(newValue));
+    }
+  };
 
   // Détection produit unique en Mode Vente
   useEffect(() => {
@@ -902,6 +935,8 @@ export default function ProduitsCommercePage() {
               onToggleSelectionMode={isAdmin ? toggleSelectionMode : undefined}
               modeVente={modeVente}
               onToggleModeVente={handleToggleModeVente}
+              showPanierSide={showPanierSide}
+              onTogglePanierSide={isDesktopView ? handleTogglePanierSide : undefined}
             />
           }
         />
@@ -918,7 +953,7 @@ export default function ProduitsCommercePage() {
         </div>
 
         {/* Contenu principal */}
-        <div className="p-5 pb-24">
+        <div className={`p-5 pb-24 transition-all duration-300 ${showPanierSide && isDesktopView ? 'pr-[400px]' : ''}`}>
 
           {/* Accordéon Statistiques */}
           <div className="mb-4">
@@ -1025,7 +1060,7 @@ export default function ProduitsCommercePage() {
             </motion.div>
           )}
 
-          {/* Liste des produits avec nouveau composant */}
+          {/* Liste des produits */}
           <ProduitsList
             items={paginatedItems}
             loading={isLoadingProduits}
@@ -1045,7 +1080,13 @@ export default function ProduitsCommercePage() {
             selectedIds={isAdmin ? selectedIds : undefined}
             onToggleSelect={isAdmin ? toggleSelection : undefined}
             onSelectAll={isAdmin ? selectAllPage : undefined}
+            reducedGrid={showPanierSide && isDesktopView}
           />
+
+          {/* Panier latéral flottant draggable (desktop uniquement) */}
+          {showPanierSide && isDesktopView && (
+            <PanierSidePanel onClose={handleTogglePanierSide} />
+          )}
 
           {/* Sentinel bas de page pour l'espacement */}
           <div className="h-4" />
@@ -1166,8 +1207,8 @@ export default function ProduitsCommercePage() {
           )}
         </AnimatePresence>
 
-        {/* StatusBar Panier - fixe en bas */}
-        <StatusBarPanier />
+        {/* StatusBar Panier - fixe en bas (masquée si side panel actif sur desktop) */}
+        {!(showPanierSide && isDesktopView) && <StatusBarPanier />}
       </div>
 
       {/* Modal options d'ajout (3 méthodes) */}
@@ -1191,7 +1232,8 @@ export default function ProduitsCommercePage() {
         canViewMontants={canViewCA}
       />
 
-      <ModalPanier />
+      {/* Modal Panier (masqué si side panel actif sur desktop) */}
+      {!(showPanierSide && isDesktopView) && <ModalPanier />}
       <ModalFactureSuccess />
 
       {/* Modal de confirmation d'ajout de stock */}

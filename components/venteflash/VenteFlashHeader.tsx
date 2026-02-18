@@ -39,6 +39,7 @@ export function VenteFlashHeader({
   const [searchResults, setSearchResults] = useState<Produit[]>([]);
   const [showDropdown, setShowDropdown] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const totalItems = getTotalItems();
 
@@ -62,6 +63,26 @@ export function VenteFlashHeader({
     }
   }, [searchTerm, produits]);
 
+  // Auto-détection code-barre scanner (douchette hardware)
+  // Debounce 300ms : laisse le scanner finir la saisie, puis match exact sur code_barre
+  useEffect(() => {
+    if (searchTerm.length < 3) return;
+
+    const timer = setTimeout(() => {
+      const match = produits.find(p => p.code_barre && p.code_barre === searchTerm.trim());
+      if (match) {
+        console.log('📊 [VENTE FLASH] Auto-scan détecté:', match.nom_produit, '| code:', searchTerm.trim());
+        onAddToPanier(match);
+        setSearchTerm('');
+        setShowDropdown(false);
+        // Re-focus pour enchaîner les scans
+        setTimeout(() => inputRef.current?.focus(), 100);
+      }
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchTerm, produits, onAddToPanier]);
+
   // Fermer dropdown si clic extérieur
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -80,6 +101,16 @@ export function VenteFlashHeader({
     onAddToPanier(produit);
     setSearchTerm('');
     setShowDropdown(false);
+    // Re-focus pour enchaîner les scans/recherches
+    setTimeout(() => inputRef.current?.focus(), 100);
+  };
+
+  // Handler Enter : sélectionne le premier résultat du dropdown
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && searchResults.length > 0) {
+      e.preventDefault();
+      handleSelectProduct(searchResults[0]);
+    }
   };
 
   // Handler scan code-barre
@@ -155,9 +186,11 @@ export function VenteFlashHeader({
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
             <input
+              ref={inputRef}
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
+              onKeyDown={handleKeyDown}
               placeholder="Nom produit ou code-barres..."
               className="
                 w-full pl-10 pr-10 py-3 rounded-xl

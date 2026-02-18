@@ -6,7 +6,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Search, Filter, Grid, LayoutList, LayoutGrid, RefreshCw, Printer, FileDown, CheckSquare, ShoppingCart } from 'lucide-react';
+import { Search, Filter, Grid, LayoutList, LayoutGrid, RefreshCw, Printer, FileDown, CheckSquare, ShoppingCart, PanelRightOpen } from 'lucide-react';
 
 interface ProduitsFilterHeaderProps {
   searchTerm: string;
@@ -24,6 +24,8 @@ interface ProduitsFilterHeaderProps {
   onToggleSelectionMode?: () => void;
   modeVente?: boolean;
   onToggleModeVente?: () => void;
+  showPanierSide?: boolean;
+  onTogglePanierSide?: () => void;
 }
 
 export function ProduitsFilterHeader({
@@ -41,7 +43,9 @@ export function ProduitsFilterHeader({
   selectionMode = false,
   onToggleSelectionMode,
   modeVente = false,
-  onToggleModeVente
+  onToggleModeVente,
+  showPanierSide = false,
+  onTogglePanierSide
 }: ProduitsFilterHeaderProps) {
   return (
     <div className="space-y-4">
@@ -133,6 +137,22 @@ export function ProduitsFilterHeader({
 
         {/* Boutons actions */}
         <div className="flex items-center gap-2">
+          {/* Bouton Panier latéral (desktop uniquement) */}
+          {onTogglePanierSide && (
+            <motion.button
+              whileTap={{ scale: 0.95 }}
+              onClick={onTogglePanierSide}
+              className={`p-2 rounded-lg transition-colors ${
+                showPanierSide
+                  ? 'bg-blue-500 text-white shadow-sm'
+                  : 'bg-white/10 hover:bg-white/20'
+              }`}
+              title={showPanierSide ? 'Masquer le panier latéral' : 'Afficher le panier latéral'}
+            >
+              <PanelRightOpen className={`w-5 h-5 ${showPanierSide ? 'text-white' : 'text-white'}`} />
+            </motion.button>
+          )}
+
           {/* Bouton Mode Sélection */}
           {onToggleSelectionMode && (
             <motion.button

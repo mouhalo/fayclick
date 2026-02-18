@@ -13,8 +13,6 @@ import { ModalNotifications } from '@/components/notifications/ModalNotification
 import { formatAmount } from '@/utils/formatAmount';
 import { User } from '@/types/auth';
 import { useHasRight } from '@/hooks/useRights';
-import { StatusBarPanier } from '@/components/panier/StatusBarPanier';
-import { ModalPanier } from '@/components/panier/ModalPanier';
 import { ModalFactureSuccess } from '@/components/panier/ModalFactureSuccess';
 import { useToast } from '@/components/ui/Toast';
 import ModalCoffreFort from '@/components/coffre-fort/ModalCoffreFort';
@@ -435,12 +433,6 @@ export default function CommerceDashboard() {
           structureId={user?.id_structure || 0}
         />
       </div>
-
-      {/* StatusBar Panier - fixe en bas */}
-      <StatusBarPanier />
-
-      {/* Modal Panier */}
-      <ModalPanier />
 
       {/* Modal Facture Success */}
       <ModalFactureSuccess />
