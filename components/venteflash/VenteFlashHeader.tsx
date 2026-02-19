@@ -5,7 +5,7 @@
 
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -15,6 +15,10 @@ import { usePanierStore } from '@/stores/panierStore';
 import { ScanCodeBarre } from '@/components/shared/ScanCodeBarre';
 import { SearchProductResult } from '@/types/venteflash.types';
 import { Produit } from '@/types/produit';
+
+export interface VenteFlashHeaderRef {
+  focusSearch: () => void;
+}
 
 interface VenteFlashHeaderProps {
   /** Liste complète des produits chargés */
@@ -27,12 +31,12 @@ interface VenteFlashHeaderProps {
   onPrint?: () => void;
 }
 
-export function VenteFlashHeader({
+export const VenteFlashHeader = forwardRef<VenteFlashHeaderRef, VenteFlashHeaderProps>(({
   produits,
   onAddToPanier,
   onRefresh,
   onPrint
-}: VenteFlashHeaderProps) {
+}, ref) => {
   const router = useRouter();
   const { getTotalItems } = usePanierStore();
   const [searchTerm, setSearchTerm] = useState('');
@@ -42,6 +46,15 @@ export function VenteFlashHeader({
   const inputRef = useRef<HTMLInputElement>(null);
 
   const totalItems = getTotalItems();
+
+  // Exposer focusSearch() au parent pour auto-focus après ajout au panier
+  useImperativeHandle(ref, () => ({
+    focusSearch: () => {
+      setTimeout(() => {
+        inputRef.current?.focus();
+      }, 100);
+    }
+  }));
 
   // Recherche produits par nom OU code-barres (déclenchée dès le premier caractère)
   useEffect(() => {
@@ -319,4 +332,6 @@ export function VenteFlashHeader({
       </div>
     </div>
   );
-}
+});
+
+VenteFlashHeader.displayName = 'VenteFlashHeader';

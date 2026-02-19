@@ -16,7 +16,7 @@ import { VenteFlash, VenteFlashStats, DetailVente, RecuPaiement } from '@/types/
 import { User } from '@/types/auth';
 import { usePanierStore } from '@/stores/panierStore';
 import { useToast } from '@/components/ui/Toast';
-import { VenteFlashHeader } from '@/components/venteflash/VenteFlashHeader';
+import { VenteFlashHeader, VenteFlashHeaderRef } from '@/components/venteflash/VenteFlashHeader';
 import { VenteFlashStatsCards } from '@/components/venteflash/VenteFlashStatsCards';
 import { VenteFlashListeVentes } from '@/components/venteflash/VenteFlashListeVentes';
 import { PanierVenteFlashInline } from '@/components/venteflash/PanierVenteFlashInline';
@@ -65,6 +65,7 @@ export default function VenteFlashPage() {
   const [vfProduit, setVfProduit] = useState<Produit | null>(null);
   const [vfQuantity, setVfQuantity] = useState(1);
   const quantityInputRef = useRef<HTMLInputElement>(null);
+  const headerRef = useRef<VenteFlashHeaderRef>(null);
 
   // États pour le reçu (ancien modal)
   const [showRecu, setShowRecu] = useState(false);
@@ -482,6 +483,9 @@ export default function VenteFlashPage() {
     setShowQuantityModal(false);
     setVfProduit(null);
     setVfQuantity(1);
+
+    // Auto-focus sur le champ de recherche pour enchaîner les scans
+    headerRef.current?.focusSearch();
   }, [vfProduit, vfQuantity, addArticle, showToast]);
 
   /**
@@ -491,6 +495,9 @@ export default function VenteFlashPage() {
     setShowQuantityModal(false);
     setVfProduit(null);
     setVfQuantity(1);
+
+    // Auto-focus sur le champ de recherche même après annulation
+    headerRef.current?.focusSearch();
   }, []);
 
   /**
@@ -813,6 +820,7 @@ export default function VenteFlashPage() {
       <div className="max-w-7xl mx-auto p-4 space-y-4">
         {/* Section 1: Header avec recherche + scan */}
         <VenteFlashHeader
+          ref={headerRef}
           produits={produits}
           onAddToPanier={handleAddToPanier}
           onRefresh={handleRefresh}
