@@ -105,11 +105,28 @@ export function VenteFlashHeader({
     setTimeout(() => inputRef.current?.focus(), 100);
   };
 
-  // Handler Enter : sélectionne le premier résultat du dropdown
+  // Handler Enter : priorité au match exact code-barres, puis premier résultat dropdown
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' && searchResults.length > 0) {
+    if (e.key === 'Enter') {
       e.preventDefault();
-      handleSelectProduct(searchResults[0]);
+
+      // Priorité 1: Match exact code-barres (scan douchette)
+      const barcodeMatch = produits.find(p =>
+        p.code_barre && p.code_barre.trim() === searchTerm.trim()
+      );
+      if (barcodeMatch) {
+        console.log('📊 [VENTE FLASH] Enter scan détecté:', barcodeMatch.nom_produit);
+        onAddToPanier(barcodeMatch);
+        setSearchTerm('');
+        setShowDropdown(false);
+        setTimeout(() => inputRef.current?.focus(), 100);
+        return;
+      }
+
+      // Priorité 2: Premier résultat de recherche
+      if (searchResults.length > 0) {
+        handleSelectProduct(searchResults[0]);
+      }
     }
   };
 

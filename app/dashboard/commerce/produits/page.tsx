@@ -266,7 +266,7 @@ export default function ProduitsCommercePage() {
     setShowPanierSide(stored === 'true');
   }, [user]);
 
-  // Toggle panier latéral
+  // Toggle panier latéral (desktop) ou modal panier (mobile)
   const handleTogglePanierSide = () => {
     const newValue = !showPanierSide;
     setShowPanierSide(newValue);
@@ -275,12 +275,64 @@ export default function ProduitsCommercePage() {
     }
   };
 
-  // Détection produit unique en Mode Vente
+  // Handler unifié : toggle PanierSidePanel (non-bloquant, draggable) sur tous les devices
+  const handleTogglePanier = () => {
+    handleTogglePanierSide();
+  };
+
+  // Auto-détection scan code-barres (douchette hardware)
+  // Debounce 300ms : laisse le scanner finir la saisie, puis match exact sur code_barre
+  useEffect(() => {
+    if (searchTerm.length < 3 || showQuantityModal) return;
+
+    const timer = setTimeout(() => {
+      const match = produits.find(p =>
+        p.code_barre && p.code_barre.trim() === searchTerm.trim()
+      );
+      if (!match) return;
+
+      console.log('📊 [PRODUITS] Auto-scan code-barres détecté:', match.nom_produit, '| code:', searchTerm.trim());
+
+      if (user && user.pwd_changed === false) {
+        showToast('warning', 'Mot de passe requis', 'Veuillez d\'abord modifier votre mot de passe initial.');
+        return;
+      }
+      if (!canAccessFeature('Vente produit')) {
+        showAbonnementModal('Vente de produit');
+        return;
+      }
+
+      const stock = match.niveau_stock || 0;
+      if (stock <= 0) {
+        showToast('error', 'Stock épuisé', `"${match.nom_produit}" n'est plus en stock`);
+        setSearchTerm('');
+        lastModeVenteTrigger.current = '';
+        return;
+      }
+
+      // Ouvrir modal quantité
+      setModeVenteProduit(match);
+      setModeVenteQuantity(1);
+      setShowQuantityModal(true);
+      setSearchTerm('');
+      lastModeVenteTrigger.current = '';
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchTerm, produits, user, showQuantityModal, canAccessFeature, showToast, showAbonnementModal, setSearchTerm]);
+
+  // Détection produit unique en Mode Vente (recherche textuelle, pas code-barres)
   useEffect(() => {
     if (!modeVente || searchTerm.length < 2 || produitsFiltered.length !== 1) return;
 
     // Bloquer si mot de passe non changé
     if (user && user.pwd_changed === false) return;
+
+    // Ne pas déclencher si c'est un code-barres exact (géré par l'effet debounce ci-dessus)
+    const isExactBarcode = produits.some(p =>
+      p.code_barre && p.code_barre.trim() === searchTerm.trim()
+    );
+    if (isExactBarcode) return;
 
     const produit = produitsFiltered[0];
     const triggerKey = `${produit.id_produit}-${searchTerm}`;
@@ -299,7 +351,7 @@ export default function ProduitsCommercePage() {
     setModeVenteProduit(produit);
     setModeVenteQuantity(1);
     setShowQuantityModal(true);
-  }, [modeVente, searchTerm, produitsFiltered, showToast, user]);
+  }, [modeVente, searchTerm, produits, produitsFiltered, showToast, user]);
 
   // Scroll listener pour la pagination sticky : afficher uniquement quand l'utilisateur atteint le bas de la page
   useEffect(() => {
@@ -936,7 +988,7 @@ export default function ProduitsCommercePage() {
               modeVente={modeVente}
               onToggleModeVente={handleToggleModeVente}
               showPanierSide={showPanierSide}
-              onTogglePanierSide={isDesktopView ? handleTogglePanierSide : undefined}
+              onTogglePanierSide={handleTogglePanier}
             />
           }
         />
@@ -1083,8 +1135,8 @@ export default function ProduitsCommercePage() {
             reducedGrid={showPanierSide && isDesktopView}
           />
 
-          {/* Panier latéral flottant draggable (desktop uniquement) */}
-          {showPanierSide && isDesktopView && (
+          {/* Panier latéral flottant draggable (tous devices) */}
+          {showPanierSide && (
             <PanierSidePanel onClose={handleTogglePanierSide} />
           )}
 
@@ -1207,8 +1259,8 @@ export default function ProduitsCommercePage() {
           )}
         </AnimatePresence>
 
-        {/* StatusBar Panier - fixe en bas (masquée si side panel actif sur desktop) */}
-        {!(showPanierSide && isDesktopView) && <StatusBarPanier />}
+        {/* StatusBar Panier - fixe en bas (masquée si side panel actif) */}
+        {!showPanierSide && <StatusBarPanier />}
       </div>
 
       {/* Modal options d'ajout (3 méthodes) */}
@@ -1232,8 +1284,8 @@ export default function ProduitsCommercePage() {
         canViewMontants={canViewCA}
       />
 
-      {/* Modal Panier (masqué si side panel actif sur desktop) */}
-      {!(showPanierSide && isDesktopView) && <ModalPanier />}
+      {/* Modal Panier (masqué si side panel actif) */}
+      {!showPanierSide && <ModalPanier />}
       <ModalFactureSuccess />
 
       {/* Modal de confirmation d'ajout de stock */}
