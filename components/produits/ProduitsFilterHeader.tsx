@@ -5,8 +5,13 @@
 
 'use client';
 
+import { forwardRef, useImperativeHandle, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Search, Filter, Grid, LayoutList, LayoutGrid, RefreshCw, Printer, FileDown, CheckSquare, ShoppingCart, PanelRightOpen } from 'lucide-react';
+
+export interface ProduitsFilterHeaderRef {
+  focusSearch: () => void;
+}
 
 interface ProduitsFilterHeaderProps {
   searchTerm: string;
@@ -28,7 +33,7 @@ interface ProduitsFilterHeaderProps {
   onTogglePanierSide?: () => void;
 }
 
-export function ProduitsFilterHeader({
+export const ProduitsFilterHeader = forwardRef<ProduitsFilterHeaderRef, ProduitsFilterHeaderProps>(({
   searchTerm,
   onSearchChange,
   viewMode,
@@ -46,7 +51,18 @@ export function ProduitsFilterHeader({
   onToggleModeVente,
   showPanierSide = false,
   onTogglePanierSide
-}: ProduitsFilterHeaderProps) {
+}, ref) => {
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Exposer focusSearch() au parent pour auto-focus après ajout au panier
+  useImperativeHandle(ref, () => ({
+    focusSearch: () => {
+      setTimeout(() => {
+        inputRef.current?.focus();
+      }, 100);
+    }
+  }));
+
   return (
     <div className="space-y-4">
       {/* Barre de recherche avec bouton Actualiser */}
@@ -71,6 +87,7 @@ export function ProduitsFilterHeader({
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input
+            ref={inputRef}
             type="text"
             value={searchTerm}
             onChange={(e) => onSearchChange(e.target.value)}
@@ -208,4 +225,6 @@ export function ProduitsFilterHeader({
       </div>
     </div>
   );
-}
+});
+
+ProduitsFilterHeader.displayName = 'ProduitsFilterHeader';

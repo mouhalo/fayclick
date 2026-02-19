@@ -41,7 +41,7 @@ import { ModalFactureSuccess } from '@/components/panier/ModalFactureSuccess';
 import { useToast } from '@/components/ui/Toast';
 import { GlassHeader } from '@/components/ui/GlassHeader';
 import { ProduitsList } from '@/components/produits/ProduitsList';
-import { ProduitsFilterHeader } from '@/components/produits/ProduitsFilterHeader';
+import { ProduitsFilterHeader, ProduitsFilterHeaderRef } from '@/components/produits/ProduitsFilterHeader';
 import { GlassPagination, usePagination } from '@/components/ui/GlassPagination';
 import { Produit, AddEditProduitResponse, ComparisonOperator } from '@/types/produit';
 import { User } from '@/types/auth';
@@ -118,6 +118,7 @@ export default function ProduitsCommercePage() {
   const [modeVenteQuantity, setModeVenteQuantity] = useState(1);
   const lastModeVenteTrigger = useRef<string>('');
   const quantityInputRef = useRef<HTMLInputElement>(null);
+  const filterHeaderRef = useRef<ProduitsFilterHeaderRef>(null);
 
   // Configuration pagination
   const itemsPerPage = 10;
@@ -421,12 +422,22 @@ export default function ProduitsCommercePage() {
     setModeVenteProduit(null);
     setSearchTerm('');
     lastModeVenteTrigger.current = '';
+
+    // Auto-focus sur le champ de recherche pour enchaîner les scans (Mode Vente)
+    if (modeVente) {
+      filterHeaderRef.current?.focusSearch();
+    }
   };
 
   // Annulation modal quantité Mode Vente
   const handleModeVenteCancel = () => {
     setShowQuantityModal(false);
     setModeVenteProduit(null);
+
+    // Auto-focus sur le champ de recherche même après annulation (Mode Vente)
+    if (modeVente) {
+      filterHeaderRef.current?.focusSearch();
+    }
   };
 
   // Auto-focus sur le champ quantité quand le modal s'ouvre
@@ -972,6 +983,7 @@ export default function ProduitsCommercePage() {
           backgroundGradient="bg-gradient-to-r from-green-500 to-green-600"
           filterContent={
             <ProduitsFilterHeader
+              ref={filterHeaderRef}
               searchTerm={searchTerm}
               onSearchChange={handleSearchChange}
               viewMode={viewMode}
