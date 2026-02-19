@@ -19,7 +19,7 @@ interface ModalScanCodeBarreProps {
   /** Callback scan réussi avec le code */
   onScanSuccess: (code: string) => void;
   /** Contexte d'utilisation */
-  context: 'panier' | 'ajout-produit';
+  context: 'panier' | 'ajout-produit' | 'venteflash';
 }
 
 export function ModalScanCodeBarre({
