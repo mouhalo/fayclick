@@ -31,6 +31,7 @@ import LogoUpload from '@/components/ui/LogoUpload';
 import PopMessage from '@/components/ui/PopMessage';
 import { UploadResult, UploadProgress } from '@/types/upload.types';
 import { useUserProfile } from '@/hooks/useUserProfile';
+import categorieService from '@/services/categorie.service';
 import { BoutonScanCodeBarre } from '@/components/produits/BoutonScanCodeBarre';
 import { ModalScanCodeBarre } from '@/components/produits/ModalScanCodeBarre';
 
@@ -59,7 +60,7 @@ export function ModalAjoutProduitNew({
   canViewMontants = true
 }: ModalAjoutProduitNewProps) {
   // Hook pour vérifier si l'utilisateur est ADMIN
-  const { isAdmin } = useUserProfile();
+  const { isAdmin, user } = useUserProfile();
   const isEditMode = !!produitToEdit;
   const canEdit = isAdmin || !isEditMode; // ADMIN peut tout faire, les autres uniquement créer
 
@@ -106,11 +107,46 @@ export function ModalAjoutProduitNew({
     message: ''
   });
 
-  // Liste des catégories prédéfinies selon le type de structure
-  const categories = typeStructure === 'PRESTATAIRE DE SERVICES'
-    ? ['Consultation', 'Formation', 'Installation', 'Maintenance', 'Support', 'Autre']
-    : ['Électronique', 'Electroménager','Informatique','Vêtements', 'Alimentation', 'Bébé','Cosmetique',
-      'Mobilier','Outils','Meuble','Fripperie','Librairie', 'Automobile', 'Santé', 'Autre'];
+  // Catégories dynamiques depuis la BD
+  const [categoriesDynamiques, setCategoriesDynamiques] = useState<string[]>([]);
+  const [isLoadingCategories, setIsLoadingCategories] = useState(false);
+
+  // Catégories fallback si aucune en BD
+  const CATEGORIES_FALLBACK_COMMERCE = [
+    'Électronique', 'Electroménager', 'Informatique', 'Vêtements',
+    'Alimentation', 'Bébé', 'Cosmetique', 'Mobilier', 'Outils',
+    'Meuble', 'Fripperie', 'Librairie', 'Automobile', 'Santé', 'Autre'
+  ];
+  const CATEGORIES_FALLBACK_SERVICES = [
+    'Consultation', 'Formation', 'Installation', 'Maintenance', 'Support', 'Autre'
+  ];
+
+  const categoriesFallback = typeStructure === 'PRESTATAIRE DE SERVICES'
+    ? CATEGORIES_FALLBACK_SERVICES
+    : CATEGORIES_FALLBACK_COMMERCE;
+
+  const categories = categoriesDynamiques.length > 0 ? categoriesDynamiques : categoriesFallback;
+
+  // Charger les catégories depuis la BD
+  useEffect(() => {
+    if (!user?.id_structure || !isOpen) return;
+    const loadCategories = async () => {
+      setIsLoadingCategories(true);
+      try {
+        const response = await categorieService.getListeCategories(user.id_structure);
+        if (response.success && response.categories?.length > 0) {
+          setCategoriesDynamiques(response.categories.map(c => c.nom_categorie));
+        } else {
+          setCategoriesDynamiques([]);
+        }
+      } catch {
+        setCategoriesDynamiques([]);
+      } finally {
+        setIsLoadingCategories(false);
+      }
+    };
+    loadCategories();
+  }, [user?.id_structure, isOpen]);
 
 
   // Onglets disponibles
@@ -662,7 +698,7 @@ export function ModalAjoutProduitNew({
                           : 'border-sky-200 bg-white/60 hover:bg-white/70'
                       }`}
                     >
-                      <option value="">Sélectionner une catégorie</option>
+                      <option value="">{isLoadingCategories ? 'Chargement...' : 'Sélectionner une catégorie'}</option>
                       {categories.map(cat => (
                         <option key={cat} value={cat}>{cat}</option>
                       ))}

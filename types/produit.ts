@@ -195,12 +195,36 @@ export interface HistoriquePrix {
 
 // Categories de produits/services
 export interface Categorie {
-  id_categorie: number;
   nom_categorie: string;
-  description?: string;
-  couleur?: string; // Pour l'affichage UI
-  icone?: string;   // Emoji ou nom d'icône
-  ordre?: number;   // Pour le tri d'affichage
+}
+
+// Réponse API pour la liste des catégories
+export interface CategoriesApiResponse {
+  success: boolean;
+  id_structure?: number;
+  statistiques?: { nb_categories: number };
+  categories: Categorie[];
+  error?: string;
+  error_code?: string;
+}
+
+// Réponse API pour ajout/modification de catégorie
+export interface AddEditCategorieResponse {
+  success: boolean;
+  message?: string;
+  action?: 'CREATED' | 'UPDATED' | 'EXISTS';
+  data?: { id_structure: number; nom_categorie: string; ancien_nom?: string | null };
+  error?: string;
+  error_code?: 'NAME_TOO_LONG' | 'INVALID_NAME' | 'STRUCTURE_NOT_FOUND' | 'DUPLICATE_NAME';
+}
+
+// Réponse API pour suppression de catégorie
+export interface DeleteCategorieResponse {
+  success: boolean;
+  message?: string;
+  data?: { id_structure: number; nom_categorie: string };
+  error?: string;
+  error_code?: 'CATEGORIE_NOT_FOUND' | 'FOREIGN_KEY_VIOLATION';
 }
 
 // Statistiques détaillées par produit

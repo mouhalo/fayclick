@@ -20,7 +20,8 @@ import {
   Wallet,
   Settings,
   Shield,
-  TrendingUp
+  TrendingUp,
+  Tag
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
@@ -31,6 +32,7 @@ import { StructureDetails, CompleteAuthData } from '@/types/auth';
 import LogoUpload from '@/components/ui/LogoUpload';
 import { UploadResult, UploadProgress } from '@/types/upload.types';
 import UsersManagement from '@/components/settings/UsersManagement';
+import CategoriesManagement from '@/components/settings/CategoriesManagement';
 import ModalPaiementAbonnement from '@/components/subscription/ModalPaiementAbonnement';
 import SubscriptionHistory from '@/components/subscription/SubscriptionHistory';
 import CurrentSubscriptionStatus from '@/components/subscription/CurrentSubscriptionStatus';
@@ -78,7 +80,7 @@ interface AddEditStructureResponse {
   [key: string]: unknown;
 }
 
-type TabId = 'general' | 'wallets' | 'users' | 'sales' | 'subscription';
+type TabId = 'general' | 'wallets' | 'users' | 'sales' | 'categories' | 'subscription';
 
 // Règles de vente stockées en localStorage
 interface SalesRules {
@@ -154,10 +156,18 @@ const TABS_CONFIG = [
     gradient: 'from-amber-500 to-orange-600',
     iconColor: 'text-amber-600'
   },
-  { 
-    id: 'subscription' as TabId, 
-    label: 'Abonnement', 
-    icon: Crown, 
+  {
+    id: 'categories' as TabId,
+    label: 'Catégories',
+    icon: Tag,
+    color: 'orange',
+    gradient: 'from-orange-500 to-amber-600',
+    iconColor: 'text-orange-600'
+  },
+  {
+    id: 'subscription' as TabId,
+    label: 'Abonnement',
+    icon: Crown,
     color: 'green',
     gradient: 'from-emerald-600 to-teal-600',
     iconColor: 'text-emerald-600'
@@ -958,6 +968,11 @@ export default function StructureEditPage() {
                     </div>
                   </motion.div>
                 </div>
+              )}
+
+              {/* Onglet Catégories */}
+              {activeTab === 'categories' && (
+                <CategoriesManagement onShowMessage={showPopMessage} />
               )}
 
               {/* Onglet Abonnement */}
