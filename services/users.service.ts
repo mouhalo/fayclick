@@ -304,12 +304,11 @@ class UsersService {
       throw new Error('Le numéro de téléphone est requis');
     }
 
-    // Validation du format téléphone sénégalais (basique)
-    const phoneRegex = /^(77|78|76|70|75)[0-9]{7}$/;
-    const cleanPhone = params.telephone.replace(/\s/g, '');
+    // Validation du format téléphone (7 à 10 chiffres)
+    const cleanPhone = params.telephone.replace(/\D/g, '');
 
-    if (!phoneRegex.test(cleanPhone)) {
-      throw new Error('Format de téléphone invalide (ex: 77 123 45 67)');
+    if (cleanPhone.length < 7 || cleanPhone.length > 10) {
+      throw new Error('Format de téléphone invalide (7 à 10 chiffres)');
     }
 
     // Ne jamais permettre la modification d'un admin via ce service

@@ -134,11 +134,10 @@ export function ModalPasswordRecovery({ isOpen, onClose }: ModalPasswordRecovery
       return;
     }
 
-    // Validation du format téléphone sénégalais
-    const phoneRegex = /^(77|78|76|70|75)[0-9]{7}$/;
-    const cleanPhone = formData.phoneNumber.replace(/\s/g, '');
-    if (!phoneRegex.test(cleanPhone)) {
-      setError('Numéro de téléphone invalide (format: 77XXXXXXX)');
+    // Validation du format téléphone (7 à 10 chiffres)
+    const cleanPhone = formData.phoneNumber.replace(/\D/g, '');
+    if (cleanPhone.length < 7 || cleanPhone.length > 10) {
+      setError('Numéro de téléphone invalide (7 à 10 chiffres)');
       return;
     }
 

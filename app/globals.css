@@ -705,6 +705,624 @@ html, body {
     scroll-behavior: smooth;
     -webkit-overflow-scrolling: touch;
   }
+
+  /* ===== REGISTER PAGE - Glassmorphism Commerce ===== */
+
+  /* Keyframes Register */
+  @keyframes reg_float-orb {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    25% { transform: translate(30px, -20px) scale(1.05); }
+    50% { transform: translate(-10px, 20px) scale(0.95); }
+    75% { transform: translate(-30px, -10px) scale(1.02); }
+  }
+
+  @keyframes reg_progress-glow {
+    0%, 100% { box-shadow: 0 0 8px rgba(16, 185, 129, 0.4); }
+    50% { box-shadow: 0 0 20px rgba(16, 185, 129, 0.7); }
+  }
+
+  @keyframes reg_progress-shine {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(200%); }
+  }
+
+  @keyframes reg_step-enter {
+    from {
+      opacity: 0;
+      transform: translateX(40px);
+      filter: blur(4px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+      filter: blur(0);
+    }
+  }
+
+  @keyframes reg_step-exit {
+    from {
+      opacity: 1;
+      transform: translateX(0);
+      filter: blur(0);
+    }
+    to {
+      opacity: 0;
+      transform: translateX(-40px);
+      filter: blur(4px);
+    }
+  }
+
+  @keyframes reg_valid-pulse {
+    0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
+    70% { box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+  }
+
+  @keyframes reg_error-shake {
+    0%, 100% { transform: translateX(0); }
+    10%, 30%, 50%, 70%, 90% { transform: translateX(-4px); }
+    20%, 40%, 60%, 80% { transform: translateX(4px); }
+  }
+
+  @keyframes reg_confetti-fall {
+    0% {
+      transform: translateY(-10vh) rotate(0deg);
+      opacity: 1;
+    }
+    100% {
+      transform: translateY(110vh) rotate(720deg);
+      opacity: 0;
+    }
+  }
+
+  @keyframes reg_checkmark-draw {
+    from { stroke-dashoffset: 50; }
+    to { stroke-dashoffset: 0; }
+  }
+
+  @keyframes reg_circle-draw {
+    from { stroke-dashoffset: 166; }
+    to { stroke-dashoffset: 0; }
+  }
+
+  @keyframes reg_celebration-pulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.05); opacity: 0.9; }
+  }
+
+  /* Register Page Background */
+  .reg_page {
+    min-height: 100vh;
+    background: linear-gradient(135deg, #064e3b 0%, #065f46 40%, #047857 100%);
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* Floating Orbs */
+  .reg_orb {
+    position: absolute;
+    border-radius: 9999px;
+    filter: blur(60px);
+    opacity: 0.3;
+    animation: reg_float-orb 20s ease-in-out infinite;
+    pointer-events: none;
+  }
+
+  /* Glass Card */
+  .reg_glass-card {
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 1rem;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  }
+
+  /* Glass Input */
+  .reg_glass-input {
+    width: 100%;
+    padding: 0.875rem 1rem;
+    background: rgba(255, 255, 255, 0.12);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 0.75rem;
+    color: white;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    outline: none;
+  }
+
+  .reg_glass-input::placeholder {
+    color: rgba(255, 255, 255, 0.4);
+  }
+
+  .reg_glass-input:focus {
+    border-color: #10b981;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2), 0 0 20px rgba(16, 185, 129, 0.1);
+    background: rgba(255, 255, 255, 0.15);
+  }
+
+  /* Progress Bar */
+  .reg_progress-bar {
+    height: 3px;
+    background: linear-gradient(90deg, #10b981, #14b8a6);
+    border-radius: 2px;
+    animation: reg_progress-glow 2s ease-in-out infinite;
+    position: relative;
+    overflow: hidden;
+    transition: width 0.4s ease;
+  }
+
+  .reg_progress-bar::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 40%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.6), transparent);
+    animation: reg_progress-shine 1.5s ease-in-out infinite;
+  }
+
+  /* Buttons */
+  .reg_btn-primary {
+    background: linear-gradient(135deg, #10b981, #14b8a6);
+    color: white;
+    font-weight: 700;
+    padding: 0.875rem 1.5rem;
+    border-radius: 0.75rem;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+  }
+
+  .reg_btn-primary:hover {
+    background: linear-gradient(135deg, #059669, #0d9488);
+    box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+    transform: translateY(-1px);
+  }
+
+  .reg_btn-primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  .reg_btn-secondary {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #d1fae5;
+    font-weight: 600;
+    padding: 0.875rem 1.5rem;
+    border-radius: 0.75rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+
+  .reg_btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.3);
+  }
+
+  /* Step Animations */
+  .reg_step-enter {
+    animation: reg_step-enter 0.4s ease-out forwards;
+  }
+
+  .reg_step-exit {
+    animation: reg_step-exit 0.3s ease-in forwards;
+  }
+
+  /* Validation Feedback */
+  .reg_valid-pulse {
+    animation: reg_valid-pulse 1s ease-out;
+  }
+
+  .reg_error-shake {
+    animation: reg_error-shake 0.5s ease-out;
+  }
+
+  /* Confetti */
+  .reg_confetti {
+    position: fixed;
+    top: -10px;
+    pointer-events: none;
+    z-index: 100;
+    animation: reg_confetti-fall 2.5s ease-in forwards;
+  }
+
+  /* SVG Checkmark */
+  .reg_checkmark-circle {
+    stroke-dasharray: 166;
+    stroke-dashoffset: 166;
+    animation: reg_circle-draw 0.6s ease-out forwards;
+  }
+
+  .reg_checkmark-check {
+    stroke-dasharray: 50;
+    stroke-dashoffset: 50;
+    animation: reg_checkmark-draw 0.6s ease-out 0.4s forwards;
+  }
+
+  /* Celebration Pulse */
+  .reg_celebration-pulse {
+    animation: reg_celebration-pulse 0.8s ease-in-out infinite;
+  }
+
+  /* ===== LOGIN LOADING - MODAL GLASSMORPHISM ===== */
+
+  /* Anneau qui tourne - sens horaire */
+  @keyframes login_ring-spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+
+  /* Anneau inverse - sens anti-horaire */
+  @keyframes login_ring-spin-reverse {
+    0% { transform: rotate(360deg); }
+    100% { transform: rotate(0deg); }
+  }
+
+  /* Pulsation du halo extérieur */
+  @keyframes login_halo-pulse {
+    0%, 100% { transform: scale(1); opacity: 0.4; }
+    50% { transform: scale(1.15); opacity: 0.15; }
+  }
+
+  /* Pulsation douce du logo central */
+  @keyframes login_logo-breathe {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.08); }
+  }
+
+  /* Apparition du modal */
+  @keyframes login_modal-enter {
+    0% { opacity: 0; transform: scale(0.85) translateY(20px); }
+    100% { opacity: 1; transform: scale(1) translateY(0); }
+  }
+
+  /* Points animés */
+  @keyframes login_dots {
+    0%, 20% { content: ''; }
+    40% { content: '.'; }
+    60% { content: '..'; }
+    80%, 100% { content: '...'; }
+  }
+
+  /* Shimmer sur la barre de progression */
+  @keyframes login_bar-shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(200%); }
+  }
+
+  /* Particules flottantes */
+  @keyframes login_particle-float {
+    0%, 100% { transform: translateY(0) translateX(0) scale(1); opacity: 0.6; }
+    25% { transform: translateY(-15px) translateX(8px) scale(1.2); opacity: 1; }
+    50% { transform: translateY(-5px) translateX(-6px) scale(0.8); opacity: 0.4; }
+    75% { transform: translateY(-20px) translateX(4px) scale(1.1); opacity: 0.8; }
+  }
+
+  /* Backdrop overlay */
+  .login_backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(2, 44, 34, 0.7);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+
+  /* Modal glass card */
+  .login_modal {
+    position: relative;
+    width: 280px;
+    padding: 2.5rem 2rem 2rem;
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 1.5rem;
+    box-shadow:
+      0 8px 32px rgba(0, 0, 0, 0.3),
+      inset 0 1px 0 rgba(255, 255, 255, 0.15),
+      0 0 80px rgba(16, 185, 129, 0.08);
+    animation: login_modal-enter 0.4s ease-out;
+    overflow: hidden;
+  }
+
+  /* Reflet glass en haut du modal */
+  .login_modal::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 50%;
+    background: linear-gradient(180deg, rgba(255,255,255,0.06) 0%, transparent 100%);
+    border-radius: 1.5rem 1.5rem 0 0;
+    pointer-events: none;
+  }
+
+  /* Container des anneaux */
+  .login_rings {
+    position: relative;
+    width: 120px;
+    height: 120px;
+    margin: 0 auto 1.5rem;
+  }
+
+  /* Anneau extérieur - vert emerald */
+  .login_ring-outer {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    border: 3px solid transparent;
+    border-top-color: #10b981;
+    border-right-color: #10b981;
+    animation: login_ring-spin 1.8s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+    filter: drop-shadow(0 0 6px rgba(16, 185, 129, 0.5));
+  }
+
+  /* Anneau milieu - orange/ambre */
+  .login_ring-middle {
+    position: absolute;
+    inset: 12px;
+    border-radius: 50%;
+    border: 3px solid transparent;
+    border-top-color: #f59e0b;
+    border-left-color: #f59e0b;
+    animation: login_ring-spin-reverse 1.4s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+    filter: drop-shadow(0 0 6px rgba(245, 158, 11, 0.5));
+  }
+
+  /* Anneau intérieur - teal */
+  .login_ring-inner {
+    position: absolute;
+    inset: 24px;
+    border-radius: 50%;
+    border: 3px solid transparent;
+    border-bottom-color: #14b8a6;
+    border-right-color: #14b8a6;
+    animation: login_ring-spin 1s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+    filter: drop-shadow(0 0 6px rgba(20, 184, 166, 0.5));
+  }
+
+  /* Halo pulsant derrière les anneaux */
+  .login_halo {
+    position: absolute;
+    inset: -16px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(16, 185, 129, 0.15) 0%, transparent 70%);
+    animation: login_halo-pulse 2.5s ease-in-out infinite;
+    pointer-events: none;
+  }
+
+  /* Logo central dans les anneaux */
+  .login_ring-center {
+    position: absolute;
+    inset: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    animation: login_logo-breathe 2s ease-in-out infinite;
+  }
+
+  /* Barre de progression */
+  .login_progress-track {
+    width: 100%;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-top: 1.25rem;
+  }
+
+  .login_progress-fill {
+    height: 100%;
+    border-radius: 2px;
+    background: linear-gradient(90deg, #10b981, #f59e0b, #14b8a6);
+    background-size: 200% 100%;
+    transition: width 0.8s ease;
+    position: relative;
+  }
+
+  .login_progress-fill::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 40%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.5), transparent);
+    animation: login_bar-shimmer 1.2s ease-in-out infinite;
+  }
+
+  /* Particules décoratives */
+  .login_particle {
+    position: absolute;
+    border-radius: 50%;
+    pointer-events: none;
+    animation: login_particle-float 3s ease-in-out infinite;
+  }
+
+  /* Texte étape avec points */
+  .login_step-text::after {
+    animation: login_dots 1.5s steps(4, end) infinite;
+    content: '';
+  }
+
+  /* ===== LOGIN PAGE - Glass Card & Inputs ===== */
+
+  .login_glass-card {
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 1.5rem;
+    box-shadow:
+      0 8px 32px rgba(0, 0, 0, 0.3),
+      inset 0 1px 0 rgba(255, 255, 255, 0.15),
+      0 0 80px rgba(16, 185, 129, 0.08);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .login_glass-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 50%;
+    background: linear-gradient(180deg, rgba(255,255,255,0.06) 0%, transparent 100%);
+    border-radius: 1.5rem 1.5rem 0 0;
+    pointer-events: none;
+  }
+
+  .login_glass-input {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 0.75rem;
+    color: white;
+    font-size: 0.9375rem;
+    transition: all 0.3s ease;
+    outline: none;
+  }
+
+  .login_glass-input::placeholder {
+    color: rgba(255, 255, 255, 0.35);
+  }
+
+  .login_glass-input:focus {
+    border-color: #10b981;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2), 0 0 20px rgba(16, 185, 129, 0.1);
+    background: rgba(255, 255, 255, 0.14);
+  }
+
+  .login_btn-primary {
+    width: 100%;
+    padding: 0.75rem 1.5rem;
+    background: linear-gradient(135deg, #10b981, #14b8a6);
+    color: white;
+    font-weight: 700;
+    font-size: 0.9375rem;
+    border-radius: 0.75rem;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+  }
+
+  .login_btn-primary:hover {
+    background: linear-gradient(135deg, #059669, #0d9488);
+    box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+    transform: translateY(-1px);
+  }
+
+  .login_btn-primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  .login_btn-glass {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.625rem 1rem;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 0.75rem;
+    color: #a7f3d0;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+
+  .login_btn-glass:hover {
+    background: rgba(255, 255, 255, 0.14);
+    border-color: rgba(255, 255, 255, 0.28);
+    color: white;
+  }
+
+  .login_icon-btn {
+    width: 2.75rem;
+    height: 2.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    color: #a7f3d0;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+
+  .login_icon-btn:hover {
+    background: rgba(255, 255, 255, 0.18);
+    border-color: rgba(255, 255, 255, 0.35);
+    color: white;
+    transform: scale(1.05);
+    box-shadow: 0 0 20px rgba(16, 185, 129, 0.2);
+  }
+
+  /* Pulse blanc → jaune → orange */
+  @keyframes login_icon-pulse {
+    0%, 100% {
+      box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.45), 0 0 10px rgba(255, 255, 255, 0.15);
+    }
+    33% {
+      box-shadow: 0 0 0 5px rgba(250, 204, 21, 0.3), 0 0 18px rgba(250, 204, 21, 0.12);
+    }
+    66% {
+      box-shadow: 0 0 0 5px rgba(249, 115, 22, 0.3), 0 0 18px rgba(249, 115, 22, 0.12);
+    }
+  }
+
+  .login_icon-btn-pulse {
+    position: absolute;
+    top: 0;
+    right: 0;
+    z-index: 20;
+    width: 2.5rem;
+    height: 2.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    border-radius: 50%;
+    color: #a7f3d0;
+    cursor: pointer;
+    transition: background 0.3s, color 0.3s, border-color 0.3s;
+    animation: login_icon-pulse 2.2s ease-in-out infinite;
+  }
+
+  .login_icon-btn-pulse:hover {
+    background: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.4);
+    color: white;
+    animation-play-state: paused;
+    box-shadow: 0 0 0 6px rgba(249, 115, 22, 0.35), 0 0 24px rgba(249, 115, 22, 0.15);
+  }
 }
 /* app/globals.css - Ajouter ces styles */
 

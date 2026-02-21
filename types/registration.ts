@@ -154,11 +154,11 @@ export const VALIDATION_RULES = {
   BUSINESS_NAME_MIN_LENGTH: 5,
   BUSINESS_NAME_MAX_LENGTH: 100,
   ADDRESS_MAX_LENGTH: 255,
-  PHONE_LENGTH: 9,
+  PHONE_MIN_LENGTH: 7,   // Mali: 7 chiffres
+  PHONE_MAX_LENGTH: 10,  // Côte d'Ivoire: 10 chiffres
+  PHONE_LENGTH: 10,      // Max pour le champ input
   LOGO_MAX_SIZE: 5 * 1024 * 1024, // 5MB
-  LOGO_ALLOWED_TYPES: ['image/jpeg', 'image/png', 'image/jpg'],
-  VALID_OM_PREFIXES: ['77', '78', '70', '76', '75'], // Préfixes Orange Money Sénégal
-  VALID_WAVE_PREFIXES: ['70', '76', '77', '78'] // Préfixes Wave Money Sénégal
+  LOGO_ALLOWED_TYPES: ['image/jpeg', 'image/png', 'image/jpg']
 } as const;
 
 // Interface pour les messages de succès/erreur

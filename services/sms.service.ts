@@ -1,13 +1,19 @@
 /**
- * Service SMS pour l'envoi de messages via l'API PostgreSQL
- * Utilisé pour la récupération de mot de passe et autres notifications
- * Utilise la fonction add_pending_sms() avec l'application 'sms'
+ * Service SMS pour l'envoi de messages
+ * Utilisé pour la récupération de mot de passe, OTP inscription et notifications
+ *
+ * 2 modes d'envoi :
+ * - sendDirectSMS() : API REST send_o_sms → envoi IMMÉDIAT (inscription, OTP)
+ * - sendNotificationSMS() : PostgreSQL add_pending_sms → file d'attente
  */
 
 import SecurityService from './security.service';
 import DatabaseService from './database.service';
 
-// Configuration SMS pour l'API PostgreSQL
+// URL de l'API SMS directe (envoi immédiat)
+const SMS_API_URL = 'https://api.icelabsoft.com/sms_service/api/send_o_sms';
+
+// Configuration SMS pour l'API PostgreSQL (file d'attente)
 const SMS_CONFIG = {
   application: 'sms',
   senderName: 'ICELABOSOFT',
@@ -123,6 +129,44 @@ class SMSService {
   }
 
   /**
+   * Envoie un SMS immédiatement via l'API REST send_o_sms
+   * Utilisé pour : OTP inscription, codes urgents
+   * Contrairement à sendNotificationSMS qui met en file d'attente PostgreSQL
+   */
+  async sendDirectSMS(phoneNumber: string, message: string): Promise<SMSResponse> {
+    try {
+      const cleanPhone = this.formatPhoneNumber(phoneNumber);
+      if (!this.isValidPhone(cleanPhone)) {
+        throw new Error('Numéro de téléphone invalide');
+      }
+
+      SecurityService.secureLog('log', `📱 [SMS-DIRECT] Envoi SMS immédiat au: ${this.maskPhoneNumber(cleanPhone)}`);
+
+      const response = await fetch(SMS_API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          numtel: cleanPhone,
+          message: message,
+          sender: SMS_CONFIG.senderName,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        SecurityService.secureLog('log', `✅ [SMS-DIRECT] SMS envoyé avec succès`);
+        return { success: true, message: 'SMS envoyé avec succès' };
+      } else {
+        throw new Error(data.message || 'Erreur API SMS');
+      }
+    } catch (error: any) {
+      SecurityService.secureLog('error', `❌ [SMS-DIRECT] Erreur: ${error.message}`);
+      throw new Error(`Erreur envoi SMS direct: ${error.message}`);
+    }
+  }
+
+  /**
    * Formate un numéro de téléphone sénégalais
    */
   private formatPhoneNumber(phone: string): string {
@@ -143,12 +187,19 @@ class SMSService {
   }
 
   /**
-   * Valide un numéro de téléphone sénégalais
+   * Valide un numéro de téléphone (Sénégal, Côte d'Ivoire, Mali)
+   * Sénégal/CI: 9-10 chiffres, Mali: 7-8 chiffres
+   */
+  private isValidPhone(phone: string): boolean {
+    const cleanPhone = phone.replace(/\D/g, '');
+    return cleanPhone.length >= 7 && cleanPhone.length <= 10;
+  }
+
+  /**
+   * @deprecated Alias pour isValidPhone - Conservé pour compatibilité interne
    */
   private isValidSenegalPhone(phone: string): boolean {
-    // Format: 77/78/76/70/75 suivi de 7 chiffres
-    const phoneRegex = /^(77|78|76|70|75)[0-9]{7}$/;
-    return phoneRegex.test(phone);
+    return this.isValidPhone(phone);
   }
 
   /**
