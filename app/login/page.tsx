@@ -7,6 +7,7 @@ import Link from 'next/link'
 import dynamic from 'next/dynamic'
 import LogoFayclick from '@/components/ui/LogoFayclick'
 import { ModalPasswordRecovery } from '@/components/auth/ModalPasswordRecovery'
+import { ModalRecoveryOTP } from '@/components/auth/ModalRecoveryOTP'
 import { useAuth } from '@/contexts/AuthContext'
 import { authService } from '@/services/auth.service'
 import OTPInput from '@/components/coffre-fort/OTPInput'
@@ -26,11 +27,13 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [showPasswordRecovery, setShowPasswordRecovery] = useState(false)
+  const [showRecoveryOTP, setShowRecoveryOTP] = useState(false)
 
   // États PIN
   const [loginMode, setLoginMode] = useState<'credentials' | 'pin'>('credentials')
   const [hasPinConfigured, setHasPinConfigured] = useState(false)
   const [pinError, setPinError] = useState('')
+  const [pinLength, setPinLength] = useState(5)
 
   useEffect(() => {
     setIsLoaded(true)
@@ -61,11 +64,19 @@ export default function LoginPage() {
         const pinData = JSON.parse(atob(raw))
         if (pinData?.pin) {
           setHasPinConfigured(true)
-          if (pinData.lastMode === 'pin') {
+          // Détecter la longueur du PIN stocké (4 ancien, 5 nouveau/OTP)
+          setPinLength(pinData.pin.length || 5)
+
+          // Support du paramètre mode=pin (ex: après inscription avec OTP)
+          const modeParam = urlParams.get('mode')
+          if (modeParam === 'pin' || pinData.lastMode === 'pin') {
             setLoginMode('pin')
           }
         }
       } catch { /* PIN invalide, on ignore */ }
+    } else {
+      // Pas de PIN mais mode=pin demandé ? On reste en credentials
+      // (cas rare: URL manuelle sans PIN configuré)
     }
   }, [isAuthenticated, user, router])
 
@@ -344,7 +355,7 @@ export default function LoginPage() {
                 }}>
                   {/* Header - Collé en haut */}
                   <h2 className="text-xl font-semibold text-white mb-1 drop-shadow">Connexion rapide</h2>
-                  <p className="text-green-100/80 text-sm">Saisissez votre code PIN</p>
+                  <p className="text-green-100/80 text-sm">Saisissez votre code à {pinLength} chiffres</p>
 
                   {/* Zone centrale - PIN centré verticalement et horizontalement */}
                   <div className="flex-1 flex flex-col items-center justify-center py-6">
@@ -364,7 +375,7 @@ export default function LoginPage() {
 
                     {/* OTP Input pour PIN */}
                     <OTPInput
-                      length={4}
+                      length={pinLength}
                       onComplete={handlePinLogin}
                       disabled={isLoading || authLoading}
                       error={pinError}
@@ -380,6 +391,15 @@ export default function LoginPage() {
                         Pour créer ou modifier votre PIN, connectez-vous puis allez dans <span className="text-green-100 font-medium">Menu → Mon Profil → Code PIN rapide</span>
                       </p>
                     </div>
+
+                    {/* Lien "Code perdu ?" */}
+                    <button
+                      type="button"
+                      onClick={() => setShowRecoveryOTP(true)}
+                      className="mt-3 text-orange-300 hover:text-orange-200 text-sm underline transition-colors"
+                    >
+                      Code perdu ?
+                    </button>
 
                     {/* Loading */}
                     {(isLoading || authLoading) && (
@@ -431,6 +451,28 @@ export default function LoginPage() {
       <ModalPasswordRecovery
         isOpen={showPasswordRecovery}
         onClose={() => setShowPasswordRecovery(false)}
+      />
+
+      {/* Modal récupération code OTP */}
+      <ModalRecoveryOTP
+        isOpen={showRecoveryOTP}
+        onClose={() => setShowRecoveryOTP(false)}
+        onSuccess={() => {
+          setShowRecoveryOTP(false);
+          setPinError('');
+          // Recharger la config PIN depuis localStorage
+          const raw = localStorage.getItem('fayclick_quick_pin');
+          if (raw) {
+            try {
+              const pinData = JSON.parse(atob(raw));
+              if (pinData?.pin) {
+                setHasPinConfigured(true);
+                setPinLength(pinData.pin.length || 5);
+                setLoginMode('pin');
+              }
+            } catch { /* ignore */ }
+          }
+        }}
       />
 
       {/* Bouton WhatsApp flottant */}
