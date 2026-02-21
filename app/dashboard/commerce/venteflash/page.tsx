@@ -829,7 +829,57 @@ export default function VenteFlashPage() {
 
         {/* Section 2: Panier Inline (s'affiche automatiquement quand articles ajoutés) */}
         <PanierVenteFlashInline
-          onSuccess={(idFacture: number) => loadAndAddFacture(idFacture)}
+          onSuccess={(venteData) => {
+            // Ajout direct aux ventes du jour SANS appel API (données déjà disponibles)
+            const nomCaissier = user.nom && user.prenom ? `${user.prenom} ${user.nom}` : user.login;
+            const nouvelleVente: VenteFlash = {
+              id_facture: venteData.id_facture,
+              num_facture: venteData.num_facture,
+              date_facture: new Date().toISOString(),
+              montant_total: venteData.montant_total,
+              montant_paye: venteData.montant_paye,
+              montant_impaye: 0,
+              mt_remise: venteData.mt_remise,
+              mode_paiement: venteData.mode_paiement,
+              nom_client: 'CLIENT ANONYME',
+              tel_client: '',
+              nom_caissier: nomCaissier,
+              id_utilisateur: user.id,
+              statut: 'PAYEE',
+              details: venteData.details.map(d => ({
+                id_detail: d.id_detail as number,
+                id_produit: 0,
+                nom_produit: d.nom_produit,
+                quantite: d.quantite,
+                prix_unitaire: d.prix_unitaire,
+                total: d.total
+              })),
+              recus_paiements: venteData.recus_paiements?.map(r => ({
+                id_recu: r.id_recu as number,
+                id_facture: venteData.id_facture,
+                numero_recu: r.numero_recu,
+                methode_paiement: r.methode_paiement,
+                montant_paye: r.montant_paye,
+                date_paiement: r.date_paiement
+              }))
+            };
+
+            // Ajouter en tête de liste (plus récente en premier)
+            setVentesJour(prev => {
+              const filtered = prev.filter(v => v.id_facture !== venteData.id_facture);
+              return [nouvelleVente, ...filtered];
+            });
+
+            // Mettre à jour les stats localement
+            setStats(prev => ({
+              nb_ventes: prev.nb_ventes + 1,
+              total_ventes: prev.total_ventes + venteData.montant_total,
+              ca_jour: prev.ca_jour + venteData.montant_paye,
+              total_remises: prev.total_remises + venteData.mt_remise
+            }));
+
+            console.log(`✅ [VF] Vente ajoutée localement (0 API call) | #${venteData.num_facture} | ${venteData.montant_total} FCFA`);
+          }}
           onShowRecu={(idFacture: number, numFacture: string, montantTotal: number) => {
             setRecuData({ idFacture, numFacture, montantTotal });
             setShowRecu(true);

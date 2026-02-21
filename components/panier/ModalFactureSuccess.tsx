@@ -17,7 +17,6 @@ import QRCode from 'react-qr-code';
 import { factureService } from '@/services/facture.service';
 import { authService } from '@/services/auth.service';
 import { encodeFactureParams } from '@/lib/url-encoder';
-import { produitsService } from '@/services/produits.service';
 import { useFactureSuccessStore } from '@/hooks/useFactureSuccess';
 import { PaymentMethodSelector } from '@/components/factures/PaymentMethodSelector';
 import { ModalPaiementQRCode } from '@/components/factures/ModalPaiementQRCode';
@@ -65,7 +64,7 @@ function nombreEnLettres(n: number): string {
 }
 
 export function ModalFactureSuccess() {
-  const { isOpen, factureId, closeModal } = useFactureSuccessStore();
+  const { isOpen, factureId, preloadedArticles, closeModal } = useFactureSuccessStore();
   const { isMobile, isMobileLarge,  isDesktop } = useBreakpoint();
   const [factureDetails, setFactureDetails] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -156,35 +155,33 @@ export function ModalFactureSuccess() {
 
   const loadFactureDetails = async () => {
     if (!factureId) return;
-    
+
     try {
       setLoading(true);
       setError(null);
       const details = await factureService.getFactureDetails(factureId);
       setFactureDetails(details);
 
-      // Charger les articles de la facture
-      try {
-        const articlesQuery = `
-          SELECT p.nom_produit, d.quantite, d.prix, (d.prix * d.quantite) as sous_total
-          FROM public.detail_facture_com d
-          INNER JOIN public.produit_service p ON d.id_produit = p.id_produit
-          WHERE d.id_facture = ${factureId}
-          ORDER BY d.id_detail
-        `;
-        const articlesResult = await DatabaseService.query(articlesQuery);
-        setFactureArticles(articlesResult || []);
-      } catch (err) {
-        console.warn('Articles facture non disponibles:', err);
-        setFactureArticles([]);
-      }
-
-      // Actualiser les produits après création de facture
-      try {
-        await produitsService.getListeProduits({});
-        console.log('✅ Stocks actualisés après création de facture');
-      } catch (error) {
-        console.error('Erreur actualisation produits:', error);
+      // Utiliser les articles pré-chargés si disponibles (évite un appel DB)
+      if (preloadedArticles && preloadedArticles.length > 0) {
+        console.log(`⚡ [FACTURE-SUCCESS] ${preloadedArticles.length} articles pré-chargés (0 API call)`);
+        setFactureArticles(preloadedArticles);
+      } else {
+        // Fallback: charger depuis la DB (cas rare: ouverture depuis autre contexte)
+        try {
+          const articlesQuery = `
+            SELECT p.nom_produit, d.quantite, d.prix, (d.prix * d.quantite) as sous_total
+            FROM public.detail_facture_com d
+            INNER JOIN public.produit_service p ON d.id_produit = p.id_produit
+            WHERE d.id_facture = ${factureId}
+            ORDER BY d.id_detail
+          `;
+          const articlesResult = await DatabaseService.query(articlesQuery);
+          setFactureArticles(articlesResult || []);
+        } catch (err) {
+          console.warn('Articles facture non disponibles:', err);
+          setFactureArticles([]);
+        }
       }
     } catch (err: any) {
       console.error('Erreur chargement détails facture:', err);
@@ -294,10 +291,19 @@ export function ModalFactureSuccess() {
         setPaymentSuccess(true);
         setShowPaymentSection(false);
 
-        // Actualiser les détails de la facture
-        await loadFactureDetails();
+        // Mise à jour locale des détails (PAS de re-fetch API)
+        if (factureDetails) {
+          const montantPaye = response.facture?.montant_verse ?? acompteData.montant_acompte;
+          const nouveauRestant = response.facture?.nouveau_restant ?? 0;
+          setFactureDetails({
+            ...factureDetails,
+            mt_acompte: (factureDetails.mt_acompte || 0) + acompteData.montant_acompte,
+            mt_restant: nouveauRestant,
+            id_etat: nouveauRestant <= 0 ? 2 : factureDetails.id_etat // 2 = PAYEE
+          });
+        }
 
-        console.log('✅ [CASH-SUCCESS] Facture entièrement payée');
+        console.log('✅ [CASH-SUCCESS] Facture entièrement payée (mise à jour locale)');
       }
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Erreur lors du paiement cash';
@@ -358,10 +364,18 @@ export function ModalFactureSuccess() {
         setPaymentSuccess(true);
         setShowPaymentSection(false);
 
-        // Actualiser les détails de la facture
-        await loadFactureDetails();
+        // Mise à jour locale des détails (PAS de re-fetch API)
+        if (factureDetails) {
+          const nouveauRestant = response.facture?.nouveau_restant ?? 0;
+          setFactureDetails({
+            ...factureDetails,
+            mt_acompte: (factureDetails.mt_acompte || 0) + acompteData.montant_acompte,
+            mt_restant: nouveauRestant,
+            id_etat: nouveauRestant <= 0 ? 2 : factureDetails.id_etat
+          });
+        }
 
-        console.log('✅ [WALLET-SUCCESS] Facture entièrement payée');
+        console.log('✅ [WALLET-SUCCESS] Facture entièrement payée (mise à jour locale)');
       }
     } catch (error: unknown) {
       console.error('❌ [WALLET-ERROR] Erreur enregistrement:', error);
