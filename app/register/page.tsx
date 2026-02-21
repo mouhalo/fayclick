@@ -1,10 +1,9 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Building2,
   Phone,
   MapPin,
   Upload,
@@ -18,15 +17,13 @@ import {
   Tag
 } from 'lucide-react';
 import {
-  StructureType,
   RegistrationFormData,
   VALIDATION_RULES,
-  ServiceType,
-  SERVICE_ICONS
 } from '@/types/registration';
 import LogoFayclick from '@/components/ui/LogoFayclick';
 import { UploadResult, UploadProgress } from '@/types/upload.types';
 import registrationService from '@/services/registration.service';
+import smsService from '@/services/sms.service';
 import SuccessModal from '@/components/ui/SuccessModal';
 import LogoUpload from '@/components/ui/LogoUpload';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
@@ -34,41 +31,37 @@ import { useTranslations } from '@/hooks/useTranslations';
 
 /**
  * Nettoie une chaîne pour être compatible XML
- * Remplace les caractères problématiques par leur équivalent sûr
  */
 const sanitizeForXML = (str: string): string => {
   if (!str) return '';
-
   return str
-    // Remplacer les apostrophes typographiques et droites
     .replace(/['']/g, ' ')
     .replace(/["\"]/g, ' ')
-    // Remplacer les caractères de ponctuation problématiques
     .replace(/[;:]/g, ' ')
     .replace(/,/g, ' ')
-    // Remplacer les caractères spéciaux XML
     .replace(/&/g, 'et')
     .replace(/</g, ' ')
     .replace(/>/g, ' ')
-    // Nettoyer les espaces multiples
     .replace(/\s+/g, ' ')
     .trim();
 };
+
+const CONFETTI_COLORS = ['#10b981', '#f59e0b', '#ffffff', '#34d399', '#fbbf24', '#6ee7b7'];
 
 export default function RegisterPage() {
   const router = useRouter();
   const t = useTranslations('register');
   const tCommon = useTranslations('common');
   const [step, setStep] = useState(1);
-  const [structureTypes, setStructureTypes] = useState<StructureType[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [showCelebration, setShowCelebration] = useState(false);
 
-  // Form data
+  // Form data - COMMERCE forcé (structureTypeId=2)
   const [formData, setFormData] = useState<RegistrationFormData>({
     businessName: '',
-    structureTypeId: 0,
-    serviceType: 'SERVICES',
+    structureTypeId: 2,       // COMMERCE forcé
+    serviceType: 'SERVICES',  // Forcé
     phoneOM: '',
     phoneWave: '',
     address: '',
@@ -98,24 +91,21 @@ export default function RegisterPage() {
     message: '',
     login: '',
     password: '',
-    structureName: ''
+    structureName: '',
+    otpCode: '',
+    phoneOM: ''
   });
 
-  // Refs for auto-focus
+  // Refs
   const businessNameRef = useRef<HTMLInputElement>(null);
-  const structureTypeRef = useRef<HTMLSelectElement>(null);
-
-  // Load structure types
-  useEffect(() => {
-    fetchStructureTypes();
-  }, []);
+  const addressRef = useRef<HTMLInputElement>(null);
 
   // Auto-focus on step change
   useEffect(() => {
     if (step === 1 && businessNameRef.current) {
       setTimeout(() => businessNameRef.current?.focus(), 100);
-    } else if (step === 2 && structureTypeRef.current) {
-      setTimeout(() => structureTypeRef.current?.focus(), 100);
+    } else if (step === 2 && addressRef.current) {
+      setTimeout(() => addressRef.current?.focus(), 100);
     }
   }, [step]);
 
@@ -123,7 +113,6 @@ export default function RegisterPage() {
   useEffect(() => {
     const checkStructureName = async () => {
       const trimmedName = formData.businessName.trim();
-
       if (
         trimmedName.length < VALIDATION_RULES.BUSINESS_NAME_MIN_LENGTH ||
         trimmedName.length > VALIDATION_RULES.BUSINESS_NAME_MAX_LENGTH
@@ -131,37 +120,32 @@ export default function RegisterPage() {
         setNameCheckState({ checking: false, exists: null });
         return;
       }
-
       setNameCheckState({ checking: true, exists: null });
-
       try {
         const exists = await registrationService.checkStructureNameExists(trimmedName);
         setNameCheckState({ checking: false, exists });
-      } catch (error) {
-        console.error('Erreur vérification nom structure:', error);
+      } catch {
         setNameCheckState({ checking: false, exists: null });
       }
     };
-
     const timeoutId = setTimeout(checkStructureName, 800);
     return () => clearTimeout(timeoutId);
   }, [formData.businessName]);
 
-  const fetchStructureTypes = async () => {
-    try {
-      const types = await registrationService.getStructureTypes();
-      // Filtrer IMMOBILIER et SCOLAIRE (non disponibles pour l'inscription publique)
-      const filteredTypes = types.filter(type =>
-        !['IMMOBILIER', 'SCOLAIRE'].includes(type.nom_type.toUpperCase())
-      );
-      setStructureTypes(filteredTypes);
-    } catch (error) {
-      console.error('Erreur chargement types:', error);
-      setError('Impossible de charger les types de structure');
-    }
-  };
+  // Confetti data (generated once)
+  const confettiPieces = useMemo(() =>
+    Array.from({ length: 40 }, (_, i) => ({
+      id: i,
+      x: Math.random() * 100,
+      delay: Math.random() * 0.5,
+      duration: 2 + Math.random(),
+      color: CONFETTI_COLORS[i % CONFETTI_COLORS.length],
+      size: 6 + Math.random() * 6,
+      rotation: Math.random() * 360,
+    })),
+  []);
 
-  // Validation functions
+  // Validation
   const validateBusinessName = (name: string) => {
     const length = name.trim().length;
     if (length === 0) return { isValid: false, message: '', status: 'empty' };
@@ -199,26 +183,17 @@ export default function RegisterPage() {
       processedValue = value.toUpperCase();
     }
 
-    if (name === 'phoneOM' || name === 'phoneWave') {
+    if (name === 'phoneOM') {
       processedValue = value.replace(/\D/g, '');
       if (processedValue.length > VALIDATION_RULES.PHONE_LENGTH) {
         processedValue = processedValue.slice(0, VALIDATION_RULES.PHONE_LENGTH);
       }
     }
 
-    if (name === 'structureTypeId') {
-      setFormData(prev => ({ ...prev, [name]: parseInt(value) }));
-      return;
-    }
-
     setFormData(prev => ({
       ...prev,
       [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : processedValue,
     }));
-  };
-
-  const handleServiceSelect = (service: ServiceType) => {
-    setFormData(prev => ({ ...prev, serviceType: service }));
   };
 
   const handleLogoUploadComplete = (result: UploadResult) => {
@@ -259,23 +234,19 @@ export default function RegisterPage() {
     switch (currentStep) {
       case 1:
         if (!formData.businessName || formData.businessName.trim().length < VALIDATION_RULES.BUSINESS_NAME_MIN_LENGTH) {
-          setError(`Nom du business requis (minimum ${VALIDATION_RULES.BUSINESS_NAME_MIN_LENGTH} caractères)`);
+          setError(`Nom du commerce requis (minimum ${VALIDATION_RULES.BUSINESS_NAME_MIN_LENGTH} caractères)`);
           return false;
         }
         if (nameCheckState.exists) {
           setError('Ce nom de structure est déjà pris');
           return false;
         }
+        if (!formData.phoneOM || !registrationService.validateMobilePhone(formData.phoneOM)) {
+          setError('Téléphone Orange Money invalide (7 à 10 chiffres)');
+          return false;
+        }
         break;
       case 2:
-        if (!formData.structureTypeId || formData.structureTypeId <= 0) {
-          setError('Veuillez sélectionner un type de structure');
-          return false;
-        }
-        if (!formData.phoneOM || !registrationService.validateSenegalMobileOM(formData.phoneOM)) {
-          setError('Téléphone Orange Money invalide (9 chiffres, préfixes: 77, 78, 70, 76, 75)');
-          return false;
-        }
         if (!formData.address || formData.address.trim().length === 0) {
           setError('Adresse requise');
           return false;
@@ -284,8 +255,6 @@ export default function RegisterPage() {
           setError(`Adresse trop longue (maximum ${VALIDATION_RULES.ADDRESS_MAX_LENGTH} caractères)`);
           return false;
         }
-        break;
-      case 3:
         if (!formData.acceptTerms) {
           setError('Veuillez accepter les conditions générales');
           return false;
@@ -298,33 +267,32 @@ export default function RegisterPage() {
   const nextStep = () => {
     if (validateStep(step)) {
       setError('');
-      setStep(step + 1);
+      setStep(2);
     }
   };
 
   const prevStep = () => {
     setError('');
-    setStep(step - 1);
+    setStep(1);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validateStep(3)) return;
+    if (!validateStep(2)) return;
 
     setIsLoading(true);
     setError('');
 
     try {
-      // Nettoyer l'adresse pour éviter les problèmes XML
       const cleanedAddress = sanitizeForXML(formData.address);
 
       const registrationData = {
-        p_id_type: formData.structureTypeId,
+        p_id_type: 2,                                    // COMMERCE forcé
         p_nom_structure: formData.businessName,
         p_adresse: cleanedAddress,
         p_mobile_om: formData.phoneOM,
-        p_mobile_wave: formData.phoneWave || '',
-        p_nom_service: formData.serviceType || 'SERVICES',
+        p_mobile_wave: formData.phoneOM,                 // Auto-copie du OM
+        p_nom_service: 'SERVICES',                       // Forcé
         p_logo: formData.logoUrl || '',
         p_code_promo: formData.codePromo?.toUpperCase().trim() || 'FAYCLICK'
       };
@@ -332,18 +300,48 @@ export default function RegisterPage() {
       const result = await registrationService.registerMerchant(registrationData);
       const loginInfo = registrationService.extractLoginInfo(result.message);
 
-      setSuccessModal({
-        isOpen: true,
-        message: result.message,
-        login: loginInfo.login || '',
-        password: loginInfo.password || '0000',
-        structureName: formData.businessName
-      });
+      const otpCode = registrationService.generateOTPCode();
+      const login = loginInfo.login || '';
+      const password = loginInfo.password || '0000';
+
+      // Stocker en localStorage
+      if (login && password) {
+        const pinData = JSON.stringify({
+          pin: otpCode,
+          login,
+          pwd: password,
+          lastMode: 'pin'
+        });
+        localStorage.setItem('fayclick_quick_pin', btoa(pinData));
+      }
+
+      // Envoyer le SMS OTP
+      const phoneNumber = formData.phoneOM;
+      const smsMessage = `Bienvenue sur FayClick ! Votre code de connexion rapide est : ${otpCode}. Utilisez-le pour vous connecter facilement. Ne le partagez pas.`;
+      try {
+        await smsService.sendDirectSMS(phoneNumber, smsMessage);
+      } catch (smsError) {
+        console.warn('SMS OTP non envoyé (non bloquant):', smsError);
+      }
+
+      // Celebration confettis AVANT le SuccessModal
+      setShowCelebration(true);
+      setTimeout(() => {
+        setShowCelebration(false);
+        setSuccessModal({
+          isOpen: true,
+          message: result.message,
+          login,
+          password,
+          structureName: formData.businessName,
+          otpCode,
+          phoneOM: phoneNumber
+        });
+      }, 2800);
 
       resetForm();
 
     } catch (error) {
-      console.error('Erreur inscription:', error);
       const errorMessage = error instanceof Error ? error.message : 'Erreur lors de l\'inscription';
       setError(errorMessage);
     } finally {
@@ -354,7 +352,7 @@ export default function RegisterPage() {
   const resetForm = () => {
     setFormData({
       businessName: '',
-      structureTypeId: 0,
+      structureTypeId: 2,
       serviceType: 'SERVICES',
       phoneOM: '',
       phoneWave: '',
@@ -372,22 +370,10 @@ export default function RegisterPage() {
     setError('');
   };
 
-  // Animation variants
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: { duration: 0.3 }
-    },
-    exit: {
-      opacity: 0,
-      transition: { duration: 0.2 }
-    }
-  };
-
+  // Animation variants for framer-motion
   const slideVariants = {
-    enter: (direction: number) => ({
-      x: direction > 0 ? 300 : -300,
+    enter: (dir: number) => ({
+      x: dir > 0 ? 300 : -300,
       opacity: 0
     }),
     center: {
@@ -395,8 +381,8 @@ export default function RegisterPage() {
       opacity: 1,
       transition: { type: 'spring', stiffness: 300, damping: 30 }
     },
-    exit: (direction: number) => ({
-      x: direction < 0 ? 300 : -300,
+    exit: (dir: number) => ({
+      x: dir < 0 ? 300 : -300,
       opacity: 0,
       transition: { duration: 0.2 }
     })
@@ -404,601 +390,340 @@ export default function RegisterPage() {
 
   const [direction, setDirection] = useState(0);
 
-  const paginate = (newDirection: number) => {
-    setDirection(newDirection);
-  };
-
-  // Render step content
-  const renderStepContent = () => {
-    switch (step) {
-      case 1:
-        return (
-          <motion.div
-            key="step1"
-            custom={direction}
-            variants={slideVariants}
-            initial="enter"
-            animate="center"
-            exit="exit"
-            className="space-y-6"
-          >
-            {/* Welcome Message */}
-            <div className="text-center space-y-3">
-              <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ type: 'spring', delay: 0.1 }}
-                className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-emerald-500 to-teal-500 text-white text-3xl shadow-lg"
-              >
-                🎉
-              </motion.div>
-              <h2 className="text-2xl md:text-3xl font-bold text-gray-800">
-                {t('step1.title')}
-              </h2>
-              <p className="text-gray-600 max-w-md mx-auto">
-                {t('step1.subtitle')}
-              </p>
-            </div>
-
-            {/* Business Name Input */}
-            <div className="space-y-3">
-              <label className="block text-gray-700 font-semibold text-lg">
-                {t('step1.businessNameLabel')} <span className="text-red-500">*</span>
-              </label>
-
-              <div className="relative">
-                <input
-                  ref={businessNameRef}
-                  type="text"
-                  name="businessName"
-                  value={formData.businessName}
-                  onChange={handleChange}
-                  className={`w-full px-4 py-4 text-lg font-bold uppercase border-2 rounded-xl focus:outline-none focus:ring-4 transition-all ${
-                    businessNameValidation.status === 'valid'
-                      ? 'border-emerald-400 focus:ring-emerald-100 bg-emerald-50/30'
-                      : businessNameValidation.status === 'empty'
-                      ? 'border-gray-300 focus:ring-blue-100'
-                      : businessNameValidation.status === 'duplicate'
-                      ? 'border-red-500 focus:ring-red-100 bg-red-50/30'
-                      : 'border-orange-400 focus:ring-orange-100 bg-orange-50/30'
-                  }`}
-                  placeholder={t('step1.businessNamePlaceholder')}
-                  maxLength={VALIDATION_RULES.BUSINESS_NAME_MAX_LENGTH}
-                  required
-                />
-
-                {/* Status Indicator */}
-                <div className="absolute right-4 top-1/2 -translate-y-1/2">
-                  {nameCheckState.checking ? (
-                    <Loader2 className="w-6 h-6 text-blue-500 animate-spin" />
-                  ) : formData.businessName && (
-                    <motion.div
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      transition={{ type: 'spring' }}
-                    >
-                      {businessNameValidation.isValid ? (
-                        <Check className="w-6 h-6 text-emerald-500" />
-                      ) : (
-                        <AlertCircle className="w-6 h-6 text-red-500" />
-                      )}
-                    </motion.div>
-                  )}
-                </div>
-              </div>
-
-              {/* Validation Messages */}
-              <AnimatePresence mode="wait">
-                {formData.businessName && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    className={`flex items-center gap-2 text-sm font-medium ${
-                      businessNameValidation.status === 'valid'
-                        ? 'text-emerald-600'
-                        : businessNameValidation.status === 'empty'
-                        ? 'text-gray-500'
-                        : 'text-red-600'
-                    }`}
-                  >
-                    {businessNameValidation.status === 'valid' ? (
-                      <Sparkles className="w-4 h-4" />
-                    ) : (
-                      <AlertCircle className="w-4 h-4" />
-                    )}
-                    {businessNameValidation.message}
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-              {/* Character Counter */}
-              <div className="flex justify-between text-sm text-gray-500">
-                <span>{t('step1.characterCount', { min: VALIDATION_RULES.BUSINESS_NAME_MIN_LENGTH, max: VALIDATION_RULES.BUSINESS_NAME_MAX_LENGTH })}</span>
-                <span className={formData.businessName.length > VALIDATION_RULES.BUSINESS_NAME_MAX_LENGTH * 0.8 ? 'text-orange-600 font-semibold' : ''}>
-                  {formData.businessName.length}/{VALIDATION_RULES.BUSINESS_NAME_MAX_LENGTH}
-                </span>
-              </div>
-            </div>
-
-            {/* Benefits Grid */}
-            <div className="grid grid-cols-2 gap-3 pt-4">
-              {[
-                { icon: '🚀', text: t('step1.benefits.free') },
-                { icon: '💰', text: t('step1.benefits.instant') },
-                { icon: '🔒', text: t('step1.benefits.secure') },
-                { icon: '📱', text: t('step1.benefits.qrcode') }
-              ].map((benefit, index) => (
-                <motion.div
-                  key={index}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.2 + index * 0.1 }}
-                  className="flex items-center gap-2 p-3 bg-white/60 backdrop-blur-lg rounded-xl border border-white/40 shadow-lg hover:shadow-xl hover:bg-white/80 transition-all"
-                >
-                  <span className="text-2xl">{benefit.icon}</span>
-                  <span className="text-xs font-medium text-gray-700">{benefit.text}</span>
-                </motion.div>
-              ))}
-            </div>
-          </motion.div>
-        );
-
-      case 2:
-        return (
-          <motion.div
-            key="step2"
-            custom={direction}
-            variants={slideVariants}
-            initial="enter"
-            animate="center"
-            exit="exit"
-            className="space-y-6"
-          >
-            {/* Step Title */}
-            <div className="text-center space-y-2">
-              <h2 className="text-2xl md:text-3xl font-bold text-gray-800">
-                {t('step2.title')}
-              </h2>
-              <p className="text-gray-600">
-                {t('step2.subtitle')}
-              </p>
-            </div>
-
-            {/* Structure Type */}
-            <div className="space-y-2">
-              <label className="flex items-center gap-2 text-gray-700 font-semibold">
-                <Building2 className="w-5 h-5 text-emerald-500" />
-                {t('step2.structureType')} <span className="text-red-500">*</span>
-              </label>
-              <select
-                ref={structureTypeRef}
-                name="structureTypeId"
-                value={formData.structureTypeId}
-                onChange={handleChange}
-                className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:outline-none focus:ring-4 focus:ring-blue-100 focus:border-blue-400 transition-all"
-                required
-              >
-                <option value={0}>{t('step2.structureTypePlaceholder')}</option>
-                {structureTypes.map((type) => (
-                  <option key={type.id_type} value={type.id_type}>
-                    {type.nom_type}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Service Type Selector */}
-            <div className="space-y-2">
-              <label className="block text-gray-700 font-semibold">
-                {t('step2.serviceType')} <span className="text-gray-400 text-sm">({tCommon('optional')})</span>
-              </label>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                {(['SERVICES', 'PRODUITS', 'MIXTE', 'AUTRE'] as ServiceType[]).map((service) => (
-                  <button
-                    key={service}
-                    type="button"
-                    onClick={() => handleServiceSelect(service)}
-                    className={`px-4 py-3 rounded-xl border-2 font-medium transition-all ${
-                      formData.serviceType === service
-                        ? 'border-emerald-500 bg-emerald-50 text-emerald-700'
-                        : 'border-gray-200 hover:border-gray-300 text-gray-600'
-                    }`}
-                  >
-                    <span className="text-xl mb-1 block">{SERVICE_ICONS[service]}</span>
-                    <span className="text-xs">{service}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Contact Section */}
-            <div className="space-y-4 p-4 bg-white/40 backdrop-blur-md rounded-xl border border-white/30 shadow-lg">
-              <h3 className="font-semibold text-gray-800 flex items-center gap-2">
-                <Phone className="w-5 h-5 text-emerald-500" />
-                {t('step2.contact')}
-              </h3>
-
-              {/* Phone OM */}
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700">
-                  {t('step2.phoneOM')} <span className="text-red-500">*</span>
-                </label>
-                <div className="flex">
-                  <span className="inline-flex items-center px-3 text-gray-500 bg-gray-100 border border-r-0 border-gray-300 rounded-l-xl">
-                    +221
-                  </span>
-                  <input
-                    type="tel"
-                    name="phoneOM"
-                    value={formData.phoneOM}
-                    onChange={handleChange}
-                    className="flex-1 px-4 py-3 border border-gray-300 rounded-r-xl focus:outline-none focus:ring-2 focus:ring-blue-400"
-                    placeholder={t('step2.phoneOMPlaceholder')}
-                    maxLength={9}
-                    required
-                  />
-                </div>
-              </div>
-
-              {/* Phone Wave */}
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700">
-                  {t('step2.phoneWave')} <span className="text-gray-400 text-xs">({tCommon('optional')})</span>
-                </label>
-                <div className="flex">
-                  <span className="inline-flex items-center px-3 text-gray-500 bg-gray-100 border border-r-0 border-gray-300 rounded-l-xl">
-                    +221
-                  </span>
-                  <input
-                    type="tel"
-                    name="phoneWave"
-                    value={formData.phoneWave || ''}
-                    onChange={handleChange}
-                    className="flex-1 px-4 py-3 border border-gray-300 rounded-r-xl focus:outline-none focus:ring-2 focus:ring-blue-400"
-                    placeholder={t('step2.phoneWavePlaceholder')}
-                    maxLength={9}
-                  />
-                </div>
-              </div>
-
-              {/* Address */}
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700 flex items-center gap-2">
-                  <MapPin className="w-4 h-4 text-emerald-500" />
-                  {t('step2.address')} <span className="text-red-500">*</span>
-                </label>
-                <textarea
-                  name="address"
-                  value={formData.address}
-                  onChange={handleChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400 resize-none"
-                  placeholder={t('step2.addressPlaceholder')}
-                  rows={3}
-                  maxLength={VALIDATION_RULES.ADDRESS_MAX_LENGTH}
-                  required
-                />
-                <div className="text-xs text-gray-500 text-right">
-                  {formData.address.length}/{VALIDATION_RULES.ADDRESS_MAX_LENGTH}
-                </div>
-              </div>
-
-              {/* Code Parrainage */}
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700 flex items-center gap-2">
-                  <Tag className="w-4 h-4 text-orange-500" />
-                  Code Parrainage <span className="text-gray-400 text-sm">({tCommon('optional')})</span>
-                </label>
-                <input
-                  type="text"
-                  name="codePromo"
-                  value={formData.codePromo || ''}
-                  onChange={handleChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-400 uppercase"
-                  placeholder="Ex: ORANGE2026"
-                  maxLength={11}
-                />
-                <p className="text-xs text-gray-500">
-                  Avez-vous un code partenaire ? Entrez-le ici pour bénéficier d'avantages.
-                </p>
-              </div>
-            </div>
-
-            {/* Logo Upload */}
-            <div className="space-y-2">
-              <label className="block text-gray-700 font-semibold flex items-center gap-2">
-                <Upload className="w-5 h-5 text-emerald-500" />
-                {t('step2.logo')} <span className="text-gray-400 text-sm">({tCommon('optional')})</span>
-              </label>
-              <LogoUpload
-                onUploadComplete={handleLogoUploadComplete}
-                onUploadProgress={handleLogoUploadProgress}
-                onFileSelect={handleLogoFileSelect}
-                registerMode={true}
-              />
-            </div>
-          </motion.div>
-        );
-
-      case 3:
-        return (
-          <motion.div
-            key="step3"
-            custom={direction}
-            variants={slideVariants}
-            initial="enter"
-            animate="center"
-            exit="exit"
-            className="space-y-6"
-          >
-            {/* Step Title */}
-            <div className="text-center space-y-2">
-              <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ type: 'spring', delay: 0.1 }}
-                className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-emerald-500 to-teal-500 text-white text-3xl shadow-lg"
-              >
-                ✓
-              </motion.div>
-              <h2 className="text-2xl md:text-3xl font-bold text-gray-800">
-                {t('step3.title')}
-              </h2>
-              <p className="text-gray-600">
-                {t('step3.subtitle')}
-              </p>
-            </div>
-
-            {/* Summary Cards */}
-            <div className="space-y-3">
-              {/* Business Info */}
-              <div className="p-4 bg-gradient-to-br from-emerald-100/50 to-teal-100/50 backdrop-blur-lg rounded-xl border-2 border-emerald-200/50 shadow-lg">
-                <div className="flex justify-between items-start mb-3">
-                  <span className="text-sm font-medium text-emerald-700">{t('step3.structure')}</span>
-                  <button
-                    type="button"
-                    onClick={() => setStep(1)}
-                    className="text-xs text-emerald-600 hover:text-emerald-700 font-medium"
-                  >
-                    {tCommon('edit')}
-                  </button>
-                </div>
-                <p className="text-2xl font-bold text-gray-800 mb-1">{formData.businessName}</p>
-                <p className="text-sm text-gray-600">
-                  {structureTypes.find(t => t.id_type === formData.structureTypeId)?.nom_type}
-                </p>
-              </div>
-
-              {/* Contact Info */}
-              <div className="p-4 bg-white/60 backdrop-blur-lg rounded-xl border-2 border-white/40 shadow-lg">
-                <div className="flex justify-between items-start mb-3">
-                  <span className="text-sm font-medium text-gray-700">{t('step3.contact')}</span>
-                  <button
-                    type="button"
-                    onClick={() => setStep(2)}
-                    className="text-xs text-blue-600 hover:text-blue-700 font-medium"
-                  >
-                    {tCommon('edit')}
-                  </button>
-                </div>
-                <div className="space-y-2 text-sm">
-                  <div className="flex items-center gap-2">
-                    <Phone className="w-4 h-4 text-emerald-500" />
-                    <span className="font-medium">{t('step3.orangeMoney')}:</span>
-                    <span className="text-gray-600">+221 {formData.phoneOM}</span>
-                  </div>
-                  {formData.phoneWave && (
-                    <div className="flex items-center gap-2">
-                      <Phone className="w-4 h-4 text-blue-500" />
-                      <span className="font-medium">{t('step3.wave')}:</span>
-                      <span className="text-gray-600">+221 {formData.phoneWave}</span>
-                    </div>
-                  )}
-                  <div className="flex items-start gap-2">
-                    <MapPin className="w-4 h-4 text-emerald-500 mt-0.5" />
-                    <span className="text-gray-600">{formData.address}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Logo Preview */}
-              {logoUploadState.isUploaded && formData.logoUrl && (
-                <div className="p-4 bg-white/60 backdrop-blur-lg rounded-xl border-2 border-white/40 shadow-lg">
-                  <span className="text-sm font-medium text-gray-700 block mb-2">{t('step3.logo')}</span>
-                  <div className="flex items-center gap-3">
-                    <img
-                      src={formData.logoUrl}
-                      alt="Logo"
-                      className="w-16 h-16 rounded-lg object-cover border-2 border-gray-200"
-                    />
-                    <span className="text-sm text-gray-600">{logoUploadState.fileName}</span>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Terms Acceptance */}
-            <div className="p-4 bg-white/40 backdrop-blur-md rounded-xl border border-white/30 shadow-lg">
-              <label className="flex items-start gap-3 cursor-pointer group">
-                <input
-                  type="checkbox"
-                  id="acceptTerms"
-                  name="acceptTerms"
-                  checked={formData.acceptTerms}
-                  onChange={handleChange}
-                  className="mt-1 w-5 h-5 text-emerald-600 rounded border-gray-300 focus:ring-emerald-500 cursor-pointer"
-                  required
-                />
-                <span className="text-sm text-gray-700 leading-relaxed group-hover:text-gray-900">
-                  J&apos;accepte les{' '}
-                  <a href="/terms" target="_blank" className="text-emerald-600 hover:text-emerald-700 font-semibold underline">
-                    {t('step3.termsLink')}
-                  </a>{' '}
-                  et les{' '}
-                  <a href="/privacy" target="_blank" className="text-emerald-600 hover:text-emerald-700 font-semibold underline">
-                    {t('step3.privacyLink')}
-                  </a>{' '}
-                  de FayClick.
-                </span>
-              </label>
-            </div>
-          </motion.div>
-        );
-
-      default:
-        return null;
-    }
-  };
+  // Step 1 validation for button
+  const isStep1Valid = businessNameValidation.isValid && !nameCheckState.checking &&
+    formData.phoneOM.length >= 7 && registrationService.validateMobilePhone(formData.phoneOM);
 
   return (
     <>
-      {/* Modern Layout */}
-      <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-teal-50 relative overflow-hidden">
+      <div className="reg_page">
+        {/* Floating Orbs */}
+        <div className="reg_orb" style={{ top: '-10%', right: '-5%', width: '300px', height: '300px', background: 'rgba(16, 185, 129, 0.3)', animationDelay: '0s' }} />
+        <div className="reg_orb" style={{ bottom: '-15%', left: '-10%', width: '350px', height: '350px', background: 'rgba(20, 184, 166, 0.25)', animationDelay: '5s' }} />
+        <div className="reg_orb" style={{ top: '40%', left: '60%', width: '200px', height: '200px', background: 'rgba(52, 211, 153, 0.2)', animationDelay: '10s' }} />
+        <div className="reg_orb" style={{ top: '20%', left: '-5%', width: '250px', height: '250px', background: 'rgba(5, 150, 105, 0.2)', animationDelay: '15s' }} />
 
-        {/* Animated Background Blobs */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          {/* Blob 1 - Top Right */}
-          <motion.div
-            animate={{
-              x: [0, 50, 0],
-              y: [0, 30, 0],
-              scale: [1, 1.1, 1],
-            }}
-            transition={{
-              duration: 20,
-              repeat: Infinity,
-              ease: "easeInOut"
-            }}
-            className="absolute -top-40 -right-40 w-96 h-96 bg-gradient-to-br from-emerald-300/40 to-teal-400/40 rounded-full blur-3xl"
-          />
-
-          {/* Blob 2 - Bottom Left */}
-          <motion.div
-            animate={{
-              x: [0, -30, 0],
-              y: [0, 50, 0],
-              scale: [1, 1.2, 1],
-            }}
-            transition={{
-              duration: 25,
-              repeat: Infinity,
-              ease: "easeInOut",
-              delay: 1
-            }}
-            className="absolute -bottom-40 -left-40 w-96 h-96 bg-gradient-to-tr from-blue-300/30 to-indigo-400/30 rounded-full blur-3xl"
-          />
-
-          {/* Blob 3 - Center */}
-          <motion.div
-            animate={{
-              x: [0, 40, 0],
-              y: [0, -40, 0],
-              scale: [1, 1.15, 1],
-            }}
-            transition={{
-              duration: 18,
-              repeat: Infinity,
-              ease: "easeInOut",
-              delay: 2
-            }}
-            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-gradient-to-br from-teal-300/25 to-emerald-400/25 rounded-full blur-3xl"
-          />
-
-          {/* Blob 4 - Top Left */}
-          <motion.div
-            animate={{
-              x: [0, -20, 0],
-              y: [0, 40, 0],
-              scale: [1, 1.1, 1],
-            }}
-            transition={{
-              duration: 22,
-              repeat: Infinity,
-              ease: "easeInOut",
-              delay: 0.5
-            }}
-            className="absolute top-20 left-20 w-64 h-64 bg-gradient-to-br from-green-300/30 to-emerald-400/30 rounded-full blur-3xl"
-          />
-
-          {/* Grid Pattern Overlay */}
-          <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTSAxMCAwIEwgMCAwIDAgMTAiIGZpbGw9Im5vbmUiIHN0cm9rZT0icmdiYSgxNiwxODUsMTI5LDAuMDUpIiBzdHJva2Utd2lkdGg9IjEiLz48L3BhdHRlcm4+PC9kZWZzPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9InVybCgjZ3JpZCkiLz48L3N2Zz4=')] opacity-40" />
-        </div>
-
-        {/* Header - Sticky on Mobile with Glass Effect */}
-        <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-xl border-b border-white/20 shadow-lg shadow-emerald-500/5">
+        {/* Header - Glass sticky */}
+        <header className="sticky top-0 z-50" style={{ background: 'rgba(6, 78, 59, 0.8)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
           <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
             {/* Logo & Back */}
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
               <button
                 onClick={() => router.push('/')}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                className="p-2 rounded-lg transition-colors"
+                style={{ background: 'rgba(255,255,255,0.1)' }}
                 title="Retour à l'accueil"
               >
-                <Home className="w-5 h-5 text-gray-600" />
+                <Home className="w-5 h-5 text-green-200" />
               </button>
               <LogoFayclick className="w-10 h-10" />
               <div className="hidden sm:block">
-                <h1 className="text-lg font-bold text-gray-800">{t('title')}</h1>
-                <p className="text-xs text-gray-500">{t('subtitle')}</p>
+                <h1 className="text-lg font-bold text-white">{t('title')}</h1>
+                <p className="text-xs text-green-200/70">{t('subtitle')}</p>
               </div>
             </div>
 
-            {/* Progress Indicator & Language Switcher */}
+            {/* Progress + Language */}
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-gray-600 hidden sm:block">
-                  {t('step', { current: step, total: 3 })}
+                <span className="text-sm font-medium text-green-200 hidden sm:block">
+                  {step}/2
                 </span>
                 <div className="flex gap-1.5">
-                  {[1, 2, 3].map((s) => (
-                    <motion.div
+                  {[1, 2].map((s) => (
+                    <div
                       key={s}
-                      initial={{ scale: 0.8 }}
-                      animate={{
-                        scale: s === step ? 1 : 0.8,
-                        backgroundColor: s <= step ? '#10b981' : '#e5e7eb'
+                      className="w-2.5 h-2.5 rounded-full transition-all duration-300"
+                      style={{
+                        backgroundColor: s <= step ? '#10b981' : 'rgba(255,255,255,0.2)',
+                        transform: s === step ? 'scale(1.2)' : 'scale(1)'
                       }}
-                      className="w-2 h-2 rounded-full"
                     />
                   ))}
                 </div>
               </div>
-
-              {/* Language Switcher */}
               <LanguageSwitcher variant="compact" />
             </div>
           </div>
 
           {/* Progress Bar */}
-          <motion.div
-            className="h-1 bg-gradient-to-r from-emerald-500 to-teal-500"
-            initial={{ width: '33%' }}
-            animate={{ width: `${(step / 3) * 100}%` }}
-            transition={{ duration: 0.3 }}
-          />
+          <div style={{ width: '100%', height: '3px', background: 'rgba(255,255,255,0.1)' }}>
+            <div
+              className="reg_progress-bar"
+              style={{ width: `${(step / 2) * 100}%` }}
+            />
+          </div>
         </header>
 
         {/* Main Content */}
-        <main className="max-w-2xl mx-auto px-4 py-6 md:py-12">
-          <form onSubmit={step === 3 ? handleSubmit : (e) => { e.preventDefault(); nextStep(); }}>
+        <main className="max-w-lg mx-auto px-4 py-6 md:py-10 relative z-10">
+          <form onSubmit={step === 2 ? handleSubmit : (e) => { e.preventDefault(); nextStep(); }}>
 
-            {/* Step Content with Animation - Glass Effect */}
-            <AnimatePresence mode="wait" custom={direction}>
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                className="bg-white/70 backdrop-blur-2xl rounded-2xl shadow-2xl border border-white/40 p-6 md:p-8 mb-6 relative overflow-hidden"
-              >
-                {/* Glass shimmer effect */}
-                <div className="absolute inset-0 bg-gradient-to-br from-white/50 via-transparent to-transparent pointer-events-none" />
+            {/* Glass Card */}
+            <div className="reg_glass-card p-6 md:p-8 mb-6">
+              <AnimatePresence mode="wait" custom={direction}>
+                {step === 1 ? (
+                  <motion.div
+                    key="step1"
+                    custom={direction}
+                    variants={slideVariants}
+                    initial="enter"
+                    animate="center"
+                    exit="exit"
+                    className="space-y-6"
+                  >
+                    {/* Welcome */}
+                    <div className="text-center space-y-3">
+                      <motion.div
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        transition={{ type: 'spring', delay: 0.1 }}
+                        className="inline-flex items-center justify-center w-16 h-16 rounded-full text-3xl shadow-lg"
+                        style={{ background: 'linear-gradient(135deg, #10b981, #14b8a6)' }}
+                      >
+                        🏪
+                      </motion.div>
+                      <h2 className="text-2xl md:text-3xl font-bold text-white">
+                        Votre Commerce
+                      </h2>
+                      <p className="text-green-200/70 max-w-md mx-auto text-sm">
+                        Commencez par donner un nom à votre structure
+                      </p>
+                    </div>
 
-                {/* Content */}
-                <div className="relative z-10">
-                  {renderStepContent()}
-                </div>
-              </motion.div>
-            </AnimatePresence>
+                    {/* Business Name */}
+                    <div className="space-y-3">
+                      <label className="block text-green-100 font-semibold text-sm">
+                        Nom de votre commerce <span className="text-red-400">*</span>
+                      </label>
+                      <div className="relative">
+                        <input
+                          ref={businessNameRef}
+                          type="text"
+                          name="businessName"
+                          value={formData.businessName}
+                          onChange={handleChange}
+                          className={`reg_glass-input text-lg font-bold uppercase pr-12 ${
+                            businessNameValidation.status === 'valid'
+                              ? 'reg_valid-pulse'
+                              : businessNameValidation.status === 'duplicate'
+                              ? 'reg_error-shake'
+                              : ''
+                          }`}
+                          style={{
+                            borderColor: businessNameValidation.status === 'valid'
+                              ? '#10b981'
+                              : businessNameValidation.status === 'duplicate'
+                              ? '#ef4444'
+                              : undefined
+                          }}
+                          placeholder="Ex: BOUTIQUE AMINATA"
+                          maxLength={VALIDATION_RULES.BUSINESS_NAME_MAX_LENGTH}
+                          required
+                        />
+                        <div className="absolute right-4 top-1/2 -translate-y-1/2">
+                          {nameCheckState.checking ? (
+                            <Loader2 className="w-5 h-5 text-green-300 animate-spin" />
+                          ) : formData.businessName && (
+                            <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring' }}>
+                              {businessNameValidation.isValid ? (
+                                <Check className="w-5 h-5 text-emerald-400" />
+                              ) : (
+                                <AlertCircle className="w-5 h-5 text-red-400" />
+                              )}
+                            </motion.div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Validation Message */}
+                      <AnimatePresence mode="wait">
+                        {formData.businessName && (
+                          <motion.div
+                            initial={{ opacity: 0, y: -10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -10 }}
+                            className={`flex items-center gap-2 text-sm font-medium ${
+                              businessNameValidation.status === 'valid'
+                                ? 'text-emerald-400'
+                                : 'text-red-400'
+                            }`}
+                          >
+                            {businessNameValidation.status === 'valid' ? (
+                              <Sparkles className="w-4 h-4" />
+                            ) : (
+                              <AlertCircle className="w-4 h-4" />
+                            )}
+                            {businessNameValidation.message}
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+
+                      <div className="flex justify-between text-xs text-green-300/50">
+                        <span>{VALIDATION_RULES.BUSINESS_NAME_MIN_LENGTH}-{VALIDATION_RULES.BUSINESS_NAME_MAX_LENGTH} caractères</span>
+                        <span className={formData.businessName.length > VALIDATION_RULES.BUSINESS_NAME_MAX_LENGTH * 0.8 ? 'text-orange-400 font-semibold' : ''}>
+                          {formData.businessName.length}/{VALIDATION_RULES.BUSINESS_NAME_MAX_LENGTH}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Phone OM */}
+                    <div className="space-y-3">
+                      <label className="flex items-center gap-2 text-green-100 font-semibold text-sm">
+                        <Phone className="w-4 h-4 text-emerald-400" />
+                        Téléphone Orange Money <span className="text-red-400">*</span>
+                      </label>
+                      <div className="flex">
+                        <span className="inline-flex items-center px-3 text-green-200 rounded-l-xl text-sm font-medium" style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)', borderRight: 'none' }}>
+                          +221
+                        </span>
+                        <input
+                          type="tel"
+                          name="phoneOM"
+                          value={formData.phoneOM}
+                          onChange={handleChange}
+                          className="reg_glass-input flex-1"
+                          style={{ borderTopLeftRadius: 0, borderBottomLeftRadius: 0 }}
+                          placeholder="77 123 45 67"
+                          maxLength={10}
+                          required
+                        />
+                      </div>
+                      {formData.phoneOM && !registrationService.validateMobilePhone(formData.phoneOM) && (
+                        <p className="text-red-400 text-xs">Numéro invalide (7 à 10 chiffres)</p>
+                      )}
+                    </div>
+
+                    {/* Benefits Grid */}
+                    <div className="grid grid-cols-2 gap-3 pt-2">
+                      {[
+                        { icon: '🚀', text: t('step1.benefits.free') },
+                        { icon: '💰', text: t('step1.benefits.instant') },
+                        { icon: '🔒', text: t('step1.benefits.secure') },
+                        { icon: '📱', text: t('step1.benefits.qrcode') }
+                      ].map((benefit, index) => (
+                        <motion.div
+                          key={index}
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: 0.2 + index * 0.1 }}
+                          className="flex items-center gap-2 p-3 rounded-xl"
+                          style={{
+                            background: 'rgba(255,255,255,0.06)',
+                            border: '1px solid rgba(255,255,255,0.1)'
+                          }}
+                        >
+                          <span className="text-xl">{benefit.icon}</span>
+                          <span className="text-xs font-medium text-green-100/80">{benefit.text}</span>
+                        </motion.div>
+                      ))}
+                    </div>
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key="step2"
+                    custom={direction}
+                    variants={slideVariants}
+                    initial="enter"
+                    animate="center"
+                    exit="exit"
+                    className="space-y-6"
+                  >
+                    {/* Step Title */}
+                    <div className="text-center space-y-2">
+                      <h2 className="text-2xl md:text-3xl font-bold text-white">
+                        Finalisation
+                      </h2>
+                      <p className="text-green-200/70 text-sm">
+                        Encore quelques infos et c&apos;est parti !
+                      </p>
+                    </div>
+
+                    {/* Address */}
+                    <div className="space-y-2">
+                      <label className="flex items-center gap-2 text-green-100 font-semibold text-sm">
+                        <MapPin className="w-4 h-4 text-emerald-400" />
+                        Adresse <span className="text-red-400">*</span>
+                      </label>
+                      <input
+                        ref={addressRef}
+                        type="text"
+                        name="address"
+                        value={formData.address}
+                        onChange={handleChange}
+                        className="reg_glass-input"
+                        placeholder="Ex: Marché Sandaga, Dakar"
+                        maxLength={VALIDATION_RULES.ADDRESS_MAX_LENGTH}
+                        required
+                      />
+                      <div className="text-xs text-green-300/40 text-right">
+                        {formData.address.length}/{VALIDATION_RULES.ADDRESS_MAX_LENGTH}
+                      </div>
+                    </div>
+
+                    {/* Logo Upload */}
+                    <div className="space-y-2">
+                      <label className="flex items-center gap-2 text-green-100 font-semibold text-sm">
+                        <Upload className="w-4 h-4 text-emerald-400" />
+                        Logo <span className="text-green-300/40 text-xs font-normal">({tCommon('optional')})</span>
+                      </label>
+                      <LogoUpload
+                        onUploadComplete={handleLogoUploadComplete}
+                        onUploadProgress={handleLogoUploadProgress}
+                        onFileSelect={handleLogoFileSelect}
+                        registerMode={true}
+                      />
+                    </div>
+
+                    {/* Code Parrainage */}
+                    <div className="space-y-2">
+                      <label className="flex items-center gap-2 text-green-100 font-semibold text-sm">
+                        <Tag className="w-4 h-4 text-orange-400" />
+                        Code Parrainage <span className="text-green-300/40 text-xs font-normal">({tCommon('optional')})</span>
+                      </label>
+                      <input
+                        type="text"
+                        name="codePromo"
+                        value={formData.codePromo || ''}
+                        onChange={handleChange}
+                        className="reg_glass-input uppercase"
+                        placeholder="Ex: ORANGE2026"
+                        maxLength={11}
+                      />
+                      <p className="text-xs text-green-300/40">
+                        Avez-vous un code partenaire ?
+                      </p>
+                    </div>
+
+                    {/* Terms */}
+                    <div className="p-4 rounded-xl" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                      <label className="flex items-start gap-3 cursor-pointer group">
+                        <input
+                          type="checkbox"
+                          name="acceptTerms"
+                          checked={formData.acceptTerms}
+                          onChange={handleChange}
+                          className="mt-1 w-5 h-5 rounded border-green-600 text-emerald-500 focus:ring-emerald-500 cursor-pointer"
+                          style={{ accentColor: '#10b981' }}
+                          required
+                        />
+                        <span className="text-sm text-green-100/80 leading-relaxed group-hover:text-green-100">
+                          J&apos;accepte les{' '}
+                          <a href="/terms" target="_blank" className="text-emerald-400 hover:text-emerald-300 font-semibold underline">
+                            conditions générales
+                          </a>{' '}
+                          et la{' '}
+                          <a href="/privacy" target="_blank" className="text-emerald-400 hover:text-emerald-300 font-semibold underline">
+                            politique de confidentialité
+                          </a>{' '}
+                          de FayClick.
+                        </span>
+                      </label>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
 
             {/* Error Message */}
             <AnimatePresence>
@@ -1007,10 +732,11 @@ export default function RegisterPage() {
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
-                  className="mb-4 p-4 bg-red-50 border-2 border-red-200 rounded-xl text-red-700 flex items-center gap-3"
+                  className="mb-4 p-4 rounded-xl flex items-center gap-3"
+                  style={{ background: 'rgba(239, 68, 68, 0.15)', border: '1px solid rgba(239, 68, 68, 0.3)' }}
                 >
-                  <AlertCircle className="w-5 h-5 flex-shrink-0" />
-                  <span className="text-sm font-medium">{error}</span>
+                  <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0" />
+                  <span className="text-sm font-medium text-red-300">{error}</span>
                 </motion.div>
               )}
             </AnimatePresence>
@@ -1022,8 +748,8 @@ export default function RegisterPage() {
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   type="button"
-                  onClick={() => { prevStep(); paginate(-1); }}
-                  className="flex-1 px-6 py-4 bg-white border-2 border-gray-300 rounded-xl font-semibold text-gray-700 hover:bg-gray-50 transition-all flex items-center justify-center gap-2 shadow-sm"
+                  onClick={() => { prevStep(); setDirection(-1); }}
+                  className="reg_btn-secondary flex-1 flex items-center justify-center gap-2"
                 >
                   <ChevronLeft className="w-5 h-5" />
                   {tCommon('previous')}
@@ -1033,26 +759,23 @@ export default function RegisterPage() {
               <motion.button
                 whileTap={{ scale: 0.98 }}
                 type="submit"
-                disabled={step === 1 && (!businessNameValidation.isValid || nameCheckState.checking)}
-                className={`${step === 1 ? 'w-full' : 'flex-1'} px-6 py-4 rounded-xl font-bold text-white transition-all flex items-center justify-center gap-2 shadow-lg ${
-                  step === 1 && (!businessNameValidation.isValid || nameCheckState.checking)
-                    ? 'bg-gray-300 cursor-not-allowed'
-                    : step === 3
-                    ? 'bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600'
-                    : 'bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600'
-                }`}
-                onClick={() => step < 3 && paginate(1)}
+                disabled={
+                  (step === 1 && !isStep1Valid) ||
+                  (step === 2 && isLoading)
+                }
+                className={`reg_btn-primary ${step === 1 ? 'w-full' : 'flex-1'} flex items-center justify-center gap-2`}
+                onClick={() => step === 1 && setDirection(1)}
               >
-                {step === 3 ? (
+                {step === 2 ? (
                   isLoading ? (
                     <>
                       <Loader2 className="w-5 h-5 animate-spin" />
-                      {t('step3.creating')}
+                      Création en cours...
                     </>
                   ) : (
                     <>
                       <Sparkles className="w-5 h-5" />
-                      {t('step3.createButton')}
+                      Créer ma structure
                     </>
                   )
                 ) : (
@@ -1063,9 +786,91 @@ export default function RegisterPage() {
                 )}
               </motion.button>
             </div>
+
+            {/* Login link */}
+            <div className="text-center mt-6">
+              <p className="text-green-200/50 text-sm">
+                Déjà inscrit ?{' '}
+                <button
+                  type="button"
+                  onClick={() => router.push('/login')}
+                  className="text-emerald-400 hover:text-emerald-300 font-semibold underline"
+                >
+                  Se connecter
+                </button>
+              </p>
+            </div>
           </form>
         </main>
       </div>
+
+      {/* Celebration Overlay */}
+      {showCelebration && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center" style={{ background: 'rgba(6, 78, 59, 0.9)' }}>
+          {/* Confetti CSS */}
+          {confettiPieces.map((piece) => (
+            <div
+              key={piece.id}
+              className="reg_confetti"
+              style={{
+                left: `${piece.x}%`,
+                width: `${piece.size}px`,
+                height: `${piece.size}px`,
+                backgroundColor: piece.color,
+                borderRadius: piece.id % 3 === 0 ? '50%' : '2px',
+                animationDelay: `${piece.delay}s`,
+                animationDuration: `${piece.duration}s`,
+                transform: `rotate(${piece.rotation}deg)`,
+              }}
+            />
+          ))}
+
+          {/* SVG Checkmark */}
+          <div className="text-center">
+            <svg
+              className="w-24 h-24 mx-auto mb-6"
+              viewBox="0 0 52 52"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <circle
+                className="reg_checkmark-circle"
+                cx="26"
+                cy="26"
+                r="25"
+                fill="none"
+                stroke="#10b981"
+                strokeWidth="2"
+              />
+              <path
+                className="reg_checkmark-check"
+                fill="none"
+                stroke="#10b981"
+                strokeWidth="3"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M14.1 27.2l7.1 7.2 16.7-16.8"
+              />
+            </svg>
+            <motion.h2
+              initial={{ opacity: 0, scale: 0.5 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 1.2, type: 'spring' }}
+              className="text-3xl font-bold text-white reg_celebration-pulse"
+            >
+              Félicitations !
+            </motion.h2>
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 1.6 }}
+              className="text-green-200 mt-2"
+            >
+              Votre commerce est créé
+            </motion.p>
+          </div>
+        </div>
+      )}
 
       {/* Success Modal */}
       <SuccessModal
@@ -1075,6 +880,8 @@ export default function RegisterPage() {
         login={successModal.login}
         password={successModal.password}
         structureName={successModal.structureName}
+        otpCode={successModal.otpCode}
+        phoneOM={successModal.phoneOM}
       />
     </>
   );

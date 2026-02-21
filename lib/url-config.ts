@@ -75,8 +75,8 @@ export function formatPhoneForWhatsApp(phone: string): string {
   // Nettoyer le numéro
   const cleanPhone = phone.replace(/[^\d]/g, '');
   
-  // Si le numéro commence par 77, 78, 70, etc. (format local sénégalais)
-  if (cleanPhone.length === 9 && ['77', '78', '70', '75', '76'].some(prefix => cleanPhone.startsWith(prefix))) {
+  // Si le numéro est au format local (7 à 10 chiffres sans indicatif pays)
+  if (cleanPhone.length >= 7 && cleanPhone.length <= 10 && !cleanPhone.startsWith('221')) {
     return `221${cleanPhone}`;
   }
   

@@ -304,14 +304,12 @@ export class AuthService {
           jours_restants: partenaireDetails.jours_restants
         });
       } else {
-        // Utilisateur normal : récupérer la vraie structure depuis PostgreSQL
-        structure = await this.fetchStructureDetails(loginResult.user.id_structure);
-
-        // Récupération des droits depuis PostgreSQL
-        rights = await this.fetchUserRights(
-          loginResult.user.id_structure,
-          loginResult.user.id_profil
-        );
+        // Utilisateur normal : récupérer structure ET droits en PARALLÈLE
+        console.log('⚡ [AUTH] Chargement parallèle structure + droits');
+        [structure, rights] = await Promise.all([
+          this.fetchStructureDetails(loginResult.user.id_structure),
+          this.fetchUserRights(loginResult.user.id_structure, loginResult.user.id_profil)
+        ]);
       }
 
       // 3. Calcul des permissions (ancien système - garder pour compatibilité)

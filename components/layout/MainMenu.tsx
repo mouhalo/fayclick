@@ -307,8 +307,8 @@ function ProfileModal({ isOpen, onClose, user }: ProfileModalProps) {
       setPinError('Entrez votre mot de passe actuel');
       return;
     }
-    if (!pendingPin || pendingPin.length !== 4) {
-      setPinError('Saisissez un code PIN à 4 chiffres');
+    if (!pendingPin || pendingPin.length !== 5) {
+      setPinError('Saisissez un code PIN à 5 chiffres');
       return;
     }
     savePinData(user?.login || '', pinPassword, pendingPin);
@@ -520,7 +520,7 @@ function ProfileModal({ isOpen, onClose, user }: ProfileModalProps) {
                     </div>
 
                     <p className="text-[10px] sm:text-xs text-gray-500 mb-2">
-                      Connectez-vous plus vite avec un code à 4 chiffres
+                      Connectez-vous plus vite avec un code à 5 chiffres
                     </p>
 
                     {/* Formulaire de configuration PIN inline */}
@@ -543,13 +543,13 @@ function ProfileModal({ isOpen, onClose, user }: ProfileModalProps) {
                         {/* Saisie PIN */}
                         <div>
                           <label className="block text-[10px] sm:text-xs font-medium text-gray-600 mb-2">
-                            Nouveau code PIN (4 chiffres)
+                            Nouveau code PIN (5 chiffres)
                           </label>
                           <OTPInput
-                            length={4}
+                            length={5}
                             onComplete={handlePinComplete}
                             error={pinError}
-                            helperText="Choisissez 4 chiffres faciles à retenir"
+                            helperText="Choisissez 5 chiffres faciles à retenir"
                           />
                         </div>
 
@@ -629,7 +629,15 @@ function ProfileModal({ isOpen, onClose, user }: ProfileModalProps) {
         userId={user?.id || 0}
         onSuccess={() => {
           setShowPasswordModal(false);
-          showMessage('success', 'Votre mot de passe a été modifié avec succès', 'Sécurité mise à jour');
+          // Invalider le PIN/OTP quand le mot de passe change
+          // (le PIN stocke l'ancien mot de passe, il ne fonctionnerait plus)
+          if (getPinData()) {
+            removePinData();
+            setHasPinConfigured(false);
+            showMessage('success', 'Mot de passe modifié. Votre code PIN a été réinitialisé, vous pouvez en reconfigurer un nouveau.', 'Sécurité mise à jour');
+          } else {
+            showMessage('success', 'Votre mot de passe a été modifié avec succès', 'Sécurité mise à jour');
+          }
         }}
       />
 

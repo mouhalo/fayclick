@@ -12,6 +12,7 @@ interface InscriptionSuccessData {
   phoneOM: string;
   login?: string;
   password?: string;
+  otpCode?: string;
 }
 
 function InscriptionSuccessContent() {
@@ -19,9 +20,10 @@ function InscriptionSuccessContent() {
   const searchParams = useSearchParams();
   const [data, setData] = useState<InscriptionSuccessData | null>(null);
   const [showCredentials, setShowCredentials] = useState(false);
-  const [copied, setCopied] = useState<{ login: boolean; password: boolean }>({
+  const [copied, setCopied] = useState<{ login: boolean; password: boolean; otp: boolean }>({
     login: false,
-    password: false
+    password: false,
+    otp: false
   });
 
   useEffect(() => {
@@ -31,6 +33,7 @@ function InscriptionSuccessContent() {
     const phoneOM = searchParams.get('phoneOM');
     const login = searchParams.get('login');
     const password = searchParams.get('password');
+    const otpCode = searchParams.get('otpCode');
 
     if (!message || !structureName || !phoneOM) {
       // Rediriger si les données sont manquantes
@@ -43,11 +46,12 @@ function InscriptionSuccessContent() {
       structureName,
       phoneOM,
       login: login || undefined,
-      password: password || undefined
+      password: password || undefined,
+      otpCode: otpCode || undefined
     });
   }, [searchParams, router]);
 
-  const copyToClipboard = async (text: string, type: 'login' | 'password') => {
+  const copyToClipboard = async (text: string, type: 'login' | 'password' | 'otp') => {
     try {
       await navigator.clipboard.writeText(text);
       setCopied(prev => ({ ...prev, [type]: true }));
@@ -62,8 +66,11 @@ function InscriptionSuccessContent() {
   };
 
   const handleGoToDashboard = () => {
-    // Rediriger vers la page de connexion avec le login pré-rempli
-    if (data?.login) {
+    // Rediriger vers la page de connexion
+    if (data?.otpCode) {
+      // Si OTP configuré, ouvrir en mode PIN
+      router.push('/login?mode=pin');
+    } else if (data?.login) {
       const params = new URLSearchParams({ login: data.login });
       router.push(`/login?${params.toString()}`);
     } else {
@@ -128,6 +135,43 @@ function InscriptionSuccessContent() {
                   {data.message}
                 </p>
               </div>
+
+              {/* Code OTP - Section principale en évidence */}
+              {data.otpCode && (
+                <div className="bg-gradient-to-br from-emerald-50 to-green-50 border-2 border-emerald-300 rounded-lg p-4">
+                  <div className="text-center mb-3">
+                    <h3 className="text-sm font-bold text-emerald-800 uppercase tracking-wide">
+                      Votre code de connexion rapide
+                    </h3>
+                    <p className="text-xs text-emerald-600 mt-1">
+                      Envoyé par SMS au +221 {data.phoneOM}
+                    </p>
+                  </div>
+
+                  {/* Affichage du code OTP en grand */}
+                  <div className="flex justify-center gap-2 mb-3">
+                    {data.otpCode.split('').map((digit, index) => (
+                      <div
+                        key={index}
+                        className="w-10 h-12 bg-white border-2 border-emerald-400 rounded-lg flex items-center justify-center shadow-sm"
+                      >
+                        <span className="text-2xl font-bold text-emerald-700">{digit}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  <button
+                    onClick={() => copyToClipboard(data.otpCode!, 'otp')}
+                    className="w-full py-2 text-xs font-medium bg-emerald-100 hover:bg-emerald-200 text-emerald-700 rounded-md transition-colors"
+                  >
+                    {copied.otp ? '✅ Code copié !' : '📋 Copier le code'}
+                  </button>
+
+                  <p className="text-xs text-emerald-600 text-center mt-2">
+                    Utilisez ce code pour vous connecter rapidement
+                  </p>
+                </div>
+              )}
 
               {/* Informations de la structure - Plus compact */}
               <div className="border-t pt-4">
@@ -264,7 +308,7 @@ function InscriptionSuccessContent() {
               size="lg"
               className="w-full shadow-lg py-2.5 text-sm"
             >
-              Accéder à mon Dashboard
+              {data?.otpCode ? 'Se connecter avec le code' : 'Accéder à mon Dashboard'}
             </Button>
             
             <div className="text-center">
