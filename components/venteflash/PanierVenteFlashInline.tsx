@@ -21,9 +21,32 @@ import { ModalRecuVenteFlash } from './ModalRecuVenteFlash';
 import { PaymentMethod } from '@/types/payment-wallet';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 
+interface VenteFlashResultData {
+  id_facture: number;
+  num_facture: string;
+  montant_total: number;
+  montant_paye: number;
+  mt_remise: number;
+  mode_paiement: string;
+  details: Array<{
+    id_detail?: number;
+    nom_produit: string;
+    quantite: number;
+    prix_unitaire: number;
+    total: number;
+  }>;
+  recus_paiements?: Array<{
+    id_recu?: number;
+    numero_recu: string;
+    methode_paiement: string;
+    montant_paye: number;
+    date_paiement: string;
+  }>;
+}
+
 interface PanierVenteFlashInlineProps {
-  /** Callback succès avec id_facture (pour charger la facture unique) */
-  onSuccess?: (idFacture: number) => void;
+  /** Callback succès avec données complètes de la vente (évite un re-fetch API) */
+  onSuccess?: (venteData: VenteFlashResultData) => void;
   /** Callback affichage reçu */
   onShowRecu?: (idFacture: number, numFacture: string, montantTotal: number) => void;
 }
@@ -249,12 +272,36 @@ export function PanierVenteFlashInline({
 
       console.log(`✅ [VF-VENTE] 2/2 Acompte + Reçu créés | ${method} | ID Reçu: ${recuInfo?.id_recu || 'N/A'} | N°: ${numeroRecu || 'N/A'} | Articles: ${detailFacture.length}`);
 
+      // Construire les données de vente AVANT de vider le panier (on a besoin des articles)
+      const venteResultData: VenteFlashResultData = {
+        id_facture: idFacture,
+        num_facture: parsedEncaissement.facture?.num_facture || numFacture,
+        montant_total: total,
+        montant_paye: total,
+        mt_remise: remise || 0,
+        mode_paiement: method,
+        details: articles.map(a => ({
+          id_detail: undefined,
+          nom_produit: a.nom_produit,
+          quantite: a.quantity,
+          prix_unitaire: a.prix_vente,
+          total: a.prix_vente * a.quantity
+        })),
+        recus_paiements: parsedEncaissement.recus_paiement?.map((r: any) => ({
+          id_recu: r.id_recu,
+          numero_recu: r.numero_recu || '',
+          methode_paiement: r.methode_paiement || method,
+          montant_paye: r.montant_paye || total,
+          date_paiement: r.date_paiement || new Date().toISOString()
+        }))
+      };
+
       // Vider le panier
       clearPanier();
 
-      // Callback succès avec id_facture (pour charger la facture unique)
+      // Callback succès avec données complètes (PAS de re-fetch API)
       if (onSuccess) {
-        onSuccess(idFacture);
+        onSuccess(venteResultData);
       }
 
       // Afficher le nouveau modal reçu ticket avec détails produits
