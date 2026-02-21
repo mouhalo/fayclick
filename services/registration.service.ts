@@ -105,9 +105,9 @@ export class RegistrationService {
       errors.push('Adresse trop longue (maximum 255 caractères)');
     }
 
-    // Validation téléphone Orange Money (obligatoire, 9 chiffres)
-    if (!data.p_mobile_om || !/^[0-9]{9}$/.test(data.p_mobile_om)) {
-      errors.push('Téléphone Orange Money requis (9 chiffres)');
+    // Validation téléphone Orange Money (obligatoire, 7 à 10 chiffres)
+    if (!data.p_mobile_om || !/^[0-9]{7,10}$/.test(data.p_mobile_om)) {
+      errors.push('Téléphone Orange Money requis (7 à 10 chiffres)');
     }
 
     if (errors.length > 0) {
@@ -248,19 +248,19 @@ export class RegistrationService {
   }
 
   /**
-   * Valide un téléphone Orange Money sénégalais
+   * Valide un numéro de téléphone mobile (Sénégal, Côte d'Ivoire, Mali)
+   * Sénégal/CI: 9-10 chiffres, Mali: 7-8 chiffres
+   */
+  validateMobilePhone(phone: string): boolean {
+    const cleanPhone = phone.replace(/\D/g, '');
+    return cleanPhone.length >= 7 && cleanPhone.length <= 10;
+  }
+
+  /**
+   * @deprecated Utiliser validateMobilePhone() - Conservé pour compatibilité
    */
   validateSenegalMobileOM(phone: string): boolean {
-    // Format: 9 chiffres commençant par 77, 78, 70, 76, 75
-    const cleanPhone = phone.replace(/\D/g, '');
-    const validPrefixes = ['77', '78', '70', '76', '75'];
-    
-    if (cleanPhone.length !== 9) {
-      return false;
-    }
-
-    const prefix = cleanPhone.substring(0, 2);
-    return validPrefixes.includes(prefix);
+    return this.validateMobilePhone(phone);
   }
 
   /**
@@ -285,6 +285,81 @@ export class RegistrationService {
       login: loginMatch ? loginMatch[1] : undefined,
       password: passwordMatch ? passwordMatch[1] : undefined
     };
+  }
+
+  /**
+   * Génère un code OTP à 5 chiffres pour la connexion rapide
+   * Premier chiffre: 1-9 (jamais 0), reste: 0-9
+   */
+  generateOTPCode(): string {
+    const firstDigit = Math.floor(Math.random() * 9) + 1; // 1-9
+    const rest = Array.from({ length: 4 }, () => Math.floor(Math.random() * 10)).join('');
+    return `${firstDigit}${rest}`;
+  }
+
+  /**
+   * Recherche une structure par son nom et vérifie le numéro de téléphone OM
+   * Retourne le login de l'admin (id_profil = 1) si trouvé et téléphone correspond
+   */
+  async getStructureAdminByName(nomStructure: string, telephone: string): Promise<{ found: boolean; login?: string }> {
+    try {
+      const escapedName = nomStructure.toUpperCase().trim().replace(/'/g, "''");
+
+      // Étape 1 : Chercher la structure via la vue list_structures
+      const structQuery = `
+        SELECT id_structure, mobile_om
+        FROM list_structures
+        WHERE UPPER(nom_structure) = '${escapedName}'
+        LIMIT 1;
+      `;
+
+      console.log('🔍 [REGISTRATION] Recherche structure:', nomStructure);
+      const structResult = await DatabaseService.query(structQuery);
+
+      if (!Array.isArray(structResult) || structResult.length === 0) {
+        console.log('⚠️ [REGISTRATION] Structure non trouvée');
+        return { found: false };
+      }
+
+      const struct = structResult[0] as { id_structure: number; mobile_om: string };
+      const cleanInput = telephone.replace(/\D/g, '');
+      const cleanStored = (struct.mobile_om || '').replace(/\D/g, '');
+
+      if (cleanInput !== cleanStored) {
+        console.log('⚠️ [REGISTRATION] Numéro OM ne correspond pas');
+        return { found: false };
+      }
+
+      // Étape 2 : Récupérer le login admin via get_list_utilisateurs
+      const usersQuery = `SELECT * FROM get_list_utilisateurs(${struct.id_structure});`;
+      const usersResult = await DatabaseService.query(usersQuery);
+
+      if (!usersResult || usersResult.length === 0) {
+        return { found: false };
+      }
+
+      // Parser la réponse (peut être string JSON ou objet)
+      const rawData = usersResult[0]?.get_list_utilisateurs;
+      const parsed = typeof rawData === 'string' ? JSON.parse(rawData) : rawData;
+      const users = parsed?.data || parsed || [];
+
+      // Trouver l'admin (id_profil = 1)
+      const admin = Array.isArray(users)
+        ? users.find((u: any) => u.id_profil === 1 || u.profil?.id_profil === 1)
+        : null;
+
+      if (!admin) {
+        console.log('⚠️ [REGISTRATION] Admin non trouvé pour la structure');
+        return { found: false };
+      }
+
+      const login = admin.login || admin.username;
+      console.log('✅ [REGISTRATION] Structure admin trouvé:', login);
+      return { found: true, login };
+    } catch (error) {
+      console.error('❌ [REGISTRATION] Erreur recherche structure admin:', error);
+      return { found: false };
+    }
   }
 
   /**
