@@ -121,9 +121,8 @@ export function PanierSidePanel({ onSuccess, onClose }: PanierSidePanelProps) {
       if (result.success) {
         clearPanier();
         onSuccess?.();
-        setTimeout(() => {
-          openFactureSuccess(result.id_facture);
-        }, 300);
+        // Ouverture immédiate du modal (suppression du délai 300ms inutile)
+        openFactureSuccess(result.id_facture, articles);
       } else {
         showToast('error', 'Erreur', result.message || 'Impossible de créer la facture');
       }
