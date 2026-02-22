@@ -68,7 +68,7 @@ export function ModalRecoveryOTP({ isOpen, onClose, onSuccess }: ModalRecoveryOT
 
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value.replace(/\D/g, '');
-    if (value.length <= 9) setTelephone(value);
+    if (value.length <= 10) setTelephone(value);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
