@@ -86,12 +86,24 @@ class FactureService {
         throw new FactureApiException('Aucun article sélectionné', 400);
       }
 
-      // Calcul du montant total
+      // Calcul du montant total (utilise prix_applique si choisi, sinon prix_vente)
       const sousTotal = articles.reduce((total, article) => {
-        return total + (article.prix_vente * article.quantity);
+        return total + ((article.prix_applique ?? article.prix_vente) * article.quantity);
       }, 0);
 
-      const remise = montants.remise || 0;
+      // Remises par article (mode % ou F selon localStorage) + remise globale
+      const remiseMode = (typeof window !== 'undefined' && localStorage.getItem('vf_remise_mode')) || '%';
+      const totalRemiseArticles = articles.reduce((sum, art) => {
+        const remiseArt = art.remise_article || 0;
+        if (remiseArt === 0) return sum;
+        if (remiseMode === '%') {
+          const prix = art.prix_applique ?? art.prix_vente;
+          return sum + Math.round(prix * art.quantity * remiseArt / 100);
+        } else {
+          return sum + remiseArt;
+        }
+      }, 0);
+      const remise = totalRemiseArticles + (montants.remise || 0);
       const acompte = montants.acompte || 0;
       const montantNet = sousTotal - remise;
 
@@ -123,7 +135,7 @@ class FactureService {
       // Approche senior: une seule requête atomique avec stored procedure
       // Construire le string des articles au format "id-qty-prix#"
       const articlesString = articles
-        .map(article => `${article.id_produit}-${article.quantity}-${article.prix_vente}`)
+        .map(article => `${article.id_produit}-${article.quantity}-${article.prix_applique ?? article.prix_vente}`)
         .join('#') + '#';
 
       SecurityService.secureLog('log', 'Création facture via stored procedure', {
@@ -219,9 +231,9 @@ class FactureService {
       errors.push('Format de téléphone invalide');
     }
 
-    // Validation montants
+    // Validation montants (utilise prix_applique si choisi, sinon prix_vente)
     const sousTotal = articles?.reduce((total, article) => {
-      return total + (article.prix_vente * article.quantity);
+      return total + ((article.prix_applique ?? article.prix_vente) * article.quantity);
     }, 0) || 0;
 
     if (montants.remise && montants.remise > sousTotal) {

@@ -68,7 +68,9 @@ export function PanierVenteFlashInline({
     clearPanier,
     getTotalItems,
     getSousTotal,
-    getMontantsFacture
+    getMontantsFacture,
+    updateRemiseArticle,
+    clearRemisesArticles
   } = usePanierStore();
 
   const [isProcessing, setIsProcessing] = useState(false);
@@ -111,9 +113,10 @@ export function PanierVenteFlashInline({
   const handleRemiseModeChange = (mode: '%' | 'F') => {
     setRemiseMode(mode);
     localStorage.setItem('vf_remise_mode', mode);
-    // Réinitialiser la saisie et la remise store
+    // Réinitialiser la saisie et la remise store + remises articles
     setRemiseInput(0);
     updateRemise(0);
+    clearRemisesArticles();
   };
 
   // Mettre à jour la remise dans le store à chaque changement d'input ou de sous-total
@@ -284,8 +287,8 @@ export function PanierVenteFlashInline({
           id_detail: undefined,
           nom_produit: a.nom_produit,
           quantite: a.quantity,
-          prix_unitaire: a.prix_vente,
-          total: a.prix_vente * a.quantity
+          prix_unitaire: a.prix_applique ?? a.prix_vente,
+          total: (a.prix_applique ?? a.prix_vente) * a.quantity
         })),
         recus_paiements: parsedEncaissement.recus_paiement?.map((r: any) => ({
           id_recu: r.id_recu,
@@ -399,7 +402,10 @@ export function PanierVenteFlashInline({
                     <div className="flex items-center justify-between">
                       {/* Prix unitaire */}
                       <span className="text-xs text-gray-500">
-                        {article.prix_vente.toLocaleString('fr-FR')} F
+                        {(article.prix_applique ?? article.prix_vente).toLocaleString('fr-FR')} F
+                        {article.prix_applique && article.prix_applique !== article.prix_vente && (
+                          <span className="ml-1 px-1 py-0.5 bg-purple-100 text-purple-700 text-[9px] font-bold rounded">GROS</span>
+                        )}
                       </span>
 
                       {/* Contrôles quantité compacts */}
@@ -422,8 +428,33 @@ export function PanierVenteFlashInline({
 
                       {/* Total ligne */}
                       <span className="font-bold text-sm text-gray-900 min-w-[70px] text-right">
-                        {(article.prix_vente * article.quantity).toLocaleString('fr-FR')} F
+                        {((article.prix_applique ?? article.prix_vente) * article.quantity).toLocaleString('fr-FR')} F
                       </span>
+                    </div>
+
+                    {/* Remise par article */}
+                    <div className="flex items-center justify-between mt-1">
+                      <div className="flex items-center gap-1">
+                        <span className="text-[10px] text-gray-500">Remise:</span>
+                        <input
+                          type="number"
+                          min={0}
+                          max={remiseMode === '%' ? 100 : (article.prix_applique ?? article.prix_vente) * article.quantity}
+                          value={article.remise_article || 0}
+                          onChange={(e) => updateRemiseArticle(article.id_produit, Number(e.target.value))}
+                          onFocus={(e) => e.target.select()}
+                          className="w-14 h-5 text-center text-[10px] border border-gray-300 rounded focus:outline-none focus:border-green-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                        />
+                        <span className="text-[10px] text-gray-500">{remiseMode === '%' ? '%' : 'F'}</span>
+                      </div>
+                      {(article.remise_article || 0) > 0 && (
+                        <span className="text-[10px] font-medium text-green-600">
+                          -{(remiseMode === '%'
+                            ? Math.round((article.prix_applique ?? article.prix_vente) * article.quantity * (article.remise_article || 0) / 100)
+                            : (article.remise_article || 0)
+                          ).toLocaleString('fr-FR')} F
+                        </span>
+                      )}
                     </div>
                   </motion.div>
                 ))}

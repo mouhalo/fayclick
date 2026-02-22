@@ -25,6 +25,7 @@ export interface Produit {
   unite_mesure?: string;
   code_produit?: string;
   code_barre?: string; // Code-barres du produit (EAN-13, CODE_128, etc.)
+  prix_grossiste?: number; // Prix en gros (0 = pas de prix grossiste)
   image_url?: string;
   // Catalogue public
   presente_au_public?: boolean;
@@ -53,6 +54,8 @@ export interface MouvementStock {
 // Article dans le panier avec quantité
 export interface ArticlePanier extends Produit {
   quantity: number;
+  prix_applique?: number; // Prix choisi (public ou gros) - si absent, utilise prix_vente
+  remise_article?: number; // Pourcentage de remise par article (0-100, défaut 0)
 }
 
 // Statistiques de la structure pour les produits
@@ -122,6 +125,7 @@ export interface ProduitFormDataNew {
   nom_categorie?: string;
   presente_au_public?: boolean;
   code_barres?: string;
+  prix_grossiste?: number;
 }
 
 // Données formulaire mouvement de stock
@@ -144,6 +148,7 @@ export interface AddEditProduitResponse {
   description: string;
   action_effectuee: string;
   code_barres?: string;
+  prix_grossiste?: number;
 }
 
 // Réponse API pour la liste des produits
