@@ -2,9 +2,10 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Phone, User, Lock, Send, CheckCircle, AlertCircle, Clock, Shield } from 'lucide-react';
+import { X, Phone, Building2, Lock, Send, CheckCircle, AlertCircle, Clock, Shield } from 'lucide-react';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { authService } from '@/services/auth.service';
+import { registrationService } from '@/services/registration.service';
 import { toast } from 'sonner';
 
 interface ModalPasswordRecoveryProps {
@@ -22,10 +23,13 @@ export function ModalPasswordRecovery({ isOpen, onClose }: ModalPasswordRecovery
   
   // Données du formulaire
   const [formData, setFormData] = useState({
-    login: '',
+    nomStructure: '',
     phoneNumber: '',
     verificationCode: ''
   });
+
+  // Login résolu depuis le nom de structure
+  const [resolvedLogin, setResolvedLogin] = useState('');
   
   // États UI
   const [isLoading, setIsLoading] = useState(false);
@@ -43,7 +47,8 @@ export function ModalPasswordRecovery({ isOpen, onClose }: ModalPasswordRecovery
   // Réinitialiser le formulaire à chaque ouverture
   useEffect(() => {
     if (isOpen) {
-      setFormData({ login: '', phoneNumber: '', verificationCode: '' });
+      setFormData({ nomStructure: '', phoneNumber: '', verificationCode: '' });
+      setResolvedLogin('');
       setError('');
       setCurrentStep('request');
       setCountdown(120);
@@ -124,11 +129,16 @@ export function ModalPasswordRecovery({ isOpen, onClose }: ModalPasswordRecovery
     setError('');
     
     // Validation
-    if (!formData.login.trim()) {
-      setError('Le login est requis');
+    if (!formData.nomStructure.trim()) {
+      setError('Le nom de la structure est requis');
       return;
     }
-    
+
+    if (formData.nomStructure.trim().length < 3) {
+      setError('Nom de structure trop court (minimum 3 caractères)');
+      return;
+    }
+
     if (!formData.phoneNumber.trim()) {
       setError('Le numéro de téléphone est requis');
       return;
@@ -144,7 +154,19 @@ export function ModalPasswordRecovery({ isOpen, onClose }: ModalPasswordRecovery
     setIsLoading(true);
 
     try {
-      const response = await authService.requestPasswordReset(formData.login, cleanPhone);
+      // Étape 1 : Résoudre le login admin via nom de structure
+      const structResult = await registrationService.getStructureAdminByName(formData.nomStructure, cleanPhone);
+
+      if (!structResult.found || !structResult.login) {
+        setError('Structure non trouvée ou numéro ne correspond pas');
+        setIsLoading(false);
+        return;
+      }
+
+      setResolvedLogin(structResult.login);
+
+      // Étape 2 : Demander la réinitialisation avec le login résolu
+      const response = await authService.requestPasswordReset(structResult.login, cleanPhone);
       
       if (response.success) {
         setRequestData({
@@ -187,7 +209,7 @@ export function ModalPasswordRecovery({ isOpen, onClose }: ModalPasswordRecovery
     try {
       const cleanPhone = formData.phoneNumber.replace(/\s/g, '');
       const response = await authService.verifyPasswordResetCode(
-        formData.login,
+        resolvedLogin,
         cleanPhone,
         formData.verificationCode.toUpperCase()
       );
@@ -221,7 +243,7 @@ export function ModalPasswordRecovery({ isOpen, onClose }: ModalPasswordRecovery
 
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value.replace(/\D/g, '');
-    if (value.length <= 9) {
+    if (value.length <= 10) {
       setFormData({ ...formData, phoneNumber: value });
     }
   };
@@ -307,25 +329,26 @@ export function ModalPasswordRecovery({ isOpen, onClose }: ModalPasswordRecovery
               {/* Contenu selon l'étape */}
               {currentStep === 'request' && (
                 <form onSubmit={handleRequestSubmit} className="space-y-4">
-                  {/* Login */}
+                  {/* Nom de la structure */}
                   <div>
                     <label className={`block ${styles.subtitle} font-medium text-green-100 mb-2`}>
-                      Login ou email
+                      Nom de la structure
                     </label>
                     <div className="relative">
-                      <User className={`absolute left-3 top-1/2 -translate-y-1/2 ${styles.icon} text-green-300`} />
+                      <Building2 className={`absolute left-3 top-1/2 -translate-y-1/2 ${styles.icon} text-green-300`} />
                       <input
                         type="text"
-                        value={formData.login}
-                        onChange={(e) => setFormData({ ...formData, login: e.target.value })}
+                        value={formData.nomStructure}
+                        onChange={(e) => setFormData({ ...formData, nomStructure: e.target.value })}
                         className={`
                           w-full ${styles.input} pl-10
                           bg-white/20 backdrop-blur-sm border border-green-200/30
                           rounded-xl text-white placeholder-green-100/60
                           focus:ring-2 focus:ring-emerald-400 focus:border-transparent
                           transition-all duration-200 hover:bg-white/30
+                          uppercase
                         `}
-                        placeholder="Votre login"
+                        placeholder="Ex: MA BOUTIQUE"
                         disabled={isLoading}
                         autoFocus
                       />
@@ -339,26 +362,23 @@ export function ModalPasswordRecovery({ isOpen, onClose }: ModalPasswordRecovery
                     </label>
                     <div className="relative">
                       <Phone className={`absolute left-3 top-1/2 -translate-y-1/2 ${styles.icon} text-green-300`} />
-                      <span className={`absolute ${styles.indicatorLeft} top-1/2 -translate-y-1/2 text-green-200 font-medium pointer-events-none`}>
-                        +221
-                      </span>
                       <input
                         type="tel"
                         value={formData.phoneNumber}
                         onChange={handlePhoneChange}
                         className={`
-                          w-full ${styles.input} ${styles.phonePadding}
+                          w-full ${styles.input} pl-10
                           bg-white/20 backdrop-blur-sm border border-green-200/30
                           rounded-xl text-white placeholder-green-100/60
                           focus:ring-2 focus:ring-emerald-400 focus:border-transparent
                           transition-all duration-200 hover:bg-white/30
                         `}
-                        placeholder="77 XXX XX XX"
+                        placeholder="Téléphone Orange Money"
                         disabled={isLoading}
                       />
                     </div>
                     <p className={`${styles.subtitle} text-green-200/80 mt-1`}>
-                      Format: 77, 78, 76, 70 ou 75 suivi de 7 chiffres
+                      Le numéro utilisé lors de l&apos;inscription (7 à 10 chiffres)
                     </p>
                   </div>
 
@@ -597,7 +617,7 @@ export function ModalPasswordRecovery({ isOpen, onClose }: ModalPasswordRecovery
               {currentStep === 'request' && (
                 <div className="mt-6 p-3 bg-white/5 backdrop-blur-sm rounded-lg border border-green-200/20">
                   <p className={`${styles.subtitle} text-green-200/80 text-center`}>
-                    Assurez-vous que le login et le numéro de téléphone correspondent à ceux enregistrés lors de votre inscription.
+                    Saisissez le nom exact de votre structure et le numéro de téléphone utilisé lors de l&apos;inscription.
                   </p>
                 </div>
               )}
