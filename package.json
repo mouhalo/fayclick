@@ -14,6 +14,8 @@
     "deploy:force": "node deploy.mjs --force",
     "deploy:build": "node deploy.mjs --build --force",
     "deploy:verbose": "node deploy.mjs --verbose --build",
+    "deploy:v2": "node deploy.mjs --build --force --server v2",
+    "deploy:com": "node deploy.mjs --build --force --server com",
     "deploy:fresh": "npm run clean:server && npm run deploy:build",
     "postinstall": "node scripts/patch-nextjs.mjs"
   },
