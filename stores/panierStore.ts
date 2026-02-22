@@ -32,7 +32,7 @@ interface PanierStore {
   acompte: number;
   
   // Actions articles
-  addArticle: (produit: any, quantity?: number) => void;
+  addArticle: (produit: any, quantity?: number, prixApplique?: number) => void;
   removeArticle: (id_produit: number) => void;
   updateQuantity: (id_produit: number, quantity: number) => void;
   clearPanier: () => void;
@@ -41,6 +41,8 @@ interface PanierStore {
   updateInfosClient: (infos: InfosClient) => void;
   updateRemise: (remise: number) => void;
   updateAcompte: (acompte: number) => void;
+  updateRemiseArticle: (id_produit: number, remise_val: number) => void;
+  clearRemisesArticles: () => void;
   
   // Getters calculés
   getTotalItems: () => number;
@@ -67,7 +69,7 @@ export const usePanierStore = create<PanierStore>()(
       isModalOpen: false,
 
       // Actions articles
-      addArticle: (produit, quantity = 1) => {
+      addArticle: (produit, quantity = 1, prixApplique?) => {
         const articles = get().articles;
         const stockDisponible = produit.niveau_stock || 0;
         const existingIndex = articles.findIndex(a => a.id_produit === produit.id_produit);
@@ -84,7 +86,8 @@ export const usePanierStore = create<PanierStore>()(
           const updatedArticles = [...articles];
           updatedArticles[existingIndex] = {
             ...updatedArticles[existingIndex],
-            quantity: newQuantity
+            quantity: newQuantity,
+            ...(prixApplique !== undefined && { prix_applique: prixApplique })
           };
 
           set({ articles: updatedArticles });
@@ -96,7 +99,8 @@ export const usePanierStore = create<PanierStore>()(
 
           const nouvelArticle: ArticlePanier = {
             ...produit,
-            quantity
+            quantity,
+            ...(prixApplique !== undefined && { prix_applique: prixApplique })
           };
 
           set({ articles: [...articles, nouvelArticle] });
@@ -182,19 +186,55 @@ export const usePanierStore = create<PanierStore>()(
         set({ acompte });
       },
 
+      updateRemiseArticle: (id_produit, remise_val) => {
+        const remiseMode = (typeof window !== 'undefined' && localStorage.getItem('vf_remise_mode')) || '%';
+        const articles = get().articles.map(article => {
+          if (article.id_produit !== id_produit) return article;
+          let clamped: number;
+          if (remiseMode === '%') {
+            clamped = Math.max(0, Math.min(100, remise_val));
+          } else {
+            const lineTotal = (article.prix_applique ?? article.prix_vente) * article.quantity;
+            clamped = Math.max(0, Math.min(lineTotal, remise_val));
+          }
+          return { ...article, remise_article: clamped };
+        });
+        set({ articles });
+      },
+
+      clearRemisesArticles: () => {
+        const articles = get().articles.map(a => ({ ...a, remise_article: 0 }));
+        set({ articles });
+      },
+
       // Getters calculés
       getTotalItems: () => {
         return get().articles.reduce((total, article) => total + article.quantity, 0);
       },
 
       getSousTotal: () => {
-        return get().articles.reduce((total, article) => total + (article.prix_vente * article.quantity), 0);
+        return get().articles.reduce((total, article) => total + ((article.prix_applique ?? article.prix_vente) * article.quantity), 0);
       },
 
       getMontantsFacture: (): MontantsFacture => {
         const sousTotal = get().getSousTotal();
-        const remise = get().remise;
+        const remiseGlobale = get().remise;
         const acompte = get().acompte;
+
+        // Calcul remises par article (mode % ou F selon localStorage)
+        const remiseMode = (typeof window !== 'undefined' && localStorage.getItem('vf_remise_mode')) || '%';
+        const totalRemiseArticles = get().articles.reduce((sum, article) => {
+          const remiseArt = article.remise_article || 0;
+          if (remiseArt === 0) return sum;
+          if (remiseMode === '%') {
+            const prix = article.prix_applique ?? article.prix_vente;
+            return sum + Math.round(prix * article.quantity * remiseArt / 100);
+          } else {
+            return sum + remiseArt;
+          }
+        }, 0);
+
+        const remise = totalRemiseArticles + remiseGlobale;
         const montantNet = sousTotal - remise;
         const resteAPayer = montantNet - acompte;
 

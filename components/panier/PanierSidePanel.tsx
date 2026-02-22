@@ -28,7 +28,7 @@ export function PanierSidePanel({ onSuccess, onClose }: PanierSidePanelProps) {
   const {
     articles, infosClient, remise,
     updateQuantity, removeArticle, clearPanier,
-    updateInfosClient, updateRemise,
+    updateInfosClient, updateRemise, updateRemiseArticle, clearRemisesArticles,
     getMontantsFacture
   } = usePanierStore();
 
@@ -54,6 +54,7 @@ export function PanierSidePanel({ onSuccess, onClose }: PanierSidePanelProps) {
     localStorage.setItem('vf_remise_mode', mode);
     setRemiseInput(0);
     updateRemise(0);
+    clearRemisesArticles();
   };
 
   const handleRemiseInputChange = (value: number) => {
@@ -240,10 +241,13 @@ export function PanierSidePanel({ onSuccess, onClose }: PanierSidePanelProps) {
                         <div className="flex items-center justify-between">
                           <div>
                             <div className="text-[10px] text-gray-500">
-                              {article.prix_vente.toLocaleString('fr-FR')} x {article.quantity}
+                              {(article.prix_applique ?? article.prix_vente).toLocaleString('fr-FR')} x {article.quantity}
+                              {article.prix_applique && article.prix_applique !== article.prix_vente && (
+                                <span className="ml-1 px-1 py-0.5 bg-purple-100 text-purple-700 text-[9px] font-bold rounded">GROS</span>
+                              )}
                             </div>
                             <div className="font-bold text-blue-600 text-xs">
-                              {(article.prix_vente * article.quantity).toLocaleString('fr-FR')} F
+                              {((article.prix_applique ?? article.prix_vente) * article.quantity).toLocaleString('fr-FR')} F
                             </div>
                           </div>
 
@@ -284,6 +288,31 @@ export function PanierSidePanel({ onSuccess, onClose }: PanierSidePanelProps) {
                             Stock maximum atteint
                           </div>
                         )}
+
+                        {/* Remise par article */}
+                        <div className="flex items-center justify-between mt-1.5">
+                          <div className="flex items-center gap-1">
+                            <span className="text-[10px] text-gray-500">Remise:</span>
+                            <input
+                              type="number"
+                              min={0}
+                              max={remiseMode === '%' ? 100 : (article.prix_applique ?? article.prix_vente) * article.quantity}
+                              value={article.remise_article || 0}
+                              onChange={(e) => updateRemiseArticle(article.id_produit, Number(e.target.value))}
+                              onFocus={(e) => e.target.select()}
+                              className="w-14 h-5 text-center text-[10px] border border-gray-300 rounded focus:outline-none focus:border-blue-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                            />
+                            <span className="text-[10px] text-gray-500">{remiseMode === '%' ? '%' : 'F'}</span>
+                          </div>
+                          {(article.remise_article || 0) > 0 && (
+                            <span className="text-[10px] font-medium text-green-600">
+                              -{(remiseMode === '%'
+                                ? Math.round((article.prix_applique ?? article.prix_vente) * article.quantity * (article.remise_article || 0) / 100)
+                                : (article.remise_article || 0)
+                              ).toLocaleString('fr-FR')} F
+                            </span>
+                          )}
+                        </div>
                       </motion.div>
                     ))}
                   </AnimatePresence>
