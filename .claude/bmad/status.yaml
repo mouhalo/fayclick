@@ -6,8 +6,8 @@
 
 project_status:
   overall_phase: "solutioning"  # discovery, analysis, solutioning, implementation
-  last_workflow: "architecture"
-  last_updated: "2026-01-21"
+  last_workflow: "prd"
+  last_updated: "2026-02-21"
 
 # ───────────────────────────────────────────────────────────────────────────────
 # DOCUMENTS PRODUITS
@@ -71,20 +71,43 @@ features:
 # ───────────────────────────────────────────────────────────────────────────────
 # PROCHAINES ÉTAPES RECOMMANDÉES
 # ───────────────────────────────────────────────────────────────────────────────
+  otp_inscription:
+    id: "OTP"
+    name: "Code OTP Inscription"
+    priority: "high"
+    phase: "solutioning"
+
+    prd:
+      status: "draft"
+      file: "docs/bmad/prd/PRD_OTP_INSCRIPTION.md"
+      date: "2026-02-21"
+      version: "1.0"
+      frs_count: 8
+      nfrs_count: 4
+      epics_count: 3
+
+    stories:
+      status: "pending"
+      count_estimated: "8"
+
+    implementation:
+      status: "not_started"
+      sprint: null
+
 next_steps:
+  - workflow: "dev-story"
+    description: "Implementer les stories OTP Inscription (Epic 1 > 2 > 3)"
+    command: "/bmad:dev-story"
+    priority: 1
+
   - workflow: "sprint-planning"
     description: "Créer les stories détaillées pour l'Interface Vocale"
     command: "/bmad:sprint-planning"
-    priority: 1
+    priority: 2
 
   - workflow: "create-story"
     description: "Créer les stories individuelles Epic par Epic"
     command: "/bmad:create-story"
-    priority: 2
-
-  - workflow: "dev-story"
-    description: "Implémenter les stories"
-    command: "/bmad:dev-story"
     priority: 3
 
 # ───────────────────────────────────────────────────────────────────────────────
