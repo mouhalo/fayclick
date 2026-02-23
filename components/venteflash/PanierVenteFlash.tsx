@@ -280,7 +280,10 @@ export function PanierVenteFlash({
                         <div className="flex-1">
                           <h3 className="font-semibold text-gray-900">{article.nom_produit}</h3>
                           <p className="text-sm text-gray-500">
-                            {article.prix_vente.toLocaleString('fr-FR')} FCFA
+                            {(article.prix_applique ?? article.prix_vente).toLocaleString('fr-FR')} FCFA
+                            {article.prix_applique && article.prix_applique !== article.prix_vente && (
+                              <span className="ml-1 px-1 py-0.5 bg-purple-100 text-purple-700 text-[9px] font-bold rounded">GROS</span>
+                            )}
                           </p>
                         </div>
                         <button
@@ -312,7 +315,7 @@ export function PanierVenteFlash({
 
                         {/* Total ligne */}
                         <div className="font-bold text-gray-900">
-                          {(article.prix_vente * article.quantity).toLocaleString('fr-FR')} FCFA
+                          {((article.prix_applique ?? article.prix_vente) * article.quantity).toLocaleString('fr-FR')} FCFA
                         </div>
                       </div>
                     </motion.div>

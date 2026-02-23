@@ -250,13 +250,16 @@ export function ModalPanier() {
                         <div>
                           <div className="text-[10px] text-gray-500">Prix unitaire</div>
                           <div className="font-bold text-blue-600 text-xs">
-                            {article.prix_vente.toLocaleString('fr-FR')} FCFA
+                            {(article.prix_applique ?? article.prix_vente).toLocaleString('fr-FR')} FCFA
+                            {article.prix_applique && article.prix_applique !== article.prix_vente && (
+                              <span className="ml-1 px-1 py-0.5 bg-purple-100 text-purple-700 text-[9px] font-bold rounded">GROS</span>
+                            )}
                           </div>
                         </div>
                         <div>
                           <div className="text-[10px] text-gray-500">Sous-total</div>
                           <div className="font-bold text-gray-900 text-xs">
-                            {(article.prix_vente * article.quantity).toLocaleString('fr-FR')} FCFA
+                            {((article.prix_applique ?? article.prix_vente) * article.quantity).toLocaleString('fr-FR')} FCFA
                           </div>
                         </div>
                       </div>
