@@ -24,6 +24,7 @@ import { Produit } from '@/types/produit';
 import { usePanierStore } from '@/stores/panierStore';
 import { useToast } from '@/components/ui/Toast';
 import { useSubscriptionStatus } from '@/contexts/AuthContext';
+import { useSalesRules } from '@/hooks/useSalesRules';
 
 interface CarteProduitProps {
   produit: Produit;
@@ -60,9 +61,11 @@ export function CarteProduit({
   const { addArticle } = usePanierStore();
   const { success: showSuccessToast } = useToast();
   const { canAccessFeature } = useSubscriptionStatus();
+  const salesRules = useSalesRules();
 
   // Calculs des données
   const prixVente = produit?.prix_vente || 0;
+  const prixGrossiste = produit?.prix_grossiste || 0;
   const niveauStock = produit?.niveau_stock || 0;
   const nomCategorie = produit?.nom_categorie || 'Non classé';
   const description = produit?.description || 'Aucune description';
@@ -180,9 +183,14 @@ export function CarteProduit({
             <div className="font-bold text-gray-900 text-base">
               {formatMontant(prixVente)}
             </div>
+            {salesRules.prixEnGrosActif && prixGrossiste > 0 && (
+              <div className="text-xs text-purple-600 font-semibold mt-0.5">
+                Gros: {formatMontant(prixGrossiste)}
+              </div>
+            )}
           </div>
         </div>
-        
+
         {/* Stock */}
         <div className="flex items-center gap-3">
           <div className="p-3 bg-green-100 rounded-xl border border-green-200">

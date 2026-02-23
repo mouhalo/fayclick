@@ -31,6 +31,7 @@ import LogoUpload from '@/components/ui/LogoUpload';
 import PopMessage from '@/components/ui/PopMessage';
 import { UploadResult, UploadProgress } from '@/types/upload.types';
 import { useUserProfile } from '@/hooks/useUserProfile';
+import { useSalesRules } from '@/hooks/useSalesRules';
 import categorieService from '@/services/categorie.service';
 import { BoutonScanCodeBarre } from '@/components/produits/BoutonScanCodeBarre';
 import { ModalScanCodeBarre } from '@/components/produits/ModalScanCodeBarre';
@@ -61,6 +62,7 @@ export function ModalAjoutProduitNew({
 }: ModalAjoutProduitNewProps) {
   // Hook pour vérifier si l'utilisateur est ADMIN
   const { isAdmin, user } = useUserProfile();
+  const salesRules = useSalesRules();
   const isEditMode = !!produitToEdit;
   const canEdit = isAdmin || !isEditMode; // ADMIN peut tout faire, les autres uniquement créer
 
@@ -75,7 +77,8 @@ export function ModalAjoutProduitNew({
     nom_categorie: '',
     description: '',
     presente_au_public: false,
-    code_barres: ''
+    code_barres: '',
+    prix_grossiste: 0
   });
   const [photos, setPhotos] = useState<PhotoProduit[]>([]);
   const [isLoadingPhotos, setIsLoadingPhotos] = useState(false);
@@ -205,7 +208,8 @@ export function ModalAjoutProduitNew({
         nom_categorie: produitToEdit.nom_categorie || '',
         description: produitToEdit.description || '',
         presente_au_public: produitToEdit.presente_au_public || false,
-        code_barres: produitToEdit.code_barre || ''
+        code_barres: produitToEdit.code_barre || '',
+        prix_grossiste: produitToEdit.prix_grossiste || 0
       });
       setStockForm({
         quantite: 0,
@@ -227,7 +231,8 @@ export function ModalAjoutProduitNew({
         nom_categorie: '',
         description: '',
         presente_au_public: false,
-        code_barres: ''
+        code_barres: '',
+        prix_grossiste: 0
       });
       setStockForm({
         quantite: 0,
@@ -660,6 +665,29 @@ export function ModalAjoutProduitNew({
                       )}
                     </div>
                   </div>
+
+                  {/* Prix en gros - conditionné par les règles de vente */}
+                  {salesRules.prixEnGrosActif && (
+                    <div>
+                      <label className="block text-xs sm:text-sm font-medium text-white mb-1 sm:mb-2">
+                        Prix en gros (FCFA)
+                      </label>
+                      <input
+                        type="number"
+                        value={formData.prix_grossiste || 0}
+                        onChange={(e) => handleInputChange('prix_grossiste', parseFloat(e.target.value) || 0)}
+                        disabled={!canEdit}
+                        className={`w-full px-3 py-2 sm:px-4 sm:py-3 text-sm sm:text-base border rounded-lg sm:rounded-xl backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-transparent transition-all ${
+                          !canEdit
+                            ? 'bg-gray-100/80 border-gray-300 cursor-not-allowed text-gray-600'
+                            : 'border-purple-200 bg-white/60 hover:bg-white/70'
+                        }`}
+                        min="0"
+                        step="0.01"
+                        placeholder="0 = pas de prix grossiste"
+                      />
+                    </div>
+                  )}
 
                   {/* Calcul de la marge */}
                   {formData.cout_revient > 0 && formData.prix_vente > 0 && (

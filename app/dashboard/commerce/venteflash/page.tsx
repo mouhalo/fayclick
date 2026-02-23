@@ -24,11 +24,13 @@ import { ModalRecuGenere } from '@/components/recu/ModalRecuGenere';
 import { ModalRecuVenteFlash } from '@/components/venteflash/ModalRecuVenteFlash';
 import { ModalRefresh } from '@/components/venteflash/ModalRefresh';
 import MainMenu from '@/components/layout/MainMenu';
+import { useSalesRules } from '@/hooks/useSalesRules';
 
 export default function VenteFlashPage() {
   const router = useRouter();
   const { showToast, ToastComponent } = useToast();
   const { addArticle, getTotalItems, clearPanier } = usePanierStore();
+  const salesRules = useSalesRules();
 
   // Vider le panier quand on quitte la page venteflash
   useEffect(() => {
@@ -64,6 +66,7 @@ export default function VenteFlashPage() {
   const [showQuantityModal, setShowQuantityModal] = useState(false);
   const [vfProduit, setVfProduit] = useState<Produit | null>(null);
   const [vfQuantity, setVfQuantity] = useState(1);
+  const [vfPrixType, setVfPrixType] = useState<'public' | 'gros'>('public');
   const quantityInputRef = useRef<HTMLInputElement>(null);
   const headerRef = useRef<VenteFlashHeaderRef>(null);
 
@@ -477,16 +480,20 @@ export default function VenteFlashPage() {
   const handleConfirmQuantity = useCallback(() => {
     if (!vfProduit || vfQuantity < 1) return;
 
-    addArticle(vfProduit, vfQuantity);
+    const prixChoisi = vfPrixType === 'gros' && (vfProduit.prix_grossiste || 0) > 0
+      ? vfProduit.prix_grossiste!
+      : vfProduit.prix_vente;
+    addArticle(vfProduit, vfQuantity, prixChoisi);
     showToast('success', 'Ajouté au panier', `${vfQuantity} x ${vfProduit.nom_produit}`);
 
     setShowQuantityModal(false);
     setVfProduit(null);
     setVfQuantity(1);
+    setVfPrixType('public');
 
     // Auto-focus sur le champ de recherche pour enchaîner les scans
     headerRef.current?.focusSearch();
-  }, [vfProduit, vfQuantity, addArticle, showToast]);
+  }, [vfProduit, vfQuantity, vfPrixType, addArticle, showToast]);
 
   /**
    * Annuler le modal de quantité
@@ -495,6 +502,7 @@ export default function VenteFlashPage() {
     setShowQuantityModal(false);
     setVfProduit(null);
     setVfQuantity(1);
+    setVfPrixType('public');
 
     // Auto-focus sur le champ de recherche même après annulation
     headerRef.current?.focusSearch();
@@ -924,6 +932,9 @@ export default function VenteFlashPage() {
                 <div className="flex-1 min-w-0 pr-3">
                   <h3 className="text-white font-bold text-base truncate">{vfProduit.nom_produit}</h3>
                   <p className="text-white/80 text-sm">{vfProduit.prix_vente.toLocaleString('fr-FR')} FCFA</p>
+                  {salesRules.prixEnGrosActif && (vfProduit.prix_grossiste || 0) > 0 && (
+                    <p className="text-yellow-200 text-xs font-semibold">Gros: {(vfProduit.prix_grossiste || 0).toLocaleString('fr-FR')} FCFA</p>
+                  )}
                 </div>
                 <button
                   onClick={handleCancelQuantity}
@@ -939,6 +950,32 @@ export default function VenteFlashPage() {
                 <div className="text-center text-sm text-gray-500">
                   Stock disponible : <span className="font-bold text-gray-900">{vfProduit.niveau_stock || 0}</span> unités
                 </div>
+
+                {/* Segmented Control Prix Public / Prix en Gros */}
+                {salesRules.prixEnGrosActif && (vfProduit.prix_grossiste || 0) > 0 && (
+                  <div className="flex rounded-xl overflow-hidden border-2 border-gray-200">
+                    <button
+                      onClick={() => { setVfPrixType('public'); setTimeout(() => { quantityInputRef.current?.focus(); quantityInputRef.current?.select(); }, 50); }}
+                      className={`flex-1 py-2.5 text-sm font-semibold transition-all ${
+                        vfPrixType === 'public'
+                          ? 'bg-green-500 text-white shadow-inner'
+                          : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
+                      }`}
+                    >
+                      Public: {(vfProduit.prix_vente || 0).toLocaleString('fr-FR')} F
+                    </button>
+                    <button
+                      onClick={() => { setVfPrixType('gros'); setTimeout(() => { quantityInputRef.current?.focus(); quantityInputRef.current?.select(); }, 50); }}
+                      className={`flex-1 py-2.5 text-sm font-semibold transition-all ${
+                        vfPrixType === 'gros'
+                          ? 'bg-purple-500 text-white shadow-inner'
+                          : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
+                      }`}
+                    >
+                      Gros: {(vfProduit.prix_grossiste || 0).toLocaleString('fr-FR')} F
+                    </button>
+                  </div>
+                )}
 
                 {/* Sélecteur quantité */}
                 <div className="flex items-center justify-center gap-4">
@@ -984,12 +1021,19 @@ export default function VenteFlashPage() {
                 </div>
 
                 {/* Sous-total */}
-                <div className="text-center bg-green-50 rounded-xl py-3">
-                  <span className="text-sm text-gray-600">Sous-total : </span>
-                  <span className="text-lg font-bold text-green-700">
-                    {(vfProduit.prix_vente * vfQuantity).toLocaleString('fr-FR')} FCFA
-                  </span>
-                </div>
+                {(() => {
+                  const prixAffiche = vfPrixType === 'gros' && (vfProduit.prix_grossiste || 0) > 0
+                    ? vfProduit.prix_grossiste!
+                    : vfProduit.prix_vente;
+                  return (
+                    <div className={`text-center rounded-xl py-3 ${vfPrixType === 'gros' ? 'bg-purple-50' : 'bg-green-50'}`}>
+                      <span className="text-sm text-gray-600">Sous-total : </span>
+                      <span className={`text-lg font-bold ${vfPrixType === 'gros' ? 'text-purple-700' : 'text-green-700'}`}>
+                        {(prixAffiche * vfQuantity).toLocaleString('fr-FR')} FCFA
+                      </span>
+                    </div>
+                  );
+                })()}
               </div>
 
               {/* Footer boutons */}

@@ -472,7 +472,8 @@ export class ProduitsService {
           ${produitData.description ? `'${produitData.description.replace(/'/g, "''")}'` : `'RAS'`},
           ${produitData.presente_au_public !== undefined ? (produitData.presente_au_public ? 'true' : 'false') : 'NULL'},
           0,
-          ${produitData.code_barres ? `'${produitData.code_barres.replace(/'/g, "''")}'` : `''`}
+          ${produitData.code_barres ? `'${produitData.code_barres.replace(/'/g, "''")}'` : `''`},
+          ${produitData.prix_grossiste || 0}
         )
       `;
 
@@ -510,7 +511,8 @@ export class ProduitsService {
           nom_categorie: produitResult.result_nom_categorie,
           description: produitResult.result_description,
           action_effectuee: produitResult.result_action_effectuee,
-          code_barres: produitResult.result_code_barre || undefined
+          code_barres: produitResult.result_code_barre || undefined,
+          prix_grossiste: produitResult.result_prix_grossiste || 0
         };
         console.log('✅ [PRODUITS SERVICE] Produit transformé:', produitResult);
       }
@@ -559,7 +561,8 @@ export class ProduitsService {
           ${produitData.description ? `'${produitData.description.replace(/'/g, "''")}'` : `'RAS'`},
           ${produitData.presente_au_public !== undefined ? (produitData.presente_au_public ? 'true' : 'false') : 'NULL'},
           ${id_produit},
-          ${produitData.code_barres ? `'${produitData.code_barres.replace(/'/g, "''")}'` : `''`}
+          ${produitData.code_barres ? `'${produitData.code_barres.replace(/'/g, "''")}'` : `''`},
+          ${produitData.prix_grossiste || 0}
         )
       `;
 
@@ -597,7 +600,8 @@ export class ProduitsService {
           nom_categorie: produitDataResult.result_nom_categorie,
           description: produitDataResult.result_description,
           action_effectuee: produitDataResult.result_action_effectuee,
-          code_barres: produitDataResult.result_code_barre || undefined
+          code_barres: produitDataResult.result_code_barre || undefined,
+          prix_grossiste: produitDataResult.result_prix_grossiste || 0
         };
         console.log('✅ [PRODUITS SERVICE] Produit transformé (update):', produitDataResult);
       }

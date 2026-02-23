@@ -87,6 +87,7 @@ interface SalesRules {
   creditAutorise: boolean;
   limiteCredit: number;
   acompteAutorise: boolean;
+  prixEnGrosActif: boolean;
 }
 
 const SALES_RULES_KEY = 'fayclick_regles_ventes';
@@ -95,6 +96,7 @@ const DEFAULT_SALES_RULES: SalesRules = {
   creditAutorise: true,
   limiteCredit: 50000,
   acompteAutorise: true,
+  prixEnGrosActif: false,
 };
 
 function getSalesRulesKey(idStructure: number): string {
@@ -964,6 +966,35 @@ export default function StructureEditPage() {
                           onChange={(e) => updateSalesRules({ acompteAutorise: e.target.checked })}
                         />
                         <div className="w-14 h-7 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-green-500"></div>
+                      </label>
+                    </div>
+                  </motion.div>
+
+                  {/* Prix en gros */}
+                  <motion.div
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.4 }}
+                    className="p-6 bg-gradient-to-br from-purple-50 to-indigo-50 rounded-xl border-2 border-purple-200"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 bg-purple-500 rounded-xl flex items-center justify-center">
+                          <Tag className="h-6 w-6 text-white" />
+                        </div>
+                        <div>
+                          <h3 className="font-bold text-gray-900">Prix en gros</h3>
+                          <p className="text-sm text-gray-600">Activer la gestion du prix en gros sur les produits et ventes</p>
+                        </div>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input
+                          type="checkbox"
+                          className="sr-only peer"
+                          checked={salesRules.prixEnGrosActif}
+                          onChange={(e) => updateSalesRules({ prixEnGrosActif: e.target.checked })}
+                        />
+                        <div className="w-14 h-7 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-purple-500"></div>
                       </label>
                     </div>
                   </motion.div>

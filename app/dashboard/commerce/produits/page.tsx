@@ -48,6 +48,7 @@ import { User } from '@/types/auth';
 import { ModalScanCodeBarre } from '@/components/produits/ModalScanCodeBarre';
 import { ModalImpressionProduits } from '@/components/produits/ModalImpressionProduits';
 import { usePanierStore } from '@/stores/panierStore';
+import { useSalesRules } from '@/hooks/useSalesRules';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { PanierSidePanel } from '@/components/panier/PanierSidePanel';
 import { ModalAbonnementExpire, useModalAbonnementExpire } from '@/components/subscription/ModalAbonnementExpire';
@@ -116,6 +117,7 @@ export default function ProduitsCommercePage() {
   const [showQuantityModal, setShowQuantityModal] = useState(false);
   const [modeVenteProduit, setModeVenteProduit] = useState<Produit | null>(null);
   const [modeVenteQuantity, setModeVenteQuantity] = useState(1);
+  const [modeVentePrixType, setModeVentePrixType] = useState<'public' | 'gros'>('public');
   const lastModeVenteTrigger = useRef<string>('');
   const quantityInputRef = useRef<HTMLInputElement>(null);
   const filterHeaderRef = useRef<ProduitsFilterHeaderRef>(null);
@@ -160,6 +162,9 @@ export default function ProduitsCommercePage() {
     showModal: showAbonnementModal,
     hideModal: hideAbonnementModal
   } = useModalAbonnementExpire();
+
+  // Règles de vente (prix en gros, etc.)
+  const salesRules = useSalesRules();
 
   // Store panier
   const addArticle = usePanierStore(state => state.addArticle);
@@ -311,16 +316,26 @@ export default function ProduitsCommercePage() {
         return;
       }
 
-      // Ouvrir modal quantité
-      setModeVenteProduit(match);
-      setModeVenteQuantity(1);
-      setShowQuantityModal(true);
-      setSearchTerm('');
-      lastModeVenteTrigger.current = '';
+      if (modeVente) {
+        // Mode Vente activé → Ouvrir modal quantité pour vente rapide
+        setModeVenteProduit(match);
+        setModeVenteQuantity(1);
+        setShowQuantityModal(true);
+        setSearchTerm('');
+        lastModeVenteTrigger.current = '';
+      } else {
+        // Mode Vente désactivé → Ouvrir la fiche produit en mode édition
+        console.log('📋 [PRODUITS] Mode classique - Ouverture fiche produit en édition:', match.nom_produit);
+        setProduitSelectionne(match);
+        setModeEdition(true);
+        setModalAjoutOpen(true);
+        setSearchTerm('');
+        lastModeVenteTrigger.current = '';
+      }
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [searchTerm, produits, user, showQuantityModal, canAccessFeature, showToast, showAbonnementModal, setSearchTerm]);
+  }, [searchTerm, produits, user, showQuantityModal, modeVente, canAccessFeature, showToast, showAbonnementModal, setSearchTerm, setProduitSelectionne, setModeEdition, setModalAjoutOpen]);
 
   // Détection produit unique en Mode Vente (recherche textuelle, pas code-barres)
   useEffect(() => {
@@ -415,11 +430,15 @@ export default function ProduitsCommercePage() {
       return;
     }
 
-    addArticle(modeVenteProduit, modeVenteQuantity);
+    const prixChoisi = modeVentePrixType === 'gros' && (modeVenteProduit.prix_grossiste || 0) > 0
+      ? modeVenteProduit.prix_grossiste!
+      : modeVenteProduit.prix_vente;
+    addArticle(modeVenteProduit, modeVenteQuantity, prixChoisi);
     showToast('success', 'Ajouté au panier',
       `${modeVenteQuantity}x "${modeVenteProduit.nom_produit}" ajouté${modeVenteQuantity > 1 ? 's' : ''}`);
     setShowQuantityModal(false);
     setModeVenteProduit(null);
+    setModeVentePrixType('public');
     setSearchTerm('');
     lastModeVenteTrigger.current = '';
 
@@ -433,6 +452,7 @@ export default function ProduitsCommercePage() {
   const handleModeVenteCancel = () => {
     setShowQuantityModal(false);
     setModeVenteProduit(null);
+    setModeVentePrixType('public');
 
     // Auto-focus sur le champ de recherche même après annulation (Mode Vente)
     if (modeVente) {
@@ -483,7 +503,8 @@ export default function ProduitsCommercePage() {
         prix_vente: produit.prix_vente,
         est_service: produit.est_service,
         niveau_stock: 0, // Sera mis à jour par les mouvements de stock
-        marge: produit.prix_vente - produit.cout_revient
+        marge: produit.prix_vente - produit.cout_revient,
+        prix_grossiste: produit.prix_grossiste || 0
       };
 
       if (produit.action_effectuee === 'CREATION') {
@@ -1484,6 +1505,32 @@ export default function ProduitsCommercePage() {
                 </div>
               </div>
 
+              {/* Segmented Control Prix Public / Prix en Gros */}
+              {salesRules.prixEnGrosActif && (modeVenteProduit.prix_grossiste || 0) > 0 && (
+                <div className="flex rounded-xl overflow-hidden border-2 border-slate-200 mb-4">
+                  <button
+                    onClick={() => { setModeVentePrixType('public'); setTimeout(() => { quantityInputRef.current?.focus(); quantityInputRef.current?.select(); }, 50); }}
+                    className={`flex-1 py-2.5 text-sm font-semibold transition-all ${
+                      modeVentePrixType === 'public'
+                        ? 'bg-green-500 text-white shadow-inner'
+                        : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
+                    }`}
+                  >
+                    Public: {(modeVenteProduit.prix_vente || 0).toLocaleString('fr-FR')} F
+                  </button>
+                  <button
+                    onClick={() => { setModeVentePrixType('gros'); setTimeout(() => { quantityInputRef.current?.focus(); quantityInputRef.current?.select(); }, 50); }}
+                    className={`flex-1 py-2.5 text-sm font-semibold transition-all ${
+                      modeVentePrixType === 'gros'
+                        ? 'bg-purple-500 text-white shadow-inner'
+                        : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
+                    }`}
+                  >
+                    Gros: {(modeVenteProduit.prix_grossiste || 0).toLocaleString('fr-FR')} F
+                  </button>
+                </div>
+              )}
+
               {/* Sélecteur quantité */}
               <div className="flex items-center justify-center gap-4 my-5">
                 <motion.button
@@ -1523,12 +1570,19 @@ export default function ProduitsCommercePage() {
               </div>
 
               {/* Sous-total */}
-              <div className="bg-green-50 rounded-xl p-3 mb-5 text-center">
-                <span className="text-sm text-green-700">Sous-total : </span>
-                <span className="text-lg font-bold text-green-800">
-                  {((modeVenteProduit.prix_vente || 0) * modeVenteQuantity).toLocaleString('fr-FR')} FCFA
-                </span>
-              </div>
+              {(() => {
+                const prixAffiche = modeVentePrixType === 'gros' && (modeVenteProduit.prix_grossiste || 0) > 0
+                  ? modeVenteProduit.prix_grossiste!
+                  : modeVenteProduit.prix_vente || 0;
+                return (
+                  <div className={`rounded-xl p-3 mb-5 text-center ${modeVentePrixType === 'gros' ? 'bg-purple-50' : 'bg-green-50'}`}>
+                    <span className={`text-sm ${modeVentePrixType === 'gros' ? 'text-purple-700' : 'text-green-700'}`}>Sous-total : </span>
+                    <span className={`text-lg font-bold ${modeVentePrixType === 'gros' ? 'text-purple-800' : 'text-green-800'}`}>
+                      {(prixAffiche * modeVenteQuantity).toLocaleString('fr-FR')} FCFA
+                    </span>
+                  </div>
+                );
+              })()}
 
               {/* Boutons */}
               <div className="flex gap-3">

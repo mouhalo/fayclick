@@ -22,6 +22,7 @@ import {
 import { usePanierStore } from '@/stores/panierStore';
 import { useToast } from '@/components/ui/Toast';
 import { useSubscriptionStatus } from '@/contexts/AuthContext';
+import { useSalesRules } from '@/hooks/useSalesRules';
 import { Produit } from '@/types/produit';
 
 interface CarteProduitReduitProps {
@@ -62,6 +63,7 @@ export function CarteProduitReduit({
   const { addArticle, articles } = usePanierStore();
   const { success: showSuccessToast } = useToast();
   const { canAccessFeature } = useSubscriptionStatus();
+  const salesRules = useSalesRules();
   const [quantite, setQuantite] = useState(1);
   const [showMenu, setShowMenu] = useState(false);
 
@@ -280,6 +282,11 @@ export function CarteProduitReduit({
             <p className="text-[11px] font-bold text-gray-900 leading-tight">
               {produit.prix_vente.toLocaleString('fr-FR')} FCFA
             </p>
+            {salesRules.prixEnGrosActif && (produit.prix_grossiste || 0) > 0 && (
+              <p className="text-[9px] font-semibold text-purple-600 leading-tight">
+                Gros: {(produit.prix_grossiste || 0).toLocaleString('fr-FR')}
+              </p>
+            )}
           </div>
 
           {/* Stock disponible */}
