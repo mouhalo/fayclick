@@ -308,15 +308,16 @@ export default function ProduitsCommercePage() {
         return;
       }
 
-      const stock = match.niveau_stock || 0;
-      if (stock <= 0) {
-        showToast('error', 'Stock épuisé', `"${match.nom_produit}" n'est plus en stock`);
-        setSearchTerm('');
-        lastModeVenteTrigger.current = '';
-        return;
-      }
-
       if (modeVente) {
+        // Mode Vente activé → Vérifier stock avant vente
+        const stock = match.niveau_stock || 0;
+        if (stock <= 0) {
+          showToast('error', 'Stock épuisé', `"${match.nom_produit}" n'est plus en stock`);
+          setSearchTerm('');
+          lastModeVenteTrigger.current = '';
+          return;
+        }
+
         // Mode Vente activé → Ouvrir modal quantité pour vente rapide
         setModeVenteProduit(match);
         setModeVenteQuantity(1);
