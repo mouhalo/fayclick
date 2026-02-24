@@ -117,6 +117,8 @@ export interface StructureDetails extends Structure {
   taux_wallet?: number;
   info_facture?: InfoFacture;
   config_facture?: ConfigFacture;
+  inclure_tva?: boolean;
+  taux_tva?: number;
 }
 
 // Énumération des permissions disponibles
