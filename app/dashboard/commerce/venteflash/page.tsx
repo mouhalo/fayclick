@@ -8,7 +8,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Loader2, Minus, Plus, X } from 'lucide-react';
+import { Loader2, Minus, Plus, X, Package } from 'lucide-react';
 import { authService } from '@/services/auth.service';
 import database from '@/services/database.service';
 import { Produit } from '@/types/produit';
@@ -69,6 +69,10 @@ export default function VenteFlashPage() {
   const [vfPrixType, setVfPrixType] = useState<'public' | 'gros'>('public');
   const quantityInputRef = useRef<HTMLInputElement>(null);
   const headerRef = useRef<VenteFlashHeaderRef>(null);
+
+  // États sélection code-barres multiples
+  const [barcodeMatches, setBarcodeMatches] = useState<Produit[]>([]);
+  const [showBarcodeSelectionModal, setShowBarcodeSelectionModal] = useState(false);
 
   // États pour le reçu (ancien modal)
   const [showRecu, setShowRecu] = useState(false);
@@ -475,6 +479,15 @@ export default function VenteFlashPage() {
   }, [showToast, user]);
 
   /**
+   * Callback quand plusieurs produits partagent le même code-barres
+   */
+  const handleMultipleMatches = useCallback((matches: Produit[]) => {
+    console.log('📋 [VENTE FLASH] Plusieurs produits trouvés:', matches.map(m => m.nom_produit));
+    setBarcodeMatches(matches);
+    setShowBarcodeSelectionModal(true);
+  }, []);
+
+  /**
    * Confirmer l'ajout au panier avec la quantité choisie
    */
   const handleConfirmQuantity = useCallback(() => {
@@ -831,6 +844,7 @@ export default function VenteFlashPage() {
           ref={headerRef}
           produits={produits}
           onAddToPanier={handleAddToPanier}
+          onMultipleMatches={handleMultipleMatches}
           onRefresh={handleRefresh}
           onPrint={handlePrintRapport}
         />
@@ -1060,6 +1074,76 @@ export default function VenteFlashPage() {
               </div>
             </motion.div>
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Modal sélection produit (code-barres partagé par plusieurs produits) */}
+      <AnimatePresence>
+        {showBarcodeSelectionModal && barcodeMatches.length > 0 && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100] p-4"
+            onClick={() => { setShowBarcodeSelectionModal(false); setBarcodeMatches([]); }}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              className="bg-white rounded-2xl p-5 max-w-md w-full shadow-2xl max-h-[80vh] overflow-hidden flex flex-col"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 bg-orange-100 rounded-xl flex items-center justify-center">
+                  <Package className="w-5 h-5 text-orange-600" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-900">Plusieurs produits trouvés</h3>
+                  <p className="text-sm text-slate-500">{barcodeMatches.length} produits avec ce code-barres</p>
+                </div>
+              </div>
+
+              <div className="overflow-y-auto flex-1 space-y-2">
+                {barcodeMatches.map((produit) => {
+                  const stock = produit.niveau_stock || 0;
+                  const enRupture = stock <= 0;
+                  return (
+                    <button
+                      key={produit.id_produit}
+                      onClick={() => {
+                        setShowBarcodeSelectionModal(false);
+                        setBarcodeMatches([]);
+                        handleAddToPanier(produit);
+                      }}
+                      disabled={enRupture}
+                      className={`w-full text-left p-3 rounded-xl border-2 transition-all ${
+                        enRupture
+                          ? 'border-slate-200 bg-slate-50 opacity-50 cursor-not-allowed'
+                          : 'border-slate-200 hover:border-green-400 hover:bg-green-50 active:scale-[0.98]'
+                      }`}
+                    >
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1 min-w-0 mr-2">
+                          <p className="font-semibold text-slate-900 truncate">{produit.nom_produit}</p>
+                          <p className="text-xs text-slate-500 mt-0.5">{produit.nom_categorie || 'Sans catégorie'}</p>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <p className="font-bold text-green-700">{(produit.prix_vente || 0).toLocaleString('fr-FR')} F</p>
+                          <p className={`text-xs mt-0.5 ${enRupture ? 'text-red-500 font-semibold' : stock <= 5 ? 'text-orange-500' : 'text-slate-500'}`}>
+                            {enRupture ? 'Rupture' : `Stock: ${stock}`}
+                          </p>
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <button
+                onClick={() => { setShowBarcodeSelectionModal(false); setBarcodeMatches([]); }}
+                className="mt-4 w-full px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-medium transition-colors"
+              >
+                Annuler
+              </button>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
 
