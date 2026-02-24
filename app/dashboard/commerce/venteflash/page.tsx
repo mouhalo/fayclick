@@ -932,8 +932,12 @@ export default function VenteFlashPage() {
                 <div className="flex-1 min-w-0 pr-3">
                   <h3 className="text-white font-bold text-base truncate">{vfProduit.nom_produit}</h3>
                   <p className="text-white/80 text-sm">{vfProduit.prix_vente.toLocaleString('fr-FR')} FCFA</p>
-                  {salesRules.prixEnGrosActif && (vfProduit.prix_grossiste || 0) > 0 && (
-                    <p className="text-yellow-200 text-xs font-semibold">Gros: {(vfProduit.prix_grossiste || 0).toLocaleString('fr-FR')} FCFA</p>
+                  {salesRules.prixEnGrosActif && (
+                    <p className="text-yellow-200 text-xs font-semibold">
+                      Gros: {(vfProduit.prix_grossiste || 0) > 0
+                        ? `${(vfProduit.prix_grossiste!).toLocaleString('fr-FR')} FCFA`
+                        : `${vfProduit.prix_vente.toLocaleString('fr-FR')} FCFA`}
+                    </p>
                   )}
                 </div>
                 <button
@@ -952,7 +956,7 @@ export default function VenteFlashPage() {
                 </div>
 
                 {/* Segmented Control Prix Public / Prix en Gros */}
-                {salesRules.prixEnGrosActif && (vfProduit.prix_grossiste || 0) > 0 && (
+                {salesRules.prixEnGrosActif && (
                   <div className="flex rounded-xl overflow-hidden border-2 border-gray-200">
                     <button
                       onClick={() => { setVfPrixType('public'); setTimeout(() => { quantityInputRef.current?.focus(); quantityInputRef.current?.select(); }, 50); }}
@@ -972,7 +976,9 @@ export default function VenteFlashPage() {
                           : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
                       }`}
                     >
-                      Gros: {(vfProduit.prix_grossiste || 0).toLocaleString('fr-FR')} F
+                      Gros: {(vfProduit.prix_grossiste || 0) > 0
+                        ? `${(vfProduit.prix_grossiste!).toLocaleString('fr-FR')} F`
+                        : `${(vfProduit.prix_vente || 0).toLocaleString('fr-FR')} F`}
                     </button>
                   </div>
                 )}

@@ -122,6 +122,10 @@ export default function ProduitsCommercePage() {
   const quantityInputRef = useRef<HTMLInputElement>(null);
   const filterHeaderRef = useRef<ProduitsFilterHeaderRef>(null);
 
+  // États sélection code-barres multiples
+  const [barcodeMatches, setBarcodeMatches] = useState<Produit[]>([]);
+  const [showBarcodeSelectionModal, setShowBarcodeSelectionModal] = useState(false);
+
   // Configuration pagination
   const itemsPerPage = 10;
 
@@ -286,18 +290,42 @@ export default function ProduitsCommercePage() {
     handleTogglePanierSide();
   };
 
+  // Callback commun : ouvrir modal quantité ou fiche édition selon le mode
+  const handleBarcodeProductSelected = (produit: Produit) => {
+    if (modeVente) {
+      const stock = produit.niveau_stock || 0;
+      if (stock <= 0) {
+        showToast('error', 'Stock épuisé', `"${produit.nom_produit}" n'est plus en stock`);
+        setSearchTerm('');
+        lastModeVenteTrigger.current = '';
+        return;
+      }
+      setModeVenteProduit(produit);
+      setModeVenteQuantity(1);
+      setModeVentePrixType('public');
+      setShowQuantityModal(true);
+    } else {
+      console.log('📋 [PRODUITS] Mode classique - Ouverture fiche produit en édition:', produit.nom_produit);
+      setProduitSelectionne(produit);
+      setModeEdition(true);
+      setModalAjoutOpen(true);
+    }
+    setSearchTerm('');
+    lastModeVenteTrigger.current = '';
+  };
+
   // Auto-détection scan code-barres (douchette hardware)
   // Debounce 300ms : laisse le scanner finir la saisie, puis match exact sur code_barre
   useEffect(() => {
-    if (searchTerm.length < 3 || showQuantityModal) return;
+    if (searchTerm.length < 3 || showQuantityModal || showBarcodeSelectionModal) return;
 
     const timer = setTimeout(() => {
-      const match = produits.find(p =>
+      const matches = produits.filter(p =>
         p.code_barre && p.code_barre.trim() === searchTerm.trim()
       );
-      if (!match) return;
+      if (matches.length === 0) return;
 
-      console.log('📊 [PRODUITS] Auto-scan code-barres détecté:', match.nom_produit, '| code:', searchTerm.trim());
+      console.log('📊 [PRODUITS] Auto-scan code-barres détecté:', matches.length, 'produit(s) | code:', searchTerm.trim());
 
       if (user && user.pwd_changed === false) {
         showToast('warning', 'Mot de passe requis', 'Veuillez d\'abord modifier votre mot de passe initial.');
@@ -308,35 +336,21 @@ export default function ProduitsCommercePage() {
         return;
       }
 
-      if (modeVente) {
-        // Mode Vente activé → Vérifier stock avant vente
-        const stock = match.niveau_stock || 0;
-        if (stock <= 0) {
-          showToast('error', 'Stock épuisé', `"${match.nom_produit}" n'est plus en stock`);
-          setSearchTerm('');
-          lastModeVenteTrigger.current = '';
-          return;
-        }
-
-        // Mode Vente activé → Ouvrir modal quantité pour vente rapide
-        setModeVenteProduit(match);
-        setModeVenteQuantity(1);
-        setShowQuantityModal(true);
-        setSearchTerm('');
-        lastModeVenteTrigger.current = '';
+      if (matches.length === 1) {
+        // Un seul produit → ouvrir directement
+        handleBarcodeProductSelected(matches[0]);
       } else {
-        // Mode Vente désactivé → Ouvrir la fiche produit en mode édition
-        console.log('📋 [PRODUITS] Mode classique - Ouverture fiche produit en édition:', match.nom_produit);
-        setProduitSelectionne(match);
-        setModeEdition(true);
-        setModalAjoutOpen(true);
+        // Plusieurs produits avec le même code-barres → laisser l'utilisateur choisir
+        console.log('📋 [PRODUITS] Plusieurs produits trouvés pour ce code-barres:', matches.map(m => m.nom_produit));
+        setBarcodeMatches(matches);
+        setShowBarcodeSelectionModal(true);
         setSearchTerm('');
         lastModeVenteTrigger.current = '';
       }
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [searchTerm, produits, user, showQuantityModal, modeVente, canAccessFeature, showToast, showAbonnementModal, setSearchTerm, setProduitSelectionne, setModeEdition, setModalAjoutOpen]);
+  }, [searchTerm, produits, user, showQuantityModal, showBarcodeSelectionModal, modeVente, canAccessFeature, showToast, showAbonnementModal]);
 
   // Détection produit unique en Mode Vente (recherche textuelle, pas code-barres)
   useEffect(() => {
@@ -763,34 +777,25 @@ export default function ProduitsCommercePage() {
     }
 
     // Rechercher dans la liste complète (pas filtrée) pour le scan
-    const produitTrouve = produits.find(p => p.code_barre === code);
+    const matchesScan = produits.filter(p => p.code_barre && p.code_barre.trim() === code.trim());
 
-    if (produitTrouve) {
-      console.log('✅ [PRODUITS COMMERCE] Produit trouvé:', produitTrouve.nom_produit);
-
-      // Vérifier le stock disponible
-      const stockDisponible = produitTrouve.niveau_stock || 0;
-      if (stockDisponible < 1) {
-        showToast('error', 'Stock insuffisant', `Le produit "${produitTrouve.nom_produit}" n'est plus en stock.`);
-        setShowScanModal(false);
-        return;
-      }
-
+    if (matchesScan.length > 0) {
       setShowScanModal(false);
 
-      // Si Mode Vente → ouvrir modal quantité
-      if (modeVente) {
-        setModeVenteProduit(produitTrouve);
-        setModeVenteQuantity(1);
-        setShowQuantityModal(true);
+      if (matchesScan.length === 1) {
+        const produitTrouve = matchesScan[0];
+        console.log('✅ [PRODUITS COMMERCE] Produit trouvé:', produitTrouve.nom_produit);
+        handleBarcodeProductSelected(produitTrouve);
       } else {
-        // Mode classique → ajout direct
-        addArticle(produitTrouve);
-        showToast('success', 'Produit ajouté', `"${produitTrouve.nom_produit}" a été ajouté au panier`);
+        // Plusieurs produits → modal de sélection
+        console.log('📋 [PRODUITS] Scanner: Plusieurs produits trouvés:', matchesScan.map(m => m.nom_produit));
+        setBarcodeMatches(matchesScan);
+        setShowBarcodeSelectionModal(true);
       }
     } else {
       console.log('❌ [PRODUITS COMMERCE] Produit non trouvé pour le code:', code);
       showToast('error', 'Produit non trouvé', `Aucun produit trouvé avec le code-barres ${code}`);
+      setShowScanModal(false);
     }
   };
 
@@ -1507,7 +1512,7 @@ export default function ProduitsCommercePage() {
               </div>
 
               {/* Segmented Control Prix Public / Prix en Gros */}
-              {salesRules.prixEnGrosActif && (modeVenteProduit.prix_grossiste || 0) > 0 && (
+              {salesRules.prixEnGrosActif && (
                 <div className="flex rounded-xl overflow-hidden border-2 border-slate-200 mb-4">
                   <button
                     onClick={() => { setModeVentePrixType('public'); setTimeout(() => { quantityInputRef.current?.focus(); quantityInputRef.current?.select(); }, 50); }}
@@ -1527,7 +1532,9 @@ export default function ProduitsCommercePage() {
                         : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
                     }`}
                   >
-                    Gros: {(modeVenteProduit.prix_grossiste || 0).toLocaleString('fr-FR')} F
+                    Gros: {(modeVenteProduit.prix_grossiste || 0) > 0
+                      ? `${(modeVenteProduit.prix_grossiste!).toLocaleString('fr-FR')} F`
+                      : `${(modeVenteProduit.prix_vente || 0).toLocaleString('fr-FR')} F`}
                   </button>
                 </div>
               )}
@@ -1600,6 +1607,76 @@ export default function ProduitsCommercePage() {
                   Ajouter au panier
                 </button>
               </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Modal sélection produit (code-barres partagé par plusieurs produits) */}
+      <AnimatePresence>
+        {showBarcodeSelectionModal && barcodeMatches.length > 0 && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100] p-4"
+            onClick={() => { setShowBarcodeSelectionModal(false); setBarcodeMatches([]); }}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              className="bg-white rounded-2xl p-5 max-w-md w-full shadow-2xl max-h-[80vh] overflow-hidden flex flex-col"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 bg-orange-100 rounded-xl flex items-center justify-center">
+                  <Package className="w-5 h-5 text-orange-600" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-900">Plusieurs produits trouvés</h3>
+                  <p className="text-sm text-slate-500">{barcodeMatches.length} produits avec ce code-barres</p>
+                </div>
+              </div>
+
+              <div className="overflow-y-auto flex-1 space-y-2">
+                {barcodeMatches.map((produit) => {
+                  const stock = produit.niveau_stock || 0;
+                  const enRupture = stock <= 0;
+                  return (
+                    <button
+                      key={produit.id_produit}
+                      onClick={() => {
+                        setShowBarcodeSelectionModal(false);
+                        setBarcodeMatches([]);
+                        handleBarcodeProductSelected(produit);
+                      }}
+                      disabled={modeVente && enRupture}
+                      className={`w-full text-left p-3 rounded-xl border-2 transition-all ${
+                        modeVente && enRupture
+                          ? 'border-slate-200 bg-slate-50 opacity-50 cursor-not-allowed'
+                          : 'border-slate-200 hover:border-green-400 hover:bg-green-50 active:scale-[0.98]'
+                      }`}
+                    >
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1 min-w-0 mr-2">
+                          <p className="font-semibold text-slate-900 truncate">{produit.nom_produit}</p>
+                          <p className="text-xs text-slate-500 mt-0.5">{produit.nom_categorie || 'Sans catégorie'}</p>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <p className="font-bold text-green-700">{(produit.prix_vente || 0).toLocaleString('fr-FR')} F</p>
+                          <p className={`text-xs mt-0.5 ${enRupture ? 'text-red-500 font-semibold' : stock <= 5 ? 'text-orange-500' : 'text-slate-500'}`}>
+                            {enRupture ? 'Rupture' : `Stock: ${stock}`}
+                          </p>
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <button
+                onClick={() => { setShowBarcodeSelectionModal(false); setBarcodeMatches([]); }}
+                className="mt-4 w-full px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-medium transition-colors"
+              >
+                Annuler
+              </button>
             </motion.div>
           </div>
         )}
