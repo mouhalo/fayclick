@@ -71,7 +71,17 @@ export class AuthService {
         siret: (structureData.siret as string) || undefined,
         responsable: (structureData.responsable as string) || undefined,
         // État abonnement depuis get_une_structure()
-        etat_abonnement: structureData.etat_abonnement as StructureDetails['etat_abonnement'] || null
+        etat_abonnement: structureData.etat_abonnement as StructureDetails['etat_abonnement'] || null,
+        // Paramètres structure depuis param_structure
+        credit_autorise: structureData.credit_autorise as boolean ?? false,
+        limite_credit: structureData.limite_credit as number ?? 5000,
+        acompte_autorise: structureData.acompte_autorise as boolean ?? false,
+        prix_engros: structureData.prix_engros as boolean ?? false,
+        nombre_produit_max: structureData.nombre_produit_max as number ?? 600,
+        nombre_caisse_max: structureData.nombre_caisse_max as number ?? 2,
+        compte_prive: structureData.compte_prive as boolean ?? false,
+        mensualite: structureData.mensualite as number ?? 0,
+        taux_wallet: structureData.taux_wallet as number ?? 0.04,
       };
 
       console.log('✅ [AUTH] Détails structure récupérés:', {
@@ -579,6 +589,18 @@ export class AuthService {
 
       console.log('✅ [AUTH] Données complètes sauvegardées (user, structure, permissions, rights)');
 
+      // Sync localStorage sales rules depuis les paramètres DB
+      if (authData.structure.id_structure) {
+        const salesRulesKey = `fayclick_regles_ventes_${authData.structure.id_structure}`;
+        const salesRules = {
+          creditAutorise: authData.structure.credit_autorise ?? false,
+          limiteCredit: authData.structure.limite_credit ?? 5000,
+          acompteAutorise: authData.structure.acompte_autorise ?? false,
+          prixEnGrosActif: authData.structure.prix_engros ?? false,
+        };
+        localStorage.setItem(salesRulesKey, JSON.stringify(salesRules));
+        console.log('✅ [AUTH] Sales rules synchronisées depuis DB:', salesRules);
+      }
     } catch (error) {
       console.error('❌ [AUTH] Erreur sauvegarde données complètes:', error);
       throw new ApiException('Erreur lors de la sauvegarde des données', 500);
