@@ -30,11 +30,12 @@ import { useAuth } from '@/contexts/AuthContext';
 import databaseService from '@/services/database.service';
 import { authService } from '@/services/auth.service';
 import PopMessage from '@/components/ui/PopMessage';
-import { StructureDetails, CompleteAuthData, InfoFacture } from '@/types/auth';
+import { StructureDetails, CompleteAuthData, InfoFacture, ConfigFacture } from '@/types/auth';
 import LogoUpload from '@/components/ui/LogoUpload';
 import { UploadResult, UploadProgress } from '@/types/upload.types';
 import UsersManagement from '@/components/settings/UsersManagement';
 import CategoriesManagement from '@/components/settings/CategoriesManagement';
+import FactureLayoutEditor from '@/components/settings/FactureLayoutEditor';
 import ModalPaiementAbonnement from '@/components/subscription/ModalPaiementAbonnement';
 import SubscriptionHistory from '@/components/subscription/SubscriptionHistory';
 import CurrentSubscriptionStatus from '@/components/subscription/CurrentSubscriptionStatus';
@@ -584,6 +585,23 @@ export default function StructureEditPage() {
       showMessage('error', 'Erreur de connexion lors de la sauvegarde');
     } finally {
       setIsSavingInfoFacture(false);
+    }
+  };
+
+  const saveConfigFacture = async (config: ConfigFacture) => {
+    if (!user?.id_structure) return;
+    try {
+      const result = await databaseService.editParamStructure(user.id_structure, {
+        config_facture: config as unknown as Record<string, unknown>,
+      });
+      if (result.success) {
+        showMessage('success', 'Modèle de facture sauvegardé');
+      } else {
+        showMessage('error', result.message || 'Erreur sauvegarde modèle facture');
+      }
+    } catch (error) {
+      console.error('Erreur sauvegarde config facture:', error);
+      showMessage('error', 'Erreur de connexion lors de la sauvegarde');
     }
   };
 
@@ -1160,6 +1178,27 @@ export default function StructureEditPage() {
                       )}
                     </AnimatePresence>
                   </motion.div>
+
+                  {/* Configurateur modèle facture - uniquement pour compte_prive */}
+                  {currentStructureData?.compte_prive && (
+                    <motion.div
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.7 }}
+                    >
+                      <div className="p-4 bg-gradient-to-br from-indigo-50 to-violet-50 rounded-xl border-2 border-indigo-200">
+                        <h3 className="font-bold text-gray-900 mb-1">Modèle de facture personnalisé</h3>
+                        <p className="text-sm text-gray-600 mb-4">Glissez-déposez les champs pour configurer l&apos;apparence de vos factures, bons de livraison et bons de retour</p>
+                        <FactureLayoutEditor
+                          config={currentStructureData?.config_facture as ConfigFacture | undefined}
+                          infoFacture={infoFacture}
+                          logo={structure.logo}
+                          nomStructure={structure.nom_structure}
+                          onSave={saveConfigFacture}
+                        />
+                      </div>
+                    </motion.div>
+                  )}
                 </div>
               )}
 
