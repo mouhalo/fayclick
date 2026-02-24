@@ -197,6 +197,7 @@ class DatabaseService {
       acompte_autorise?: boolean;
       prix_engros?: boolean;
       info_facture?: Record<string, string>;
+      config_facture?: Record<string, unknown>;
     }
   ): Promise<{ success: boolean; message: string; data?: Record<string, unknown> }> {
     const args = [
@@ -206,6 +207,7 @@ class DatabaseService {
       params.acompte_autorise !== undefined ? params.acompte_autorise.toString() : 'NULL',
       params.prix_engros !== undefined ? params.prix_engros.toString() : 'NULL',
       params.info_facture !== undefined ? `'${JSON.stringify(params.info_facture).replace(/'/g, "''")}'::json` : 'NULL',
+      params.config_facture !== undefined ? `'${JSON.stringify(params.config_facture).replace(/'/g, "''")}'::json` : 'NULL',
     ];
 
     const query = `SELECT edit_param_structure(${args.join(', ')})`;

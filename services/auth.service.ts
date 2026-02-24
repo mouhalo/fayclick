@@ -87,6 +87,11 @@ export class AuthService {
             ? JSON.parse(structureData.info_facture as string)
             : structureData.info_facture) as StructureDetails['info_facture']
           : { adresse_complete: '', tel_contact: '', site_web: '', email: '', compte_bancaire: '', ninea_rc: '' },
+        config_facture: structureData.config_facture
+          ? (typeof structureData.config_facture === 'string'
+            ? JSON.parse(structureData.config_facture as string)
+            : structureData.config_facture) as StructureDetails['config_facture']
+          : undefined,
       };
 
       console.log('✅ [AUTH] Détails structure récupérés:', {

@@ -11,6 +11,21 @@ export interface InfoFacture {
   ninea_rc: string;
 }
 
+// Configuration du layout des factures (depuis param_structure.config_facture)
+export type FactureFieldId = 'logo' | 'adresse_complete' | 'tel_contact' | 'site_web' | 'email' | 'compte_bancaire' | 'ninea_rc';
+export type FactureZonePosition = 'gauche' | 'centre' | 'droite';
+
+export interface ConfigFactureZone {
+  gauche: FactureFieldId[];
+  centre: FactureFieldId[];
+  droite: FactureFieldId[];
+}
+
+export interface ConfigFacture {
+  header: ConfigFactureZone;
+  footer: ConfigFactureZone;
+}
+
 // Types pour l'authentification et les structures
 export interface LoginCredentials {
   login: string;
@@ -101,6 +116,7 @@ export interface StructureDetails extends Structure {
   mensualite?: number;
   taux_wallet?: number;
   info_facture?: InfoFacture;
+  config_facture?: ConfigFacture;
 }
 
 // Énumération des permissions disponibles
