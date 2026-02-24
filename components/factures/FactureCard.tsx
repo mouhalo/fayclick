@@ -7,7 +7,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Eye, Receipt, CreditCard, Trash2 } from 'lucide-react';
+import { Eye, Receipt, CreditCard, Trash2, Printer } from 'lucide-react';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { FactureComplete } from '@/types/facture';
 import { formatAmount, formatDate, cn } from '@/lib/utils';
@@ -18,9 +18,11 @@ interface FactureCardProps {
   onAjouterAcompte?: (facture: FactureComplete) => void;
   onPartager?: (facture: FactureComplete) => void;
   onVoirRecu?: (facture: FactureComplete) => void;
+  onImprimer?: (facture: FactureComplete) => void;
   onSupprimer?: (facture: FactureComplete) => void;
   delay?: number;
   userProfileId?: number; // ID du profil utilisateur (1 = ADMIN)
+  comptePrive?: boolean;
   /** Si false, remplace les montants par *** (caissier) */
   canViewMontants?: boolean;
 }
@@ -31,9 +33,11 @@ export const FactureCard = ({
   onAjouterAcompte,
   onPartager,
   onVoirRecu,
+  onImprimer,
   onSupprimer,
   delay = 0,
   userProfileId,
+  comptePrive = false,
   canViewMontants = true
 }: FactureCardProps) => {
   const { facture: factureData } = facture;
@@ -189,14 +193,25 @@ export const FactureCard = ({
                 </button>
               )}
 
-              <button
-                onClick={() => onVoirRecu?.(facture)}
-                className="flex-1 py-1.5 sm:py-2 bg-emerald-500/20 rounded-md sm:rounded-lg text-emerald-200 text-xs sm:text-sm hover:bg-emerald-500/30 transition-colors flex items-center justify-center gap-1"
-                title="Voir le reçu de paiement"
-              >
-                <Receipt className="w-3 h-3 sm:w-4 sm:h-4" />
-                <span className="hidden xs:inline">Reçu</span>
-              </button>
+              {comptePrive && onImprimer ? (
+                <button
+                  onClick={() => onImprimer(facture)}
+                  className="flex-1 py-1.5 sm:py-2 bg-indigo-500/20 rounded-md sm:rounded-lg text-indigo-200 text-xs sm:text-sm hover:bg-indigo-500/30 transition-colors flex items-center justify-center gap-1"
+                  title="Imprimer un document"
+                >
+                  <Printer className="w-3 h-3 sm:w-4 sm:h-4" />
+                  <span className="hidden xs:inline">Imprimer</span>
+                </button>
+              ) : (
+                <button
+                  onClick={() => onVoirRecu?.(facture)}
+                  className="flex-1 py-1.5 sm:py-2 bg-emerald-500/20 rounded-md sm:rounded-lg text-emerald-200 text-xs sm:text-sm hover:bg-emerald-500/30 transition-colors flex items-center justify-center gap-1"
+                  title="Voir le reçu de paiement"
+                >
+                  <Receipt className="w-3 h-3 sm:w-4 sm:h-4" />
+                  <span className="hidden xs:inline">Reçu</span>
+                </button>
+              )}
             </>
           )}
 

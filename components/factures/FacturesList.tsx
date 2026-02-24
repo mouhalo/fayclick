@@ -17,8 +17,10 @@ interface FacturesListProps {
   onAjouterAcompte?: (facture: FactureComplete) => void;
   onPartager?: (facture: FactureComplete) => void;
   onVoirRecu?: (facture: FactureComplete) => void;
+  onImprimer?: (facture: FactureComplete) => void;
   onSupprimer?: (facture: FactureComplete) => void;
   userProfileId?: number; // ID du profil utilisateur (1 = ADMIN)
+  comptePrive?: boolean;
   /** Si false, remplace les montants par *** (caissier) */
   canViewMontants?: boolean;
 }
@@ -69,8 +71,10 @@ export const FacturesList = ({
   onAjouterAcompte,
   onPartager,
   onVoirRecu,
+  onImprimer,
   onSupprimer,
   userProfileId,
+  comptePrive = false,
   canViewMontants = true
 }: FacturesListProps) => {
 
@@ -152,9 +156,11 @@ export const FacturesList = ({
               onAjouterAcompte={onAjouterAcompte}
               onPartager={onPartager}
               onVoirRecu={onVoirRecu}
+              onImprimer={onImprimer}
               onSupprimer={onSupprimer}
               delay={index * 0.05} // Délai plus court pour la fluidité
               userProfileId={userProfileId}
+              comptePrive={comptePrive}
               canViewMontants={canViewMontants}
             />
           </motion.div>
