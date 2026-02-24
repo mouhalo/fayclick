@@ -22,6 +22,7 @@ import { ModalPaiement } from '@/components/factures/ModalPaiement';
 import { ModalPartage } from '@/components/factures/ModalPartage';
 import { ModalFacturePrivee } from '@/components/facture/ModalFacturePrivee';
 import { ModalRecuGenere } from '@/components/recu';
+import ModalImpressionDocuments from '@/components/impression/ModalImpressionDocuments';
 import { ModalConfirmation } from '@/components/ui/ModalConfirmation';
 import { Toast } from '@/components/ui/Toast';
 import { factureListService } from '@/services/facture-list.service';
@@ -35,7 +36,7 @@ import {
 
 export default function FacturesGlassPage() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, structure } = useAuth();
   const canViewMontants = useHasRight("VOIR CHIFFRE D'AFFAIRE");
 
   // États principaux
@@ -74,6 +75,11 @@ export default function FacturesGlassPage() {
     facture: FactureComplete | null;
     paiement?: any;
   }>({ isOpen: false, facture: null, paiement: null });
+
+  const [modalImpression, setModalImpression] = useState<{
+    isOpen: boolean;
+    facture: FactureComplete | null;
+  }>({ isOpen: false, facture: null });
 
   const [modalConfirmation, setModalConfirmation] = useState<{
     isOpen: boolean;
@@ -299,6 +305,14 @@ export default function FacturesGlassPage() {
     setModalConfirmation({ isOpen: false, message: '', onConfirm: () => {} });
   };
 
+  // Déterminer si la structure a un compte privé
+  const comptePrive = !!structure?.compte_prive;
+
+  // Action pour imprimer un document (compte_prive)
+  const handleImprimer = (facture: FactureComplete) => {
+    setModalImpression({ isOpen: true, facture });
+  };
+
   // Action pour voir le reçu depuis une carte de facture (factures PAYÉES)
   // Utilise recus_paiements si disponible (depuis get_my_factures1), sinon fallback
   const handleVoirRecuFacture = (facture: FactureComplete) => {
@@ -452,8 +466,10 @@ export default function FacturesGlassPage() {
         onAjouterAcompte={handlePayFacture}
         onPartager={handleShareFacture}
         onVoirRecu={handleVoirRecuFacture}
+        onImprimer={comptePrive ? handleImprimer : undefined}
         onSupprimer={handleDeleteFacture}
         userProfileId={user?.id_profil}
+        comptePrive={comptePrive}
         canViewMontants={canViewMontants}
       />
     </>
@@ -544,6 +560,24 @@ export default function FacturesGlassPage() {
           numeroRecu={modalRecuGenere.facture.facture.numrecu}
           dateTimePaiement={modalRecuGenere.paiement.date_paiement}
           referenceTransaction={modalRecuGenere.paiement.reference_transaction}
+        />
+      )}
+
+      {modalImpression.facture && (
+        <ModalImpressionDocuments
+          isOpen={modalImpression.isOpen}
+          onClose={() => setModalImpression({ isOpen: false, facture: null })}
+          facture={modalImpression.facture}
+          comptePrive={comptePrive}
+          configFacture={structure?.config_facture}
+          infoFacture={structure?.info_facture}
+          logo={structure?.logo}
+          nomStructure={structure?.nom_structure || ''}
+          onOpenRecu={() => {
+            const facture = modalImpression.facture;
+            setModalImpression({ isOpen: false, facture: null });
+            if (facture) handleVoirRecuFacture(facture);
+          }}
         />
       )}
 

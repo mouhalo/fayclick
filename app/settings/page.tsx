@@ -577,6 +577,8 @@ export default function StructureEditPage() {
       });
       if (result.success) {
         showMessage('success', 'Informations facture sauvegardées');
+        // Mettre à jour l'auth context pour que les autres pages aient les données à jour
+        await refreshAuth();
       } else {
         showMessage('error', result.message || 'Erreur sauvegarde infos facture');
       }
@@ -596,6 +598,8 @@ export default function StructureEditPage() {
       });
       if (result.success) {
         showMessage('success', 'Modèle de facture sauvegardé');
+        // Mettre à jour l'auth context pour que les autres pages aient les données à jour
+        await refreshAuth();
       } else {
         showMessage('error', result.message || 'Erreur sauvegarde modèle facture');
       }
