@@ -19,6 +19,8 @@ interface Props {
   infoFacture?: InfoFacture;
   logo?: string;
   nomStructure: string;
+  inclureTva?: boolean;
+  tauxTva?: number;
   onOpenRecu: () => void;
 }
 
@@ -46,10 +48,11 @@ const FIELD_LABELS: Record<string, string> = {
 };
 
 export default function ModalImpressionDocuments({
-  isOpen, onClose, facture, comptePrive, configFacture, infoFacture, logo, nomStructure, onOpenRecu
+  isOpen, onClose, facture, comptePrive, configFacture, infoFacture, logo, nomStructure, inclureTva = false, tauxTva = 18, onOpenRecu
 }: Props) {
   const [selectedDoc, setSelectedDoc] = useState<DocumentType | null>(null);
   const [selectedFormat, setSelectedFormat] = useState<FormatType>('personnalise');
+  const [avecTva, setAvecTva] = useState(inclureTva);
   const printFrameRef = useRef<HTMLIFrameElement>(null);
 
   if (!isOpen) return null;
@@ -119,15 +122,24 @@ export default function ModalImpressionDocuments({
       }
     }
 
-    // Corps du document
-    const articlesHtml = details.map(d => `
-      <tr>
-        <td style="padding:3px 6px;border-bottom:1px solid #eee;font-size:11px;">${d.nom_produit}</td>
-        <td style="padding:3px 6px;border-bottom:1px solid #eee;text-align:center;font-size:11px;">${d.quantite}</td>
-        <td style="padding:3px 6px;border-bottom:1px solid #eee;text-align:right;font-size:11px;">${d.prix.toLocaleString('fr-FR')}</td>
-        <td style="padding:3px 6px;border-bottom:1px solid #eee;text-align:right;font-size:11px;font-weight:bold;">${d.sous_total.toLocaleString('fr-FR')}</td>
-      </tr>
-    `).join('');
+    // BL = uniquement désignation + qté, pas de prix
+    const isBL = docType === 'bl';
+    const totalQte = details.reduce((sum, d) => sum + d.quantite, 0);
+
+    const articlesHtml = details.map(d => isBL
+      ? `<tr>
+          <td style="padding:3px 6px;border-bottom:1px solid #eee;font-size:11px;">${d.nom_produit}</td>
+          <td style="padding:3px 6px;border-bottom:1px solid #eee;text-align:center;font-size:11px;">${d.quantite}</td>
+        </tr>`
+      : `<tr>
+          <td style="padding:3px 6px;border-bottom:1px solid #eee;font-size:11px;">${d.nom_produit}</td>
+          <td style="padding:3px 6px;border-bottom:1px solid #eee;text-align:center;font-size:11px;">${d.quantite}</td>
+          <td style="padding:3px 6px;border-bottom:1px solid #eee;text-align:right;font-size:11px;">${d.prix.toLocaleString('fr-FR')}</td>
+          <td style="padding:3px 6px;border-bottom:1px solid #eee;text-align:right;font-size:11px;font-weight:bold;">${d.sous_total.toLocaleString('fr-FR')}</td>
+        </tr>`
+    ).join('');
+
+    const colCount = isBL ? 2 : 4;
 
     return `<!DOCTYPE html>
 <html><head><meta charset="utf-8"><title>${title} ${f.num_facture}</title>
@@ -136,7 +148,6 @@ export default function ModalImpressionDocuments({
   body { font-family: Arial, sans-serif; font-size: 12px; color: #333; margin: 0; padding: 20px; }
   table { width: 100%; border-collapse: collapse; }
   .title { text-align: center; font-size: 18px; font-weight: bold; margin: 16px 0 8px; padding: 8px; background: #f8f8f8; border: 1px solid #ddd; }
-  .info-row { display: flex; justify-content: space-between; margin-bottom: 4px; font-size: 11px; }
   .total-row { font-weight: bold; border-top: 2px solid #333; }
   @media print { body { padding: 0; } }
 </style></head><body>
@@ -157,37 +168,44 @@ export default function ModalImpressionDocuments({
       <tr style="background:#f0f0f0;">
         <th style="padding:4px 6px;text-align:left;font-size:11px;border-bottom:2px solid #333;">Désignation</th>
         <th style="padding:4px 6px;text-align:center;font-size:11px;border-bottom:2px solid #333;">Qté</th>
-        <th style="padding:4px 6px;text-align:right;font-size:11px;border-bottom:2px solid #333;">P.U.</th>
-        <th style="padding:4px 6px;text-align:right;font-size:11px;border-bottom:2px solid #333;">Total</th>
+        ${isBL ? '' : `<th style="padding:4px 6px;text-align:right;font-size:11px;border-bottom:2px solid #333;">P.U.</th>
+        <th style="padding:4px 6px;text-align:right;font-size:11px;border-bottom:2px solid #333;">Total</th>`}
       </tr>
     </thead>
     <tbody>
       ${articlesHtml}
     </tbody>
+    ${isBL ? `
+    <tfoot>
+      <tr class="total-row">
+        <td style="padding:8px 6px;font-size:13px;font-weight:bold;">Total articles livrés</td>
+        <td style="padding:8px 6px;text-align:center;font-size:15px;font-weight:bold;">${totalQte}</td>
+      </tr>
+    </tfoot>` : `
     <tfoot>
       ${f.mt_remise > 0 ? `
       <tr>
-        <td colspan="3" style="padding:3px 6px;text-align:right;font-size:11px;">Sous-total:</td>
+        <td colspan="${colCount - 1}" style="padding:3px 6px;text-align:right;font-size:11px;">Sous-total:</td>
         <td style="padding:3px 6px;text-align:right;font-size:11px;">${(f.montant + f.mt_remise).toLocaleString('fr-FR')} FCFA</td>
       </tr>
       <tr>
-        <td colspan="3" style="padding:3px 6px;text-align:right;font-size:11px;color:#e65100;">Remise:</td>
+        <td colspan="${colCount - 1}" style="padding:3px 6px;text-align:right;font-size:11px;color:#e65100;">Remise:</td>
         <td style="padding:3px 6px;text-align:right;font-size:11px;color:#e65100;">-${f.mt_remise.toLocaleString('fr-FR')} FCFA</td>
       </tr>` : ''}
       <tr class="total-row">
-        <td colspan="3" style="padding:6px;text-align:right;font-size:13px;">TOTAL:</td>
+        <td colspan="${colCount - 1}" style="padding:6px;text-align:right;font-size:13px;">${avecTva ? 'TOTAL HT:' : 'TOTAL:'}</td>
         <td style="padding:6px;text-align:right;font-size:13px;">${f.montant.toLocaleString('fr-FR')} FCFA</td>
       </tr>
-      ${docType === 'facture' && f.mt_acompte > 0 ? `
+      ${avecTva ? `
       <tr>
-        <td colspan="3" style="padding:3px 6px;text-align:right;font-size:11px;">Acompte versé:</td>
-        <td style="padding:3px 6px;text-align:right;font-size:11px;">${f.mt_acompte.toLocaleString('fr-FR')} FCFA</td>
+        <td colspan="${colCount - 1}" style="padding:3px 6px;text-align:right;font-size:11px;">TVA (${tauxTva}%):</td>
+        <td style="padding:3px 6px;text-align:right;font-size:11px;">${Math.round(f.montant * tauxTva / 100).toLocaleString('fr-FR')} FCFA</td>
       </tr>
-      <tr>
-        <td colspan="3" style="padding:3px 6px;text-align:right;font-size:11px;font-weight:bold;">Reste à payer:</td>
-        <td style="padding:3px 6px;text-align:right;font-size:11px;font-weight:bold;">${f.mt_restant.toLocaleString('fr-FR')} FCFA</td>
+      <tr style="border-top:2px solid #333;">
+        <td colspan="${colCount - 1}" style="padding:6px;text-align:right;font-size:13px;font-weight:bold;">TOTAL TTC:</td>
+        <td style="padding:6px;text-align:right;font-size:13px;font-weight:bold;">${Math.round(f.montant * (1 + tauxTva / 100)).toLocaleString('fr-FR')} FCFA</td>
       </tr>` : ''}
-    </tfoot>
+    </tfoot>`}
   </table>
   ${footerHtml}
 </body></html>`;
@@ -253,6 +271,22 @@ export default function ModalImpressionDocuments({
                   <p className="text-xs text-gray-500">Format standard thermique</p>
                 </div>
               </button>
+
+              {/* Option TVA */}
+              {comptePrive && (
+                <label className="flex items-center gap-3 p-3 rounded-xl border-2 border-gray-100 hover:border-amber-200 hover:bg-amber-50/50 transition-colors cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={avecTva}
+                    onChange={(e) => setAvecTva(e.target.checked)}
+                    className="w-5 h-5 rounded border-gray-300 text-amber-500 focus:ring-amber-500"
+                  />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-gray-900">Inclure la TVA ({tauxTva}%)</p>
+                    <p className="text-xs text-gray-500">Ajouter la TVA au montant total</p>
+                  </div>
+                </label>
+              )}
 
               {/* Séparateur */}
               <div className="flex items-center gap-3 py-1">

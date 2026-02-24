@@ -23,7 +23,8 @@ import {
   TrendingUp,
   Tag,
   FileText,
-  ChevronDown
+  ChevronDown,
+  Percent
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
@@ -234,6 +235,11 @@ export default function StructureEditPage() {
   const [infoFactureOpen, setInfoFactureOpen] = useState(false);
   const [isSavingInfoFacture, setIsSavingInfoFacture] = useState(false);
 
+  // États TVA (compte_prive uniquement)
+  const [inclureTva, setInclureTva] = useState(false);
+  const [tauxTva, setTauxTva] = useState(18);
+  const [isSavingTva, setIsSavingTva] = useState(false);
+
   // États abonnements
   const [showModalAbonnement, setShowModalAbonnement] = useState(false);
   const [historiqueAbonnements, setHistoriqueAbonnements] = useState<HistoriqueAbonnement[]>([]);
@@ -273,6 +279,10 @@ export default function StructureEditPage() {
             const parsed = typeof rawInfoFacture === 'string' ? JSON.parse(rawInfoFacture) : rawInfoFacture;
             setInfoFacture({ ...DEFAULT_INFO_FACTURE, ...parsed });
           }
+
+          // Initialiser TVA depuis la DB
+          setInclureTva(structureData.inclure_tva === true || structureData.inclure_tva === 't' as unknown);
+          setTauxTva(structureData.taux_tva ? Number(structureData.taux_tva) : 18);
 
           const mappedStructure: StructureData = {
             id_structure: structureData.id_structure || user.id_structure,
@@ -587,6 +597,28 @@ export default function StructureEditPage() {
       showMessage('error', 'Erreur de connexion lors de la sauvegarde');
     } finally {
       setIsSavingInfoFacture(false);
+    }
+  };
+
+  const saveTva = async () => {
+    if (!user?.id_structure) return;
+    setIsSavingTva(true);
+    try {
+      const result = await databaseService.editParamStructure(user.id_structure, {
+        inclure_tva: inclureTva,
+        taux_tva: tauxTva,
+      });
+      if (result.success) {
+        showMessage('success', 'Configuration TVA sauvegardée');
+        await refreshAuth();
+      } else {
+        showMessage('error', result.message || 'Erreur sauvegarde TVA');
+      }
+    } catch (error) {
+      console.error('Erreur sauvegarde TVA:', error);
+      showMessage('error', 'Erreur de connexion lors de la sauvegarde');
+    } finally {
+      setIsSavingTva(false);
     }
   };
 
@@ -1108,6 +1140,67 @@ export default function StructureEditPage() {
                       </span>
                     </div>
                   </motion.div>
+
+                  {/* TVA - uniquement pour compte_prive */}
+                  {currentStructureData?.compte_prive && (
+                    <motion.div
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.55 }}
+                      className="p-6 bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl border-2 border-amber-200"
+                    >
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-4">
+                          <div className="w-12 h-12 bg-amber-500 rounded-xl flex items-center justify-center">
+                            <Percent className="h-6 w-6 text-white" />
+                          </div>
+                          <div>
+                            <h3 className="font-bold text-gray-900">TVA sur les factures</h3>
+                            <p className="text-sm text-gray-600">Inclure la TVA sur les documents imprimés</p>
+                          </div>
+                        </div>
+                        <label className="relative inline-flex items-center cursor-pointer">
+                          <input
+                            type="checkbox"
+                            className="sr-only peer"
+                            checked={inclureTva}
+                            onChange={(e) => setInclureTva(e.target.checked)}
+                          />
+                          <div className="w-14 h-7 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-amber-500"></div>
+                        </label>
+                      </div>
+
+                      {inclureTva && (
+                        <div className="ml-16 space-y-3">
+                          <div>
+                            <label className="block text-sm font-semibold text-gray-700 mb-1">Taux de TVA (%)</label>
+                            <input
+                              type="number"
+                              value={tauxTva}
+                              onChange={(e) => setTauxTva(Number(e.target.value))}
+                              min={0}
+                              max={100}
+                              step={0.5}
+                              className="w-32 px-4 py-2.5 rounded-lg border border-amber-200 bg-white focus:ring-2 focus:ring-amber-500 focus:border-transparent text-sm font-semibold text-center"
+                            />
+                          </div>
+                        </div>
+                      )}
+
+                      <button
+                        onClick={saveTva}
+                        disabled={isSavingTva}
+                        className="w-full mt-4 py-2.5 px-6 bg-amber-500 hover:bg-amber-600 disabled:bg-amber-300 text-white font-semibold rounded-xl flex items-center justify-center gap-2 transition-colors text-sm"
+                      >
+                        {isSavingTva ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Save className="h-4 w-4" />
+                        )}
+                        {isSavingTva ? 'Sauvegarde...' : 'Sauvegarder TVA'}
+                      </button>
+                    </motion.div>
+                  )}
 
                   {/* Infos Facture - Section dépliable */}
                   <motion.div

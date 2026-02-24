@@ -92,6 +92,8 @@ export class AuthService {
             ? JSON.parse(structureData.config_facture as string)
             : structureData.config_facture) as StructureDetails['config_facture']
           : undefined,
+        inclure_tva: structureData.inclure_tva === true || structureData.inclure_tva === 't',
+        taux_tva: structureData.taux_tva ? Number(structureData.taux_tva) : 18,
       };
 
       console.log('✅ [AUTH] Détails structure récupérés:', {

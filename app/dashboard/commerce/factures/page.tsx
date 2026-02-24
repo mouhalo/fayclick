@@ -573,6 +573,8 @@ export default function FacturesGlassPage() {
           infoFacture={structure?.info_facture}
           logo={structure?.logo}
           nomStructure={structure?.nom_structure || ''}
+          inclureTva={structure?.inclure_tva}
+          tauxTva={structure?.taux_tva}
           onOpenRecu={() => {
             const facture = modalImpression.facture;
             setModalImpression({ isOpen: false, facture: null });
