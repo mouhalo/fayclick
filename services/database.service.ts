@@ -189,6 +189,39 @@ class DatabaseService {
     }
   }
 
+  async editParamStructure(
+    idStructure: number,
+    params: {
+      credit_autorise?: boolean;
+      limite_credit?: number;
+      acompte_autorise?: boolean;
+      prix_engros?: boolean;
+    }
+  ): Promise<{ success: boolean; message: string; data?: Record<string, unknown> }> {
+    const args = [
+      idStructure.toString(),
+      params.credit_autorise !== undefined ? params.credit_autorise.toString() : 'NULL',
+      params.limite_credit !== undefined ? params.limite_credit.toString() : 'NULL',
+      params.acompte_autorise !== undefined ? params.acompte_autorise.toString() : 'NULL',
+      params.prix_engros !== undefined ? params.prix_engros.toString() : 'NULL',
+    ];
+
+    const query = `SELECT edit_param_structure(${args.join(', ')})`;
+
+    try {
+      const results = await this.query(query);
+      if (results && results.length > 0) {
+        const raw = (results[0] as Record<string, unknown>).edit_param_structure;
+        const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
+        return parsed as { success: boolean; message: string; data?: Record<string, unknown> };
+      }
+      return { success: false, message: 'Aucune réponse du serveur' };
+    } catch (error) {
+      console.error('[DATABASE] Erreur edit_param_structure:', error);
+      throw error;
+    }
+  }
+
   async requestPasswordReset(login: string, telephone: string): Promise<unknown> {
     const escapedLogin = login.replace(/'/g, "''");
     const escapedTelephone = telephone.replace(/'/g, "''");
