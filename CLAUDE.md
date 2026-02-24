@@ -63,6 +63,11 @@ FayClick V2 is a Next.js-based Progressive Web App (PWA) designed as a "Super Ap
 - `ResponsiveHeader` - Adaptive headers
 - `TouchCarousel` - Touch-optimized carousels
 
+#### Settings Components (`components/settings/`)
+- `UsersManagement.tsx` - Gestion utilisateurs/caissiers avec maxCaissiers dynamique
+- `CategoriesManagement.tsx` - Gestion catégories produits
+- `FactureLayoutEditor.tsx` - Configurateur drag & drop modèle facture (zones header/footer G/C/D)
+
 #### Custom Hooks (`hooks/`)
 - `useBreakpoint` - Responsive breakpoint detection
 - `useTouch` - Touch gesture handling and capabilities
@@ -187,6 +192,10 @@ The project is in Phase 2 development with:
 - ✅ **VenteFlash (Ventes Rapides)** avec client anonyme et encaissement CASH immédiat
 - ✅ **Système KALPE (Coffre-Fort Wallet)** avec soldes OM/WAVE/FREE et historique transactions
 - ✅ **Retraits Wallet** avec OTP SMS, API send_cash et flip cards animées
+- ✅ **Impression multi-format** factures (Reçu, Facture, BL, BR) avec format personnalisé/standard (compte_prive)
+- ✅ **Paramètres structure DB-first** avec sync localStorage (param_structure → Settings)
+- ✅ **Infos facture** éditables (adresse, tél, email, site, banque, NINEA) dans Règles Ventes
+- ✅ **Configurateur modèle facture** drag & drop avec aperçu live (compte_prive uniquement)
 
 ### Production Environment
 - **Live URL**: https://v2.fayclick.net
@@ -250,6 +259,8 @@ Tous les services suivent un pattern singleton avec gestion d'erreurs centralis�
   - `query()` : Exécution requêtes brutes
   - `getListClients(id_structure, tel_client?)` : Récupération clients avec filtre optionnel
   - `getUserRights(id_structure, id_profil)` : Système de droits
+  - `editParamStructure(id, params)` : Sauvegarde paramètres structure (sales rules, info_facture, config_facture)
+  - `getStructureDetails(id)` : Détails complets via get_une_structure()
 
 - **`auth.service.ts`** : Authentification complète
   - `completeLogin()` : Login + structure + permissions + droits
@@ -321,6 +332,21 @@ SELECT * FROM add_acompte_facture(
 SELECT * FROM get_soldes_wallet_structure(pid_structure);  -- Soldes simplifiés
 SELECT * FROM get_wallet_structure(pid_structure);         -- Données complètes + historique
 
+-- Paramètres structure
+SELECT get_une_structure(pid_structure);  -- Retourne JSON complet avec param_structure
+-- Retourne : credit_autorise, limite_credit, acompte_autorise, prix_engros,
+--   nombre_produit_max, nombre_caisse_max, compte_prive, mensualite, taux_wallet,
+--   info_facture (JSON), config_facture (JSON)
+SELECT edit_param_structure(
+  p_id_structure,       -- INTEGER
+  p_credit_autorise,    -- BOOL DEFAULT NULL
+  p_limite_credit,      -- NUMERIC DEFAULT NULL
+  p_acompte_autorise,   -- BOOL DEFAULT NULL
+  p_prix_engros,        -- BOOL DEFAULT NULL
+  p_info_facture,       -- JSON DEFAULT NULL (merge avec existant)
+  p_config_facture      -- JSON DEFAULT NULL (remplacement complet)
+);
+
 -- Retraits Wallet
 -- ⚠️ Appeler UNIQUEMENT après succès API send_cash
 SELECT * FROM add_retrait_marchand(
@@ -384,6 +410,27 @@ POST https://api.icelabsoft.com/sms_service/api/send_o_sms
   "message": "Entrez le code : 12345 pour valider le retrait...",
   "sender": "ICELABOSOFT"
 }
+```
+
+### Impression Multi-Format Factures (compte_prive)
+
+#### Composants Impression (`components/impression/`)
+- **`ModalImpressionDocuments.tsx`** : Modal choix document + format + impression iframe
+
+#### Comportement conditionnel
+- **`compte_prive = true`** : Bouton "Imprimer" (indigo) sur FactureCard PAYÉE → modal avec Reçu, Facture, BL, BR → choix Personnalisé/Standard
+- **`compte_prive = false`** : Bouton "Reçu" (vert) inchangé sur FactureCard PAYÉE
+
+#### Formats d'impression
+- **Personnalisé** : Utilise `config_facture` depuis auth context (flexbox gauche/centre/droite) + nomStructure en titre
+- **Standard** : Layout centré classique (logo centré, nom structure h2, adresse, tél)
+
+#### Pattern important
+```typescript
+// TOUJOURS appeler refreshAuth() après sauvegarde dans editParamStructure
+// Sinon les autres pages n'auront pas les données à jour dans structure.*
+const result = await databaseService.editParamStructure(id, { config_facture: ... });
+if (result.success) await refreshAuth();
 ```
 
 ### Résumé PWA
@@ -535,6 +582,7 @@ const response = typeof rawResponse === 'string'
 - ❌ **Ne PAS capturer useState dans callbacks async** - Passer les valeurs en paramètres (évite closure stale)
 - ❌ **Ne PAS faire JSON.parse() sans vérifier typeof** - PostgreSQL peut retourner objet ou string
 - ❌ **Ne PAS utiliser `produits.find()` pour recherche par code-barres** - Utiliser `produits.filter()` car un même code-barres peut correspondre à plusieurs produits (ex: variantes couleur)
+- ❌ **Ne PAS oublier `refreshAuth()` après `editParamStructure()`** - Sinon les autres pages n'auront pas les données à jour (config_facture, info_facture, etc.)
 
 ### À TOUJOURS FAIRE
 - ✅ Mettre à jour `CACHE_NAME` dans Service Worker si changements UI majeurs
@@ -550,6 +598,11 @@ const response = typeof rawResponse === 'string'
 - ✅ **Réponses PostgreSQL** : Vérifier `typeof === 'string'` avant `JSON.parse()`
 - ✅ **Scan code-barres** : Toujours utiliser `filter()` + modal sélection si matches > 1 (pattern appliqué dans Produits + VenteFlash)
 - ✅ **Toggle prix en gros** : Condition = `salesRules.prixEnGrosActif` seul (pas de check `prix_grossiste > 0`), avec fallback `prix_vente` si grossiste = 0
+- ✅ **Après `editParamStructure()` réussi** : Toujours appeler `await refreshAuth()` pour syncer l'auth context
+- ✅ **Paramètres structure** : DB = source de vérité, sync localStorage au login + sauvegarde optimiste
+- ✅ **editParamStructure()** : 7 paramètres (id, credit, limite, acompte, gros, info_facture JSON, config_facture JSON)
+- ✅ **config_facture** : Remplacement complet (pas de merge), layout = `{ header: { gauche, centre, droite }, footer: { ... } }`
+- ✅ **info_facture** : Merge côté serveur (COALESCE champ par champ)
 
 ---
 
