@@ -1,6 +1,16 @@
 import { EtatAbonnement } from './subscription.types';
 import { PartenaireDetails } from './partenaire.types';
 
+// Informations affichées sur les factures (depuis param_structure.info_facture)
+export interface InfoFacture {
+  adresse_complete: string;
+  tel_contact: string;
+  site_web: string;
+  email: string;
+  compte_bancaire: string;
+  ninea_rc: string;
+}
+
 // Types pour l'authentification et les structures
 export interface LoginCredentials {
   login: string;
@@ -90,6 +100,7 @@ export interface StructureDetails extends Structure {
   compte_prive?: boolean;
   mensualite?: number;
   taux_wallet?: number;
+  info_facture?: InfoFacture;
 }
 
 // Énumération des permissions disponibles
