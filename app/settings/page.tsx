@@ -1054,7 +1054,7 @@ export default function StructureEditPage() {
               {/* Onglet Abonnement */}
               {activeTab === 'subscription' && (
                 <div className="space-y-6">
-                  {/* Section 1: Choix formule - Bouton unique pour ouvrir le modal */}
+                  {/* Section 1: Bouton pour ouvrir le modal d'abonnement */}
                   <motion.div
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -1070,10 +1070,21 @@ export default function StructureEditPage() {
                             <Crown className="w-7 h-7 text-white" />
                           </div>
                           <div className="text-left">
-                            <h3 className="text-xl font-bold mb-1">Souscrire un abonnement</h3>
-                            <p className="text-sm text-emerald-50">
-                              Choisissez entre MENSUEL et ANNUEL
-                            </p>
+                            {currentStructureData?.compte_prive ? (
+                              <>
+                                <h3 className="text-xl font-bold mb-1">Renouveler l&apos;abonnement</h3>
+                                <p className="text-sm text-emerald-50">
+                                  Montant fixe : {(currentStructureData?.mensualite ?? 0).toLocaleString('fr-FR')} FCFA
+                                </p>
+                              </>
+                            ) : (
+                              <>
+                                <h3 className="text-xl font-bold mb-1">Souscrire un abonnement</h3>
+                                <p className="text-sm text-emerald-50">
+                                  Choisissez entre MENSUEL et ANNUEL
+                                </p>
+                              </>
+                            )}
                           </div>
                         </div>
                         <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center group-hover:bg-white/30 transition-colors">
@@ -1169,6 +1180,8 @@ export default function StructureEditPage() {
             telStructure={structure.mobile_om || structure.mobile_wave || ''}
             onSuccess={handleSubscriptionSuccess}
             onError={handleSubscriptionError}
+            comptePrive={currentStructureData?.compte_prive ?? false}
+            mensualite={currentStructureData?.mensualite ?? 0}
           />
         )}
       </div>
