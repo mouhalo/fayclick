@@ -30,9 +30,10 @@ interface EditingUser {
 
 interface UsersManagementProps {
   onShowMessage?: (message: string, type: 'success' | 'error') => void;
+  maxCaissiers?: number; // depuis param_structure.nombre_caisse_max
 }
 
-export default function UsersManagement({ onShowMessage }: UsersManagementProps) {
+export default function UsersManagement({ onShowMessage, maxCaissiers }: UsersManagementProps) {
   const { user } = useAuth();
   const canManageUsers = useHasRight("GESTION DES UTILISATEURS");
 
@@ -271,7 +272,7 @@ export default function UsersManagement({ onShowMessage }: UsersManagementProps)
   // Séparer admin et caissiers
   const adminUser = users.find(u => isAdmin(u));
   const caissiers = users.filter(u => !isAdmin(u));
-  const MAX_CAISSIERS = 2;
+  const MAX_CAISSIERS = maxCaissiers ?? 2;
   const limiteAtteinte = caissiers.length >= MAX_CAISSIERS;
 
   return (

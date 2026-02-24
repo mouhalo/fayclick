@@ -80,6 +80,16 @@ export interface StructureDetails extends Structure {
   updated_at: string;
   // État de l'abonnement (depuis get_une_structure())
   etat_abonnement?: EtatAbonnement | null;
+  // Paramètres structure depuis param_structure (get_une_structure)
+  credit_autorise?: boolean;
+  limite_credit?: number;
+  acompte_autorise?: boolean;
+  prix_engros?: boolean;
+  nombre_produit_max?: number;
+  nombre_caisse_max?: number;
+  compte_prive?: boolean;
+  mensualite?: number;
+  taux_wallet?: number;
 }
 
 // Énumération des permissions disponibles
