@@ -436,6 +436,24 @@ Quand un élément parent est cliquable, utiliser `stopPropagation()` sur les en
 </div>
 ```
 
+### Scan Code-Barres Multiples (pattern filter + modal sélection)
+Un même code-barres peut correspondre à plusieurs produits (variantes couleur/taille). Toujours utiliser `filter()` au lieu de `find()`, puis afficher un modal de sélection si plus d'un résultat :
+```typescript
+// ❌ MAUVAIS : retourne seulement le premier match
+const match = produits.find(p => p.code_barre === code);
+
+// ✅ BON : gère les matches multiples
+const matches = produits.filter(p => p.code_barre && p.code_barre.trim() === code.trim());
+if (matches.length === 1) {
+  handleProductSelected(matches[0]);
+} else if (matches.length > 1) {
+  setBarcodeMatches(matches);
+  setShowBarcodeSelectionModal(true);
+}
+```
+**Fichiers concernés** : `produits/page.tsx`, `venteflash/page.tsx`, `VenteFlashHeader.tsx`
+**VenteFlashHeader** : Utilise le callback `onMultipleMatches` pour déléguer au parent.
+
 ### Réinitialisation d'État
 Toujours réinitialiser les états liés quand une action critique survient :
 ```typescript
@@ -516,6 +534,7 @@ const response = typeof rawResponse === 'string'
 - ❌ **Ne PAS utiliser `<style jsx>` pour animations 3D** - Utiliser styles inline React
 - ❌ **Ne PAS capturer useState dans callbacks async** - Passer les valeurs en paramètres (évite closure stale)
 - ❌ **Ne PAS faire JSON.parse() sans vérifier typeof** - PostgreSQL peut retourner objet ou string
+- ❌ **Ne PAS utiliser `produits.find()` pour recherche par code-barres** - Utiliser `produits.filter()` car un même code-barres peut correspondre à plusieurs produits (ex: variantes couleur)
 
 ### À TOUJOURS FAIRE
 - ✅ Mettre à jour `CACHE_NAME` dans Service Worker si changements UI majeurs
@@ -529,6 +548,8 @@ const response = typeof rawResponse === 'string'
 - ✅ **OTP sessions** : Stockées en mémoire avec expiration 2 min et max 3 tentatives
 - ✅ **Callbacks polling** : Passer `formula` et `method` en paramètres (pas via useState)
 - ✅ **Réponses PostgreSQL** : Vérifier `typeof === 'string'` avant `JSON.parse()`
+- ✅ **Scan code-barres** : Toujours utiliser `filter()` + modal sélection si matches > 1 (pattern appliqué dans Produits + VenteFlash)
+- ✅ **Toggle prix en gros** : Condition = `salesRules.prixEnGrosActif` seul (pas de check `prix_grossiste > 0`), avec fallback `prix_vente` si grossiste = 0
 
 ---
 
