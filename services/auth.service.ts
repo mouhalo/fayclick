@@ -82,6 +82,11 @@ export class AuthService {
         compte_prive: structureData.compte_prive as boolean ?? false,
         mensualite: structureData.mensualite as number ?? 0,
         taux_wallet: structureData.taux_wallet as number ?? 0.04,
+        info_facture: structureData.info_facture
+          ? (typeof structureData.info_facture === 'string'
+            ? JSON.parse(structureData.info_facture as string)
+            : structureData.info_facture) as StructureDetails['info_facture']
+          : { adresse_complete: '', tel_contact: '', site_web: '', email: '', compte_bancaire: '', ninea_rc: '' },
       };
 
       console.log('✅ [AUTH] Détails structure récupérés:', {
