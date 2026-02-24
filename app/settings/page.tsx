@@ -906,7 +906,7 @@ export default function StructureEditPage() {
 
               {/* Onglet Gestion utilisateurs */}
               {activeTab === 'users' && (
-                <UsersManagement onShowMessage={showPopMessage} />
+                <UsersManagement onShowMessage={showPopMessage} maxCaissiers={currentStructureData?.nombre_caisse_max ?? 2} />
               )}
 
               {/* Onglet Règles ventes */}
