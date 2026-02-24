@@ -21,14 +21,16 @@ import {
   Settings,
   Shield,
   TrendingUp,
-  Tag
+  Tag,
+  FileText,
+  ChevronDown
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import databaseService from '@/services/database.service';
 import { authService } from '@/services/auth.service';
 import PopMessage from '@/components/ui/PopMessage';
-import { StructureDetails, CompleteAuthData } from '@/types/auth';
+import { StructureDetails, CompleteAuthData, InfoFacture } from '@/types/auth';
 import LogoUpload from '@/components/ui/LogoUpload';
 import { UploadResult, UploadProgress } from '@/types/upload.types';
 import UsersManagement from '@/components/settings/UsersManagement';
@@ -97,6 +99,15 @@ const DEFAULT_SALES_RULES: SalesRules = {
   limiteCredit: 50000,
   acompteAutorise: true,
   prixEnGrosActif: false,
+};
+
+const DEFAULT_INFO_FACTURE: InfoFacture = {
+  adresse_complete: '',
+  tel_contact: '',
+  site_web: '',
+  email: '',
+  compte_bancaire: '',
+  ninea_rc: '',
 };
 
 function getSalesRulesKey(idStructure: number): string {
@@ -217,6 +228,11 @@ export default function StructureEditPage() {
   // États règles de vente
   const [salesRules, setSalesRules] = useState<SalesRules>(DEFAULT_SALES_RULES);
 
+  // États infos facture
+  const [infoFacture, setInfoFacture] = useState<InfoFacture>(DEFAULT_INFO_FACTURE);
+  const [infoFactureOpen, setInfoFactureOpen] = useState(false);
+  const [isSavingInfoFacture, setIsSavingInfoFacture] = useState(false);
+
   // États abonnements
   const [showModalAbonnement, setShowModalAbonnement] = useState(false);
   const [historiqueAbonnements, setHistoriqueAbonnements] = useState<HistoriqueAbonnement[]>([]);
@@ -249,6 +265,13 @@ export default function StructureEditPage() {
           };
           setSalesRules(dbSalesRules);
           saveSalesRules(user.id_structure, dbSalesRules);
+
+          // Initialiser les infos facture depuis la DB
+          const rawInfoFacture = structureData.info_facture;
+          if (rawInfoFacture) {
+            const parsed = typeof rawInfoFacture === 'string' ? JSON.parse(rawInfoFacture) : rawInfoFacture;
+            setInfoFacture({ ...DEFAULT_INFO_FACTURE, ...parsed });
+          }
 
           const mappedStructure: StructureData = {
             id_structure: structureData.id_structure || user.id_structure,
@@ -541,6 +564,26 @@ export default function StructureEditPage() {
     } catch (error) {
       console.error('Erreur sauvegarde règles ventes en DB:', error);
       showMessage('error', 'Erreur de connexion lors de la sauvegarde');
+    }
+  };
+
+  const saveInfoFacture = async () => {
+    if (!user?.id_structure) return;
+    setIsSavingInfoFacture(true);
+    try {
+      const result = await databaseService.editParamStructure(user.id_structure, {
+        info_facture: infoFacture as unknown as Record<string, string>,
+      });
+      if (result.success) {
+        showMessage('success', 'Informations facture sauvegardées');
+      } else {
+        showMessage('error', result.message || 'Erreur sauvegarde infos facture');
+      }
+    } catch (error) {
+      console.error('Erreur sauvegarde infos facture:', error);
+      showMessage('error', 'Erreur de connexion lors de la sauvegarde');
+    } finally {
+      setIsSavingInfoFacture(false);
     }
   };
 
@@ -1042,6 +1085,80 @@ export default function StructureEditPage() {
                         {currentStructureData?.nombre_produit_max ?? 600}
                       </span>
                     </div>
+                  </motion.div>
+
+                  {/* Infos Facture - Section dépliable */}
+                  <motion.div
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.6 }}
+                    className="rounded-xl border-2 border-blue-200 overflow-hidden"
+                  >
+                    <button
+                      onClick={() => setInfoFactureOpen(!infoFactureOpen)}
+                      className="w-full p-6 bg-gradient-to-br from-blue-50 to-cyan-50 flex items-center justify-between"
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 bg-blue-500 rounded-xl flex items-center justify-center">
+                          <FileText className="h-6 w-6 text-white" />
+                        </div>
+                        <div className="text-left">
+                          <h3 className="font-bold text-gray-900">Informations sur vos factures</h3>
+                          <p className="text-sm text-gray-600">Coordonnées affichées sur vos factures imprimées</p>
+                        </div>
+                      </div>
+                      <ChevronDown className={`h-6 w-6 text-gray-500 transition-transform duration-300 ${infoFactureOpen ? 'rotate-180' : ''}`} />
+                    </button>
+
+                    <AnimatePresence>
+                      {infoFactureOpen && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: 'auto', opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          transition={{ duration: 0.3 }}
+                          className="overflow-hidden"
+                        >
+                          <div className="p-6 space-y-4 bg-white">
+                            {[
+                              { key: 'adresse_complete', label: 'Adresse complète', placeholder: 'Ex: Rue 10, Médina, Dakar', icon: MapPin },
+                              { key: 'tel_contact', label: 'Téléphone de contact', placeholder: 'Ex: 33 800 00 00', icon: Phone },
+                              { key: 'site_web', label: 'Site web', placeholder: 'Ex: www.moncommerce.sn', icon: TrendingUp },
+                              { key: 'email', label: 'Email', placeholder: 'Ex: contact@moncommerce.sn', icon: Mail },
+                              { key: 'compte_bancaire', label: 'Compte bancaire', placeholder: 'Ex: CBAO SN08 0001 ...', icon: CreditCard },
+                              { key: 'ninea_rc', label: 'NINEA / Registre de Commerce', placeholder: 'Ex: NINEA 005234567 2G3', icon: Shield },
+                            ].map(({ key, label, placeholder, icon: Icon }) => (
+                              <div key={key}>
+                                <label className="block text-sm font-semibold text-gray-700 mb-1">{label}</label>
+                                <div className="flex items-center gap-2">
+                                  <Icon className="h-5 w-5 text-blue-400 flex-shrink-0" />
+                                  <input
+                                    type="text"
+                                    value={infoFacture[key as keyof InfoFacture]}
+                                    onChange={(e) => setInfoFacture(prev => ({ ...prev, [key]: e.target.value }))}
+                                    placeholder={placeholder}
+                                    className="flex-1 px-4 py-2.5 rounded-lg border border-gray-200 bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                                  />
+                                </div>
+                              </div>
+                            ))}
+
+                            <button
+                              onClick={saveInfoFacture}
+                              disabled={isSavingInfoFacture}
+                              className="w-full mt-4 py-3 px-6 bg-blue-500 hover:bg-blue-600 disabled:bg-blue-300 text-white font-semibold rounded-xl flex items-center justify-center gap-2 transition-colors"
+                            >
+                              {isSavingInfoFacture ? (
+                                <Loader2 className="h-5 w-5 animate-spin" />
+                              ) : (
+                                <Save className="h-5 w-5" />
+                              )}
+                              {isSavingInfoFacture ? 'Sauvegarde...' : 'Sauvegarder les infos facture'}
+                            </button>
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </motion.div>
                 </div>
               )}
