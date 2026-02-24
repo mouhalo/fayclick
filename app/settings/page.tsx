@@ -240,6 +240,16 @@ export default function StructureEditPage() {
           // Stocker les données complètes pour les infos d'abonnement
           setCurrentStructureData(structureData);
 
+          // Initialiser les sales rules depuis les données DB (source de vérité)
+          const dbSalesRules: SalesRules = {
+            creditAutorise: structureData.credit_autorise ?? DEFAULT_SALES_RULES.creditAutorise,
+            limiteCredit: structureData.limite_credit ?? DEFAULT_SALES_RULES.limiteCredit,
+            acompteAutorise: structureData.acompte_autorise ?? DEFAULT_SALES_RULES.acompteAutorise,
+            prixEnGrosActif: structureData.prix_engros ?? DEFAULT_SALES_RULES.prixEnGrosActif,
+          };
+          setSalesRules(dbSalesRules);
+          saveSalesRules(user.id_structure, dbSalesRules);
+
           const mappedStructure: StructureData = {
             id_structure: structureData.id_structure || user.id_structure,
             nom_structure: structureData.nom_structure || '',
@@ -439,12 +449,7 @@ export default function StructureEditPage() {
     setPopMessage({ show: true, type, title, message });
   };
 
-  // Charger les règles de vente depuis localStorage
-  useEffect(() => {
-    if (user?.id_structure) {
-      setSalesRules(loadSalesRules(user.id_structure));
-    }
-  }, [user?.id_structure]);
+  // Note: les sales rules sont maintenant chargées depuis la DB dans loadStructureData()
 
   // Charger l'historique des abonnements quand l'onglet est actif
   useEffect(() => {
@@ -512,12 +517,31 @@ export default function StructureEditPage() {
     showMessage('error', message || 'Erreur lors de l\'abonnement');
   };
 
-  // Mise à jour des règles de vente avec sauvegarde localStorage
-  const updateSalesRules = (updates: Partial<SalesRules>) => {
+  // Mise à jour des règles de vente avec sauvegarde DB + sync localStorage
+  const updateSalesRules = async (updates: Partial<SalesRules>) => {
     if (!user?.id_structure) return;
+
     const newRules = { ...salesRules, ...updates };
+    // Mise à jour optimiste immédiate
     setSalesRules(newRules);
     saveSalesRules(user.id_structure, newRules);
+
+    // Sauvegarde en DB
+    try {
+      const dbParams: { credit_autorise?: boolean; limite_credit?: number; acompte_autorise?: boolean; prix_engros?: boolean } = {};
+      if ('creditAutorise' in updates) dbParams.credit_autorise = updates.creditAutorise;
+      if ('limiteCredit' in updates) dbParams.limite_credit = updates.limiteCredit;
+      if ('acompteAutorise' in updates) dbParams.acompte_autorise = updates.acompteAutorise;
+      if ('prixEnGrosActif' in updates) dbParams.prix_engros = updates.prixEnGrosActif;
+
+      const result = await databaseService.editParamStructure(user.id_structure, dbParams);
+      if (!result.success) {
+        showMessage('error', result.message || 'Erreur sauvegarde paramètres');
+      }
+    } catch (error) {
+      console.error('Erreur sauvegarde règles ventes en DB:', error);
+      showMessage('error', 'Erreur de connexion lors de la sauvegarde');
+    }
   };
 
   // Fonction wrapper pour les composants enfants (utilisée par UsersManagement)
@@ -996,6 +1020,27 @@ export default function StructureEditPage() {
                         />
                         <div className="w-14 h-7 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-purple-500"></div>
                       </label>
+                    </div>
+                  </motion.div>
+
+                  {/* Nombre max produits - lecture seule */}
+                  <motion.div
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.5 }}
+                    className="p-6 bg-gray-50 rounded-xl border-2 border-gray-200"
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 bg-gray-400 rounded-xl flex items-center justify-center">
+                        <Shield className="h-6 w-6 text-white" />
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="font-bold text-gray-900">Nombre max de produits</h3>
+                        <p className="text-sm text-gray-500">Limite définie par votre abonnement</p>
+                      </div>
+                      <span className="text-2xl font-bold text-gray-700">
+                        {currentStructureData?.nombre_produit_max ?? 600}
+                      </span>
                     </div>
                   </motion.div>
                 </div>
