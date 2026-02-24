@@ -40,6 +40,8 @@ interface ModalPaiementAbonnementProps {
   telStructure: string;
   onSuccess: () => void;
   onError: (message: string) => void;
+  comptePrive?: boolean;   // Si true, montant fixe mensualite
+  mensualite?: number;     // Montant fixe pour compte privé
 }
 
 type ModalState =
@@ -61,7 +63,9 @@ export default function ModalPaiementAbonnement({
   nomStructure,
   telStructure,
   onSuccess,
-  onError
+  onError,
+  comptePrive = false,
+  mensualite = 0
 }: ModalPaiementAbonnementProps) {
   // États principaux
   const [modalState, setModalState] = useState<ModalState>('SELECT_DAYS');
@@ -83,8 +87,8 @@ export default function ModalPaiementAbonnement({
   const [qrExpanded, setQrExpanded] = useState(true);
   const [customInput, setCustomInput] = useState(false);
 
-  // Montant calculé
-  const montant = nombreJours * PRIX_JOUR;
+  // Montant calculé : fixe pour compte privé, sinon basé sur le nombre de jours
+  const montant = comptePrive ? mensualite : nombreJours * PRIX_JOUR;
 
   useEffect(() => {
     setMounted(true);
@@ -142,9 +146,10 @@ export default function ModalPaiementAbonnement({
         method
       });
 
+      const typeAbonnement = comptePrive ? 'MENSUEL' : (nombreJours <= 1 ? 'JOURNALIER' : nombreJours <= 7 ? 'HEBDOMADAIRE' : nombreJours <= 31 ? 'MENSUEL' : 'ANNUEL');
       const paymentResponse = await paymentWalletService.createSubscriptionPaymentDirect({
         idStructure,
-        typeAbonnement: nombreJours <= 1 ? 'JOURNALIER' : nombreJours <= 7 ? 'HEBDOMADAIRE' : nombreJours <= 31 ? 'MENSUEL' : 'ANNUEL',
+        typeAbonnement,
         montant,
         methode: method,
         nomStructure,
@@ -170,7 +175,7 @@ export default function ModalPaiementAbonnement({
 
       setModalState('SHOWING_QR');
       setTimeRemaining(90);
-      startPolling(paymentResponse.uuid, nombreJours, method);
+      startPolling(paymentResponse.uuid, comptePrive ? 30 : nombreJours, method);
 
     } catch (err) {
       console.error('❌ [SUBSCRIPTION-MODAL] Erreur:', err);
@@ -277,8 +282,8 @@ export default function ModalPaiementAbonnement({
   };
 
   const resetModal = () => {
-    setModalState('SELECT_DAYS');
-    setNombreJours(1);
+    setModalState(comptePrive ? 'SELECT_METHOD' : 'SELECT_DAYS');
+    setNombreJours(comptePrive ? 30 : 1);
     setSelectedMethod(null);
     setQrCode('');
     setPaymentUrl(null);
@@ -334,7 +339,7 @@ export default function ModalPaiementAbonnement({
                   <div>
                     <h2 className="text-lg md:text-xl font-bold text-gray-900">
                       {modalState === 'SELECT_DAYS' && 'Activer votre abonnement'}
-                      {modalState === 'SELECT_METHOD' && 'Mode de paiement'}
+                      {modalState === 'SELECT_METHOD' && (comptePrive ? 'Renouveler l\'abonnement' : 'Mode de paiement')}
                       {(modalState === 'SHOWING_QR' || modalState === 'PROCESSING') && 'Paiement en cours'}
                       {modalState === 'CREATING_SUB' && 'Finalisation...'}
                       {modalState === 'SUCCESS' && 'Abonnement active !'}
@@ -342,7 +347,7 @@ export default function ModalPaiementAbonnement({
                       {modalState === 'TIMEOUT' && 'Temps ecoule'}
                     </h2>
                     <p className="text-xs md:text-sm text-gray-500">
-                      100 FCFA / jour
+                      {comptePrive ? `${mensualite.toLocaleString('fr-FR')} FCFA / mois` : '100 FCFA / jour'}
                     </p>
                   </div>
                 </div>
@@ -493,10 +498,14 @@ export default function ModalPaiementAbonnement({
                   <div className="space-y-4">
                     {/* Résumé */}
                     <div className="p-4 bg-emerald-50 rounded-xl border border-emerald-200 text-center">
-                      <p className="text-sm text-gray-600">Abonnement</p>
-                      <p className="text-xl font-bold text-gray-900">
-                        {nombreJours} jour{nombreJours > 1 ? 's' : ''}
+                      <p className="text-sm text-gray-600">
+                        {comptePrive ? 'Abonnement mensuel (tarif fixe)' : 'Abonnement'}
                       </p>
+                      {!comptePrive && (
+                        <p className="text-xl font-bold text-gray-900">
+                          {nombreJours} jour{nombreJours > 1 ? 's' : ''}
+                        </p>
+                      )}
                       <p className="text-2xl font-bold text-emerald-600">
                         {montant.toLocaleString('fr-FR')} FCFA
                       </p>
@@ -536,13 +545,15 @@ export default function ModalPaiementAbonnement({
                       </div>
                     )}
 
-                    <button
-                      onClick={() => setModalState('SELECT_DAYS')}
-                      disabled={isLoading}
-                      className="w-full px-4 py-2 text-sm text-gray-600 hover:text-gray-900 transition-colors disabled:opacity-50"
-                    >
-                      ← Modifier la duree
-                    </button>
+                    {!comptePrive && (
+                      <button
+                        onClick={() => setModalState('SELECT_DAYS')}
+                        disabled={isLoading}
+                        className="w-full px-4 py-2 text-sm text-gray-600 hover:text-gray-900 transition-colors disabled:opacity-50"
+                      >
+                        ← Modifier la duree
+                      </button>
+                    )}
                   </div>
                 )}
 
