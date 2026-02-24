@@ -25,6 +25,8 @@ interface VenteFlashHeaderProps {
   produits: Produit[];
   /** Callback ajout produit au panier */
   onAddToPanier: (produit: Produit) => void;
+  /** Callback quand plusieurs produits partagent le même code-barres */
+  onMultipleMatches?: (matches: Produit[]) => void;
   /** Callback pour rafraîchir les données */
   onRefresh?: () => void;
   /** Callback pour imprimer le rapport du jour */
@@ -34,6 +36,7 @@ interface VenteFlashHeaderProps {
 export const VenteFlashHeader = forwardRef<VenteFlashHeaderRef, VenteFlashHeaderProps>(({
   produits,
   onAddToPanier,
+  onMultipleMatches,
   onRefresh,
   onPrint
 }, ref) => {
@@ -82,19 +85,25 @@ export const VenteFlashHeader = forwardRef<VenteFlashHeaderRef, VenteFlashHeader
     if (searchTerm.length < 3) return;
 
     const timer = setTimeout(() => {
-      const match = produits.find(p => p.code_barre && p.code_barre === searchTerm.trim());
-      if (match) {
-        console.log('📊 [VENTE FLASH] Auto-scan détecté:', match.nom_produit, '| code:', searchTerm.trim());
-        onAddToPanier(match);
-        setSearchTerm('');
-        setShowDropdown(false);
-        // Re-focus pour enchaîner les scans
-        setTimeout(() => inputRef.current?.focus(), 100);
+      const matches = produits.filter(p => p.code_barre && p.code_barre.trim() === searchTerm.trim());
+      if (matches.length === 0) return;
+
+      console.log('📊 [VENTE FLASH] Auto-scan détecté:', matches.length, 'produit(s) | code:', searchTerm.trim());
+      setSearchTerm('');
+      setShowDropdown(false);
+
+      if (matches.length === 1) {
+        onAddToPanier(matches[0]);
+      } else if (onMultipleMatches) {
+        onMultipleMatches(matches);
+      } else {
+        onAddToPanier(matches[0]);
       }
+      setTimeout(() => inputRef.current?.focus(), 100);
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [searchTerm, produits, onAddToPanier]);
+  }, [searchTerm, produits, onAddToPanier, onMultipleMatches]);
 
   // Fermer dropdown si clic extérieur
   useEffect(() => {
@@ -124,14 +133,20 @@ export const VenteFlashHeader = forwardRef<VenteFlashHeaderRef, VenteFlashHeader
       e.preventDefault();
 
       // Priorité 1: Match exact code-barres (scan douchette)
-      const barcodeMatch = produits.find(p =>
+      const barcodeMatches = produits.filter(p =>
         p.code_barre && p.code_barre.trim() === searchTerm.trim()
       );
-      if (barcodeMatch) {
-        console.log('📊 [VENTE FLASH] Enter scan détecté:', barcodeMatch.nom_produit);
-        onAddToPanier(barcodeMatch);
+      if (barcodeMatches.length > 0) {
+        console.log('📊 [VENTE FLASH] Enter scan détecté:', barcodeMatches.length, 'produit(s)');
         setSearchTerm('');
         setShowDropdown(false);
+        if (barcodeMatches.length === 1) {
+          onAddToPanier(barcodeMatches[0]);
+        } else if (onMultipleMatches) {
+          onMultipleMatches(barcodeMatches);
+        } else {
+          onAddToPanier(barcodeMatches[0]);
+        }
         setTimeout(() => inputRef.current?.focus(), 100);
         return;
       }
@@ -147,12 +162,20 @@ export const VenteFlashHeader = forwardRef<VenteFlashHeaderRef, VenteFlashHeader
   const handleScanSuccess = (code: string) => {
     console.log('📊 [VENTE FLASH] Code scanné:', code);
 
-    // Rechercher produit par code-barre
-    const produit = produits.find(p => p.code_barre === code);
+    const matches = produits.filter(p => p.code_barre && p.code_barre.trim() === code.trim());
 
-    if (produit) {
-      console.log('✅ [VENTE FLASH] Produit trouvé par scan:', produit.nom_produit);
-      onAddToPanier(produit);
+    if (matches.length > 0) {
+      if (matches.length === 1) {
+        console.log('✅ [VENTE FLASH] Produit trouvé par scan:', matches[0].nom_produit);
+        onAddToPanier(matches[0]);
+      } else {
+        console.log('📋 [VENTE FLASH] Scanner: Plusieurs produits trouvés:', matches.map(m => m.nom_produit));
+        if (onMultipleMatches) {
+          onMultipleMatches(matches);
+        } else {
+          onAddToPanier(matches[0]);
+        }
+      }
     } else {
       console.warn('⚠️ [VENTE FLASH] Aucun produit avec ce code-barre:', code);
       alert(`Aucun produit trouvé avec le code-barre: ${code}`);
