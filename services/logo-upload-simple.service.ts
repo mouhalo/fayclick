@@ -263,12 +263,13 @@ class LogoUploadSimpleService {
         body: formData
       });
 
-      // Lire la réponse JSON même en cas d'erreur pour voir le message
+      // Lire la réponse comme texte d'abord, puis parser en JSON
+      const responseText = await response.text();
       let result;
       try {
-        result = await response.json();
+        result = JSON.parse(responseText);
       } catch (e) {
-        console.error('❌ [LOGO-SIMPLE] Réponse non-JSON:', await response.text());
+        console.error('❌ [LOGO-SIMPLE] Réponse non-JSON:', responseText);
         throw new Error(`Erreur serveur ${response.status}: Réponse invalide`);
       }
 

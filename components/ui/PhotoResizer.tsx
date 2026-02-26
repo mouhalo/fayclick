@@ -73,7 +73,15 @@ export default function PhotoResizer({
     const loadInitialPreview = async () => {
       try {
         setLoading(true);
-        const url = await loadImagePreview(file);
+
+        // Utiliser ObjectURL (plus robuste que FileReader pour certains navigateurs)
+        let url: string;
+        try {
+          url = await loadImagePreview(file);
+        } catch {
+          // Fallback sur ObjectURL si FileReader échoue
+          url = URL.createObjectURL(file);
+        }
         setPreviewUrl(url);
 
         // En mode photo ou étape resize, générer preview dimensions
@@ -144,8 +152,8 @@ export default function PhotoResizer({
     try {
       const url = await loadImagePreview(file);
       setPreviewUrl(url);
-    } catch (e) {
-      // ignore
+    } catch {
+      setPreviewUrl(URL.createObjectURL(file));
     }
   }, [file, loadImagePreview]);
 
