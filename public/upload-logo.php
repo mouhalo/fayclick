@@ -80,27 +80,87 @@ if (!function_exists('curl_init')) {
     sendJSON(['success' => false, 'error' => 'CURL non disponible sur le serveur'], 500);
 }
 
-// Vérification de l'upload du fichier
-if (!isset($_FILES['file'])) {
-    logMessage("Aucun fichier dans la requête", 'ERROR');
-    sendJSON(['success' => false, 'error' => 'Aucun fichier reçu'], 400);
+// === MODE BASE64 : Contourne UPLOAD_ERR_NO_TMP_DIR sur hébergements mutualisés ===
+// Le client peut envoyer le fichier en base64 dans le body JSON
+// Format: { "file_base64": "data:image/jpeg;base64,...", "filename": "mon-logo.jpg" }
+$useBase64 = false;
+$tmpFilePath = null;
+
+$contentType = $_SERVER['CONTENT_TYPE'] ?? '';
+if (strpos($contentType, 'application/json') !== false || !isset($_FILES['file'])) {
+    $jsonBody = json_decode(file_get_contents('php://input'), true);
+    if ($jsonBody && !empty($jsonBody['file_base64'])) {
+        $useBase64 = true;
+        logMessage("=== MODE BASE64 ===");
+
+        // Extraire les données base64
+        $base64Data = $jsonBody['file_base64'];
+        $filename = isset($jsonBody['filename']) ? basename($jsonBody['filename']) : 'upload.jpg';
+
+        // Supprimer le préfixe data:image/...;base64, si présent
+        if (preg_match('/^data:image\/(\w+);base64,/', $base64Data, $matches)) {
+            $base64Data = substr($base64Data, strlen($matches[0]));
+            $detectedExt = $matches[1] === 'jpeg' ? 'jpg' : $matches[1];
+        }
+
+        $fileData = base64_decode($base64Data);
+        if ($fileData === false) {
+            sendJSON(['success' => false, 'error' => 'Données base64 invalides'], 400);
+        }
+
+        $fileSize = strlen($fileData);
+        $fileType = 'image/' . (pathinfo($filename, PATHINFO_EXTENSION) ?: 'jpeg');
+
+        // Sauvegarder dans le dossier tmp local
+        $localTmpDir = __DIR__ . '/tmp';
+        if (!is_dir($localTmpDir)) {
+            @mkdir($localTmpDir, 0755, true);
+        }
+        $tmpFilePath = $localTmpDir . '/' . uniqid('upload_') . '_' . $filename;
+        file_put_contents($tmpFilePath, $fileData);
+
+        // Construire un pseudo $_FILES pour le reste du code
+        $file = [
+            'name' => $filename,
+            'type' => $fileType,
+            'tmp_name' => $tmpFilePath,
+            'error' => UPLOAD_ERR_OK,
+            'size' => $fileSize
+        ];
+    } else {
+        sendJSON(['success' => false, 'error' => 'Aucun fichier reçu'], 400);
+    }
 }
 
-$file = $_FILES['file'];
+// === MODE MULTIPART CLASSIQUE ===
+if (!$useBase64) {
+    if (!isset($_FILES['file'])) {
+        logMessage("Aucun fichier dans la requête", 'ERROR');
+        sendJSON(['success' => false, 'error' => 'Aucun fichier reçu'], 400);
+    }
 
-// Gestion des erreurs d'upload PHP
-if ($file['error'] !== UPLOAD_ERR_OK) {
-    $uploadErrors = [
-        UPLOAD_ERR_INI_SIZE => 'Fichier trop volumineux (limite serveur)',
-        UPLOAD_ERR_FORM_SIZE => 'Fichier trop volumineux (limite formulaire)',
-        UPLOAD_ERR_PARTIAL => 'Fichier partiellement uploadé',
-        UPLOAD_ERR_NO_FILE => 'Aucun fichier uploadé',
-        UPLOAD_ERR_NO_TMP_DIR => 'Dossier temporaire manquant',
-        UPLOAD_ERR_CANT_WRITE => 'Erreur écriture disque',
-        UPLOAD_ERR_EXTENSION => 'Extension PHP a bloqué l\'upload'
-    ];
-    $errorMsg = $uploadErrors[$file['error']] ?? 'Erreur inconnue';
-    sendJSON(['success' => false, 'error' => $errorMsg], 400);
+    $file = $_FILES['file'];
+
+    // Gestion des erreurs d'upload PHP
+    if ($file['error'] !== UPLOAD_ERR_OK) {
+        $uploadErrors = [
+            UPLOAD_ERR_INI_SIZE => 'Fichier trop volumineux (limite serveur)',
+            UPLOAD_ERR_FORM_SIZE => 'Fichier trop volumineux (limite formulaire)',
+            UPLOAD_ERR_PARTIAL => 'Fichier partiellement uploadé',
+            UPLOAD_ERR_NO_FILE => 'Aucun fichier uploadé',
+            UPLOAD_ERR_NO_TMP_DIR => 'Dossier temporaire manquant',
+            UPLOAD_ERR_CANT_WRITE => 'Erreur écriture disque',
+            UPLOAD_ERR_EXTENSION => 'Extension PHP a bloqué l\'upload'
+        ];
+        $errorMsg = $uploadErrors[$file['error']] ?? 'Erreur inconnue';
+
+        // Si UPLOAD_ERR_NO_TMP_DIR, suggérer le mode base64
+        if ($file['error'] === UPLOAD_ERR_NO_TMP_DIR) {
+            $errorMsg .= '. Utilisez le mode base64 (Content-Type: application/json)';
+        }
+
+        sendJSON(['success' => false, 'error' => $errorMsg, 'details' => 'use_base64_mode'], 400);
+    }
 }
 
 // Récupération et nettoyage du nom de fichier
@@ -112,11 +172,12 @@ if (empty($filename) || $filename === '.' || $filename === '..') {
 }
 
 logMessage("=== UPLOAD CURL ===");
-logMessage("Fichier: $filename (" . number_format($file['size']) . " octets)");
+logMessage("Fichier: $filename (" . number_format($file['size']) . " octets) Mode: " . ($useBase64 ? 'base64' : 'multipart'));
 
-// Validation de la taille (500 KB max)
-if ($file['size'] > 500 * 1024) {
-    sendJSON(['success' => false, 'error' => 'Fichier trop volumineux. Maximum: 500 KB'], 400);
+// Validation de la taille (5 MB max pour photos, 500 KB pour logos)
+$maxSize = 5 * 1024 * 1024; // 5 MB
+if ($file['size'] > $maxSize) {
+    sendJSON(['success' => false, 'error' => 'Fichier trop volumineux. Maximum: 5 MB'], 400);
 }
 
 if ($file['size'] === 0) {
@@ -250,6 +311,12 @@ logMessage("Appelé depuis: $callerOrigin");
 
 logMessage("=== SUCCÈS ===");
 logMessage("URL: $fileUrl");
+
+// Nettoyage du fichier temporaire base64
+if ($useBase64 && $tmpFilePath && file_exists($tmpFilePath)) {
+    @unlink($tmpFilePath);
+    logMessage("Fichier temporaire base64 supprimé");
+}
 
 // Réponse de succès
 sendJSON([
