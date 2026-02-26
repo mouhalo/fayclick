@@ -13,6 +13,18 @@ ini_set('error_log', '/tmp/upload-logo-errors.log');
 // Démarrer le buffer de sortie proprement
 ob_start();
 
+// Fallback dossier temporaire si non configuré par le serveur
+$tmpDir = sys_get_temp_dir();
+if (empty($tmpDir) || !is_writable($tmpDir)) {
+    $tmpDir = __DIR__ . '/tmp';
+    if (!is_dir($tmpDir)) {
+        @mkdir($tmpDir, 0755, true);
+    }
+    if (is_dir($tmpDir) && is_writable($tmpDir)) {
+        ini_set('upload_tmp_dir', $tmpDir);
+    }
+}
+
 // Headers CORS et Content-Type
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: POST, OPTIONS');
@@ -232,6 +244,9 @@ logMessage("Code FTP: $ftpCode");
 
 // Construire l'URL finale
 $fileUrl = "https://fayclick.net/uploads/" . $filename;
+
+$callerOrigin = $_SERVER['HTTP_ORIGIN'] ?? $_SERVER['HTTP_REFERER'] ?? 'unknown';
+logMessage("Appelé depuis: $callerOrigin");
 
 logMessage("=== SUCCÈS ===");
 logMessage("URL: $fileUrl");
