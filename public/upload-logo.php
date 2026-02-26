@@ -205,120 +205,113 @@ if (!file_exists($file['tmp_name'])) {
     sendJSON(['success' => false, 'error' => 'Fichier temporaire introuvable'], 500);
 }
 
-// Configuration FTP - Auto-détection du domaine
+// Auto-détection du domaine pour URL finale
 $serverHost = $_SERVER['HTTP_HOST'] ?? $_SERVER['SERVER_NAME'] ?? '';
 $isFayclickCom = (strpos($serverHost, 'fayclick.com') !== false);
-
-if ($isFayclickCom) {
-    // fayclick.com → serveur node156
-    $ftpHost = 'node156-eu.n0c.com';
-    $ftpUser = 'upload@fayclick.com';
-    $ftpPass = "O}<OFd'iw6";
-    $baseUrl = 'https://fayclick.com/uploads/';
-} else {
-    // fayclick.net / v2.fayclick.net → serveur node260
-    $ftpHost = 'node260-eu.n0c.com';
-    $ftpUser = 'uploadv2@fayclick.net';
-    $ftpPass = '<0vs:PWBhd';
-    $baseUrl = 'https://fayclick.net/uploads/';
-}
+$baseUrl = $isFayclickCom ? 'https://fayclick.com/uploads/' : 'https://fayclick.net/uploads/';
 
 logMessage("Domaine détecté: $serverHost → " . ($isFayclickCom ? 'fayclick.com' : 'fayclick.net'));
 
-// Construire l'URL FTP complète
-$ftpUrl = "ftp://$ftpHost/$filename";
+// === STRATEGIE : Copie locale d'abord, FTP en fallback ===
+// Le script tourne sur le même serveur → copie directe dans uploads/
+$uploadsDir = __DIR__ . '/uploads';
+$localUploadSuccess = false;
 
-logMessage("URL FTP: $ftpUrl");
-
-// Nettoyer le buffer
-while (ob_get_level() > 0) {
-    ob_end_clean();
+if (!is_dir($uploadsDir)) {
+    @mkdir($uploadsDir, 0755, true);
 }
 
-// Initialiser CURL pour l'upload FTP
-$ch = curl_init();
+if (is_dir($uploadsDir) && is_writable($uploadsDir)) {
+    logMessage("=== MODE COPIE LOCALE ===");
+    $destPath = $uploadsDir . '/' . $filename;
 
-// Ouvrir le fichier en lecture
-$fp = fopen($file['tmp_name'], 'r');
-if (!$fp) {
-    logMessage("Impossible d'ouvrir le fichier temporaire", 'ERROR');
-    sendJSON(['success' => false, 'error' => 'Erreur lors de la lecture du fichier'], 500);
+    if (copy($file['tmp_name'], $destPath)) {
+        @chmod($destPath, 0644);
+        $localUploadSuccess = true;
+        logMessage("✓ Copie locale réussie: $destPath");
+    } else {
+        logMessage("Copie locale échouée, fallback FTP...", 'WARN');
+    }
+} else {
+    logMessage("Dossier uploads non accessible, fallback FTP...", 'WARN');
 }
 
-// Configuration CURL
-curl_setopt_array($ch, [
-    CURLOPT_URL => $ftpUrl,
-    CURLOPT_USERPWD => "$ftpUser:$ftpPass",
-    CURLOPT_UPLOAD => true,
-    CURLOPT_INFILE => $fp,
-    CURLOPT_INFILESIZE => $file['size'],
-    CURLOPT_TIMEOUT => 60,
-    CURLOPT_CONNECTTIMEOUT => 30,
-    CURLOPT_FTP_CREATE_MISSING_DIRS => true,
-    CURLOPT_RETURNTRANSFER => true,
-    CURLOPT_VERBOSE => false,
-    CURLOPT_SSL_VERIFYPEER => false,
-    CURLOPT_SSL_VERIFYHOST => false,
-    // Options FTP supplémentaires
-    CURLOPT_FTPSSLAUTH => CURLFTPAUTH_DEFAULT,
-    CURLOPT_FTP_USE_EPSV => false, // Désactiver EPSV (peut causer des problèmes)
-]);
+// === FALLBACK FTP (si copie locale échouée) ===
+if (!$localUploadSuccess) {
+    logMessage("=== MODE FTP ===");
 
-logMessage("Début upload CURL...");
+    if ($isFayclickCom) {
+        $ftpHost = 'node156-eu.n0c.com';
+        $ftpUser = 'upload@fayclick.com';
+        $ftpPass = "O}<OFd'iw6";
+    } else {
+        $ftpHost = 'node260-eu.n0c.com';
+        $ftpUser = 'uploadv2@fayclick.net';
+        $ftpPass = '<0vs:PWBhd';
+    }
 
-// Exécuter l'upload
-$response = curl_exec($ch);
-$curlError = curl_error($ch);
-$curlErrno = curl_errno($ch);
-$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-$ftpCode = curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+    $ftpUrl = "ftp://$ftpHost/$filename";
+    logMessage("URL FTP: $ftpUrl");
 
-// Fermer le fichier et CURL
-fclose($fp);
-curl_close($ch);
+    // Nettoyer le buffer
+    while (ob_get_level() > 0) {
+        ob_end_clean();
+    }
 
-// Vérifier le résultat
-if ($curlErrno !== 0) {
-    logMessage("Erreur CURL: [$curlErrno] $curlError", 'ERROR');
-    
-    // Messages d'erreur spécifiques
-    $errorMessages = [
-        7 => 'Impossible de se connecter au serveur FTP',
-        9 => 'Accès refusé',
-        67 => 'Échec de l\'authentification FTP',
-        78 => 'Fichier non trouvé sur le serveur',
-    ];
-    
-    $userError = $errorMessages[$curlErrno] ?? "Erreur FTP: $curlError";
-    
-    sendJSON([
-        'success' => false,
-        'error' => $userError,
-        'debug' => [
-            'curl_errno' => $curlErrno,
-            'curl_error' => $curlError,
-            'ftp_code' => $ftpCode
-        ]
-    ], 500);
+    $ch = curl_init();
+    $fp = fopen($file['tmp_name'], 'r');
+    if (!$fp) {
+        logMessage("Impossible d'ouvrir le fichier temporaire", 'ERROR');
+        sendJSON(['success' => false, 'error' => 'Erreur lors de la lecture du fichier'], 500);
+    }
+
+    curl_setopt_array($ch, [
+        CURLOPT_URL => $ftpUrl,
+        CURLOPT_USERPWD => "$ftpUser:$ftpPass",
+        CURLOPT_UPLOAD => true,
+        CURLOPT_INFILE => $fp,
+        CURLOPT_INFILESIZE => $file['size'],
+        CURLOPT_TIMEOUT => 60,
+        CURLOPT_CONNECTTIMEOUT => 30,
+        CURLOPT_FTP_CREATE_MISSING_DIRS => true,
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_VERBOSE => false,
+        CURLOPT_SSL_VERIFYPEER => false,
+        CURLOPT_SSL_VERIFYHOST => false,
+        CURLOPT_FTPSSLAUTH => CURLFTPAUTH_DEFAULT,
+        CURLOPT_FTP_USE_EPSV => false,
+    ]);
+
+    logMessage("Début upload CURL...");
+    $response = curl_exec($ch);
+    $curlError = curl_error($ch);
+    $curlErrno = curl_errno($ch);
+    $ftpCode = curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+
+    fclose($fp);
+    curl_close($ch);
+
+    if ($curlErrno !== 0) {
+        logMessage("Erreur CURL: [$curlErrno] $curlError", 'ERROR');
+        $errorMessages = [
+            7 => 'Impossible de se connecter au serveur FTP',
+            9 => 'Accès refusé',
+            67 => 'Échec de l\'authentification FTP',
+            78 => 'Fichier non trouvé sur le serveur',
+        ];
+        $userError = $errorMessages[$curlErrno] ?? "Erreur FTP: $curlError";
+        sendJSON(['success' => false, 'error' => $userError], 500);
+    }
+
+    if ($ftpCode >= 400) {
+        logMessage("Code FTP d'erreur: $ftpCode", 'ERROR');
+        sendJSON(['success' => false, 'error' => 'Échec de l\'upload FTP'], 500);
+    }
+
+    logMessage("✓ Upload FTP réussi! Code: $ftpCode");
 }
 
-// Vérifier le code FTP
-if ($ftpCode >= 400) {
-    logMessage("Code FTP d'erreur: $ftpCode", 'ERROR');
-    sendJSON([
-        'success' => false,
-        'error' => 'Échec de l\'upload FTP',
-        'debug' => [
-            'ftp_code' => $ftpCode,
-            'message' => 'Le serveur FTP a refusé l\'upload'
-        ]
-    ], 500);
-}
-
-logMessage("✓ Upload CURL réussi!");
-logMessage("Code FTP: $ftpCode");
-
-// Construire l'URL finale (utilise $baseUrl détectée plus haut)
+// Construire l'URL finale
 $fileUrl = $baseUrl . $filename;
 
 $callerOrigin = $_SERVER['HTTP_ORIGIN'] ?? $_SERVER['HTTP_REFERER'] ?? 'unknown';
