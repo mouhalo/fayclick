@@ -205,10 +205,25 @@ if (!file_exists($file['tmp_name'])) {
     sendJSON(['success' => false, 'error' => 'Fichier temporaire introuvable'], 500);
 }
 
-// Configuration FTP
-$ftpHost = 'node260-eu.n0c.com';
-$ftpUser = 'uploadv2@fayclick.net';
-$ftpPass = '<0vs:PWBhd';
+// Configuration FTP - Auto-détection du domaine
+$serverHost = $_SERVER['HTTP_HOST'] ?? $_SERVER['SERVER_NAME'] ?? '';
+$isFayclickCom = (strpos($serverHost, 'fayclick.com') !== false);
+
+if ($isFayclickCom) {
+    // fayclick.com → serveur node156
+    $ftpHost = 'node156-eu.n0c.com';
+    $ftpUser = 'upload@fayclick.com';
+    $ftpPass = "O}<OFd'iw6";
+    $baseUrl = 'https://fayclick.com/uploads/';
+} else {
+    // fayclick.net / v2.fayclick.net → serveur node260
+    $ftpHost = 'node260-eu.n0c.com';
+    $ftpUser = 'uploadv2@fayclick.net';
+    $ftpPass = '<0vs:PWBhd';
+    $baseUrl = 'https://fayclick.net/uploads/';
+}
+
+logMessage("Domaine détecté: $serverHost → " . ($isFayclickCom ? 'fayclick.com' : 'fayclick.net'));
 
 // Construire l'URL FTP complète
 $ftpUrl = "ftp://$ftpHost/$filename";
@@ -303,8 +318,8 @@ if ($ftpCode >= 400) {
 logMessage("✓ Upload CURL réussi!");
 logMessage("Code FTP: $ftpCode");
 
-// Construire l'URL finale
-$fileUrl = "https://fayclick.net/uploads/" . $filename;
+// Construire l'URL finale (utilise $baseUrl détectée plus haut)
+$fileUrl = $baseUrl . $filename;
 
 $callerOrigin = $_SERVER['HTTP_ORIGIN'] ?? $_SERVER['HTTP_REFERER'] ?? 'unknown';
 logMessage("Appelé depuis: $callerOrigin");
