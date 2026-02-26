@@ -42,6 +42,35 @@ export const SIZE_THRESHOLDS = {
   ERROR: 15 * 1024 * 1024        // 15 MB - Rouge
 } as const;
 
+// === Types pour le mode Crop (Logo) ===
+
+// Zone de crop retournée par react-easy-crop
+export interface CropArea {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+// Point de crop (position)
+export interface CropPoint {
+  x: number;
+  y: number;
+}
+
+// Forme du crop
+export type CropShape = 'rect' | 'round';
+
+// Mode du PhotoResizer
+export type ResizerMode = 'photo' | 'logo';
+
+// Seuils de taille spécifiques au logo
+export const LOGO_SIZE_THRESHOLDS = {
+  PERFECT: 200 * 1024,    // 200 KB - Vert
+  WARNING: 400 * 1024,    // 400 KB - Orange
+  ERROR: 500 * 1024       // 500 KB - Rouge
+} as const;
+
 // Props du composant PhotoResizer
 export interface PhotoResizerProps {
   file: File;
@@ -53,6 +82,8 @@ export interface PhotoResizerProps {
   defaultScale?: number;           // Scale par défaut (défaut 0.8 = 80%)
   defaultQuality?: QualityLevel;   // Qualité par défaut (défaut 'medium')
   previewSize?: number;            // Taille preview canvas (défaut 400px)
+  mode?: ResizerMode;              // 'photo' = resize seul, 'logo' = crop + resize
+  initialCropShape?: CropShape;    // Forme initiale crop logo (défaut 'rect')
 }
 
 // État du redimensionnement
