@@ -8,7 +8,8 @@ import {
   ResizeOptions,
   ResizePreview,
   ResizeResult,
-  ImageDimensions
+  ImageDimensions,
+  CropArea
 } from '@/types/photo-resize.types';
 
 export function usePhotoResize() {
@@ -237,6 +238,81 @@ export function usePhotoResize() {
     [loadImage]
   );
 
+  /**
+   * Recadrer une image selon une zone de crop
+   * Utilise Canvas HTML5 pour découper la zone sélectionnée
+   */
+  const cropImage = useCallback(
+    async (
+      file: File,
+      cropArea: CropArea,
+      shape: 'rect' | 'round' = 'rect'
+    ): Promise<File> => {
+      const img = await loadImage(file);
+
+      const canvas = document.createElement('canvas');
+      canvas.width = cropArea.width;
+      canvas.height = cropArea.height;
+
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        throw new Error('Impossible de créer le contexte canvas');
+      }
+
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+
+      // Si forme ronde, appliquer un masque circulaire
+      if (shape === 'round') {
+        ctx.beginPath();
+        ctx.arc(
+          cropArea.width / 2,
+          cropArea.height / 2,
+          Math.min(cropArea.width, cropArea.height) / 2,
+          0,
+          2 * Math.PI
+        );
+        ctx.closePath();
+        ctx.clip();
+      }
+
+      // Dessiner la zone croppée
+      ctx.drawImage(
+        img,
+        cropArea.x,
+        cropArea.y,
+        cropArea.width,
+        cropArea.height,
+        0,
+        0,
+        cropArea.width,
+        cropArea.height
+      );
+
+      // Convertir en File
+      return new Promise<File>((resolve, reject) => {
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) {
+              reject(new Error('Erreur lors du crop'));
+              return;
+            }
+            const originalName = file.name.replace(/\.[^/.]+$/, '');
+            const croppedFile = new File(
+              [blob],
+              `${originalName}-cropped.jpg`,
+              { type: 'image/jpeg', lastModified: Date.now() }
+            );
+            resolve(croppedFile);
+          },
+          'image/jpeg',
+          0.95 // Haute qualité pour le crop intermédiaire
+        );
+      });
+    },
+    [loadImage]
+  );
+
   return {
     processing,
     loadImage,
@@ -244,6 +320,7 @@ export function usePhotoResize() {
     calculateNewDimensions,
     estimateFileSize,
     generatePreview,
-    resizeImage
+    resizeImage,
+    cropImage
   };
 }

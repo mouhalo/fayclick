@@ -13,6 +13,18 @@ ini_set('error_log', '/tmp/upload-logo-errors.log');
 // Démarrer le buffer de sortie proprement
 ob_start();
 
+// Fallback dossier temporaire si non configuré par le serveur
+$tmpDir = sys_get_temp_dir();
+if (empty($tmpDir) || !is_writable($tmpDir)) {
+    $tmpDir = __DIR__ . '/tmp';
+    if (!is_dir($tmpDir)) {
+        @mkdir($tmpDir, 0755, true);
+    }
+    if (is_dir($tmpDir) && is_writable($tmpDir)) {
+        ini_set('upload_tmp_dir', $tmpDir);
+    }
+}
+
 // Headers CORS et Content-Type
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: POST, OPTIONS');
@@ -68,27 +80,87 @@ if (!function_exists('curl_init')) {
     sendJSON(['success' => false, 'error' => 'CURL non disponible sur le serveur'], 500);
 }
 
-// Vérification de l'upload du fichier
-if (!isset($_FILES['file'])) {
-    logMessage("Aucun fichier dans la requête", 'ERROR');
-    sendJSON(['success' => false, 'error' => 'Aucun fichier reçu'], 400);
+// === MODE BASE64 : Contourne UPLOAD_ERR_NO_TMP_DIR sur hébergements mutualisés ===
+// Le client peut envoyer le fichier en base64 dans le body JSON
+// Format: { "file_base64": "data:image/jpeg;base64,...", "filename": "mon-logo.jpg" }
+$useBase64 = false;
+$tmpFilePath = null;
+
+$contentType = $_SERVER['CONTENT_TYPE'] ?? '';
+if (strpos($contentType, 'application/json') !== false || !isset($_FILES['file'])) {
+    $jsonBody = json_decode(file_get_contents('php://input'), true);
+    if ($jsonBody && !empty($jsonBody['file_base64'])) {
+        $useBase64 = true;
+        logMessage("=== MODE BASE64 ===");
+
+        // Extraire les données base64
+        $base64Data = $jsonBody['file_base64'];
+        $filename = isset($jsonBody['filename']) ? basename($jsonBody['filename']) : 'upload.jpg';
+
+        // Supprimer le préfixe data:image/...;base64, si présent
+        if (preg_match('/^data:image\/(\w+);base64,/', $base64Data, $matches)) {
+            $base64Data = substr($base64Data, strlen($matches[0]));
+            $detectedExt = $matches[1] === 'jpeg' ? 'jpg' : $matches[1];
+        }
+
+        $fileData = base64_decode($base64Data);
+        if ($fileData === false) {
+            sendJSON(['success' => false, 'error' => 'Données base64 invalides'], 400);
+        }
+
+        $fileSize = strlen($fileData);
+        $fileType = 'image/' . (pathinfo($filename, PATHINFO_EXTENSION) ?: 'jpeg');
+
+        // Sauvegarder dans le dossier tmp local
+        $localTmpDir = __DIR__ . '/tmp';
+        if (!is_dir($localTmpDir)) {
+            @mkdir($localTmpDir, 0755, true);
+        }
+        $tmpFilePath = $localTmpDir . '/' . uniqid('upload_') . '_' . $filename;
+        file_put_contents($tmpFilePath, $fileData);
+
+        // Construire un pseudo $_FILES pour le reste du code
+        $file = [
+            'name' => $filename,
+            'type' => $fileType,
+            'tmp_name' => $tmpFilePath,
+            'error' => UPLOAD_ERR_OK,
+            'size' => $fileSize
+        ];
+    } else {
+        sendJSON(['success' => false, 'error' => 'Aucun fichier reçu'], 400);
+    }
 }
 
-$file = $_FILES['file'];
+// === MODE MULTIPART CLASSIQUE ===
+if (!$useBase64) {
+    if (!isset($_FILES['file'])) {
+        logMessage("Aucun fichier dans la requête", 'ERROR');
+        sendJSON(['success' => false, 'error' => 'Aucun fichier reçu'], 400);
+    }
 
-// Gestion des erreurs d'upload PHP
-if ($file['error'] !== UPLOAD_ERR_OK) {
-    $uploadErrors = [
-        UPLOAD_ERR_INI_SIZE => 'Fichier trop volumineux (limite serveur)',
-        UPLOAD_ERR_FORM_SIZE => 'Fichier trop volumineux (limite formulaire)',
-        UPLOAD_ERR_PARTIAL => 'Fichier partiellement uploadé',
-        UPLOAD_ERR_NO_FILE => 'Aucun fichier uploadé',
-        UPLOAD_ERR_NO_TMP_DIR => 'Dossier temporaire manquant',
-        UPLOAD_ERR_CANT_WRITE => 'Erreur écriture disque',
-        UPLOAD_ERR_EXTENSION => 'Extension PHP a bloqué l\'upload'
-    ];
-    $errorMsg = $uploadErrors[$file['error']] ?? 'Erreur inconnue';
-    sendJSON(['success' => false, 'error' => $errorMsg], 400);
+    $file = $_FILES['file'];
+
+    // Gestion des erreurs d'upload PHP
+    if ($file['error'] !== UPLOAD_ERR_OK) {
+        $uploadErrors = [
+            UPLOAD_ERR_INI_SIZE => 'Fichier trop volumineux (limite serveur)',
+            UPLOAD_ERR_FORM_SIZE => 'Fichier trop volumineux (limite formulaire)',
+            UPLOAD_ERR_PARTIAL => 'Fichier partiellement uploadé',
+            UPLOAD_ERR_NO_FILE => 'Aucun fichier uploadé',
+            UPLOAD_ERR_NO_TMP_DIR => 'Dossier temporaire manquant',
+            UPLOAD_ERR_CANT_WRITE => 'Erreur écriture disque',
+            UPLOAD_ERR_EXTENSION => 'Extension PHP a bloqué l\'upload'
+        ];
+        $errorMsg = $uploadErrors[$file['error']] ?? 'Erreur inconnue';
+
+        // Si UPLOAD_ERR_NO_TMP_DIR, suggérer le mode base64
+        if ($file['error'] === UPLOAD_ERR_NO_TMP_DIR) {
+            $errorMsg .= '. Utilisez le mode base64 (Content-Type: application/json)';
+        }
+
+        sendJSON(['success' => false, 'error' => $errorMsg, 'details' => 'use_base64_mode'], 400);
+    }
 }
 
 // Récupération et nettoyage du nom de fichier
@@ -100,11 +172,12 @@ if (empty($filename) || $filename === '.' || $filename === '..') {
 }
 
 logMessage("=== UPLOAD CURL ===");
-logMessage("Fichier: $filename (" . number_format($file['size']) . " octets)");
+logMessage("Fichier: $filename (" . number_format($file['size']) . " octets) Mode: " . ($useBase64 ? 'base64' : 'multipart'));
 
-// Validation de la taille (500 KB max)
-if ($file['size'] > 500 * 1024) {
-    sendJSON(['success' => false, 'error' => 'Fichier trop volumineux. Maximum: 500 KB'], 400);
+// Validation de la taille (5 MB max pour photos, 500 KB pour logos)
+$maxSize = 5 * 1024 * 1024; // 5 MB
+if ($file['size'] > $maxSize) {
+    sendJSON(['success' => false, 'error' => 'Fichier trop volumineux. Maximum: 5 MB'], 400);
 }
 
 if ($file['size'] === 0) {
@@ -132,109 +205,126 @@ if (!file_exists($file['tmp_name'])) {
     sendJSON(['success' => false, 'error' => 'Fichier temporaire introuvable'], 500);
 }
 
-// Configuration FTP
-$ftpHost = 'node260-eu.n0c.com';
-$ftpUser = 'uploadv2@fayclick.net';
-$ftpPass = '<0vs:PWBhd';
+// Auto-détection du domaine pour URL finale
+$serverHost = $_SERVER['HTTP_HOST'] ?? $_SERVER['SERVER_NAME'] ?? '';
+$isFayclickCom = (strpos($serverHost, 'fayclick.com') !== false);
+$baseUrl = $isFayclickCom ? 'https://fayclick.com/uploads/' : 'https://fayclick.net/uploads/';
 
-// Construire l'URL FTP complète
-$ftpUrl = "ftp://$ftpHost/$filename";
+logMessage("Domaine détecté: $serverHost → " . ($isFayclickCom ? 'fayclick.com' : 'fayclick.net'));
 
-logMessage("URL FTP: $ftpUrl");
+// === STRATEGIE : Copie locale d'abord, FTP en fallback ===
+// Le script tourne sur le même serveur → copie directe dans uploads/
+$uploadsDir = __DIR__ . '/uploads';
+$localUploadSuccess = false;
 
-// Nettoyer le buffer
-while (ob_get_level() > 0) {
-    ob_end_clean();
+if (!is_dir($uploadsDir)) {
+    @mkdir($uploadsDir, 0755, true);
 }
 
-// Initialiser CURL pour l'upload FTP
-$ch = curl_init();
+if (is_dir($uploadsDir) && is_writable($uploadsDir)) {
+    logMessage("=== MODE COPIE LOCALE ===");
+    $destPath = $uploadsDir . '/' . $filename;
 
-// Ouvrir le fichier en lecture
-$fp = fopen($file['tmp_name'], 'r');
-if (!$fp) {
-    logMessage("Impossible d'ouvrir le fichier temporaire", 'ERROR');
-    sendJSON(['success' => false, 'error' => 'Erreur lors de la lecture du fichier'], 500);
+    if (copy($file['tmp_name'], $destPath)) {
+        @chmod($destPath, 0644);
+        $localUploadSuccess = true;
+        logMessage("✓ Copie locale réussie: $destPath");
+    } else {
+        logMessage("Copie locale échouée, fallback FTP...", 'WARN');
+    }
+} else {
+    logMessage("Dossier uploads non accessible, fallback FTP...", 'WARN');
 }
 
-// Configuration CURL
-curl_setopt_array($ch, [
-    CURLOPT_URL => $ftpUrl,
-    CURLOPT_USERPWD => "$ftpUser:$ftpPass",
-    CURLOPT_UPLOAD => true,
-    CURLOPT_INFILE => $fp,
-    CURLOPT_INFILESIZE => $file['size'],
-    CURLOPT_TIMEOUT => 60,
-    CURLOPT_CONNECTTIMEOUT => 30,
-    CURLOPT_FTP_CREATE_MISSING_DIRS => true,
-    CURLOPT_RETURNTRANSFER => true,
-    CURLOPT_VERBOSE => false,
-    CURLOPT_SSL_VERIFYPEER => false,
-    CURLOPT_SSL_VERIFYHOST => false,
-    // Options FTP supplémentaires
-    CURLOPT_FTPSSLAUTH => CURLFTPAUTH_DEFAULT,
-    CURLOPT_FTP_USE_EPSV => false, // Désactiver EPSV (peut causer des problèmes)
-]);
+// === FALLBACK FTP (si copie locale échouée) ===
+if (!$localUploadSuccess) {
+    logMessage("=== MODE FTP ===");
 
-logMessage("Début upload CURL...");
+    if ($isFayclickCom) {
+        $ftpHost = 'node156-eu.n0c.com';
+        $ftpUser = 'upload@fayclick.com';
+        $ftpPass = "O}<OFd'iw6";
+    } else {
+        $ftpHost = 'node260-eu.n0c.com';
+        $ftpUser = 'uploadv2@fayclick.net';
+        $ftpPass = '<0vs:PWBhd';
+    }
 
-// Exécuter l'upload
-$response = curl_exec($ch);
-$curlError = curl_error($ch);
-$curlErrno = curl_errno($ch);
-$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-$ftpCode = curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+    $ftpUrl = "ftp://$ftpHost/$filename";
+    logMessage("URL FTP: $ftpUrl");
 
-// Fermer le fichier et CURL
-fclose($fp);
-curl_close($ch);
+    // Nettoyer le buffer
+    while (ob_get_level() > 0) {
+        ob_end_clean();
+    }
 
-// Vérifier le résultat
-if ($curlErrno !== 0) {
-    logMessage("Erreur CURL: [$curlErrno] $curlError", 'ERROR');
-    
-    // Messages d'erreur spécifiques
-    $errorMessages = [
-        7 => 'Impossible de se connecter au serveur FTP',
-        9 => 'Accès refusé',
-        67 => 'Échec de l\'authentification FTP',
-        78 => 'Fichier non trouvé sur le serveur',
-    ];
-    
-    $userError = $errorMessages[$curlErrno] ?? "Erreur FTP: $curlError";
-    
-    sendJSON([
-        'success' => false,
-        'error' => $userError,
-        'debug' => [
-            'curl_errno' => $curlErrno,
-            'curl_error' => $curlError,
-            'ftp_code' => $ftpCode
-        ]
-    ], 500);
+    $ch = curl_init();
+    $fp = fopen($file['tmp_name'], 'r');
+    if (!$fp) {
+        logMessage("Impossible d'ouvrir le fichier temporaire", 'ERROR');
+        sendJSON(['success' => false, 'error' => 'Erreur lors de la lecture du fichier'], 500);
+    }
+
+    curl_setopt_array($ch, [
+        CURLOPT_URL => $ftpUrl,
+        CURLOPT_USERPWD => "$ftpUser:$ftpPass",
+        CURLOPT_UPLOAD => true,
+        CURLOPT_INFILE => $fp,
+        CURLOPT_INFILESIZE => $file['size'],
+        CURLOPT_TIMEOUT => 60,
+        CURLOPT_CONNECTTIMEOUT => 30,
+        CURLOPT_FTP_CREATE_MISSING_DIRS => true,
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_VERBOSE => false,
+        CURLOPT_SSL_VERIFYPEER => false,
+        CURLOPT_SSL_VERIFYHOST => false,
+        CURLOPT_FTPSSLAUTH => CURLFTPAUTH_DEFAULT,
+        CURLOPT_FTP_USE_EPSV => false,
+    ]);
+
+    logMessage("Début upload CURL...");
+    $response = curl_exec($ch);
+    $curlError = curl_error($ch);
+    $curlErrno = curl_errno($ch);
+    $ftpCode = curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+
+    fclose($fp);
+    curl_close($ch);
+
+    if ($curlErrno !== 0) {
+        logMessage("Erreur CURL: [$curlErrno] $curlError", 'ERROR');
+        $errorMessages = [
+            7 => 'Impossible de se connecter au serveur FTP',
+            9 => 'Accès refusé',
+            67 => 'Échec de l\'authentification FTP',
+            78 => 'Fichier non trouvé sur le serveur',
+        ];
+        $userError = $errorMessages[$curlErrno] ?? "Erreur FTP: $curlError";
+        sendJSON(['success' => false, 'error' => $userError], 500);
+    }
+
+    if ($ftpCode >= 400) {
+        logMessage("Code FTP d'erreur: $ftpCode", 'ERROR');
+        sendJSON(['success' => false, 'error' => 'Échec de l\'upload FTP'], 500);
+    }
+
+    logMessage("✓ Upload FTP réussi! Code: $ftpCode");
 }
-
-// Vérifier le code FTP
-if ($ftpCode >= 400) {
-    logMessage("Code FTP d'erreur: $ftpCode", 'ERROR');
-    sendJSON([
-        'success' => false,
-        'error' => 'Échec de l\'upload FTP',
-        'debug' => [
-            'ftp_code' => $ftpCode,
-            'message' => 'Le serveur FTP a refusé l\'upload'
-        ]
-    ], 500);
-}
-
-logMessage("✓ Upload CURL réussi!");
-logMessage("Code FTP: $ftpCode");
 
 // Construire l'URL finale
-$fileUrl = "https://fayclick.net/uploads/" . $filename;
+$fileUrl = $baseUrl . $filename;
+
+$callerOrigin = $_SERVER['HTTP_ORIGIN'] ?? $_SERVER['HTTP_REFERER'] ?? 'unknown';
+logMessage("Appelé depuis: $callerOrigin");
 
 logMessage("=== SUCCÈS ===");
 logMessage("URL: $fileUrl");
+
+// Nettoyage du fichier temporaire base64
+if ($useBase64 && $tmpFilePath && file_exists($tmpFilePath)) {
+    @unlink($tmpFilePath);
+    logMessage("Fichier temporaire base64 supprimé");
+}
 
 // Réponse de succès
 sendJSON([

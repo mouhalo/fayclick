@@ -26,6 +26,7 @@ export default function LogoUpload({
   });
   const [isDragOver, setIsDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
 
   // États pour PhotoResizer
   const [showPhotoResizer, setShowPhotoResizer] = useState(false);
@@ -124,15 +125,10 @@ export default function LogoUpload({
       onFileSelect(file);
     }
 
-    // 🆕 Pour les photos produits : ouvrir PhotoResizer AVANT upload
-    if (uploadType === 'photo') {
-      console.log('🖼️ [LOGO-UPLOAD] Ouverture PhotoResizer pour redimensionnement');
-      setPendingFile(file);
-      setShowPhotoResizer(true);
-      return; // Ne pas uploader tout de suite
-    }
+    // 🆕 Ouvrir PhotoResizer pour TOUS les types d'upload (logo = crop+resize, photo = resize)
+    console.log('🖼️ [LOGO-UPLOAD] Ouverture PhotoResizer mode:', uploadType);
 
-    // Pour les logos : upload direct avec preview
+    // Générer preview pour le composant
     try {
       const preview = await logoUploadSimpleService.fileToDataUrl(file);
       setLogoState(prev => ({
@@ -143,21 +139,13 @@ export default function LogoUpload({
         uploading: false,
         progress: 0
       }));
-
-      // UPLOAD AUTOMATIQUE après sélection (délai pour laisser le preview s'afficher)
-      console.log('🚀 [LOGO-UPLOAD] Démarrage upload automatique...');
-      setTimeout(() => {
-        handleUploadAuto(file);
-      }, 500);
-
     } catch (error) {
       console.error('❌ [LOGO-UPLOAD] Erreur preview:', error);
-      setLogoState(prev => ({
-        ...prev,
-        error: 'Impossible de prévisualiser l\'image'
-      }));
     }
-  }, [disabled, logoState.uploading, onFileSelect, handleUploadAuto]);
+
+    setPendingFile(file);
+    setShowPhotoResizer(true);
+  }, [disabled, logoState.uploading, onFileSelect]);
 
   // Fonction d'upload manuel (pour le bouton de retry si nécessaire)
   const handleUpload = useCallback(async () => {
@@ -358,11 +346,32 @@ export default function LogoUpload({
 
             {/* Formats acceptés */}
             <p className="text-xs md:text-sm text-gray-500 mb-4">
-              JPG, PNG, GIF - Max 0.5MB
+              JPG, PNG, GIF - Max 5MB
             </p>
 
-            {/* Instruction drag & drop */}
-           
+            {/* Boutons sélection */}
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  fileInputRef.current?.click();
+                }}
+                className="px-3 py-1.5 bg-primary-50 text-primary-700 text-xs font-medium rounded-lg hover:bg-primary-100 transition-colors border border-primary-200"
+              >
+                Galerie
+              </button>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  cameraInputRef.current?.click();
+                }}
+                className="px-3 py-1.5 bg-indigo-50 text-indigo-700 text-xs font-medium rounded-lg hover:bg-indigo-100 transition-colors border border-indigo-200 md:hidden"
+              >
+                Photo
+              </button>
+            </div>
           </div>
         )}
 
@@ -380,7 +389,17 @@ export default function LogoUpload({
       <input
         ref={fileInputRef}
         type="file"
-        accept="image/jpeg,image/png,image/gif"
+        accept="image/jpeg,image/png,image/gif,image/webp"
+        onChange={handleFileInputChange}
+        className="hidden"
+      />
+
+      {/* Input caméra pour mobile */}
+      <input
+        ref={cameraInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
         onChange={handleFileInputChange}
         className="hidden"
       />
@@ -413,7 +432,7 @@ export default function LogoUpload({
         }
       </div>
 
-      {/* Modal PhotoResizer pour les photos */}
+      {/* Modal PhotoResizer pour logos ET photos */}
       {showPhotoResizer && pendingFile && (
         <PhotoResizer
           file={pendingFile}
@@ -422,9 +441,11 @@ export default function LogoUpload({
             setPendingFile(null);
           }}
           onValidate={handlePhotoValidated}
-          maxSizeMB={5}
-          defaultScale={0.8}
+          maxSizeMB={uploadType === 'logo' ? 0.5 : 5}
+          defaultScale={uploadType === 'logo' ? 1.0 : 0.8}
           defaultQuality="medium"
+          mode={uploadType === 'photo' ? 'photo' : 'logo'}
+          initialCropShape="rect"
         />
       )}
     </div>
