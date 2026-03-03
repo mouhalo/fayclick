@@ -6,12 +6,13 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Minus, Plus, Trash2, Phone, ShoppingCart } from 'lucide-react';
+import { X, Minus, Plus, Trash2, Phone, ShoppingCart, CheckCircle, ExternalLink } from 'lucide-react';
 import Image from 'next/image';
 import { ArticlePanier } from '@/services/online-seller.service';
 import { ModalPaiementQRCode } from '@/components/factures/ModalPaiementQRCode';
 import { PaymentContext } from '@/types/payment-wallet';
 import { onlineSellerService } from '@/services/online-seller.service';
+import { recuService } from '@/services/recu.service';
 
 interface PanierPublicProps {
   isOpen: boolean;
@@ -43,6 +44,7 @@ export default function PanierPublic({
   const [lastSubmitTime, setLastSubmitTime] = useState(0);
   const [pageState, setPageState] = useState<PageState>('PANIER');
   const [numFacture, setNumFacture] = useState('');
+  const [idFacture, setIdFacture] = useState<number | null>(null);
   const [error, setError] = useState('');
 
   const total = articles.reduce((sum, a) => sum + a.prix_vente * a.quantite, 0);
@@ -51,7 +53,7 @@ export default function PanierPublic({
   const formatMontant = (m: number) => m.toLocaleString('fr-FR') + ' FCFA';
 
   const isFormValid = () => {
-    return telephone.length === 9 && /^(77|78|76|70|75)\d{7}$/.test(telephone) && articles.length > 0;
+    return telephone.length === 9 && /^7\d{8}$/.test(telephone) && articles.length > 0;
   };
 
   // Anti-abus : cooldown 5s entre deux tentatives
@@ -116,7 +118,15 @@ export default function PanierPublic({
 
       if (result.success) {
         setNumFacture(result.num_facture);
+        setIdFacture(result.id_facture);
         setPageState('SUCCESS');
+
+        // Redirection automatique vers le reçu après 3s
+        const recuUrl = recuService.generateUrlPartage(idStructure, result.id_facture);
+        console.log('🔗 [PANIER] Redirection vers reçu:', recuUrl);
+        setTimeout(() => {
+          window.location.href = recuUrl;
+        }, 3000);
       } else {
         throw new Error('Echec creation facture');
       }
@@ -139,6 +149,7 @@ export default function PanierPublic({
     if (pageState === 'SUCCESS') {
       setPageState('PANIER');
       setNumFacture('');
+      setIdFacture(null);
       setTelephone('');
       setIsSubmitting(false);
       onPaymentSuccess();
@@ -185,7 +196,7 @@ export default function PanierPublic({
           {pageState === 'SUCCESS' ? (
             <div className="p-6 text-center space-y-4">
               <div className="w-16 h-16 mx-auto bg-emerald-100 rounded-full flex items-center justify-center">
-                <span className="text-3xl">&#10003;</span>
+                <CheckCircle className="w-10 h-10 text-emerald-500" />
               </div>
               <h3 className="text-xl font-bold text-gray-900">Paiement reussi !</h3>
               <p className="text-gray-600 text-sm">
@@ -195,9 +206,30 @@ export default function PanierPublic({
                 <p className="text-xs text-gray-500">Numero de facture</p>
                 <p className="text-lg font-bold text-emerald-600">{numFacture}</p>
               </div>
+
+              {/* Redirection vers le reçu */}
+              {idFacture && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-center gap-2 text-sm text-gray-500">
+                    <div className="w-4 h-4 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+                    Redirection vers votre recu...
+                  </div>
+                  <button
+                    onClick={() => {
+                      const recuUrl = recuService.generateUrlPartage(idStructure, idFacture);
+                      window.location.href = recuUrl;
+                    }}
+                    className="w-full flex items-center justify-center gap-2 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl font-semibold hover:from-blue-600 hover:to-blue-700 transition-all shadow-md"
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                    Voir mon recu
+                  </button>
+                </div>
+              )}
+
               <button
                 onClick={handleClose}
-                className="w-full py-3 bg-emerald-500 text-white rounded-xl font-semibold hover:bg-emerald-600 transition-colors"
+                className="w-full py-3 bg-gray-100 text-gray-600 rounded-xl font-semibold hover:bg-gray-200 transition-colors"
               >
                 Fermer
               </button>
@@ -283,8 +315,8 @@ export default function PanierPublic({
                   maxLength={9}
                 />
               </div>
-              {telephone.length > 0 && !/^(77|78|76|70|75)/.test(telephone) && (
-                <p className="text-red-500 text-[10px] mt-0.5">Numero invalide (77, 78, 76, 70, 75)</p>
+              {telephone.length > 0 && !/^7/.test(telephone) && (
+                <p className="text-red-500 text-[10px] mt-0.5">Le numero doit commencer par 7</p>
               )}
             </div>
 

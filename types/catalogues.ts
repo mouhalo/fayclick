@@ -23,6 +23,8 @@ export interface ProduitPublicGlobal {
   nom_structure: string;
   logo_structure?: string;
   type_structure?: string;
+  telephone_structure?: string;
+  en_promo?: boolean;
 }
 
 // Réponse complète de l'API get_all_produits_publics

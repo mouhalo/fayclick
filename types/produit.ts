@@ -31,6 +31,7 @@ export interface Produit {
   presente_au_public?: boolean;
   photo_disponible?: boolean;
   photos?: PhotoProduit[];
+  en_promo?: boolean;
 }
 
 // Interface pour les mouvements de stock
@@ -126,6 +127,7 @@ export interface ProduitFormDataNew {
   presente_au_public?: boolean;
   code_barres?: string;
   prix_grossiste?: number;
+  en_promo?: boolean;
 }
 
 // Données formulaire mouvement de stock

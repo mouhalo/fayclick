@@ -204,7 +204,7 @@ class OnlineSellerService {
       if (!params.prenom || params.prenom.length < 2) {
         throw new OnlineSellerException('Prénom invalide', 400);
       }
-      if (!params.telephone || !/^(77|78|76|70|75)\d{7}$/.test(params.telephone)) {
+      if (!params.telephone || !/^7\d{8}$/.test(params.telephone)) {
         throw new OnlineSellerException('Numéro de téléphone invalide', 400);
       }
 
@@ -315,7 +315,7 @@ class OnlineSellerService {
       if (!params.uuid || !params.transaction_id) {
         throw new OnlineSellerException('Informations de paiement manquantes', 400);
       }
-      if (!params.telephone || !/^(77|78|76|70|75)\d{7}$/.test(params.telephone)) {
+      if (!params.telephone || !/^7\d{8}$/.test(params.telephone)) {
         throw new OnlineSellerException('Numéro de téléphone invalide', 400);
       }
 

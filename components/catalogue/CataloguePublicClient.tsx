@@ -7,7 +7,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Package, Loader, AlertCircle } from 'lucide-react';
+import { Package, Loader, AlertCircle, Flame } from 'lucide-react';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { cataloguePublicService } from '@/services/catalogue-public.service';
 import { CatalogueResponse, ProduitPublic } from '@/types/catalogue';
@@ -85,9 +85,19 @@ export default function CataloguePublicClient({ nomStructure, idStructure }: Cat
     return filtered;
   }, [catalogue, searchTerm, categorie]);
 
-  // Produits visibles
-  const produitsVisibles = produitsFiltres.slice(0, visibleCount);
-  const hasMore = visibleCount < produitsFiltres.length;
+  // Séparer promos et normaux
+  const produitsPromo = useMemo(() =>
+    produitsFiltres.filter(p => p.en_promo === true),
+    [produitsFiltres]
+  );
+  const produitsNormaux = useMemo(() =>
+    produitsFiltres.filter(p => p.en_promo !== true),
+    [produitsFiltres]
+  );
+
+  // Produits visibles (normaux seulement, promos toujours tous affichés)
+  const produitsVisibles = produitsNormaux.slice(0, visibleCount);
+  const hasMore = visibleCount < produitsNormaux.length;
 
   // Categories uniques
   const categories = useMemo(() => {
@@ -232,8 +242,43 @@ export default function CataloguePublicClient({ nomStructure, idStructure }: Cat
           onReset={resetFiltres}
         />
 
-        {/* 3. Grille produits */}
-        {produitsVisibles.length === 0 ? (
+        {/* 3. Section Promotions (si des produits en promo existent) */}
+        {produitsPromo.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="mb-6"
+          >
+            {/* Titre section promo */}
+            <div className="flex items-center gap-2 mb-3">
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-orange-500/20 backdrop-blur-sm border border-orange-400/30">
+                <Flame className="w-4 h-4 text-orange-400 animate-pulse" />
+                <span className="text-sm font-bold text-orange-300">Promotions</span>
+                <span className="ml-1 px-1.5 py-0.5 rounded-full bg-orange-500/30 text-[10px] font-bold text-orange-200">
+                  {produitsPromo.length}
+                </span>
+              </div>
+              <div className="flex-1 h-px bg-gradient-to-r from-orange-400/30 to-transparent" />
+            </div>
+
+            {/* Grille promos */}
+            <div className={`grid ${gridCols} gap-2 sm:gap-3 md:gap-4 p-2 sm:p-3 rounded-xl bg-orange-500/5 border border-orange-400/10`}>
+              {produitsPromo.map((produit, index) => (
+                <CarteProduit
+                  key={produit.id_produit}
+                  produit={produit}
+                  index={index}
+                  showStructureName={false}
+                  onAcheter={(p) => ajouterAuPanier(p as ProduitPublic)}
+                />
+              ))}
+            </div>
+          </motion.div>
+        )}
+
+        {/* 4. Grille produits normaux */}
+        {produitsVisibles.length === 0 && produitsPromo.length === 0 ? (
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -248,8 +293,19 @@ export default function CataloguePublicClient({ nomStructure, idStructure }: Cat
               }
             </p>
           </motion.div>
-        ) : (
+        ) : produitsVisibles.length > 0 ? (
           <>
+            {/* Titre section si promos existent */}
+            {produitsPromo.length > 0 && (
+              <div className="flex items-center gap-2 mb-3">
+                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 backdrop-blur-sm border border-white/10">
+                  <Package className="w-4 h-4 text-emerald-400" />
+                  <span className="text-sm font-bold text-white/80">Tous les produits</span>
+                </div>
+                <div className="flex-1 h-px bg-gradient-to-r from-white/20 to-transparent" />
+              </div>
+            )}
+
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -267,7 +323,7 @@ export default function CataloguePublicClient({ nomStructure, idStructure }: Cat
               ))}
             </motion.div>
 
-            {/* 4. Charger plus */}
+            {/* 5. Charger plus */}
             {hasMore && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
@@ -280,19 +336,21 @@ export default function CataloguePublicClient({ nomStructure, idStructure }: Cat
                   onClick={() => setVisibleCount(prev => prev + 12)}
                   className="px-8 py-3 rounded-full bg-emerald-500/20 backdrop-blur-md border border-emerald-400/30 hover:bg-emerald-500/30 text-white font-semibold text-sm transition-all"
                 >
-                  Charger plus ({produitsFiltres.length - visibleCount} restant{produitsFiltres.length - visibleCount > 1 ? 's' : ''})
+                  Charger plus ({produitsNormaux.length - visibleCount} restant{produitsNormaux.length - visibleCount > 1 ? 's' : ''})
                 </motion.button>
               </motion.div>
             )}
           </>
-        )}
+        ) : null}
       </motion.div>
 
       {/* 5. FAB panier */}
-      <BoutiqueFAB nbArticles={nbArticlesPanier} onClick={() => setPanierOuvert(true)} />
+      {!panierOuvert && (
+        <BoutiqueFAB nbArticles={nbArticlesPanier} onClick={() => setPanierOuvert(true)} />
+      )}
 
       {/* Scroll top FAB (quand pas d'articles dans le panier) */}
-      {nbArticlesPanier === 0 && <MarketplaceFAB />}
+      {nbArticlesPanier === 0 && !panierOuvert && <MarketplaceFAB />}
 
       {/* 6. Drawer Panier - INCHANGE */}
       <AnimatePresence>

@@ -24,6 +24,7 @@ import {
   Camera,
   Trash2,
   Globe,
+  Flame,
 } from 'lucide-react';
 import { Produit, ProduitFormDataNew, AddEditProduitResponse, MouvementStockForm, HistoriqueMouvements, PhotoProduit } from '@/types/produit';
 import { produitsService } from '@/services/produits.service';
@@ -78,7 +79,8 @@ export function ModalAjoutProduitNew({
     description: '',
     presente_au_public: false,
     code_barres: '',
-    prix_grossiste: 0
+    prix_grossiste: 0,
+    en_promo: false
   });
   const [photos, setPhotos] = useState<PhotoProduit[]>([]);
   const [isLoadingPhotos, setIsLoadingPhotos] = useState(false);
@@ -209,7 +211,8 @@ export function ModalAjoutProduitNew({
         description: produitToEdit.description || '',
         presente_au_public: produitToEdit.presente_au_public || false,
         code_barres: produitToEdit.code_barre || '',
-        prix_grossiste: produitToEdit.prix_grossiste || 0
+        prix_grossiste: produitToEdit.prix_grossiste || 0,
+        en_promo: produitToEdit.en_promo || false
       });
       setStockForm({
         quantite: 0,
@@ -232,7 +235,8 @@ export function ModalAjoutProduitNew({
         description: '',
         presente_au_public: false,
         code_barres: '',
-        prix_grossiste: 0
+        prix_grossiste: 0,
+        en_promo: false
       });
       setStockForm({
         quantite: 0,
@@ -774,6 +778,32 @@ export function ModalAjoutProduitNew({
                         </span>
                         <p className="text-[10px] sm:text-xs text-slate-600 mt-0.5 hidden sm:block">
                           Ce {formData.est_service ? 'service' : 'produit'} sera visible dans votre catalogue public
+                        </p>
+                      </div>
+                    </label>
+                  </div>
+
+                  {/* En promotion */}
+                  <div className={`bg-gradient-to-r from-orange-50/70 to-red-50/70 backdrop-blur-sm p-2.5 sm:p-4 rounded-lg sm:rounded-xl border border-orange-200/50 ${
+                    !canEdit ? 'opacity-60' : ''
+                  }`}>
+                    <label className={`flex items-center gap-2 sm:gap-3 ${canEdit ? 'cursor-pointer' : 'cursor-not-allowed'}`}>
+                      <input
+                        type="checkbox"
+                        checked={formData.en_promo || false}
+                        onChange={(e) => handleInputChange('en_promo', e.target.checked)}
+                        disabled={!canEdit}
+                        className={`w-4 h-4 sm:w-5 sm:h-5 text-orange-600 border-orange-300 rounded focus:ring-orange-500 focus:ring-offset-0 ${
+                          canEdit ? 'cursor-pointer' : 'cursor-not-allowed'
+                        }`}
+                      />
+                      <div className="flex-1">
+                        <span className="text-xs sm:text-sm font-medium text-slate-800 flex items-center gap-1.5 sm:gap-2">
+                          <Flame className="w-3 h-3 sm:w-4 sm:h-4 text-orange-500" />
+                          En promotion
+                        </span>
+                        <p className="text-[10px] sm:text-xs text-slate-600 mt-0.5 hidden sm:block">
+                          Ce {formData.est_service ? 'service' : 'produit'} sera mis en avant dans la section Promotions du catalogue
                         </p>
                       </div>
                     </label>

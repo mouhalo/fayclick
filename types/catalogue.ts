@@ -17,6 +17,7 @@ export interface ProduitPublic {
   photo_disponible: boolean;
   nombre_photos: number;
   photos: PhotoProduit[];
+  en_promo?: boolean;
 }
 
 // Réponse complète de l'API get_produits_by_structure_name

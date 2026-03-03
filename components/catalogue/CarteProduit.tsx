@@ -8,7 +8,7 @@
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { ShoppingBag, Camera } from 'lucide-react';
+import { ShoppingBag, Camera, Flame } from 'lucide-react';
 import { ProduitPublic } from '@/types/catalogue';
 import { ProduitPublicGlobal } from '@/types/catalogues';
 import Image from 'next/image';
@@ -97,15 +97,22 @@ export default function CarteProduit({ produit, index, showStructureName = false
               </div>
             )}
 
-            {/* Badge photos multiples — coin haut gauche */}
-            {produit.nombre_photos > 1 && (
+            {/* Badge promo (priorité) ou photos multiples — coin haut gauche */}
+            {produit.en_promo ? (
+              <div className="absolute top-1.5 left-1.5 z-10">
+                <span className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[8px] font-bold uppercase bg-orange-500/90 text-white backdrop-blur-sm shadow-lg shadow-orange-500/30 animate-pulse">
+                  <Flame className="w-2.5 h-2.5" />
+                  Promo
+                </span>
+              </div>
+            ) : produit.nombre_photos > 1 ? (
               <div className="absolute top-1.5 left-1.5 z-10">
                 <span className="flex items-center gap-0.5 px-1 py-0.5 rounded-md text-[8px] font-bold bg-black/50 text-white backdrop-blur-sm">
                   <Camera className="w-2.5 h-2.5" />
                   {produit.nombre_photos}
                 </span>
               </div>
-            )}
+            ) : null}
 
             {/* Zone prix + stock — ancree en bas de la photo */}
             <div className="absolute bottom-0 left-0 right-0 p-1.5 sm:p-2 z-10">

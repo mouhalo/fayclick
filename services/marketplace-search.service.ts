@@ -42,6 +42,7 @@ class MarketplaceSearchService {
             nom_structure: produit.nom_structure,
             logo_structure: produit.logo_structure,
             type_structure: produit.type_structure,
+            telephone: produit.telephone_structure,
             total_produits: 1,
             categories: produit.nom_categorie ? [produit.nom_categorie] : []
           });
