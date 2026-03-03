@@ -9,6 +9,7 @@ import { GlassCard } from '@/components/ui/GlassCard';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { useTranslations } from '@/hooks/useTranslations';
 import { VersionLabel } from '@/components/ui/VersionLabel';
+import MarketplaceCTA from './MarketplaceCTA';
 
 export default function DesktopHome() {
   const t = useTranslations('landing');
@@ -230,6 +231,11 @@ export default function DesktopHome() {
             </motion.div>
           </motion.div>
         </div>
+      </section>
+
+      {/* Section Marketplace CTA */}
+      <section className="relative z-10 px-6">
+        <MarketplaceCTA variant="desktop" />
       </section>
 
       {/* Section 3: Footer avec Glassmorphisme */}

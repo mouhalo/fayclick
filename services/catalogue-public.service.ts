@@ -113,7 +113,7 @@ class CataloguePublicService {
 
   /**
    * Récupère les produits publics d'une structure par son ID
-   * Résout d'abord le nom_structure puis appelle getProduitsPublics
+   * Appelle directement la fonction PostgreSQL avec le nom résolu (sans re-valider la regex)
    */
   async getProduitsPublicsById(idStructure: number): Promise<unknown> {
     try {
@@ -122,6 +122,8 @@ class CataloguePublicService {
       }
 
       const database = (await import('./database.service')).default;
+
+      // Résoudre le nom_structure depuis l'ID
       const result = await database.query(
         `SELECT nom_structure FROM structures WHERE id_structure = ${idStructure}`
       );
@@ -135,8 +137,55 @@ class CataloguePublicService {
         throw new CataloguePublicException('Structure introuvable', 404);
       }
 
-      return await this.getProduitsPublics(nomStructure);
+      console.log('🔍 [CATALOGUE PUBLIC] Appel fonction PostgreSQL pour:', nomStructure, '(id:', idStructure, ')');
+
+      // Appel direct de la fonction PostgreSQL (sans passer par getProduitsPublics qui valide la regex)
+      const query = `SELECT * FROM get_produits_by_structure_name('${nomStructure.replace(/'/g, "''")}')`;
+      const data = await database.query(query);
+
+      console.log('📦 [CATALOGUE PUBLIC] Données brutes reçues:', JSON.stringify(data, null, 2).substring(0, 500));
+
+      if (!data || (Array.isArray(data) && data.length === 0)) {
+        throw new CataloguePublicException('Structure introuvable ou aucun produit disponible', 404);
+      }
+
+      let catalogueData;
+      if (Array.isArray(data) && data.length > 0) {
+        const firstRow = data[0];
+        catalogueData = firstRow.get_produits_by_structure_name || firstRow;
+      } else {
+        catalogueData = data;
+      }
+
+      if (typeof catalogueData === 'string') {
+        try {
+          catalogueData = JSON.parse(catalogueData);
+        } catch (e) {
+          console.error('❌ [CATALOGUE PUBLIC] Erreur parsing JSON:', e);
+          throw new CataloguePublicException('Format de données invalide', 500);
+        }
+      }
+
+      if (!catalogueData || typeof catalogueData !== 'object') {
+        throw new CataloguePublicException('Format de données invalide', 500);
+      }
+
+      if (catalogueData.success === false) {
+        throw new CataloguePublicException(
+          catalogueData.message || 'Erreur lors de la récupération du catalogue',
+          404
+        );
+      }
+
+      console.log('✅ [CATALOGUE PUBLIC] Catalogue récupéré:', {
+        nom_structure: catalogueData.nom_structure,
+        total_produits: catalogueData.total_produits,
+        data_length: catalogueData.data?.length
+      });
+
+      return catalogueData;
     } catch (error) {
+      console.error('❌ [CATALOGUE PUBLIC] Erreur:', error);
       if (error instanceof CataloguePublicException) throw error;
       throw new CataloguePublicException('Impossible de récupérer le catalogue', 500);
     }
