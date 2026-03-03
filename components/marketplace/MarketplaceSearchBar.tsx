@@ -115,11 +115,12 @@ export default function MarketplaceSearchBar({ onSelectStructure, variant = 'her
                 {/* Logo ou mascotte */}
                 <div className="flex-shrink-0 w-10 h-10 rounded-full overflow-hidden bg-gradient-to-br from-emerald-500/30 to-teal-500/30 border border-white/20 flex items-center justify-center">
                   <Image
-                    src={r.structure.logo_structure || '/images/mascotte.png'}
+                    src={r.structure.logo_structure && r.structure.logo_structure.startsWith('http') ? r.structure.logo_structure : '/images/mascotte.png'}
                     alt={r.structure.nom_structure}
                     width={40}
                     height={40}
                     className="object-cover w-full h-full"
+                    onError={(e) => { e.currentTarget.src = '/images/mascotte.png'; }}
                   />
                 </div>
 

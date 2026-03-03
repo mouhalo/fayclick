@@ -1,11 +1,19 @@
 'use client';
 
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Package } from 'lucide-react';
 import Image from 'next/image';
 import { CarteStructureProps } from '@/types/marketplace';
 
+const FALLBACK = '/images/mascotte.png';
+
 export default function CarteStructure({ structure, index, onClick }: CarteStructureProps) {
+  const logoSrc = structure.logo_structure && structure.logo_structure.startsWith('http')
+    ? structure.logo_structure
+    : FALLBACK;
+  const [src, setSrc] = useState(logoSrc);
+
   return (
     <motion.button
       initial={{ opacity: 0, y: 20 }}
@@ -18,11 +26,12 @@ export default function CarteStructure({ structure, index, onClick }: CarteStruc
         {/* Logo rond */}
         <div className="w-14 h-14 rounded-full mx-auto mb-2 overflow-hidden bg-gradient-to-br from-emerald-500/20 to-teal-500/20 border-2 border-white/20 group-hover:border-emerald-400/40 transition-colors flex items-center justify-center">
           <Image
-            src={structure.logo_structure || '/images/mascotte.png'}
+            src={src}
             alt={structure.nom_structure}
             width={56}
             height={56}
             className="object-cover w-full h-full"
+            onError={() => setSrc(FALLBACK)}
           />
         </div>
 
