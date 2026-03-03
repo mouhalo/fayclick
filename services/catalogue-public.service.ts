@@ -32,8 +32,8 @@ class CataloguePublicService {
         throw new CataloguePublicException('Nom de structure manquant', 400);
       }
 
-      // Validation format : alphanumeric + underscore seulement
-      if (!/^[A-Z0-9_]+$/i.test(nomStructure)) {
+      // Validation format : alphanumeric + underscore + espaces + tirets
+      if (!/^[A-Z0-9_ \-'.&()]+$/i.test(nomStructure)) {
         throw new CataloguePublicException('Nom de structure invalide', 400);
       }
 

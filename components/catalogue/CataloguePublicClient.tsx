@@ -87,7 +87,7 @@ export default function CataloguePublicClient({ nomStructure, idStructure }: Cat
     } finally {
       setLoading(false);
     }
-  }, [nomStructure]);
+  }, [nomStructure, idStructure]);
 
   useEffect(() => {
     loadCatalogue();
