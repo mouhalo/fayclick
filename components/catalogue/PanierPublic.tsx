@@ -40,6 +40,7 @@ export default function PanierPublic({
   const [showQRCode, setShowQRCode] = useState(false);
   const [selectedMethod, setSelectedMethod] = useState<'OM' | 'WAVE' | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [lastSubmitTime, setLastSubmitTime] = useState(0);
   const [pageState, setPageState] = useState<PageState>('PANIER');
   const [numFacture, setNumFacture] = useState('');
   const [error, setError] = useState('');
@@ -53,9 +54,13 @@ export default function PanierPublic({
     return telephone.length === 9 && /^(77|78|76|70|75)\d{7}$/.test(telephone) && articles.length > 0;
   };
 
+  // Anti-abus : cooldown 5s entre deux tentatives
   const handlePayment = (method: 'OM' | 'WAVE') => {
     if (!isFormValid() || isSubmitting) return;
+    const now = Date.now();
+    if (now - lastSubmitTime < 5000) return;
     setIsSubmitting(true);
+    setLastSubmitTime(now);
     setSelectedMethod(method);
     setShowQRCode(true);
   };
