@@ -104,7 +104,8 @@ class CataloguesPublicService {
                 id_structure: structure.id_structure,
                 nom_structure: structure.nom_structure,
                 logo_structure: structure.logo || structure.logo_structure,
-                type_structure: structure.type_structure
+                type_structure: structure.type_structure,
+                telephone_structure: structure.telephone || structure.phone || structure.tel
               });
             });
           }

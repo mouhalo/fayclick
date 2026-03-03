@@ -473,7 +473,8 @@ export class ProduitsService {
           ${produitData.presente_au_public !== undefined ? (produitData.presente_au_public ? 'true' : 'false') : 'NULL'},
           0,
           ${produitData.code_barres ? `'${produitData.code_barres.replace(/'/g, "''")}'` : `''`},
-          ${produitData.prix_grossiste || 0}
+          ${produitData.prix_grossiste || 0},
+          ${produitData.en_promo ? 'true' : 'false'}
         )
       `;
 
@@ -562,7 +563,8 @@ export class ProduitsService {
           ${produitData.presente_au_public !== undefined ? (produitData.presente_au_public ? 'true' : 'false') : 'NULL'},
           ${id_produit},
           ${produitData.code_barres ? `'${produitData.code_barres.replace(/'/g, "''")}'` : `''`},
-          ${produitData.prix_grossiste || 0}
+          ${produitData.prix_grossiste || 0},
+          ${produitData.en_promo ? 'true' : 'false'}
         )
       `;
 
