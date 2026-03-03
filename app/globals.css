@@ -96,6 +96,44 @@ html, body {
 }
 
 @layer utilities {
+  /* Masquer scrollbar pour carrousel horizontal */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* === CARTE PRODUIT PREMIUM === */
+
+  /* Shimmer sweep sur la photo au hover */
+  @keyframes shimmer-sweep {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(200%); }
+  }
+
+  /* Bordure scintillante rotative */
+  .shimmer-border {
+    background-size: 200% 100%;
+    animation: shimmer-rotate 3s linear infinite;
+  }
+  @keyframes shimmer-rotate {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
+
+  /* Glow pulse subtil au repos */
+  .carte-produit-premium {
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .carte-produit-premium:hover {
+    transform: translateY(-3px);
+  }
+  .carte-produit-premium:active {
+    transform: scale(0.97);
+  }
+
   /* Variables CSS Globales FayClick */
   :root {
     /* Couleurs Primaires */

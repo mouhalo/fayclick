@@ -17,6 +17,7 @@ import {
   Sparkles,
   ArrowRight
 } from 'lucide-react';
+import MarketplaceCTA from './MarketplaceCTA';
 
 export default function MobileHome() {
   const t = useTranslations('landing');
@@ -378,6 +379,9 @@ export default function MobileHome() {
             </motion.button>
           </Link>
         </motion.div>
+
+        {/* CTA Marketplace */}
+        <MarketplaceCTA variant="mobile" />
 
         {/* Features cards glassmorphisme révolutionnaires */}
         <motion.div
