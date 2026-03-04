@@ -9,6 +9,7 @@ export interface StructurePublique {
   logo_structure?: string;
   type_structure?: string;
   telephone?: string;
+  adresse?: string;
   total_produits: number;
   categories: string[];
 }

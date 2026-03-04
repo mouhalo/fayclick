@@ -1,10 +1,10 @@
 // Service Worker FayClick V2 - PWA Complète
 // Version: 2.8.0 - 2026-02-01 - Intégration add_acompte_facture1 + photo produit
-// Build: 2026-02-24T21:57:20.959Z - Force upload fix for ftp-deploy size comparison bug
+// Build: 2026-03-03T23:36:38.337Z - Force upload fix for ftp-deploy size comparison bug
 // Build: 2026-02-01T21:12:32.816Z
 
-const CACHE_NAME = 'fayclick-v2-cache-v2.8-20260201';
-const DYNAMIC_CACHE_NAME = 'fayclick-v2-dynamic-v2.8-20260201';
+const CACHE_NAME = 'fayclick-v2-cache-v2.9-20260304';
+const DYNAMIC_CACHE_NAME = 'fayclick-v2-dynamic-v2.9-20260304';
 const OFFLINE_PAGE_URL = '/offline';
 
 // Nom de l'IndexedDB pour les requêtes en attente (Background Sync)
@@ -138,6 +138,17 @@ self.addEventListener('fetch', (event) => {
     url = new URL(request.url);
   } catch (error) {
     console.warn('[Service Worker] URL invalide:', request.url);
+    return;
+  }
+
+  // ===== FIX: Ignorer les requêtes cross-origin (uploads, API, etc.) =====
+  // Le SW ne doit JAMAIS intercepter les requêtes vers d'autres domaines
+  // Sinon fetch() échoue avec "NetworkError when attempting to fetch resource"
+  const isCrossOrigin = url.origin !== self.location.origin;
+
+  if (isCrossOrigin) {
+    // NE PAS appeler event.respondWith() - laisser le navigateur gérer nativement
+    console.log('[Service Worker] Cross-origin ignoré (passthrough natif):', url.hostname + url.pathname.substring(0, 50));
     return;
   }
 
