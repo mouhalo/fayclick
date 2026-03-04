@@ -29,6 +29,7 @@ export interface CatalogueResponse {
   total_produits: number;
   logo?: string;  // Logo de la structure
   telephone?: string;  // Téléphone de la structure
+  adresse?: string;  // Adresse de la structure
   data: ProduitPublic[];
 }
 

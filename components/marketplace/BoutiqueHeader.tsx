@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Tags, Phone, ArrowLeft, Package } from 'lucide-react';
+import { Tags, Phone, ArrowLeft, Package, MapPin } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
@@ -83,19 +83,29 @@ export default function BoutiqueHeader({ catalogue, totalCategories }: BoutiqueH
             {catalogue.nom_structure}
           </motion.h1>
 
-          {/* Telephone cliquable */}
-          {catalogue.telephone && (
-            <motion.a
-              href={`tel:+221${catalogue.telephone}`}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.3 }}
-              className="inline-flex items-center gap-1.5 text-emerald-200 hover:text-emerald-100 text-sm mb-4 transition-colors"
-            >
-              <Phone className="w-3.5 h-3.5" />
-              {catalogue.telephone}
-            </motion.a>
-          )}
+          {/* Telephone + Adresse */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.3 }}
+            className="mb-4 space-y-1"
+          >
+            {catalogue.telephone && (
+              <a
+                href={`tel:+221${catalogue.telephone}`}
+                className="inline-flex items-center gap-1.5 text-emerald-200 hover:text-emerald-100 text-sm transition-colors"
+              >
+                <Phone className="w-3.5 h-3.5" />
+                {catalogue.telephone}
+              </a>
+            )}
+            {catalogue.adresse && (
+              <p className="flex items-center justify-center gap-1.5 text-white/50 text-xs">
+                <MapPin className="w-3 h-3 flex-shrink-0" />
+                {catalogue.adresse}
+              </p>
+            )}
+          </motion.div>
 
           {/* Badges stats */}
           <motion.div
