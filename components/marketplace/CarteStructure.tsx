@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Package } from 'lucide-react';
+import { Package, MapPin } from 'lucide-react';
 import Image from 'next/image';
 import { CarteStructureProps } from '@/types/marketplace';
 
@@ -40,8 +40,16 @@ export default function CarteStructure({ structure, index, onClick }: CarteStruc
           {structure.nom_structure}
         </p>
 
+        {/* Adresse */}
+        {structure.adresse && (
+          <p className="text-emerald-200/50 text-[9px] text-center line-clamp-1 mb-1">
+            <MapPin className="w-2.5 h-2.5 inline mr-0.5" />
+            {structure.adresse}
+          </p>
+        )}
+
         {/* Badge produits */}
-        <div className="flex items-center justify-center gap-1 text-emerald-300/70 text-[10px] mb-2">
+        <div className="flex items-center justify-center gap-1 text-emerald-300/70 text-[10px] mb-1">
           <Package className="w-3 h-3" />
           <span>{structure.total_produits} produit{structure.total_produits > 1 ? 's' : ''}</span>
         </div>

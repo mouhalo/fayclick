@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Phone, Store, Package } from 'lucide-react';
+import { Search, Phone, Store, Package, MapPin } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { marketplaceSearchService } from '@/services/marketplace-search.service';
@@ -141,6 +141,12 @@ export default function MarketplaceSearchBar({ onSelectStructure, variant = 'her
                       {r.structure.total_produits} produit{r.structure.total_produits > 1 ? 's' : ''}
                     </span>
                   </div>
+                  {r.structure.adresse && (
+                    <p className="text-[10px] text-white/40 truncate flex items-center gap-1 mt-0.5">
+                      <MapPin className="w-2.5 h-2.5 flex-shrink-0" />
+                      {r.structure.adresse}
+                    </p>
+                  )}
                 </div>
 
                 {/* Icone */}

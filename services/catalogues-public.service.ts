@@ -45,8 +45,9 @@ class CataloguesPublicService {
       const database = (await import('./database.service')).default;
 
       // Appel de la fonction PostgreSQL qui retourne tout le JSON
+      // Timeout élevé car 118K+ produits = payload JSON volumineux
       const query = `SELECT * FROM get_all_produits_publics()`;
-      const data = await database.query(query);
+      const data = await database.query(query, 120000);
 
       console.log('📦 [CATALOGUES GLOBAL] Données brutes reçues:', JSON.stringify(data, null, 2).substring(0, 500));
 
@@ -105,7 +106,8 @@ class CataloguesPublicService {
                 nom_structure: structure.nom_structure,
                 logo_structure: structure.logo || structure.logo_structure,
                 type_structure: structure.type_structure,
-                telephone_structure: structure.telephone || structure.phone || structure.tel
+                telephone_structure: structure.telephone || structure.phone || structure.tel,
+                adresse_structure: structure.adresse || ''
               });
             });
           }

@@ -24,6 +24,7 @@ export interface ProduitPublicGlobal {
   logo_structure?: string;
   type_structure?: string;
   telephone_structure?: string;
+  adresse_structure?: string;
   en_promo?: boolean;
 }
 
