@@ -55,6 +55,10 @@ import { ModalAbonnementExpire, useModalAbonnementExpire } from '@/components/su
 import { ModalEnrolementProduits } from '@/components/visual-recognition';
 import { ModalOptionsAjout } from '@/components/produits/ModalOptionsAjout';
 import { ProduitsFilterPanel } from '@/components/produits/ProduitsFilterPanel';
+import ProduitsDesktopView from '@/components/produits/ProduitsDesktopView';
+import MainMenu from '@/components/layout/MainMenu';
+import ModalCoffreFort from '@/components/coffre-fort/ModalCoffreFort';
+import { ModalDeconnexion } from '@/components/auth/ModalDeconnexion';
 
 export default function ProduitsCommercePage() {
   const router = useRouter();
@@ -105,9 +109,13 @@ export default function ProduitsCommercePage() {
   const [isDeletingBatch, setIsDeletingBatch] = useState(false);
   const [batchDeleteProgress, setBatchDeleteProgress] = useState(0);
 
-  // Détection desktop pour panier latéral
-  const { isDesktop, isDesktopLarge } = useBreakpoint();
+  // Détection desktop pour panier latéral + layout desktop
+  const { isDesktop, isDesktopLarge, isTablet } = useBreakpoint();
   const isDesktopView = isDesktop || isDesktopLarge;
+
+  // États desktop (sidebar modals)
+  const [showCoffreModal, setShowCoffreModal] = useState(false);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   // État panier latéral (desktop uniquement, persisté dans localStorage)
   const [showPanierSide, setShowPanierSide] = useState(false);
@@ -997,10 +1005,469 @@ export default function ProduitsCommercePage() {
     return <CarteProduitSkeleton key={index} compactMode={false} />;
   };
 
+  // Contenu commun (filtres, stats, liste, panier)
+  const renderContent = () => (
+    <>
+      {/* Panneau de filtres avancés */}
+      <div className={isDesktopView || isTablet ? '' : 'px-5 pt-2'}>
+        <ProduitsFilterPanel
+          isOpen={showFilters}
+          produits={produits}
+          onApplyFilters={handleApplyAdvancedFilters}
+          onResetFilters={handleClearFilters}
+          activeFiltersCount={activeFiltersCount}
+        />
+      </div>
+
+      {/* Barre de filtres (recherche, vue, mode vente, etc.) */}
+      <div className={`${isDesktopView || isTablet ? 'mb-4' : ''}`}>
+        <ProduitsFilterHeader
+          ref={filterHeaderRef}
+          searchTerm={searchTerm}
+          onSearchChange={handleSearchChange}
+          viewMode={viewMode}
+          onViewModeChange={setViewMode}
+          showFilters={showFilters}
+          onToggleFilters={() => setShowFilters(!showFilters)}
+          onRefresh={handleRefresh}
+          refreshing={refreshing}
+          onPrintClick={handlePrint}
+          onExportCSV={handleExportCSV}
+          isExporting={isExporting}
+          selectionMode={isAdmin ? selectionMode : false}
+          onToggleSelectionMode={isAdmin ? toggleSelectionMode : undefined}
+          modeVente={modeVente}
+          onToggleModeVente={handleToggleModeVente}
+          showPanierSide={showPanierSide}
+          onTogglePanierSide={handleTogglePanier}
+        />
+      </div>
+
+      {/* Contenu principal */}
+      <div className={`transition-all duration-300 ${showPanierSide && isDesktopView ? 'pr-[400px]' : ''}`}>
+        {/* Accordéon Statistiques */}
+        <div className="mb-4">
+          <motion.button
+            onClick={() => setShowStats(!showStats)}
+            className={`w-full flex items-center justify-between p-3 sm:p-4 rounded-xl border transition-all ${
+              isDesktopView || isTablet
+                ? 'bg-white/80 backdrop-blur-sm border-gray-200/50 hover:bg-white shadow-sm'
+                : 'bg-white/20 backdrop-blur-sm border-white/30 hover:bg-white/30'
+            }`}
+          >
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="relative">
+                <motion.div
+                  animate={{ scale: [1, 1.1, 1], rotate: [0, 5, -5, 0] }}
+                  transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                  className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-amber-400 to-orange-500 rounded-lg flex items-center justify-center shadow-md"
+                >
+                  <BarChart3 className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                </motion.div>
+                <motion.div
+                  animate={{ scale: [1, 1.5], opacity: [0.5, 0] }}
+                  transition={{ duration: 1.5, repeat: Infinity }}
+                  className="absolute inset-0 bg-amber-400 rounded-lg"
+                />
+              </div>
+              <div className="text-left">
+                <h3 className={`font-semibold text-sm sm:text-base ${isDesktopView || isTablet ? 'text-gray-800' : 'text-white'}`}>Valeur de vos Stocks</h3>
+                <p className={`text-xs sm:text-sm ${isDesktopView || isTablet ? 'text-gray-500' : 'text-white/70'}`}>
+                  {showStats ? 'Cliquez pour replier' : 'Cliquez pour voir les détails'}
+                </p>
+              </div>
+            </div>
+            <motion.div
+              animate={{ rotate: showStats ? 180 : 0 }}
+              transition={{ duration: 0.3 }}
+              className={`w-8 h-8 rounded-full flex items-center justify-center ${isDesktopView || isTablet ? 'bg-gray-100' : 'bg-white/20'}`}
+            >
+              <ChevronDown className={`w-5 h-5 ${isDesktopView || isTablet ? 'text-gray-600' : 'text-white'}`} />
+            </motion.div>
+          </motion.button>
+
+          <motion.div
+            initial={false}
+            animate={{ height: showStats ? 'auto' : 0, opacity: showStats ? 1 : 0, marginTop: showStats ? 12 : 0 }}
+            transition={{ duration: 0.3, ease: 'easeInOut' }}
+            className="overflow-hidden"
+          >
+            {isLoadingProduits ? <StatsCardsNouveauxLoading /> : (
+              <StatsCardsNouveaux articles={produitsFiltered} canViewMontants={canViewCA} />
+            )}
+          </motion.div>
+        </div>
+
+        {/* Pagination glassmorphism */}
+        {!isLoadingProduits && filteredCount > 0 && (
+          <GlassPagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={filteredCount}
+            itemsPerPage={itemsPerPage}
+            onPageChange={handlePageChange}
+            itemLabel="produits"
+            className="mb-6"
+          />
+        )}
+
+        {/* Message d'erreur */}
+        {errorProduits && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl flex items-center gap-3"
+          >
+            <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
+            <div>
+              <p className="text-red-800 font-medium">Erreur de chargement</p>
+              <p className="text-red-600 text-sm">{errorProduits}</p>
+            </div>
+            <motion.button
+              whileTap={{ scale: 0.95 }}
+              onClick={handleRefresh}
+              className="ml-auto p-2 text-red-600 hover:bg-red-100 rounded-lg transition-colors"
+            >
+              <RefreshCw className="w-4 h-4" />
+            </motion.button>
+          </motion.div>
+        )}
+
+        {/* Liste des produits */}
+        <ProduitsList
+          items={paginatedItems}
+          loading={isLoadingProduits}
+          viewMode={viewMode}
+          renderItem={renderProduitItem}
+          renderSkeleton={renderProduitSkeleton}
+          onAddProduit={handleAddProduit}
+          onClearFilters={handleClearFilters}
+          isEmpty={!isLoadingProduits && produits.length === 0}
+          hasNoResults={!isLoadingProduits && produits.length > 0 && filteredCount === 0}
+          searchTerm={searchTerm}
+          hasFilters={Object.values(filtres).some(v => v !== undefined && v !== '')}
+          skeletonCount={itemsPerPage}
+          onProduitClick={handleProduitClickTable}
+          onVendreClick={handleVendreClick}
+          selectionMode={isAdmin ? selectionMode : false}
+          selectedIds={isAdmin ? selectedIds : undefined}
+          onToggleSelect={isAdmin ? toggleSelection : undefined}
+          onSelectAll={isAdmin ? selectAllPage : undefined}
+          reducedGrid={showPanierSide && isDesktopView}
+        />
+
+        {/* Panier latéral flottant draggable (tous devices) */}
+        {showPanierSide && (
+          <PanierSidePanel onClose={handleTogglePanierSide} />
+        )}
+
+        <div className="h-4" />
+      </div>
+    </>
+  );
+
+  // Desktop / Tablette : wrapper avec sidebar + top bar
+  if (isDesktopView || isTablet) {
+    return (
+      <>
+        <ProduitsDesktopView
+          user={user}
+          onShowCoffreModal={() => setShowCoffreModal(true)}
+          onShowLogoutModal={() => setShowLogoutModal(true)}
+          onShowProfilModal={() => window.dispatchEvent(new Event('openProfileModal'))}
+          isTablet={!isDesktopLarge}
+        >
+          {renderContent()}
+
+          {/* Barre d'action flottante - Mode sélection (desktop) */}
+          <AnimatePresence>
+            {isAdmin && selectionMode && selectedIds.size > 0 && (
+              <motion.div
+                initial={{ y: 100, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                exit={{ y: 100, opacity: 0 }}
+                transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[50]"
+              >
+                <div className="bg-slate-900/90 backdrop-blur-xl rounded-2xl px-4 py-3 flex items-center gap-3 shadow-2xl border border-white/10 w-auto">
+                  <div className="flex items-center gap-2 text-white">
+                    <CheckSquare className="w-5 h-5 text-blue-400" />
+                    <span className="font-semibold text-sm">
+                      {selectedIds.size} produit{selectedIds.size > 1 ? 's' : ''}
+                    </span>
+                  </div>
+                  <div className="flex-1" />
+                  <motion.button
+                    whileTap={{ scale: 0.95 }}
+                    onClick={selectAllPage}
+                    className="px-3 py-1.5 text-xs font-medium text-blue-300 hover:text-blue-200 hover:bg-white/10 rounded-lg transition-colors"
+                  >
+                    {paginatedItems.every(p => selectedIds.has(p.id_produit)) ? 'Tout désélect.' : 'Tout sélect.'}
+                  </motion.button>
+                  <motion.button
+                    whileTap={{ scale: 0.95 }}
+                    onClick={handleDeleteSelected}
+                    className="px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white text-xs font-semibold rounded-lg transition-colors flex items-center gap-1.5"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    Supprimer
+                  </motion.button>
+                  <motion.button
+                    whileTap={{ scale: 0.95 }}
+                    onClick={clearSelection}
+                    className="p-1.5 hover:bg-white/10 rounded-lg transition-colors"
+                  >
+                    <X className="w-4 h-4 text-gray-400" />
+                  </motion.button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </ProduitsDesktopView>
+
+        {/* MainMenu hidden */}
+        <MainMenu
+          isOpen={false}
+          onClose={() => {}}
+          userName={user?.username}
+          businessName={user?.nom_structure}
+        />
+
+        {/* Coffre-Fort Modal */}
+        <ModalCoffreFort
+          isOpen={showCoffreModal}
+          onClose={() => setShowCoffreModal(false)}
+          structureId={user?.id_structure || 0}
+        />
+
+        {/* Modal Deconnexion */}
+        <ModalDeconnexion
+          isOpen={showLogoutModal}
+          onClose={() => setShowLogoutModal(false)}
+          onConfirm={() => {
+            authService.logout();
+            router.push('/login');
+          }}
+          userName={user?.username}
+        />
+
+        {/* Tous les modals existants */}
+        <ModalOptionsAjout
+          isOpen={showOptionsAjoutModal}
+          onClose={() => setShowOptionsAjoutModal(false)}
+          onSelectManuel={handleAddProduit}
+          onSelectPhoto={handleOpenEnrolement}
+        />
+
+        <ModalAjoutProduitNew
+          isOpen={isModalAjoutOpen}
+          onClose={handleCloseModal}
+          onSuccess={handleProduitSuccess}
+          onStockUpdate={loadProduits}
+          onRequestStockAddition={handleRequestStockAddition}
+          produitToEdit={produitSelectionne}
+          typeStructure="COMMERCIALE"
+          defaultTab={produitSelectionne ? 'gestion-stock' : 'informations'}
+          canViewMontants={canViewCA}
+        />
+
+        {!showPanierSide && <ModalPanier />}
+        <ModalFactureSuccess />
+
+        {showStockConfirmation && pendingStockProduct && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[100] p-4">
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white rounded-xl p-6 max-w-md w-full shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="text-center">
+                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Package className="w-8 h-8 text-green-600" />
+                </div>
+                <h3 className="text-xl font-bold text-slate-900 mb-2">Produit créé avec succès !</h3>
+                <p className="text-slate-600 mb-2 font-medium">{pendingStockProduct.nom_produit}</p>
+                <p className="text-slate-600 mb-6">Voulez-vous ajouter des quantités au stock pour ce produit maintenant ?</p>
+                <div className="flex gap-3">
+                  <button onClick={handleStockConfirmationNo} className="flex-1 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-medium transition-colors">Plus tard</button>
+                  <button onClick={handleStockConfirmationYes} className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors">Oui, ajouter du stock</button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+
+        {showDeleteConfirmation && produitToDelete && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[100] p-4">
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white rounded-xl p-6 max-w-md w-full shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="text-center">
+                <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Trash2 className="w-8 h-8 text-red-600" />
+                </div>
+                <h3 className="text-xl font-bold text-slate-900 mb-2">Supprimer le produit ?</h3>
+                <p className="text-slate-600 mb-2 font-medium">{produitToDelete.nom_produit}</p>
+                <p className="text-slate-600 mb-6 text-sm">Cette action est irréversible.</p>
+                <div className="flex gap-3">
+                  <button onClick={handleCancelDelete} className="flex-1 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-medium transition-colors">Annuler</button>
+                  <button onClick={handleConfirmDelete} className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors">Supprimer</button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+
+        {showBatchDeleteConfirmation && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[100] p-4">
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white rounded-xl p-6 max-w-md w-full shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="text-center">
+                <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Trash2 className="w-8 h-8 text-red-600" />
+                </div>
+                <h3 className="text-xl font-bold text-slate-900 mb-2">Supprimer {selectedIds.size} produit{selectedIds.size > 1 ? 's' : ''} ?</h3>
+                <div className="max-h-40 overflow-y-auto mb-4 text-left bg-slate-50 rounded-lg p-3">
+                  {selectedProduits.map(p => (
+                    <div key={p.id_produit} className="text-sm text-slate-700 py-1 border-b border-slate-100 last:border-0">{p.nom_produit}</div>
+                  ))}
+                </div>
+                <p className="text-slate-600 mb-6 text-sm">Cette action est irréversible.</p>
+                {isDeletingBatch && (
+                  <div className="mb-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Loader2 className="w-4 h-4 text-red-500 animate-spin" />
+                      <span className="text-sm text-slate-600">Suppression en cours... {batchDeleteProgress}%</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div className="bg-red-500 h-2 rounded-full transition-all duration-300" style={{ width: `${batchDeleteProgress}%` }} />
+                    </div>
+                  </div>
+                )}
+                <div className="flex gap-3">
+                  <button onClick={handleCancelBatchDelete} disabled={isDeletingBatch} className="flex-1 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-medium transition-colors disabled:opacity-50">Annuler</button>
+                  <button onClick={handleConfirmBatchDelete} disabled={isDeletingBatch} className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
+                    {isDeletingBatch ? (<><Loader2 className="w-4 h-4 animate-spin" />Suppression...</>) : 'Supprimer tout'}
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+
+        <AnimatePresence>
+          {showQuantityModal && modeVenteProduit && (
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100] p-4">
+              <motion.div
+                initial={{ scale: 0.9, opacity: 0, y: 20 }}
+                animate={{ scale: 1, opacity: 1, y: 0 }}
+                exit={{ scale: 0.9, opacity: 0, y: 20 }}
+                className="bg-white rounded-2xl p-5 max-w-sm w-full shadow-2xl"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center">
+                    <ShoppingCart className="w-5 h-5 text-green-600" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-bold text-slate-900 truncate">{modeVenteProduit.nom_produit}</h3>
+                    <p className="text-sm text-slate-500">
+                      {(modeVenteProduit.prix_vente || 0).toLocaleString('fr-FR')} FCFA
+                      <span className="ml-2 text-xs">• Stock: {modeVenteProduit.niveau_stock || 0}</span>
+                    </p>
+                  </div>
+                </div>
+                {salesRules.prixEnGrosActif && (
+                  <div className="flex rounded-xl overflow-hidden border-2 border-slate-200 mb-4">
+                    <button onClick={() => { setModeVentePrixType('public'); setTimeout(() => { quantityInputRef.current?.focus(); quantityInputRef.current?.select(); }, 50); }} className={`flex-1 py-2.5 text-sm font-semibold transition-all ${modeVentePrixType === 'public' ? 'bg-green-500 text-white shadow-inner' : 'bg-slate-50 text-slate-600 hover:bg-slate-100'}`}>
+                      Public: {(modeVenteProduit.prix_vente || 0).toLocaleString('fr-FR')} F
+                    </button>
+                    <button onClick={() => { setModeVentePrixType('gros'); setTimeout(() => { quantityInputRef.current?.focus(); quantityInputRef.current?.select(); }, 50); }} className={`flex-1 py-2.5 text-sm font-semibold transition-all ${modeVentePrixType === 'gros' ? 'bg-purple-500 text-white shadow-inner' : 'bg-slate-50 text-slate-600 hover:bg-slate-100'}`}>
+                      Gros: {(modeVenteProduit.prix_grossiste || 0) > 0 ? `${(modeVenteProduit.prix_grossiste!).toLocaleString('fr-FR')} F` : `${(modeVenteProduit.prix_vente || 0).toLocaleString('fr-FR')} F`}
+                    </button>
+                  </div>
+                )}
+                <div className="flex items-center justify-center gap-4 my-5">
+                  <motion.button whileTap={{ scale: 0.9 }} onClick={() => setModeVenteQuantity(q => Math.max(1, q - 1))} className="w-12 h-12 rounded-xl bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition-colors">
+                    <Minus className="w-5 h-5 text-slate-700" />
+                  </motion.button>
+                  <input ref={quantityInputRef} type="number" value={modeVenteQuantity} onChange={(e) => { const val = parseInt(e.target.value) || 1; setModeVenteQuantity(Math.min(Math.max(1, val), modeVenteProduit.niveau_stock || 1)); }} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleModeVenteConfirm(); } }} className="w-20 h-12 text-center text-2xl font-bold text-slate-900 border-2 border-slate-200 rounded-xl focus:outline-none focus:border-green-400" min={1} max={modeVenteProduit.niveau_stock || 1} />
+                  <motion.button whileTap={{ scale: 0.9 }} onClick={() => setModeVenteQuantity(q => Math.min(q + 1, modeVenteProduit.niveau_stock || 1))} className="w-12 h-12 rounded-xl bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition-colors">
+                    <Plus className="w-5 h-5 text-slate-700" />
+                  </motion.button>
+                </div>
+                {(() => {
+                  const prixAffiche = modeVentePrixType === 'gros' && (modeVenteProduit.prix_grossiste || 0) > 0 ? modeVenteProduit.prix_grossiste! : modeVenteProduit.prix_vente || 0;
+                  return (
+                    <div className={`rounded-xl p-3 mb-5 text-center ${modeVentePrixType === 'gros' ? 'bg-purple-50' : 'bg-green-50'}`}>
+                      <span className={`text-sm ${modeVentePrixType === 'gros' ? 'text-purple-700' : 'text-green-700'}`}>Sous-total : </span>
+                      <span className={`text-lg font-bold ${modeVentePrixType === 'gros' ? 'text-purple-800' : 'text-green-800'}`}>{(prixAffiche * modeVenteQuantity).toLocaleString('fr-FR')} FCFA</span>
+                    </div>
+                  );
+                })()}
+                <div className="flex gap-3">
+                  <button onClick={handleModeVenteCancel} className="flex-1 px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-medium transition-colors">Annuler</button>
+                  <button onClick={handleModeVenteConfirm} className="flex-1 px-4 py-3 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white rounded-xl font-semibold transition-all shadow-md">Ajouter au panier</button>
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
+
+        <AnimatePresence>
+          {showBarcodeSelectionModal && barcodeMatches.length > 0 && (
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100] p-4" onClick={() => { setShowBarcodeSelectionModal(false); setBarcodeMatches([]); }}>
+              <motion.div initial={{ scale: 0.9, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 20 }} className="bg-white rounded-2xl p-5 max-w-md w-full shadow-2xl max-h-[80vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 bg-orange-100 rounded-xl flex items-center justify-center"><Package className="w-5 h-5 text-orange-600" /></div>
+                  <div><h3 className="font-bold text-slate-900">Plusieurs produits trouvés</h3><p className="text-sm text-slate-500">{barcodeMatches.length} produits avec ce code-barres</p></div>
+                </div>
+                <div className="overflow-y-auto flex-1 space-y-2">
+                  {barcodeMatches.map((produit) => {
+                    const stock = produit.niveau_stock || 0;
+                    const enRupture = stock <= 0;
+                    return (
+                      <button key={produit.id_produit} onClick={() => { setShowBarcodeSelectionModal(false); setBarcodeMatches([]); handleBarcodeProductSelected(produit); }} disabled={modeVente && enRupture} className={`w-full text-left p-3 rounded-xl border-2 transition-all ${modeVente && enRupture ? 'border-slate-200 bg-slate-50 opacity-50 cursor-not-allowed' : 'border-slate-200 hover:border-green-400 hover:bg-green-50 active:scale-[0.98]'}`}>
+                        <div className="flex justify-between items-start">
+                          <div className="flex-1 min-w-0 mr-2"><p className="font-semibold text-slate-900 truncate">{produit.nom_produit}</p><p className="text-xs text-slate-500 mt-0.5">{produit.nom_categorie || 'Sans catégorie'}</p></div>
+                          <div className="text-right shrink-0"><p className="font-bold text-green-700">{(produit.prix_vente || 0).toLocaleString('fr-FR')} F</p><p className={`text-xs mt-0.5 ${enRupture ? 'text-red-500 font-semibold' : stock <= 5 ? 'text-orange-500' : 'text-slate-500'}`}>{enRupture ? 'Rupture' : `Stock: ${stock}`}</p></div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+                <button onClick={() => { setShowBarcodeSelectionModal(false); setBarcodeMatches([]); }} className="mt-4 w-full px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-medium transition-colors">Annuler</button>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
+
+        <ModalScanCodeBarre isOpen={showScanModal} onClose={() => setShowScanModal(false)} onScanSuccess={handleScanSuccess} context="panier" />
+        <ModalImpressionProduits isOpen={showPrintModal} onClose={() => setShowPrintModal(false)} produits={produitsFiltered} nomStructure={user.nom_structure} isFiltered={activeFiltersCount > 0 || !!searchTerm} totalProduitsCount={produits.length} />
+        {user && <ModalEnrolementProduits isOpen={showEnrolementModal} onClose={() => setShowEnrolementModal(false)} idStructure={user.id_structure} onSuccess={handleEnrolementSuccess} />}
+        <ToastComponent />
+        <ModalAbonnementExpire isOpen={isAbonnementModalOpen} onClose={hideAbonnementModal} featureName={abonnementFeatureName} />
+        {produitPartage && user && <ModalPartagerProduit isOpen={!!produitPartage} onClose={() => setProduitPartage(null)} produit={produitPartage} idStructure={user.id_structure} />}
+      </>
+    );
+  }
+
+  // Mobile : code existant inchangé
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#9c9125d9] via-[#203e2b] to-[#166534]">
       <div className="max-w-md md:max-w-full md:px-6 lg:px-8 xl:px-12 mx-auto min-h-screen relative">
-        
+
         {/* Header avec design glassmorphism */}
         <GlassHeader
           title="🛍️ Gestion Produits"
