@@ -1,7 +1,10 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
+import { authService } from '@/services/auth.service';
+import { useBreakpoint } from '@/hooks/useBreakpoint';
 import depenseService from '@/services/depense.service';
 import type { DepensesData, Depense, DepenseFormData } from '@/types/depense.types';
 
@@ -10,9 +13,13 @@ import DepensesStatCards from '@/components/depenses/DepensesStatCards';
 import DepensesSearchBar from '@/components/depenses/DepensesSearchBar';
 import DepensesPagination from '@/components/depenses/DepensesPagination';
 import DepensesList from '@/components/depenses/DepensesList';
+import DepensesDesktopView from '@/components/depenses/DepensesDesktopView';
 import AddEditDepenseModal from '@/components/depenses/AddEditDepenseModal';
 import DeleteDepenseModal from '@/components/depenses/DeleteDepenseModal';
 import GererTypesModal from '@/components/depenses/GererTypesModal';
+import MainMenu from '@/components/layout/MainMenu';
+import ModalCoffreFort from '@/components/coffre-fort/ModalCoffreFort';
+import { ModalDeconnexion } from '@/components/auth/ModalDeconnexion';
 import { Plus, Settings } from 'lucide-react';
 
 const ITEMS_PER_PAGE = 10;
@@ -22,7 +29,13 @@ const ITEMS_PER_PAGE = 10;
  * Module FayClick V2
  */
 export default function DepensesPage() {
+  const router = useRouter();
   const { user } = useAuth();
+
+  // Hook responsive pour switch mobile/desktop
+  const { isDesktop, isDesktopLarge, isTablet } = useBreakpoint();
+  const isDesktopView = isDesktop || isDesktopLarge;
+
   const [data, setData] = useState<DepensesData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -32,6 +45,10 @@ export default function DepensesPage() {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isTypesModalOpen, setIsTypesModalOpen] = useState(false);
   const [selectedDepense, setSelectedDepense] = useState<Depense | null>(null);
+
+  // États desktop (sidebar modals)
+  const [showCoffreModal, setShowCoffreModal] = useState(false);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   // États de recherche et pagination
   const [searchQuery, setSearchQuery] = useState('');
@@ -178,6 +195,86 @@ export default function DepensesPage() {
     );
   }
 
+  // Desktop / Tablette : afficher la vue desktop
+  if (isDesktopView || isTablet) {
+    return (
+      <>
+        <DepensesDesktopView
+          user={user!}
+          data={data}
+          depensesFiltrees={depensesFiltrees}
+          depensesPaginees={depensesPaginees}
+          currentPage={currentPage}
+          totalPages={totalPages}
+          searchQuery={searchQuery}
+          loading={loading}
+          onSearchChange={setSearchQuery}
+          onPageChange={setCurrentPage}
+          onRefresh={chargerDepenses}
+          onAjouter={handleAjouterDepense}
+          onEditer={handleEditerDepense}
+          onSupprimer={handleSupprimerDepense}
+          onOpenTypesModal={() => setIsTypesModalOpen(true)}
+          onShowCoffreModal={() => setShowCoffreModal(true)}
+          onShowLogoutModal={() => setShowLogoutModal(true)}
+          onShowProfilModal={() => window.dispatchEvent(new Event('openProfileModal'))}
+          isTablet={!isDesktopLarge}
+        />
+
+        {/* MainMenu (masque, monte pour ecouter openProfileModal) */}
+        <MainMenu
+          isOpen={false}
+          onClose={() => {}}
+          userName={user?.username}
+          businessName={user?.nom_structure}
+        />
+
+        {/* Coffre-Fort Modal */}
+        <ModalCoffreFort
+          isOpen={showCoffreModal}
+          onClose={() => setShowCoffreModal(false)}
+          structureId={user?.id_structure || 0}
+        />
+
+        {/* Modal Deconnexion */}
+        <ModalDeconnexion
+          isOpen={showLogoutModal}
+          onClose={() => setShowLogoutModal(false)}
+          onConfirm={() => {
+            authService.logout();
+            router.push('/login');
+          }}
+          userName={user?.username}
+        />
+
+        {/* Modals partages */}
+        <AddEditDepenseModal
+          isOpen={isAddEditModalOpen}
+          onClose={() => setIsAddEditModalOpen(false)}
+          onSubmit={handleSubmitDepense}
+          depense={selectedDepense}
+          typesDepenses={data.depenses_par_type}
+        />
+
+        <DeleteDepenseModal
+          isOpen={isDeleteModalOpen}
+          onClose={() => setIsDeleteModalOpen(false)}
+          onConfirm={handleConfirmDelete}
+          depense={selectedDepense}
+        />
+
+        <GererTypesModal
+          isOpen={isTypesModalOpen}
+          onClose={() => setIsTypesModalOpen(false)}
+          structureId={user!.id_structure}
+          onTypesUpdated={chargerDepenses}
+          typesDepenses={data.depenses_par_type}
+        />
+      </>
+    );
+  }
+
+  // Mobile : code existant inchange
   return (
     <div className="min-h-screen bg-gray-50 pb-24">
       <DepensesHeader />

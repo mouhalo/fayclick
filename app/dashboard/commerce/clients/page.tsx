@@ -17,7 +17,12 @@ import {
 import { authService } from '@/services/auth.service';
 import { clientsService, ClientsApiException } from '@/services/clients.service';
 import { useClients, useClientsUI } from '@/hooks/useClients';
+import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { ModalClientMultiOnglets, FilterHeaderClientsGlass, ClientAdvancedFilters } from '@/components/clients';
+import ClientsDesktopView from '@/components/clients/ClientsDesktopView';
+import MainMenu from '@/components/layout/MainMenu';
+import ModalCoffreFort from '@/components/coffre-fort/ModalCoffreFort';
+import { ModalDeconnexion } from '@/components/auth/ModalDeconnexion';
 import { useToast } from '@/components/ui/Toast';
 import { GlassHeader } from '@/components/ui/GlassHeader';
 import { GlassPagination, usePagination } from '@/components/ui/GlassPagination';
@@ -26,13 +31,21 @@ import { User } from '@/types/auth';
 
 export default function ClientsCommercePage() {
   const router = useRouter();
-  
+
+  // Hook responsive pour switch mobile/desktop
+  const { isDesktop, isDesktopLarge, isTablet } = useBreakpoint();
+  const isDesktopView = isDesktop || isDesktopLarge;
+
   // États locaux
   const [user, setUser] = useState<User | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [searchInput, setSearchInput] = useState(''); // Pour l'affichage immédiat
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedClientId, setSelectedClientId] = useState<number | null>(null);
+
+  // États desktop (sidebar modals)
+  const [showCoffreModal, setShowCoffreModal] = useState(false);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   // États filtres avancés
   const [advancedFilters, setAdvancedFilters] = useState<ClientAdvancedFilters>({
@@ -359,6 +372,91 @@ export default function ClientsCommercePage() {
     );
   }
 
+  // Desktop / Tablette : afficher la vue desktop
+  if (isDesktopView || isTablet) {
+    return (
+      <>
+        <ClientsDesktopView
+          user={user!}
+          clients={clients}
+          clientsWithAdvancedFilters={clientsWithAdvancedFilters}
+          paginatedClients={paginatedClients}
+          statistiquesGlobales={statistiquesGlobales}
+          currentPage={currentPage}
+          totalPages={totalPages}
+          searchInput={searchInput}
+          isLoadingClients={isLoadingClients}
+          refreshing={refreshing}
+          errorClients={errorClients}
+          advancedFilters={advancedFilters}
+          onSearchChange={(value) => {
+            setSearchInput(value);
+            setSearchTerm(value);
+            setCurrentPage(1);
+          }}
+          onPageChange={setCurrentPage}
+          onRefresh={handleRefresh}
+          onAddClient={handleAddClient}
+          onEditClient={handleEditClient}
+          onViewDetails={handleViewDetails}
+          onAdvancedFiltersChange={(filters) => {
+            setAdvancedFilters(filters);
+            setCurrentPage(1);
+          }}
+          onShowCoffreModal={() => setShowCoffreModal(true)}
+          onShowLogoutModal={() => setShowLogoutModal(true)}
+          onShowProfilModal={() => window.dispatchEvent(new Event('openProfileModal'))}
+          isTablet={!isDesktopLarge}
+        />
+
+        {/* MainMenu (masque, monte pour ecouter openProfileModal) */}
+        <MainMenu
+          isOpen={false}
+          onClose={() => {}}
+          userName={user?.username}
+          businessName={user?.nom_structure}
+        />
+
+        {/* Coffre-Fort Modal */}
+        <ModalCoffreFort
+          isOpen={showCoffreModal}
+          onClose={() => setShowCoffreModal(false)}
+          structureId={user?.id_structure || 0}
+        />
+
+        {/* Modal Deconnexion */}
+        <ModalDeconnexion
+          isOpen={showLogoutModal}
+          onClose={() => setShowLogoutModal(false)}
+          onConfirm={() => {
+            authService.logout();
+            router.push('/login');
+          }}
+          userName={user?.username}
+        />
+
+        {/* Modal Client Multi-Onglets (partage) */}
+        <ModalClientMultiOnglets
+          isOpen={isModalOpen}
+          onClose={() => {
+            setModalOpen(false);
+            setSelectedClientId(null);
+            setClientSelectionne(null);
+          }}
+          onSuccess={handleClientSuccess}
+          clientId={selectedClientId}
+          clientToEdit={clientSelectionne}
+          defaultTab="general"
+          onClientUpdated={handleClientUpdated}
+        />
+
+        {/* Toast Component */}
+        <ToastComponent />
+      </>
+    );
+  }
+
+  // Mobile : code existant inchange
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#9c9125d9] via-[#203e2b] to-[#166534]">
       <div className="max-w-md mx-auto bg-yellow-180 min-h-screen relative">

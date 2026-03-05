@@ -318,7 +318,7 @@ export function PanierSidePanel({ onSuccess, onClose }: PanierSidePanelProps) {
                   </AnimatePresence>
                 </div>
 
-                {/* Section Remise */}
+                {/* Section Remise (dans la zone scrollable) */}
                 <div className="px-4 pb-3">
                   <div className="bg-gray-50 rounded-xl p-3 space-y-3">
                     <div className="flex items-center gap-2">
@@ -362,63 +362,66 @@ export function PanierSidePanel({ onSuccess, onClose }: PanierSidePanelProps) {
                         placeholder={remiseMode === '%' ? '0 %' : '0 FCFA'}
                       />
                     </div>
-
-                    {/* Récapitulatif */}
-                    <div className="border-t border-gray-200 pt-3 space-y-1.5">
-                      <div className="flex justify-between text-sm">
-                        <span>Sous-total:</span>
-                        <span>{montants.sous_total.toLocaleString('fr-FR')} F</span>
-                      </div>
-                      {montants.remise > 0 && (
-                        <div className="flex justify-between text-sm text-green-600">
-                          <span>Remise{remiseMode === '%' ? ` (${remiseInput}%)` : ''}:</span>
-                          <span>-{montants.remise.toLocaleString('fr-FR')} F</span>
-                        </div>
-                      )}
-                      <div className="flex justify-between font-bold text-base border-t border-gray-200 pt-2">
-                        <span>Total:</span>
-                        <span className="text-blue-600">{montants.montant_net.toLocaleString('fr-FR')} FCFA</span>
-                      </div>
-                    </div>
                   </div>
                 </div>
               </>
             )}
           </div>
 
-          {/* Footer - Boutons */}
+          {/* Footer sticky — Récapitulatif + Boutons (toujours visible) */}
           {articles.length > 0 && (
-            <div className="p-4 border-t border-gray-200/50 grid grid-cols-2 gap-2">
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={handleAnnulerPanier}
-                disabled={isLoading}
-                className="bg-gradient-to-r from-red-500 to-red-600 text-white font-semibold py-3 rounded-xl shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 text-sm"
-              >
-                <XCircle className="w-4 h-4" />
-                Annuler
-              </motion.button>
-
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={handleCommander}
-                disabled={isLoading}
-                className="bg-gradient-to-r from-blue-600 to-blue-700 text-white font-semibold py-3 rounded-xl shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 text-sm"
-              >
-                {isLoading ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    Traitement...
-                  </>
-                ) : (
-                  <>
-                    <CreditCard className="w-4 h-4" />
-                    Commander
-                  </>
+            <div className="border-t border-gray-200 bg-white flex-shrink-0">
+              {/* Récapitulatif des montants */}
+              <div className="px-4 pt-3 pb-2 space-y-1">
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">Sous-total:</span>
+                  <span className="font-medium">{montants.sous_total.toLocaleString('fr-FR')} F</span>
+                </div>
+                {montants.remise > 0 && (
+                  <div className="flex justify-between text-sm text-green-600">
+                    <span>Remise{remiseMode === '%' ? ` (${remiseInput}%)` : ''}:</span>
+                    <span>-{montants.remise.toLocaleString('fr-FR')} F</span>
+                  </div>
                 )}
-              </motion.button>
+                <div className="flex justify-between font-bold text-base border-t border-gray-100 pt-1.5">
+                  <span>Total:</span>
+                  <span className="text-blue-600">{montants.montant_net.toLocaleString('fr-FR')} FCFA</span>
+                </div>
+              </div>
+
+              {/* Boutons d'action */}
+              <div className="px-4 pb-3 grid grid-cols-2 gap-2">
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={handleAnnulerPanier}
+                  disabled={isLoading}
+                  className="bg-gradient-to-r from-red-500 to-red-600 text-white font-semibold py-3 rounded-xl shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 text-sm"
+                >
+                  <XCircle className="w-4 h-4" />
+                  Annuler
+                </motion.button>
+
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={handleCommander}
+                  disabled={isLoading}
+                  className="bg-gradient-to-r from-blue-600 to-blue-700 text-white font-semibold py-3 rounded-xl shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 text-sm"
+                >
+                  {isLoading ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      Traitement...
+                    </>
+                  ) : (
+                    <>
+                      <CreditCard className="w-4 h-4" />
+                      Commander
+                    </>
+                  )}
+                </motion.button>
+              </div>
             </div>
           )}
         </div>
