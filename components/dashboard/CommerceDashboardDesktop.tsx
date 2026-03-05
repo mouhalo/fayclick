@@ -57,7 +57,7 @@ function SkeletonBlock({ className }: { className?: string }) {
 }
 
 // Composant graphique barres CSS
-function WeeklyBarChart({ data }: { data: DashboardCommerceGraphiqueJour[] }) {
+function WeeklyBarChart({ data, canViewCA }: { data: DashboardCommerceGraphiqueJour[]; canViewCA: boolean }) {
   const maxMontant = Math.max(...data.map(d => d.montant), 1);
 
   return (
@@ -71,7 +71,7 @@ function WeeklyBarChart({ data }: { data: DashboardCommerceGraphiqueJour[] }) {
           return (
             <div key={d.jour} className="flex-1 flex flex-col items-center gap-2 group">
               <span className="text-xs text-gray-500 font-medium">
-                {formatAmount(d.montant)}
+                {canViewCA ? formatAmount(d.montant) : '***'}
               </span>
               <div className="w-full relative" style={{ height: '160px' }}>
                 <div
@@ -95,7 +95,7 @@ function WeeklyBarChart({ data }: { data: DashboardCommerceGraphiqueJour[] }) {
 }
 
 // Composant Top 5 Produits
-function TopProducts({ data }: { data: DashboardCommerceTopArticle[] }) {
+function TopProducts({ data, canViewCA }: { data: DashboardCommerceTopArticle[]; canViewCA: boolean }) {
   return (
     <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-md p-6 border border-white/50">
       <h3 className="text-sm font-semibold text-gray-700 mb-4 uppercase tracking-wide">
@@ -121,7 +121,7 @@ function TopProducts({ data }: { data: DashboardCommerceTopArticle[] }) {
                 <p className="text-xs text-gray-500">{p.quantite} vendus</p>
               </div>
               <span className="text-sm font-semibold text-gray-700 flex-shrink-0">
-                {p.montant.toLocaleString('fr-FR')} F
+                {canViewCA ? `${p.montant.toLocaleString('fr-FR')} F` : '***'}
               </span>
             </div>
           ))}
@@ -132,7 +132,7 @@ function TopProducts({ data }: { data: DashboardCommerceTopArticle[] }) {
 }
 
 // Composant Top 5 Clients
-function TopClients({ data }: { data: DashboardCommerceTopClient[] }) {
+function TopClients({ data, canViewCA }: { data: DashboardCommerceTopClient[]; canViewCA: boolean }) {
   return (
     <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-md p-6 border border-white/50">
       <h3 className="text-sm font-semibold text-gray-700 mb-4 uppercase tracking-wide">
@@ -158,7 +158,7 @@ function TopClients({ data }: { data: DashboardCommerceTopClient[] }) {
                 <p className="text-xs text-gray-500">{c.nb_factures} facture{c.nb_factures > 1 ? 's' : ''}</p>
               </div>
               <span className="text-sm font-semibold text-gray-700 flex-shrink-0">
-                {c.montant.toLocaleString('fr-FR')} F
+                {canViewCA ? `${c.montant.toLocaleString('fr-FR')} F` : '***'}
               </span>
             </div>
           ))}
@@ -172,9 +172,11 @@ function TopClients({ data }: { data: DashboardCommerceTopClient[] }) {
 function RecentInvoices({
   data,
   onNavigate,
+  canViewCA,
 }: {
   data: DashboardCommerceDerniereFacture[];
   onNavigate: (path: string) => void;
+  canViewCA: boolean;
 }) {
   return (
     <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-md p-6 border border-white/50">
@@ -209,7 +211,7 @@ function RecentInvoices({
                   <td className="py-2.5 font-medium text-gray-700">#{inv.num_facture}</td>
                   <td className="py-2.5 text-gray-600 max-w-[120px] truncate">{inv.nom_client}</td>
                   <td className="py-2.5 text-right font-semibold text-gray-800">
-                    {inv.montant_total.toLocaleString('fr-FR')} F
+                    {canViewCA ? `${inv.montant_total.toLocaleString('fr-FR')} F` : '***'}
                   </td>
                   <td className="py-2.5 text-center">
                     <span className={`
@@ -312,6 +314,7 @@ export default function CommerceDashboardDesktop({
       isMoney: true,
       color: 'border-red-500',
       bg: 'bg-red-50',
+      hidden: !canViewCA,
     },
   ] : [];
 
@@ -441,8 +444,8 @@ export default function CommerceDashboardDesktop({
               </>
             ) : data ? (
               <>
-                <WeeklyBarChart data={data.graphique_semaine} />
-                <TopProducts data={data.top_articles} />
+                <WeeklyBarChart data={data.graphique_semaine} canViewCA={canViewCA} />
+                <TopProducts data={data.top_articles} canViewCA={canViewCA} />
               </>
             ) : null}
           </div>
@@ -476,18 +479,22 @@ export default function CommerceDashboardDesktop({
 
                   {/* Valeur Stock */}
                   <div className="bg-gradient-to-br from-green-50 to-green-100/50 rounded-xl p-4 border border-green-100 relative">
-                    <button
-                      onClick={() => setShowValeurStock(!showValeurStock)}
-                      className="absolute top-3 right-3 p-1 hover:bg-white/50 rounded-full transition-colors"
-                    >
-                      {showValeurStock
-                        ? <Eye className="w-4 h-4 text-gray-600" />
-                        : <EyeOff className="w-4 h-4 text-gray-400" />
-                      }
-                    </button>
+                    {canViewCA && (
+                      <button
+                        onClick={() => setShowValeurStock(!showValeurStock)}
+                        className="absolute top-3 right-3 p-1 hover:bg-white/50 rounded-full transition-colors"
+                      >
+                        {showValeurStock
+                          ? <Eye className="w-4 h-4 text-gray-600" />
+                          : <EyeOff className="w-4 h-4 text-gray-400" />
+                        }
+                      </button>
+                    )}
                     <span className="text-2xl block mb-2">💰</span>
                     <p className="text-lg font-bold text-gray-800">
-                      {showValeurStock
+                      {!canViewCA
+                        ? <span className="tracking-wider">***</span>
+                        : showValeurStock
                         ? `${data.stats_globales.valeur_stock_pv.toLocaleString('fr-FR')} F`
                         : <span className="tracking-wider">••••••</span>
                       }
@@ -536,7 +543,7 @@ export default function CommerceDashboardDesktop({
                 ))}
               </div>
             ) : data ? (
-              <RecentInvoices data={data.dernieres_factures} onNavigate={handleNavigate} />
+              <RecentInvoices data={data.dernieres_factures} onNavigate={handleNavigate} canViewCA={canViewCA} />
             ) : null}
           </div>
 
@@ -557,7 +564,7 @@ export default function CommerceDashboardDesktop({
               </>
             ) : data ? (
               <>
-                <TopClients data={data.top_clients} />
+                <TopClients data={data.top_clients} canViewCA={canViewCA} />
 
                 {/* Depenses du Mois */}
                 <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-md p-6 border border-white/50">
@@ -567,9 +574,9 @@ export default function CommerceDashboardDesktop({
                   <div className="space-y-4">
                     <div>
                       <p className="text-3xl font-bold text-gray-800">
-                        {data.depenses_mois.total.toLocaleString('fr-FR')} F
+                        {canViewCA ? `${data.depenses_mois.total.toLocaleString('fr-FR')} F` : '***'}
                       </p>
-                      <VariationBadge value={data.depenses_mois.variation} />
+                      {canViewCA && <VariationBadge value={data.depenses_mois.variation} />}
                     </div>
                     <div className="flex items-center gap-2 text-sm text-gray-500">
                       <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-gray-100 rounded-full text-xs font-medium">
