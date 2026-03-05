@@ -2,12 +2,12 @@
 
 import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Printer, FileText, Truck, RotateCcw, Receipt, Sparkles, File } from 'lucide-react';
+import { X, Printer, FileText, Truck, RotateCcw, Receipt, Sparkles, File, ClipboardList } from 'lucide-react';
 import { FactureComplete } from '@/types/facture';
 import { ConfigFacture, InfoFacture } from '@/types/auth';
 import { formatAmount, formatDate } from '@/lib/utils';
 
-type DocumentType = 'facture' | 'bl' | 'br';
+type DocumentType = 'facture' | 'proforma' | 'bl' | 'br';
 type FormatType = 'personnalise' | 'standard';
 
 interface Props {
@@ -26,12 +26,14 @@ interface Props {
 
 const DOCUMENT_TYPES: { id: DocumentType; label: string; icon: React.ElementType; description: string; color: string }[] = [
   { id: 'facture', label: 'Facture', icon: FileText, description: 'Document de facturation client', color: 'bg-blue-500' },
+  { id: 'proforma', label: 'Proforma', icon: ClipboardList, description: 'Devis / facture proforma', color: 'bg-purple-500' },
   { id: 'bl', label: 'Bon de Livraison', icon: Truck, description: 'Confirmation de livraison', color: 'bg-green-500' },
   { id: 'br', label: 'Bon de Retour', icon: RotateCcw, description: 'Retour de marchandise', color: 'bg-orange-500' },
 ];
 
 const DOCUMENT_TITLES: Record<DocumentType, string> = {
   facture: 'FACTURE',
+  proforma: 'PROFORMA',
   bl: 'BON DE LIVRAISON',
   br: 'BON DE RETOUR',
 };
@@ -122,6 +124,8 @@ export default function ModalImpressionDocuments({
       }
     }
 
+    const isProforma = docType === 'proforma';
+
     // BL = uniquement désignation + qté, pas de prix
     const isBL = docType === 'bl';
     const totalQte = details.reduce((sum, d) => sum + d.quantite, 0);
@@ -142,7 +146,7 @@ export default function ModalImpressionDocuments({
     const colCount = isBL ? 2 : 4;
 
     return `<!DOCTYPE html>
-<html><head><meta charset="utf-8"><title>${title} ${f.num_facture}</title>
+<html><head><meta charset="utf-8"><title>${title}${isProforma ? '' : ` ${f.num_facture}`}</title>
 <style>
   @page { size: A4; margin: 15mm; }
   body { font-family: Arial, sans-serif; font-size: 12px; color: #333; margin: 0; padding: 20px; }
@@ -159,7 +163,7 @@ export default function ModalImpressionDocuments({
       <div style="font-size:11px;"><strong>Tél:</strong> ${f.tel_client}</div>
     </div>
     <div style="text-align:right;">
-      <div style="font-size:11px;"><strong>N°:</strong> ${f.num_facture}</div>
+      ${isProforma ? '' : `<div style="font-size:11px;"><strong>N°:</strong> ${f.num_facture}</div>`}
       <div style="font-size:11px;"><strong>Date:</strong> ${formatDate(f.date_facture)}</div>
     </div>
   </div>
@@ -208,6 +212,9 @@ export default function ModalImpressionDocuments({
     </tfoot>`}
   </table>
   ${footerHtml}
+  ${isProforma ? `<div style="text-align:center;margin-top:20px;padding:10px;border:1px dashed #999;font-size:12px;color:#555;">
+    <strong>Validité :</strong> Cette proforma est valable 30 jours à compter de la date d'émission.
+  </div>` : ''}
 </body></html>`;
   };
 
@@ -348,6 +355,25 @@ export default function ModalImpressionDocuments({
                     Format pour : {DOCUMENT_TITLES[selectedDoc]}
                   </p>
 
+                  {/* Format standard (premier pour proforma, second sinon) */}
+                  {selectedDoc === 'proforma' && (
+                    <button
+                      onClick={() => { setSelectedFormat('standard'); handlePrint(selectedDoc, 'standard'); }}
+                      className={`w-full p-4 rounded-xl border-2 transition-all flex items-center gap-4 ${
+                        selectedFormat === 'standard' ? 'border-gray-400 bg-gray-50' : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50/50'
+                      }`}
+                    >
+                      <div className="w-11 h-11 bg-gray-500 rounded-xl flex items-center justify-center flex-shrink-0">
+                        <File className="h-5 w-5 text-white" />
+                      </div>
+                      <div className="text-left flex-1">
+                        <p className="font-semibold text-gray-900">Standard</p>
+                        <p className="text-xs text-gray-500">Format classique FayClick</p>
+                      </div>
+                      <Printer className="h-5 w-5 text-gray-400" />
+                    </button>
+                  )}
+
                   {/* Format personnalisé */}
                   <button
                     onClick={() => { setSelectedFormat('personnalise'); handlePrint(selectedDoc, 'personnalise'); }}
@@ -365,22 +391,24 @@ export default function ModalImpressionDocuments({
                     <Printer className="h-5 w-5 text-indigo-400" />
                   </button>
 
-                  {/* Format standard */}
-                  <button
-                    onClick={() => { setSelectedFormat('standard'); handlePrint(selectedDoc, 'standard'); }}
-                    className={`w-full p-4 rounded-xl border-2 transition-all flex items-center gap-4 ${
-                      selectedFormat === 'standard' ? 'border-gray-400 bg-gray-50' : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50/50'
-                    }`}
-                  >
-                    <div className="w-11 h-11 bg-gray-500 rounded-xl flex items-center justify-center flex-shrink-0">
-                      <File className="h-5 w-5 text-white" />
-                    </div>
-                    <div className="text-left flex-1">
-                      <p className="font-semibold text-gray-900">Standard</p>
-                      <p className="text-xs text-gray-500">Format classique FayClick</p>
-                    </div>
-                    <Printer className="h-5 w-5 text-gray-400" />
-                  </button>
+                  {/* Format standard (second pour les autres documents) */}
+                  {selectedDoc !== 'proforma' && (
+                    <button
+                      onClick={() => { setSelectedFormat('standard'); handlePrint(selectedDoc, 'standard'); }}
+                      className={`w-full p-4 rounded-xl border-2 transition-all flex items-center gap-4 ${
+                        selectedFormat === 'standard' ? 'border-gray-400 bg-gray-50' : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50/50'
+                      }`}
+                    >
+                      <div className="w-11 h-11 bg-gray-500 rounded-xl flex items-center justify-center flex-shrink-0">
+                        <File className="h-5 w-5 text-white" />
+                      </div>
+                      <div className="text-left flex-1">
+                        <p className="font-semibold text-gray-900">Standard</p>
+                        <p className="text-xs text-gray-500">Format classique FayClick</p>
+                      </div>
+                      <Printer className="h-5 w-5 text-gray-400" />
+                    </button>
+                  )}
                 </motion.div>
               )}
             </div>
