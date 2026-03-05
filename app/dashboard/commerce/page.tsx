@@ -18,6 +18,8 @@ import { useToast } from '@/components/ui/Toast';
 import ModalCoffreFort from '@/components/coffre-fort/ModalCoffreFort';
 import { useSubscriptionStatus } from '@/contexts/AuthContext';
 import { ModalAbonnementExpire, useModalAbonnementExpire } from '@/components/subscription/ModalAbonnementExpire';
+import { useBreakpoint } from '@/hooks/useBreakpoint';
+import CommerceDashboardDesktop from '@/components/dashboard/CommerceDashboardDesktop';
 
 
 export default function CommerceDashboard() {
@@ -30,6 +32,10 @@ export default function CommerceDashboard() {
   const [showNotificationsModal, setShowNotificationsModal] = useState(false);
   const [showValeurStock, setShowValeurStock] = useState(false);
   const { ToastComponent } = useToast();
+
+  // Hook responsive pour switch mobile/desktop
+  const { isDesktop, isDesktopLarge, isTablet } = useBreakpoint();
+  const isDesktopView = isDesktop || isDesktopLarge;
 
   // Hook état abonnement pour bloquer les fonctionnalités si expiré
   const { canAccessFeature } = useSubscriptionStatus();
@@ -145,6 +151,63 @@ export default function CommerceDashboard() {
     );
   }
 
+  // Desktop / Tablette : afficher le dashboard desktop
+  if (isDesktopView || isTablet) {
+    return (
+      <>
+        <CommerceDashboardDesktop
+          user={user}
+          notificationCount={notificationCount}
+          canViewCA={canViewCA}
+          canAccessFeature={canAccessFeature}
+          showAbonnementModal={showAbonnementModal}
+          onShowCoffreModal={() => setShowCoffreModal(true)}
+          onShowLogoutModal={() => setShowLogoutModal(true)}
+          onShowNotificationsModal={() => setShowNotificationsModal(true)}
+          onShowProfilModal={() => window.dispatchEvent(new Event('openProfileModal'))}
+          isTablet={!isDesktopLarge}
+        />
+
+        {/* MainMenu (masque, monte pour ecouter openProfileModal) */}
+        <MainMenu
+          isOpen={false}
+          onClose={() => {}}
+          userName={user?.username}
+          businessName={user?.nom_structure}
+        />
+
+        {/* Modals partages */}
+        <ModalCoffreFort
+          isOpen={showCoffreModal}
+          onClose={() => setShowCoffreModal(false)}
+          structureId={user?.id_structure || 0}
+        />
+        <ModalFactureSuccess />
+        <ToastComponent />
+        <ModalAbonnementExpire
+          isOpen={isAbonnementModalOpen}
+          onClose={hideAbonnementModal}
+          featureName={abonnementFeatureName}
+        />
+        <ModalNotifications
+          isOpen={showNotificationsModal}
+          onClose={() => setShowNotificationsModal(false)}
+          userId={user?.id || 0}
+        />
+        <ModalDeconnexion
+          isOpen={showLogoutModal}
+          onClose={() => setShowLogoutModal(false)}
+          onConfirm={() => {
+            authService.logout();
+            router.push('/login');
+          }}
+          userName={user?.username}
+        />
+      </>
+    );
+  }
+
+  // Mobile : dashboard existant (inchange)
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-600 via-purple-700 to-purple-800">
       <div className="max-w-md mx-auto bg-white min-h-screen relative overflow-hidden">
