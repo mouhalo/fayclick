@@ -286,3 +286,84 @@ export interface DashboardEvent {
   timestamp: Date;
   details?: Record<string, unknown>;
 }
+
+// ============================================================
+// Dashboard Commerce Complet (vue desktop - donnees reelles)
+// ============================================================
+
+export interface DashboardCommerceKpis {
+  nb_ventes_jour: number;
+  ca_jour: number;
+  nb_clients_jour: number;
+  nb_ventes_semaine: number;
+  ca_semaine: number;
+  panier_moyen_semaine: number;
+  nb_clients_semaine: number;
+  variation_ventes: number;
+  variation_ca: number;
+  variation_panier: number;
+  variation_clients: number;
+}
+
+export interface DashboardCommerceGraphiqueJour {
+  jour: string;
+  date: string;
+  montant: number;
+  nb_ventes: number;
+}
+
+export interface DashboardCommerceTopArticle {
+  rang: number;
+  id_produit: number;
+  nom_produit: string;
+  categorie: string;
+  quantite: number;
+  montant: number;
+}
+
+export interface DashboardCommerceTopClient {
+  rang: number;
+  id_client: number;
+  nom_client: string;
+  tel_client: string;
+  nb_factures: number;
+  montant: number;
+}
+
+export interface DashboardCommerceDerniereFacture {
+  id_facture: number;
+  num_facture: string;
+  nom_client: string;
+  montant_total: number;
+  montant_paye: number;
+  statut: 'PAYEE' | 'PARTIELLE' | 'EN ATTENTE';
+  date_facture: string;
+  mode_paiement: string;
+}
+
+export interface DashboardCommerceStatsGlobales {
+  total_produits: number;
+  valeur_stock_pv: number;
+  nb_ventes_mois: number;
+  nb_clients_mois: number;
+  ca_mois: number;
+}
+
+export interface DashboardCommerceDepensesMois {
+  total: number;
+  variation: number;
+  nb_depenses: number;
+}
+
+export interface DashboardCommerceComplet {
+  success: boolean;
+  structure_id: number;
+  timestamp_generation: string;
+  kpis: DashboardCommerceKpis;
+  graphique_semaine: DashboardCommerceGraphiqueJour[];
+  top_articles: DashboardCommerceTopArticle[];
+  top_clients: DashboardCommerceTopClient[];
+  dernieres_factures: DashboardCommerceDerniereFacture[];
+  stats_globales: DashboardCommerceStatsGlobales;
+  depenses_mois: DashboardCommerceDepensesMois;
+}

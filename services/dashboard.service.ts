@@ -1,5 +1,5 @@
 import { ApiException, authService } from './auth.service';
-import { FinancialData, DashboardStats } from '@/types/dashboard';
+import { FinancialData, DashboardStats, DashboardCommerceComplet } from '@/types/dashboard';
 import DatabaseService from './database.service';
 import { extractSingleDataFromResult } from '@/utils/dataExtractor';
 import EtatGlobalService from './etatGlobal.service';
@@ -27,6 +27,7 @@ interface DashboardRawData {
 export class DashboardService {
   private static instance: DashboardService;
   private cache: Map<string, { data: DashboardStats; timestamp: number }> = new Map();
+  private cacheComplet: Map<string, { data: DashboardCommerceComplet; timestamp: number }> = new Map();
   private CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
   
   private constructor() {}
@@ -287,15 +288,72 @@ export class DashboardService {
     return Math.max(1, Math.floor(totalAmount / averageInvoiceAmount));
   }
 
+  // Dashboard Commerce Complet (vue desktop uniquement)
+  async getDashboardCommerceComplet(
+    structureId: number,
+    periodeTop: 'semaine' | 'mois' = 'mois'
+  ): Promise<DashboardCommerceComplet> {
+    const cacheKey = `dashboard_complet_${structureId}_${periodeTop}`;
+
+    // Verifier le cache
+    const cached = this.cacheComplet.get(cacheKey);
+    if (cached && (Date.now() - cached.timestamp) < this.CACHE_DURATION) {
+      console.log('[DASHBOARD] Commerce complet loaded from cache');
+      return cached.data;
+    }
+
+    if (!authService.isAuthenticated()) {
+      throw new ApiException('Utilisateur non authentifie', 401);
+    }
+
+    try {
+      const db = DatabaseService.getInstance();
+      const results = await db.executeFunction(
+        'get_dashboard_commerce_complet',
+        [structureId.toString(), periodeTop]
+      );
+
+      if (!results || results.length === 0) {
+        throw new ApiException('Aucune donnee dashboard commerce complet', 404);
+      }
+
+      const raw = (results[0] as Record<string, unknown>).get_dashboard_commerce_complet;
+      const data: DashboardCommerceComplet = typeof raw === 'string' ? JSON.parse(raw) : raw;
+
+      if (!data || !data.success) {
+        throw new ApiException('Reponse invalide de get_dashboard_commerce_complet', 500);
+      }
+
+      // Mettre en cache
+      this.cacheComplet.set(cacheKey, { data, timestamp: Date.now() });
+
+      return data;
+    } catch (error) {
+      if (error instanceof ApiException) throw error;
+      console.error('Erreur getDashboardCommerceComplet:', error);
+      throw new ApiException(
+        error instanceof Error ? error.message : 'Erreur chargement dashboard commerce complet',
+        500
+      );
+    }
+  }
+
   // Vider le cache (utile pour forcer le rechargement)
   clearCache(): void {
     this.cache.clear();
+    this.cacheComplet.clear();
   }
 
-  // Vider le cache d'une structure spécifique
+  // Vider le cache d'une structure specifique
   clearCacheForStructure(structureId: number): void {
     const cacheKey = `dashboard_${structureId}`;
     this.cache.delete(cacheKey);
+    // Aussi vider le cache complet pour cette structure
+    for (const key of this.cacheComplet.keys()) {
+      if (key.startsWith(`dashboard_complet_${structureId}_`)) {
+        this.cacheComplet.delete(key);
+      }
+    }
   }
 
   // Précharger les données pour une meilleure UX
