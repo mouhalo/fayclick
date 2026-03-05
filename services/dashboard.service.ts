@@ -307,8 +307,7 @@ export class DashboardService {
     }
 
     try {
-      const db = DatabaseService.getInstance();
-      const results = await db.executeFunction(
+      const results = await DatabaseService.executeFunction(
         'get_dashboard_commerce_complet',
         [structureId.toString(), periodeTop]
       );
