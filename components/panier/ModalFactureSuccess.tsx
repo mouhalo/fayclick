@@ -17,6 +17,7 @@ import QRCode from 'react-qr-code';
 import { factureService } from '@/services/facture.service';
 import { authService } from '@/services/auth.service';
 import { encodeFactureParams } from '@/lib/url-encoder';
+import { generateTicketHTML, printViaIframe } from '@/lib/generate-ticket-html';
 import { useFactureSuccessStore } from '@/hooks/useFactureSuccess';
 import { PaymentMethodSelector } from '@/components/factures/PaymentMethodSelector';
 import { ModalPaiementQRCode } from '@/components/factures/ModalPaiementQRCode';
@@ -702,150 +703,27 @@ export function ModalFactureSuccess() {
     const restant = factureDetails.mt_restant || 0;
     const montantNet = sousTotal - remise;
 
-    const ticketBaseUrl = typeof window !== 'undefined' ? window.location.origin : '';
-    const ticketFiligraneUrl = `${ticketBaseUrl}/images/fond_card_facture.png`;
-    const ticketLogoFayclick = `${ticketBaseUrl}/images/logofayclick.png`;
+    const html = generateTicketHTML({
+      nomStructure: structure?.nom_structure || 'Entreprise',
+      logoUrl: structure?.logo || '',
+      adresse: structure?.adresse || '',
+      telephone: user?.telephone || structure?.telephone || '',
+      numFacture: factureDetails.num_facture,
+      dateFacture: dateFormatee,
+      nomClient: factureDetails.nom_client_payeur || factureDetails.nom_client || 'Anonyme',
+      telClient: factureDetails.tel_client,
+      articles: factureArticles.length > 0 ? factureArticles : undefined,
+      sousTotal,
+      remise: remise > 0 ? remise : undefined,
+      montantNet,
+      acompte: acompte > 0 ? acompte : undefined,
+      restant: restant > 0 ? restant : undefined,
+      methodePaiement: 'Especes',
+      nomCaissier: user?.username || 'Caissier',
+      badge: restant > 0 ? 'ACOMPTE' : 'PAYE',
+    });
 
-    const ticketHTML = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <title>Facture ${factureDetails.num_facture}</title>
-        <style>
-          @page { size: 80mm auto; margin: 3mm; }
-          @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
-          * { box-sizing: border-box; margin: 0; padding: 0; }
-          body {
-            font-family: 'Inter', sans-serif; font-size: 11px; font-weight: bold;
-            padding: 12px; max-width: 300px; margin: 0 auto;
-            position: relative; color: #1e293b;
-          }
-          .watermark {
-            position: fixed; top: 50%; left: 50%;
-            transform: translate(-50%, -50%);
-            opacity: 0.05; z-index: 0; pointer-events: none;
-          }
-          .watermark img { width: 200px; }
-          .content { position: relative; z-index: 1; }
-          .center { text-align: center; }
-          .separator { border-top: 1px dashed #94a3b8; margin: 8px 0; }
-          .separator-double { border-top: 2px solid #0284c7; margin: 8px 0; }
-          .header { text-align: center; margin-bottom: 8px; }
-          .header h2 { font-size: 15px; font-weight: 800; color: #0f172a; letter-spacing: -0.3px; }
-          .header p { font-size: 9px; color: #64748b; margin-top: 1px; }
-          .badge-facture {
-            display: inline-block; background: linear-gradient(135deg, #0ea5e9, #0284c7);
-            color: white; padding: 4px 16px; border-radius: 4px;
-            font-size: 12px; font-weight: 800; letter-spacing: 2px; margin: 6px 0 2px;
-          }
-          .num-ticket { font-size: 10px; color: #0284c7; font-weight: 600; }
-          .info-line { display: flex; justify-content: space-between; margin: 3px 0; font-size: 10px; }
-          .info-line .label { color: #64748b; }
-          .info-line .val { font-weight: 600; color: #1e293b; }
-          table { width: 100%; border-collapse: collapse; margin: 6px 0; }
-          th { font-size: 9px; text-transform: uppercase; letter-spacing: 0.5px; text-align: left; padding: 5px 3px; border-bottom: 1.5px solid #1e293b; color: #475569; font-weight: 700; }
-          th:nth-child(1) { width: 8%; text-align: center; }
-          th:nth-child(2) { width: 50%; }
-          th:nth-child(3) { width: 21%; text-align: right; }
-          th:nth-child(4) { width: 21%; text-align: right; }
-          td { font-size: 10px; padding: 4px 3px; border-bottom: 1px dotted #e2e8f0; }
-          td:nth-child(1) { text-align: center; color: #64748b; }
-          td:nth-child(2) { font-weight: 500; }
-          td:nth-child(3) { text-align: right; color: #64748b; }
-          td:nth-child(4) { text-align: right; font-weight: 700; }
-          .total-section { margin-top: 6px; }
-          .total-line { display: flex; justify-content: space-between; padding: 3px 0; font-size: 11px; }
-          .total-line .label { color: #64748b; }
-          .total-line .val { font-weight: 600; }
-          .total-line.grand {
-            background: linear-gradient(135deg, #0ea5e9, #0284c7);
-            color: white; padding: 8px 10px; border-radius: 6px;
-            font-size: 13px; font-weight: 800; margin-top: 5px;
-          }
-          .total-line.grand .label, .total-line.grand .val { color: white; }
-          .total-line.restant {
-            background: #fef3c7; padding: 5px 10px; border-radius: 4px; margin-top: 4px;
-            font-weight: 700; color: #92400e;
-          }
-          .total-line.restant .label, .total-line.restant .val { color: #92400e; }
-          .footer { text-align: center; margin-top: 10px; }
-          .footer .caissier { font-size: 9px; color: #64748b; margin-bottom: 6px; }
-          .footer .caissier strong { color: #1e293b; }
-          .footer .merci { font-size: 10px; font-weight: 600; color: #0284c7; margin-bottom: 4px; }
-          .footer .powered { display: flex; align-items: center; justify-content: center; gap: 4px; margin-top: 4px; }
-          .footer .powered img { height: 12px; }
-          .footer .powered span { font-size: 8px; color: #94a3b8; }
-          .footer .date-gen { font-size: 8px; color: #94a3b8; margin-top: 3px; }
-          @media print { body { padding: 0; } }
-        </style>
-      </head>
-      <body>
-        <div class="watermark"><img src="${ticketFiligraneUrl}" alt="" /></div>
-        <div class="content">
-          <div class="header">
-            <h2>${structure?.nom_structure || 'Entreprise'}</h2>
-            <p>${structure?.adresse || ''}</p>
-            <p>Tel: ${user?.telephone || structure?.telephone || ''}</p>
-          </div>
-
-          <div class="separator-double"></div>
-
-          <div class="center">
-            <span class="badge-facture">FACTURE</span>
-            <div class="num-ticket">${factureDetails.num_facture}</div>
-          </div>
-
-          <div class="separator"></div>
-
-          <div class="info-line"><span class="label">Date</span><span class="val">${dateFormatee}</span></div>
-          <div class="info-line"><span class="label">Client</span><span class="val">${factureDetails.nom_client_payeur || factureDetails.nom_client || 'Anonyme'}</span></div>
-          <div class="info-line"><span class="label">Tel</span><span class="val">${factureDetails.tel_client || ''}</span></div>
-
-          <div class="separator"></div>
-
-          ${factureArticles.length > 0 ? `
-            <table>
-              <thead>
-                <tr><th>Qt</th><th>Designation</th><th>PU</th><th>Total</th></tr>
-              </thead>
-              <tbody>
-                ${factureArticles.map(a => `
-                  <tr>
-                    <td>${a.quantite}</td>
-                    <td>${a.nom_produit}</td>
-                    <td>${a.prix.toLocaleString('fr-FR')}</td>
-                    <td>${a.sous_total.toLocaleString('fr-FR')}</td>
-                  </tr>
-                `).join('')}
-              </tbody>
-            </table>
-          ` : ''}
-
-          <div class="total-section">
-            <div class="total-line"><span class="label">Sous-total</span><span class="val">${sousTotal.toLocaleString('fr-FR')} F</span></div>
-            ${remise > 0 ? `<div class="total-line"><span class="label">Remise</span><span class="val" style="color:#16a34a;">-${remise.toLocaleString('fr-FR')} F</span></div>` : ''}
-            <div class="total-line grand"><span class="label">NET A PAYER</span><span class="val">${montantNet.toLocaleString('fr-FR')} F</span></div>
-            ${acompte > 0 ? `<div class="total-line"><span class="label">Acompte</span><span class="val">${acompte.toLocaleString('fr-FR')} F</span></div>` : ''}
-            ${restant > 0 ? `<div class="total-line restant"><span class="label">RESTE</span><span class="val">${restant.toLocaleString('fr-FR')} F</span></div>` : ''}
-          </div>
-
-          <div class="separator"></div>
-
-          <div class="footer">
-            <div class="caissier">Caissier: <strong>${user?.username || 'Caissier'}</strong></div>
-            <div class="merci">Merci pour votre confiance !</div>
-            <div class="powered">
-              <img src="${ticketLogoFayclick}" alt="FayClick" />
-              <span>Powered by FayClick</span>
-            </div>
-            <div class="date-gen">${new Date().toLocaleString('fr-FR')}</div>
-          </div>
-        </div>
-      </body>
-      </html>
-    `;
-
-    printViaIframe(ticketHTML);
+    printViaIframe(html);
   };
 
   // Méthode robuste d'impression via iframe caché (compatible mobile)
