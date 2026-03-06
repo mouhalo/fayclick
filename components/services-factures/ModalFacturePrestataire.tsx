@@ -540,7 +540,7 @@ export function ModalFacturePrestataire({
         <style>
           @page { size: A5; margin: 10mm; }
           * { box-sizing: border-box; margin: 0; padding: 0; }
-          body { font-family: Arial, sans-serif; font-size: 12px; padding: 15px; max-width: 600px; margin: 0 auto; }
+          body { font-family: Arial, sans-serif; font-size: 12px; font-weight: bold; padding: 15px; max-width: 600px; margin: 0 auto; }
           .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px; border-bottom: 2px solid #1e40af; padding-bottom: 10px; }
           .logo-section { }
           .logo-section img { max-width: 60px; max-height: 40px; }

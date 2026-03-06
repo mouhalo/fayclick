@@ -149,7 +149,7 @@ export default function ModalImpressionDocuments({
 <html><head><meta charset="utf-8"><title>${title}${isProforma ? '' : ` ${f.num_facture}`}</title>
 <style>
   @page { size: A4; margin: 15mm; }
-  body { font-family: Arial, sans-serif; font-size: 12px; color: #333; margin: 0; padding: 20px; }
+  body { font-family: Arial, sans-serif; font-size: 12px; font-weight: bold; color: #333; margin: 0; padding: 20px; }
   table { width: 100%; border-collapse: collapse; }
   .title { text-align: center; font-size: 18px; font-weight: bold; margin: 16px 0 8px; padding: 8px; background: #f8f8f8; border: 1px solid #ddd; }
   .total-row { font-weight: bold; border-top: 2px solid #333; }
