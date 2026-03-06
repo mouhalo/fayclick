@@ -194,6 +194,7 @@ The project is in Phase 2 development with:
 - ✅ **Système KALPE (Coffre-Fort Wallet)** avec soldes OM/WAVE/FREE et historique transactions
 - ✅ **Retraits Wallet** avec OTP SMS, API send_cash et flip cards animées
 - ✅ **Impression multi-format** factures (Reçu, Facture, BL, BR) avec format personnalisé/standard (compte_prive)
+- ✅ **Reçu ticket 80mm unifié** — un seul générateur (`lib/generate-ticket-html.ts`) pour VenteFlash, Factures et Reçus
 - ✅ **Paramètres structure DB-first** avec sync localStorage (param_structure → Settings)
 - ✅ **Infos facture** éditables (adresse, tél, email, site, banque, NINEA) dans Règles Ventes
 - ✅ **Configurateur modèle facture** drag & drop avec aperçu live (compte_prive uniquement)
@@ -483,6 +484,27 @@ POST https://api.icelabsoft.com/sms_service/api/send_o_sms
 const result = await databaseService.editParamStructure(id, { config_facture: ... });
 if (result.success) await refreshAuth();
 ```
+
+### Reçu Ticket 80mm Unifié
+
+#### Générateur central (`lib/generate-ticket-html.ts`)
+- **`generateTicketHTML(data: TicketData)`** : Génère le HTML complet du ticket 80mm
+- **`printViaIframe(html)`** : Impression cross-browser via iframe caché
+- **Interface `TicketData`** : nomStructure, logoUrl, adresse, telephone, numFacture, dateFacture, nomClient, telClient, articles[], sousTotal, remise, montantNet, acompte, restant, methodePaiement, monnaieARendre, nomCaissier, badge (PAYE/ACOMPTE/FACTURE)
+
+#### Composants utilisant le générateur
+- **`ModalRecuVenteFlash.tsx`** : Reçu après vente flash (client anonyme, CASH)
+- **`ModalRecuGenere.tsx`** : Reçu après paiement wallet (OM/WAVE/FREE)
+- **`ModalFactureSuccess.tsx`** : Reçu ticket après création facture (méthode `handlePrintFactureTicket`)
+
+#### Format ticket
+- Police Courier New monospace, **tout en gras**
+- Logo structure + nom + adresse + tél
+- Badge PAYE/ACOMPTE coloré
+- Table articles (Qt, Désignation, PU, Total)
+- Sous-total, remise, total vert, acompte, restant
+- Monnaie à rendre (CASH)
+- Footer : caissier + "Merci" + Powered by FayClick
 
 ### Résumé PWA
 - **Service Worker** : `public/service-worker.js` - Mettre à jour `CACHE_NAME` lors de changements majeurs
