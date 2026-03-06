@@ -11,6 +11,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle, Printer, MessageCircle, X, Share2 } from 'lucide-react';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { authService } from '@/services/auth.service';
+import { generateTicketHTML, printViaIframe } from '@/lib/generate-ticket-html';
 
 interface DetailProduit {
   id_detail?: number;
@@ -112,86 +113,28 @@ export function ModalRecuVenteFlash({
     }
   };
 
-  // Impression ticket - Format compact
+  // Impression ticket - Format unifie
   const handlePrint = () => {
     setTimerPaused(true);
 
-    // Générer les lignes de détails produits - Compact
-    const detailsHTML = detailFacture.length > 0
-      ? detailFacture.map(item => `
-          <div class="item">
-            <span class="item-name">${item.nom_produit}</span>
-            <span class="item-qty">×${item.quantite}</span>
-            <span class="item-total">${item.sous_total.toLocaleString('fr-FR')}F</span>
-          </div>
-        `).join('') + '<div class="divider"></div>'
-      : '';
+    const structureDetails = authService.getStructureDetails();
+    const html = generateTicketHTML({
+      nomStructure,
+      logoUrl: structureDetails?.logo || '',
+      adresse: structureDetails?.adresse || '',
+      telephone: user?.telephone || '',
+      numFacture,
+      dateFacture: `${formatDate(dateVente)} ${formatTime(dateVente)}`,
+      nomClient: 'CLIENT_ANONYME',
+      articles: detailFacture.length > 0 ? detailFacture : undefined,
+      montantNet: montantTotal,
+      methodePaiement: getMethodeLabel(),
+      monnaieARendre: monnaieARendre > 0 ? monnaieARendre : undefined,
+      nomCaissier: user?.username || 'Caissier',
+      badge: 'PAYE',
+    });
 
-    const printHTML = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <meta charset="UTF-8">
-        <style>
-          @page { size: 80mm auto; margin: 3mm; }
-          * { margin: 0; padding: 0; box-sizing: border-box; }
-          body {
-            font-family: 'Courier New', monospace;
-            font-weight: bold;
-            max-width: 80mm;
-            margin: 0 auto;
-            padding: 4px;
-            font-size: 11px;
-          }
-          .header { text-align: center; border-bottom: 1px dashed #000; padding-bottom: 4px; margin-bottom: 4px; }
-          .title { font-size: 12px; font-weight: bold; }
-          .subtitle { font-size: 9px; color: #666; }
-          .divider { border-top: 1px dashed #ccc; margin: 3px 0; }
-          .row { display: flex; justify-content: space-between; padding: 1px 0; font-size: 10px; }
-          .item { display: flex; justify-content: space-between; align-items: center; padding: 2px 0; font-size: 10px; }
-          .item-name { flex: 1; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-          .item-qty { color: #888; font-size: 9px; margin: 0 4px; }
-          .item-total { font-weight: bold; white-space: nowrap; }
-          .total { font-size: 14px; font-weight: bold; border-top: 2px solid #000; padding-top: 4px; margin-top: 4px; }
-          .monnaie { color: #d97706; font-weight: bold; display: flex; justify-content: space-between; margin-top: 4px; padding: 3px; background: #fef3c7; font-size: 10px; }
-          .footer { text-align: center; margin-top: 6px; font-size: 8px; color: #666; }
-        </style>
-      </head>
-      <body>
-        <div class="header">
-          <div class="title">${nomStructure}</div>
-          <div class="subtitle">REÇU DE VENTE</div>
-        </div>
-        <div class="row"><span>N°</span><span style="font-size:9px">${numFacture}</span></div>
-        <div class="row"><span>Date</span><span>${formatDate(dateVente)} ${formatTime(dateVente)}</span></div>
-        <div class="divider"></div>
-        ${detailsHTML}
-        <div class="row"><span>Client</span><span>ANONYME</span></div>
-        <div class="row"><span>Paiement</span><span>${getMethodeLabel()}</span></div>
-        <div class="row total"><span>TOTAL</span><span>${montantTotal.toLocaleString('fr-FR')} F</span></div>
-        ${monnaieARendre > 0 ? `<div class="monnaie"><span>Monnaie</span><span>${monnaieARendre.toLocaleString('fr-FR')} F</span></div>` : ''}
-        <div class="footer">Merci ! - FayClick</div>
-      </body>
-      </html>
-    `;
-
-    const printFrame = document.createElement('iframe');
-    printFrame.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:none;visibility:hidden';
-    document.body.appendChild(printFrame);
-
-    const frameDoc = printFrame.contentWindow?.document;
-    if (frameDoc) {
-      frameDoc.open();
-      frameDoc.write(printHTML);
-      frameDoc.close();
-
-      printFrame.onload = () => {
-        setTimeout(() => {
-          printFrame.contentWindow?.print();
-          setTimeout(() => document.body.removeChild(printFrame), 1000);
-        }, 200);
-      };
-    }
+    printViaIframe(html);
   };
 
   // WhatsApp partage

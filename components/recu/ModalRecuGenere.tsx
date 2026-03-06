@@ -21,6 +21,7 @@ import { encodeFactureParams } from '@/lib/url-encoder';
 import { ModalRecuGenereProps, RecuDetails, RecuUrls, TypePaiement } from '@/types/recu';
 import { WalletType } from '@/components/facture/ModalPaiementWalletNew';
 import { recuService } from '@/services/recu.service';
+import { generateTicketHTML, printViaIframe } from '@/lib/generate-ticket-html';
 
 // Configuration des wallets pour affichage
 const WALLET_CONFIG = {
@@ -222,190 +223,22 @@ export function ModalRecuGenere({
     const walletInfo = WALLET_CONFIG[walletUsed] || WALLET_CONFIG.CASH;
     const isAcompte = typePaiement === 'ACOMPTE';
     const montantRestant = montantFactureTotal ? montantFactureTotal - montantPaye : 0;
-    // Logo de la structure ou logo FayClick par défaut (URL absolue pour impression)
-    const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
-    const logoDefault = `${baseUrl}/images/logofayclick.png`;
-    const logoStructure = recuDetails.facture.logo && recuDetails.facture.logo.trim() !== ''
-      ? recuDetails.facture.logo
-      : logoDefault;
 
-    const recuHTML = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <meta charset="UTF-8">
-        <title>Reçu ${recuDetails.facture.numrecu}</title>
-        <style>
-          @page { size: 80mm auto; margin: 5mm; }
-          * { margin: 0; padding: 0; box-sizing: border-box; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-          body {
-            font-family: 'Courier New', 'Lucida Console', Monaco, monospace;
-            font-weight: bold;
-            max-width: 80mm;
-            margin: 0 auto;
-            padding: 10px;
-            font-size: 12px;
-            background: white;
-          }
-          .header { text-align: center; border-bottom: 1px dashed #000; padding-bottom: 10px; margin-bottom: 10px; }
-          .logo-img {
-            max-width: 60px;
-            max-height: 60px;
-            margin: 0 auto 8px;
-            display: block;
-            border-radius: 8px;
-            object-fit: contain;
-          }
-          .title { font-size: 14px; font-weight: bold; margin-bottom: 3px; color: #059669; }
-          .structure { font-size: 13px; font-weight: bold; margin-bottom: 5px; }
-          .badge {
-            display: inline-block;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-weight: bold;
-            font-size: 11px;
-            margin: 8px 0;
-          }
-          .badge-success { background: #d1fae5; color: #059669; }
-          .badge-acompte { background: #fef3c7; color: #d97706; }
-          .section { margin: 10px 0; padding: 8px 0; border-bottom: 1px dashed #ccc; }
-          .row { display: flex; justify-content: space-between; margin: 4px 0; }
-          .label { color: #666; }
-          .value { font-weight: bold; text-align: right; }
-          .total-row { font-size: 16px; margin-top: 10px; padding-top: 10px; border-top: 2px solid #000; }
-          .total-acompte { color: #d97706; }
-          .total-paye { color: #059669; }
-          .restant { color: #dc2626; font-size: 14px; margin-top: 5px; }
-          .progress-bar {
-            width: 100%;
-            height: 8px;
-            background: #e5e7eb;
-            border-radius: 4px;
-            margin: 8px 0;
-            overflow: hidden;
-          }
-          .progress-fill {
-            height: 100%;
-            background: #f59e0b;
-            border-radius: 4px;
-          }
-          .footer { text-align: center; margin-top: 15px; padding-top: 10px; border-top: 1px dashed #000; font-size: 10px; color: #666; }
-          .qr-section { text-align: center; margin: 15px 0; }
-          .qr-text { font-size: 10px; color: #666; margin-top: 5px; }
-          @media print {
-            html, body { margin: 0; padding: 0; background: white; }
-            body { padding: 5px; }
-          }
-        </style>
-      </head>
-      <body>
-        <div class="header">
-          <img src="${logoStructure}" alt="Logo" class="logo-img" onerror="this.style.display='none'" crossorigin="anonymous" />
-          <div class="structure">${recuDetails.facture.nom_structure}</div>
-          <div class="title">RECU DE PAIEMENT</div>
-          <div class="badge ${isAcompte ? 'badge-acompte' : 'badge-success'}">
-            ${isAcompte ? 'ACOMPTE' : 'PAYE'}
-          </div>
-        </div>
+    const html = generateTicketHTML({
+      nomStructure: recuDetails.facture.nom_structure,
+      logoUrl: recuDetails.facture.logo || '',
+      numFacture: recuDetails.facture.num_facture,
+      dateFacture: formatDateTime(recuDetails.paiement.date_paiement),
+      nomClient: recuDetails.facture.nom_client,
+      telClient: recuDetails.facture.tel_client,
+      montantNet: montantPaye,
+      acompte: isAcompte ? montantPaye : undefined,
+      restant: isAcompte && montantRestant > 0 ? montantRestant : undefined,
+      methodePaiement: walletInfo.name,
+      badge: isAcompte ? 'ACOMPTE' : 'PAYE',
+    });
 
-        <div class="section">
-          <div class="row">
-            <span class="label">N° Reçu</span>
-            <span class="value">${recuDetails.facture.numrecu}</span>
-          </div>
-          <div class="row">
-            <span class="label">Facture</span>
-            <span class="value">${recuDetails.facture.num_facture}</span>
-          </div>
-          <div class="row">
-            <span class="label">Client</span>
-            <span class="value">${recuDetails.facture.nom_client}</span>
-          </div>
-        </div>
-
-        <div class="section">
-          <div class="row">
-            <span class="label">Méthode</span>
-            <span class="value">${walletInfo.name}</span>
-          </div>
-          <div class="row">
-            <span class="label">Date/Heure</span>
-            <span class="value">${formatDateTime(recuDetails.paiement.date_paiement)}</span>
-          </div>
-        </div>
-
-        <div class="section">
-          <div class="row total-row">
-            <span>${isAcompte ? 'ACOMPTE VERSÉ' : 'MONTANT PAYÉ'}</span>
-            <span class="${isAcompte ? 'total-acompte' : 'total-paye'}">${montantPaye?.toLocaleString('fr-FR')} FCFA</span>
-          </div>
-          ${isAcompte && montantFactureTotal ? `
-            <div class="row" style="margin-top: 10px;">
-              <span class="label">Total facture</span>
-              <span class="value">${montantFactureTotal.toLocaleString('fr-FR')} FCFA</span>
-            </div>
-            <div class="row restant">
-              <span>Restant dû</span>
-              <span>${montantRestant.toLocaleString('fr-FR')} FCFA</span>
-            </div>
-            <div class="progress-bar">
-              <div class="progress-fill" style="width: ${(montantPaye / montantFactureTotal) * 100}%"></div>
-            </div>
-            <div style="text-align: center; font-size: 11px; color: #666;">
-              ${Math.round((montantPaye / montantFactureTotal) * 100)}% payé
-            </div>
-          ` : ''}
-        </div>
-
-        <div class="footer">
-          <p>Merci pour votre confiance !</p>
-          <p style="margin-top: 5px;">FayClick - La Super App des Marchands</p>
-          <p style="margin-top: 3px;">${new Date().toLocaleString('fr-FR')}</p>
-        </div>
-      </body>
-      </html>
-    `;
-
-    // Méthode robuste avec iframe caché (compatible tous navigateurs)
-    // Évite les popup blockers et les problèmes de timing
-    const printFrame = document.createElement('iframe');
-    printFrame.style.position = 'fixed';
-    printFrame.style.right = '0';
-    printFrame.style.bottom = '0';
-    printFrame.style.width = '0';
-    printFrame.style.height = '0';
-    printFrame.style.border = 'none';
-    printFrame.style.visibility = 'hidden';
-    document.body.appendChild(printFrame);
-
-    const frameDoc = printFrame.contentWindow?.document || printFrame.contentDocument;
-    if (frameDoc) {
-      frameDoc.open();
-      frameDoc.write(recuHTML);
-      frameDoc.close();
-
-      // Attendre le chargement complet avant d'imprimer
-      printFrame.onload = () => {
-        setTimeout(() => {
-          try {
-            printFrame.contentWindow?.focus();
-            printFrame.contentWindow?.print();
-          } catch (e) {
-            // Fallback pour Safari et autres navigateurs restrictifs
-            console.warn('Impression iframe échouée, tentative alternative:', e);
-            window.print();
-          }
-          // Nettoyer l'iframe après impression
-          setTimeout(() => {
-            document.body.removeChild(printFrame);
-          }, 1000);
-        }, 250); // Délai pour s'assurer que les styles sont appliqués
-      };
-    } else {
-      // Fallback ultime: impression de la page courante
-      console.warn('Iframe non disponible, utilisation de window.print()');
-      window.print();
-    }
+    printViaIframe(html);
   };
 
   const formatDateTime = (dateString: string) => {
