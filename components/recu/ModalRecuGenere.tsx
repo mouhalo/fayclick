@@ -240,6 +240,7 @@ export function ModalRecuGenere({
           * { margin: 0; padding: 0; box-sizing: border-box; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
           body {
             font-family: 'Courier New', 'Lucida Console', Monaco, monospace;
+            font-weight: bold;
             max-width: 80mm;
             margin: 0 auto;
             padding: 10px;

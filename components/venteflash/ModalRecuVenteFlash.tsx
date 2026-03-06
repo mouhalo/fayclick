@@ -137,6 +137,7 @@ export function ModalRecuVenteFlash({
           * { margin: 0; padding: 0; box-sizing: border-box; }
           body {
             font-family: 'Courier New', monospace;
+            font-weight: bold;
             max-width: 80mm;
             margin: 0 auto;
             padding: 4px;

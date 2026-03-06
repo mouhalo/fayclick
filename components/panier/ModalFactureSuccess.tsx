@@ -441,7 +441,7 @@ export function ModalFactureSuccess() {
           @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
           * { box-sizing: border-box; margin: 0; padding: 0; }
           body {
-            font-family: 'Inter', 'Segoe UI', sans-serif;
+            font-family: 'Inter', 'Segoe UI', sans-serif; font-weight: bold;
             max-width: 800px; margin: 0 auto; padding: 0; color: #1e293b;
             position: relative; min-height: 100vh;
           }
@@ -716,7 +716,7 @@ export function ModalFactureSuccess() {
           @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
           * { box-sizing: border-box; margin: 0; padding: 0; }
           body {
-            font-family: 'Inter', sans-serif; font-size: 11px;
+            font-family: 'Inter', sans-serif; font-size: 11px; font-weight: bold;
             padding: 12px; max-width: 300px; margin: 0 auto;
             position: relative; color: #1e293b;
           }
