@@ -1223,6 +1223,43 @@ export default function ProduitsCommercePage() {
               </motion.div>
             )}
           </AnimatePresence>
+
+          {/* Bouton flottant vert sombre - Ouvre modal options d'ajout (masqué en mode sélection Admin) */}
+          {!(isAdmin && selectionMode) && (
+          <motion.button
+            whileHover={{ scale: 1.08 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={handleOpenOptionsAjout}
+            className="fixed bottom-6 right-6 group z-40"
+            aria-label="Ajouter un produit"
+            title="Ajouter un produit"
+          >
+            {/* Effet de halo pulsant */}
+            <motion.div
+              animate={{
+                scale: [1, 1.3, 1],
+                opacity: [0.4, 0.15, 0.4]
+              }}
+              transition={{
+                duration: 2,
+                repeat: Infinity,
+                ease: "easeInOut"
+              }}
+              className="absolute inset-0 bg-emerald-500 rounded-2xl blur-lg"
+            />
+            {/* Bouton principal vert sombre */}
+            <div className="relative w-14 h-14 bg-gradient-to-br from-emerald-600 to-green-700 rounded-2xl shadow-xl flex items-center justify-center overflow-hidden group-hover:from-emerald-500 group-hover:to-green-600 transition-all duration-300 border-2 border-emerald-400/50">
+              {/* Reflet brillant */}
+              <div className="absolute inset-0 bg-gradient-to-br from-white/25 via-transparent to-transparent" />
+              {/* Icône */}
+              <Plus className="w-8 h-8 text-white drop-shadow-lg relative z-10 group-hover:rotate-90 transition-transform duration-300" strokeWidth={2.5} />
+            </div>
+            {/* Label "Ajouter" */}
+            <span className="absolute right-full mr-3 top-1/2 -translate-y-1/2 px-3 py-1.5 bg-emerald-700 rounded-lg text-white text-sm font-semibold whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity shadow-lg">
+              Ajouter
+            </span>
+          </motion.button>
+          )}
         </ProduitsDesktopView>
 
         {/* MainMenu hidden */}

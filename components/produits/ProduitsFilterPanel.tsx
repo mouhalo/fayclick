@@ -82,19 +82,19 @@ export function ProduitsFilterPanel({ isOpen, produits, onApplyFilters, onResetF
           transition={{ duration: 0.3, ease: 'easeInOut' }}
           className="overflow-hidden"
         >
-          <div className="mt-3 p-4 bg-white/15 backdrop-blur-md rounded-xl border border-white/30 space-y-4">
+          <div className="mt-3 p-4 bg-white/90 backdrop-blur-md rounded-xl border border-gray-200 shadow-lg space-y-4">
             {/* Titre avec badge */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Filter className="w-4 h-4 text-white" />
-                <span className="text-white font-semibold text-sm">Filtres avancés</span>
+                <Filter className="w-4 h-4 text-emerald-600" />
+                <span className="text-gray-800 font-semibold text-sm">Filtres avancés</span>
                 {activeFiltersCount > 0 && (
                   <span className="px-2 py-0.5 bg-orange-500 text-white text-xs rounded-full font-bold">
                     {activeFiltersCount}
                   </span>
                 )}
               </div>
-              <button onClick={handleReset} className="text-white/70 hover:text-white text-xs flex items-center gap-1">
+              <button onClick={handleReset} className="text-gray-500 hover:text-gray-700 text-xs flex items-center gap-1">
                 <RotateCcw className="w-3 h-3" />
                 Réinitialiser
               </button>
@@ -105,14 +105,14 @@ export function ProduitsFilterPanel({ isOpen, produits, onApplyFilters, onResetF
 
               {/* Filtre Categorie */}
               <div className="space-y-1.5">
-                <label className="text-white/80 text-xs font-medium flex items-center gap-1.5">
+                <label className="text-gray-700 text-xs font-medium flex items-center gap-1.5">
                   <Tag className="w-3.5 h-3.5" />
                   Catégorie
                 </label>
                 <select
                   value={categorie}
                   onChange={(e) => setCategorie(e.target.value)}
-                  className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-green-300 appearance-none"
+                  className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 appearance-none"
                 >
                   <option value="" className="text-gray-800">Toutes les catégories</option>
                   {categories.map(cat => (
@@ -123,7 +123,7 @@ export function ProduitsFilterPanel({ isOpen, produits, onApplyFilters, onResetF
 
               {/* Filtre Stock */}
               <div className="space-y-1.5">
-                <label className="text-white/80 text-xs font-medium flex items-center gap-1.5">
+                <label className="text-gray-700 text-xs font-medium flex items-center gap-1.5">
                   <Package className="w-3.5 h-3.5" />
                   Niveau de stock
                 </label>
@@ -131,7 +131,7 @@ export function ProduitsFilterPanel({ isOpen, produits, onApplyFilters, onResetF
                   <select
                     value={stockOperator}
                     onChange={(e) => setStockOperator(e.target.value as ComparisonOperator | '')}
-                    className="w-24 px-2 py-2 bg-white/10 border border-white/20 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-green-300"
+                    className="w-24 px-2 py-2 bg-white border border-gray-300 rounded-lg text-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
                   >
                     <option value="" className="text-gray-800">--</option>
                     {operateurs.map(op => (
@@ -144,14 +144,14 @@ export function ProduitsFilterPanel({ isOpen, produits, onApplyFilters, onResetF
                     onChange={(e) => setStockValue(e.target.value)}
                     placeholder="Quantité"
                     min="0"
-                    className="flex-1 px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white text-sm placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-green-300"
+                    className="flex-1 px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-800 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-400"
                   />
                 </div>
               </div>
 
               {/* Filtre Prix */}
               <div className="space-y-1.5">
-                <label className="text-white/80 text-xs font-medium flex items-center gap-1.5">
+                <label className="text-gray-700 text-xs font-medium flex items-center gap-1.5">
                   <DollarSign className="w-3.5 h-3.5" />
                   Prix de vente (FCFA)
                 </label>
@@ -159,7 +159,7 @@ export function ProduitsFilterPanel({ isOpen, produits, onApplyFilters, onResetF
                   <select
                     value={prixOperator}
                     onChange={(e) => setPrixOperator(e.target.value as ComparisonOperator | '')}
-                    className="w-24 px-2 py-2 bg-white/10 border border-white/20 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-green-300"
+                    className="w-24 px-2 py-2 bg-white border border-gray-300 rounded-lg text-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
                   >
                     <option value="" className="text-gray-800">--</option>
                     {operateurs.map(op => (
@@ -172,7 +172,7 @@ export function ProduitsFilterPanel({ isOpen, produits, onApplyFilters, onResetF
                     onChange={(e) => setPrixValue(e.target.value)}
                     placeholder="Prix"
                     min="0"
-                    className="flex-1 px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white text-sm placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-green-300"
+                    className="flex-1 px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-800 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-400"
                   />
                 </div>
               </div>
