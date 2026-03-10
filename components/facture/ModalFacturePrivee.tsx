@@ -41,7 +41,9 @@ export function ModalFacturePrivee({
   numFacture,
   factureData,
   onFactureDeleted,
-  onPaymentComplete
+  onPaymentComplete,
+  comptePrive,
+  onImprimer
 }: ModalFacturePriveeProps) {
   const { isMobile, isMobileLarge, isTablet } = useBreakpoint();
   const [facture, setFacture] = useState<FacturePriveeData | null>(factureData || null);
@@ -509,8 +511,14 @@ export function ModalFacturePrivee({
               <div className="flex items-center gap-2">
                 {/* Bouton Imprimer */}
                 <button
-                  onClick={() => window.open(urlPartage, '_blank')}
-                  className="p-2 bg-blue-100 hover:bg-blue-200 text-blue-600 rounded-lg transition-colors"
+                  onClick={() => {
+                    if (comptePrive && onImprimer) {
+                      onImprimer();
+                    } else {
+                      window.open(urlPartage, '_blank');
+                    }
+                  }}
+                  className={`p-2 ${comptePrive ? 'bg-indigo-100 hover:bg-indigo-200 text-indigo-600' : 'bg-blue-100 hover:bg-blue-200 text-blue-600'} rounded-lg transition-colors`}
                   title="Imprimer la facture"
                 >
                   <Printer className={styles.iconSm} />

@@ -57,6 +57,8 @@ export interface ModalFacturePriveeProps {
   factureData?: FacturePriveeData;
   onFactureDeleted?: (idFacture: number) => void;
   onPaymentComplete?: (factureId: number) => void;
+  comptePrive?: boolean;
+  onImprimer?: () => void;
 }
 
 export interface FacturePriveeActionsProps {

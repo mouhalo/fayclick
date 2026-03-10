@@ -10,13 +10,19 @@ import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { AlertCircle, Loader } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { authService } from '@/services/auth.service';
 import { useHasRight } from '@/hooks/useRights';
+import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { GlassHeader } from '@/components/ui/GlassHeader';
+import ModalCoffreFort from '@/components/coffre-fort/ModalCoffreFort';
+import { ModalDeconnexion } from '@/components/auth/ModalDeconnexion';
+import MainMenu from '@/components/layout/MainMenu';
 import { StatsCardsFacturesGlass } from '@/components/factures/StatsCardsFacturesGlass';
 import { FilterHeaderGlass } from '@/components/factures/FilterHeaderGlass';
 import { FacturesList } from '@/components/factures/FacturesList';
 import { FacturesOnglets } from '@/components/factures/FacturesOnglets';
 import { ListePaiements } from '@/components/factures/ListePaiements';
+import FacturesDesktopView from '@/components/factures/FacturesDesktopView';
 import { GlassPagination } from '@/components/ui/GlassPagination';
 import { ModalPaiement } from '@/components/factures/ModalPaiement';
 import { ModalPartage } from '@/components/factures/ModalPartage';
@@ -38,6 +44,10 @@ export default function FacturesGlassPage() {
   const router = useRouter();
   const { user, structure } = useAuth();
   const canViewMontants = useHasRight("VOIR CHIFFRE D'AFFAIRE");
+
+  // Hook responsive pour switch mobile/desktop
+  const { isDesktop, isDesktopLarge, isTablet } = useBreakpoint();
+  const isDesktopView = isDesktop || isDesktopLarge;
 
   // États principaux
   const [facturesResponse, setFacturesResponse] = useState<GetMyFactureResponse | null>(null);
@@ -93,6 +103,10 @@ export default function FacturesGlassPage() {
     type: 'success' | 'error' | 'info';
     message: string;
   }>({ isOpen: false, type: 'info', message: '' });
+
+  // États sidebar desktop (coffre-fort, déconnexion)
+  const [showCoffreModal, setShowCoffreModal] = useState(false);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   // Mapper filtres UI vers paramètres get_my_factures_filtered
   const buildFiltresDB = useCallback((f: FiltresFactures) => {
@@ -425,6 +439,157 @@ export default function FacturesGlassPage() {
     (filtres.statut && filtres.statut !== 'TOUS')
   );
 
+  // Desktop / Tablette : afficher la vue desktop
+  if (isDesktopView || isTablet) {
+    return (
+      <>
+        <FacturesDesktopView
+          user={user!}
+          structure={structure}
+          facturesResponse={facturesResponse}
+          facturesFiltreesEtTriees={facturesFiltreesEtTriees}
+          facturesPage={facturesPage}
+          currentPage={currentPage}
+          totalPages={totalPages}
+          filtres={filtres}
+          paiementsCount={paiementsCount}
+          loading={loading}
+          isRefreshing={isRefreshing}
+          error={error}
+          canViewMontants={canViewMontants}
+          comptePrive={comptePrive}
+          hasActiveFilters={hasActiveFilters}
+          onFiltersChange={setFiltres}
+          onRefresh={handleRefresh}
+          onPageChange={goToPage}
+          onViewFacture={handleViewFacture}
+          onPayFacture={handlePayFacture}
+          onShareFacture={handleShareFacture}
+          onDeleteFacture={handleDeleteFacture}
+          onImprimer={handleImprimer}
+          onVoirRecu={handleVoirRecuFacture}
+          onViewRecu={handleViewRecu}
+          onDownloadRecu={handleDownloadRecu}
+          onShowCoffreModal={() => setShowCoffreModal(true)}
+          onShowLogoutModal={() => setShowLogoutModal(true)}
+          onShowProfilModal={() => window.dispatchEvent(new Event('openProfileModal'))}
+          isTablet={!isDesktopLarge}
+        />
+
+        {/* MainMenu (masque, monte pour ecouter openProfileModal) */}
+        <MainMenu
+          isOpen={false}
+          onClose={() => {}}
+          userName={user?.username}
+          businessName={user?.nom_structure}
+        />
+
+        {/* Coffre-Fort Modal */}
+        <ModalCoffreFort
+          isOpen={showCoffreModal}
+          onClose={() => setShowCoffreModal(false)}
+          structureId={user?.id_structure || 0}
+        />
+
+        {/* Modal Deconnexion */}
+        <ModalDeconnexion
+          isOpen={showLogoutModal}
+          onClose={() => setShowLogoutModal(false)}
+          onConfirm={() => {
+            authService.logout();
+            router.push('/login');
+          }}
+          userName={user?.username}
+        />
+
+        {/* Modals partages */}
+        {modalPaiement.facture && (
+          <ModalPaiement
+            isOpen={modalPaiement.isOpen}
+            onClose={() => setModalPaiement({ isOpen: false, facture: null })}
+            facture={modalPaiement.facture}
+            onSuccess={handleRefresh}
+          />
+        )}
+
+        {modalPartage.facture && (
+          <ModalPartage
+            isOpen={modalPartage.isOpen}
+            onClose={() => setModalPartage({ isOpen: false, facture: null })}
+            facture={modalPartage.facture}
+          />
+        )}
+
+        {modalFacturePrivee.facture && (
+          <ModalFacturePrivee
+            isOpen={modalFacturePrivee.isOpen}
+            onClose={() => setModalFacturePrivee({ isOpen: false, facture: null })}
+            factureId={modalFacturePrivee.facture.facture.id_facture}
+            numFacture={modalFacturePrivee.facture.facture.num_facture}
+            comptePrive={comptePrive}
+            onImprimer={() => {
+              const facture = modalFacturePrivee.facture;
+              setModalFacturePrivee({ isOpen: false, facture: null });
+              if (facture) {
+                setModalImpression({ isOpen: true, facture });
+              }
+            }}
+          />
+        )}
+
+        {modalRecuGenere.facture && modalRecuGenere.paiement && (
+          <ModalRecuGenere
+            isOpen={modalRecuGenere.isOpen}
+            onClose={() => setModalRecuGenere({ isOpen: false, facture: null, paiement: null })}
+            factureId={modalRecuGenere.facture.facture.id_facture}
+            walletUsed={modalRecuGenere.paiement.methode_paiement || 'CASH'}
+            montantPaye={modalRecuGenere.paiement.montant_paye || modalRecuGenere.facture.facture.montant}
+            numeroRecu={modalRecuGenere.facture.facture.numrecu}
+            dateTimePaiement={modalRecuGenere.paiement.date_paiement}
+            referenceTransaction={modalRecuGenere.paiement.reference_transaction}
+          />
+        )}
+
+        {modalImpression.facture && (
+          <ModalImpressionDocuments
+            isOpen={modalImpression.isOpen}
+            onClose={() => setModalImpression({ isOpen: false, facture: null })}
+            facture={modalImpression.facture}
+            comptePrive={comptePrive}
+            configFacture={structure?.config_facture}
+            infoFacture={structure?.info_facture}
+            logo={structure?.logo}
+            nomStructure={structure?.nom_structure || ''}
+            inclureTva={structure?.inclure_tva}
+            tauxTva={structure?.taux_tva}
+            onOpenRecu={() => {
+              const facture = modalImpression.facture;
+              setModalImpression({ isOpen: false, facture: null });
+              if (facture) handleVoirRecuFacture(facture);
+            }}
+          />
+        )}
+
+        <ModalConfirmation
+          isOpen={modalConfirmation.isOpen}
+          onClose={() => setModalConfirmation({ isOpen: false, message: '', onConfirm: () => {} })}
+          onConfirm={modalConfirmation.onConfirm}
+          message={modalConfirmation.message}
+          type="danger"
+        />
+
+        <Toast
+          isVisible={toast.isOpen}
+          onClose={() => setToast({ ...toast, isOpen: false })}
+          title={toast.message}
+          type={toast.type}
+          duration={5000}
+        />
+      </>
+    );
+  }
+
+  // Mobile : code existant inchange
   // Contenu de l'onglet Factures
   const facturesContent = (
     <>
@@ -547,6 +712,14 @@ export default function FacturesGlassPage() {
           onClose={() => setModalFacturePrivee({ isOpen: false, facture: null })}
           factureId={modalFacturePrivee.facture.facture.id_facture}
           numFacture={modalFacturePrivee.facture.facture.num_facture}
+          comptePrive={comptePrive}
+          onImprimer={() => {
+            const facture = modalFacturePrivee.facture;
+            setModalFacturePrivee({ isOpen: false, facture: null });
+            if (facture) {
+              setModalImpression({ isOpen: true, facture });
+            }
+          }}
         />
       )}
 
