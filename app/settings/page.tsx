@@ -1009,116 +1009,121 @@ export default function StructureEditPage() {
               {/* Onglet Règles ventes */}
               {activeTab === 'sales' && (
                 <div className="space-y-6">
-                  {/* Crédit autorisé */}
-                  <motion.div
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.1 }}
-                    className="p-6 bg-gradient-to-br from-orange-50 to-amber-50 rounded-xl border-2 border-orange-200"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-orange-500 rounded-xl flex items-center justify-center">
-                          <CreditCard className="h-6 w-6 text-white" />
+                  {/* Crédit autorisé, Limite crédit, Acompte autorisé, Prix en gros - compte_prive uniquement */}
+                  {currentStructureData?.compte_prive && (
+                    <>
+                      {/* Crédit autorisé */}
+                      <motion.div
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.1 }}
+                        className="p-6 bg-gradient-to-br from-orange-50 to-amber-50 rounded-xl border-2 border-orange-200"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 bg-orange-500 rounded-xl flex items-center justify-center">
+                              <CreditCard className="h-6 w-6 text-white" />
+                            </div>
+                            <div>
+                              <h3 className="font-bold text-gray-900">Crédit autorisé</h3>
+                              <p className="text-sm text-gray-600">Permettre aux clients d&apos;acheter à crédit</p>
+                            </div>
+                          </div>
+                          <label className="relative inline-flex items-center cursor-pointer">
+                            <input
+                              type="checkbox"
+                              className="sr-only peer"
+                              checked={salesRules.creditAutorise}
+                              onChange={(e) => updateSalesRules({ creditAutorise: e.target.checked })}
+                            />
+                            <div className="w-14 h-7 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-green-500"></div>
+                          </label>
                         </div>
-                        <div>
-                          <h3 className="font-bold text-gray-900">Crédit autorisé</h3>
-                          <p className="text-sm text-gray-600">Permettre aux clients d&apos;acheter à crédit</p>
-                        </div>
-                      </div>
-                      <label className="relative inline-flex items-center cursor-pointer">
-                        <input
-                          type="checkbox"
-                          className="sr-only peer"
-                          checked={salesRules.creditAutorise}
-                          onChange={(e) => updateSalesRules({ creditAutorise: e.target.checked })}
-                        />
-                        <div className="w-14 h-7 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-green-500"></div>
-                      </label>
-                    </div>
-                  </motion.div>
+                      </motion.div>
 
-                  {/* Limite crédit */}
-                  {salesRules.creditAutorise && (
-                    <motion.div
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 0.2 }}
-                      className="p-6 bg-white rounded-xl border-2 border-gray-200"
-                    >
-                      <label className="block text-sm font-semibold text-gray-700 mb-2">Limite maximum de crédit</label>
-                      <p className="text-sm text-gray-600 mb-4">Montant maximum autorisé en crédit par client</p>
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="number"
-                          value={salesRules.limiteCredit}
-                          onChange={(e) => updateSalesRules({ limiteCredit: Math.max(0, Number(e.target.value)) })}
-                          min={0}
-                          step={1000}
-                          className="flex-1 px-4 py-3 rounded-xl border-2 border-gray-200 bg-gray-50 focus:ring-2 focus:ring-orange-500 focus:border-transparent text-lg font-medium"
-                        />
-                        <span className="text-gray-600 font-medium">FCFA</span>
-                      </div>
-                    </motion.div>
+                      {/* Limite crédit */}
+                      {salesRules.creditAutorise && (
+                        <motion.div
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: 0.2 }}
+                          className="p-6 bg-white rounded-xl border-2 border-gray-200"
+                        >
+                          <label className="block text-sm font-semibold text-gray-700 mb-2">Limite maximum de crédit</label>
+                          <p className="text-sm text-gray-600 mb-4">Montant maximum autorisé en crédit par client</p>
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="number"
+                              value={salesRules.limiteCredit}
+                              onChange={(e) => updateSalesRules({ limiteCredit: Math.max(0, Number(e.target.value)) })}
+                              min={0}
+                              step={1000}
+                              className="flex-1 px-4 py-3 rounded-xl border-2 border-gray-200 bg-gray-50 focus:ring-2 focus:ring-orange-500 focus:border-transparent text-lg font-medium"
+                            />
+                            <span className="text-gray-600 font-medium">FCFA</span>
+                          </div>
+                        </motion.div>
+                      )}
+
+                      {/* Acompte autorisé */}
+                      <motion.div
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.3 }}
+                        className="p-6 bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl border-2 border-green-200"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 bg-green-500 rounded-xl flex items-center justify-center">
+                              <DollarSign className="h-6 w-6 text-white" />
+                            </div>
+                            <div>
+                              <h3 className="font-bold text-gray-900">Acompte autorisé</h3>
+                              <p className="text-sm text-gray-600">Permettre les paiements par acompte</p>
+                            </div>
+                          </div>
+                          <label className="relative inline-flex items-center cursor-pointer">
+                            <input
+                              type="checkbox"
+                              className="sr-only peer"
+                              checked={salesRules.acompteAutorise}
+                              onChange={(e) => updateSalesRules({ acompteAutorise: e.target.checked })}
+                            />
+                            <div className="w-14 h-7 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-green-500"></div>
+                          </label>
+                        </div>
+                      </motion.div>
+
+                      {/* Prix en gros */}
+                      <motion.div
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.4 }}
+                        className="p-6 bg-gradient-to-br from-purple-50 to-indigo-50 rounded-xl border-2 border-purple-200"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 bg-purple-500 rounded-xl flex items-center justify-center">
+                              <Tag className="h-6 w-6 text-white" />
+                            </div>
+                            <div>
+                              <h3 className="font-bold text-gray-900">Prix en gros</h3>
+                              <p className="text-sm text-gray-600">Activer la gestion du prix en gros sur les produits et ventes</p>
+                            </div>
+                          </div>
+                          <label className="relative inline-flex items-center cursor-pointer">
+                            <input
+                              type="checkbox"
+                              className="sr-only peer"
+                              checked={salesRules.prixEnGrosActif}
+                              onChange={(e) => updateSalesRules({ prixEnGrosActif: e.target.checked })}
+                            />
+                            <div className="w-14 h-7 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-purple-500"></div>
+                          </label>
+                        </div>
+                      </motion.div>
+                    </>
                   )}
-
-                  {/* Acompte autorisé */}
-                  <motion.div
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.3 }}
-                    className="p-6 bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl border-2 border-green-200"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-green-500 rounded-xl flex items-center justify-center">
-                          <DollarSign className="h-6 w-6 text-white" />
-                        </div>
-                        <div>
-                          <h3 className="font-bold text-gray-900">Acompte autorisé</h3>
-                          <p className="text-sm text-gray-600">Permettre les paiements par acompte</p>
-                        </div>
-                      </div>
-                      <label className="relative inline-flex items-center cursor-pointer">
-                        <input
-                          type="checkbox"
-                          className="sr-only peer"
-                          checked={salesRules.acompteAutorise}
-                          onChange={(e) => updateSalesRules({ acompteAutorise: e.target.checked })}
-                        />
-                        <div className="w-14 h-7 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-green-500"></div>
-                      </label>
-                    </div>
-                  </motion.div>
-
-                  {/* Prix en gros */}
-                  <motion.div
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.4 }}
-                    className="p-6 bg-gradient-to-br from-purple-50 to-indigo-50 rounded-xl border-2 border-purple-200"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-purple-500 rounded-xl flex items-center justify-center">
-                          <Tag className="h-6 w-6 text-white" />
-                        </div>
-                        <div>
-                          <h3 className="font-bold text-gray-900">Prix en gros</h3>
-                          <p className="text-sm text-gray-600">Activer la gestion du prix en gros sur les produits et ventes</p>
-                        </div>
-                      </div>
-                      <label className="relative inline-flex items-center cursor-pointer">
-                        <input
-                          type="checkbox"
-                          className="sr-only peer"
-                          checked={salesRules.prixEnGrosActif}
-                          onChange={(e) => updateSalesRules({ prixEnGrosActif: e.target.checked })}
-                        />
-                        <div className="w-14 h-7 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-purple-500"></div>
-                      </label>
-                    </div>
-                  </motion.div>
 
                   {/* Nombre max produits - lecture seule */}
                   <motion.div
