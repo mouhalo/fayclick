@@ -126,8 +126,8 @@ export function generateTicketHTML(data: TicketData): string {
     .total-line { display: flex; justify-content: space-between; padding: 2px 0; font-size: 11px; }
     .total-line .label { color: #64748b; font-weight: bold; }
     .total-line .val { font-weight: bold; font-size: 12px; }
-    .total-line.grand { background: #059669; color: white; padding: 6px 8px; border-radius: 4px; font-size: 14px; font-weight: bold; margin-top: 4px; }
-    .total-line.grand .label, .total-line.grand .val { color: white; }
+    .total-line.grand { padding: 6px 0; font-size: 14px; font-weight: bold; margin-top: 4px; border-top: 2px solid #1e293b; }
+    .total-line.grand .label, .total-line.grand .val { color: #1e293b; font-weight: bold; }
     .total-line.remise .val { color: #16a34a; }
     .total-line.restant { background: #fef3c7; padding: 4px 8px; border-radius: 4px; margin-top: 3px; color: #92400e; }
     .total-line.restant .label, .total-line.restant .val { color: #92400e; }
