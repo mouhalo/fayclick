@@ -17,6 +17,7 @@ import {
   DollarSign
 } from 'lucide-react';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
+import { useSalesRules } from '@/hooks/useSalesRules';
 import { FactureComplete, AjouterAcompteData } from '@/types/facture';
 import { factureService } from '@/services/facture.service';
 // recuService supprimé - le reçu est maintenant créé automatiquement par add_acompte_facture
@@ -44,6 +45,7 @@ export function ModalPaiement({
   useIntegratedPaymentSelection = true
 }: ModalPaiementProps) {
   const { isMobile, isMobileLarge } = useBreakpoint();
+  const salesRules = useSalesRules();
 
   // États principaux
   const [montantAcompte, setMontantAcompte] = useState<string>('');
@@ -236,8 +238,11 @@ export function ModalPaiement({
     if (pendingPaymentMethod === 'CASH') {
       // Paiement cash - traitement direct
       await processCashPayment();
+    } else if (salesRules.walletPaiement) {
+      // Mode walletPaiement activé : paiement wallet direct (comme CASH, face2face)
+      await processWalletDirectPayment(pendingPaymentMethod);
     } else {
-      // Paiement wallet - ouvrir le modal QR Code
+      // Mode standard : ouvrir le modal QR Code
       setShowQRCode(true);
     }
   };
@@ -265,8 +270,11 @@ export function ModalPaiement({
     if (method === 'CASH') {
       // Paiement cash - traitement direct
       await processCashPayment();
+    } else if (salesRules.walletPaiement) {
+      // Mode walletPaiement activé : paiement wallet direct (face2face)
+      await processWalletDirectPayment(method);
     } else {
-      // Paiement wallet - ouvrir le modal QR Code
+      // Mode standard : ouvrir le modal QR Code
       setShowQRCode(true);
     }
   };
@@ -333,6 +341,69 @@ export function ModalPaiement({
         }
 
         // Fermer automatiquement après 2 secondes
+        setTimeout(() => {
+          onClose();
+        }, 2000);
+      }
+    } catch (error: unknown) {
+      setError(error instanceof Error ? error.message : 'Erreur lors du paiement');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Paiement wallet direct (mode walletPaiement = true, comme CASH face2face)
+  const processWalletDirectPayment = async (method: PaymentMethod) => {
+    if (!facture || !montants) return;
+
+    setLoading(true);
+    setError('');
+
+    try {
+      const transactionId = `${method}-${facture.facture.id_structure}-${Date.now()}`;
+      const acompteData: AjouterAcompteData = {
+        id_structure: facture.facture.id_structure,
+        id_facture: facture.facture.id_facture,
+        montant_acompte: montants.montantSaisi,
+        transaction_id: transactionId,
+        uuid: 'face2face',
+        mode_paiement: method as 'CASH' | 'WAVE' | 'OM',
+        telephone: facture.facture.tel_client || '000000000'
+      };
+
+      console.log(`📱 [WALLET-DIRECT] ${method} paiement direct | Montant:`, montants.montantSaisi);
+
+      const response = await factureService.addAcompte(acompteData);
+
+      if (response.success) {
+        setSuccess(true);
+
+        const recuData = response.recus_paiement?.[0];
+        const numeroRecu = recuData?.numero_recu || response.paiement?.numero_recu;
+
+        console.log(`✅ [WALLET-DIRECT] ${method} Acompte + Reçu créés:`, {
+          id_facture: facture.facture.id_facture,
+          numero_recu: numeroRecu,
+          montant_paye: montants.montantSaisi
+        });
+
+        if (numeroRecu) {
+          setModalRecuAcompte({
+            isOpen: true,
+            factureId: facture.facture.id_facture,
+            walletUsed: method,
+            montantPaye: montants.montantSaisi,
+            numeroRecu: numeroRecu,
+            referenceTransaction: transactionId,
+            typePaiement: 'ACOMPTE',
+            montantFactureTotal: facture.facture.montant
+          });
+        }
+
+        if (onSuccess) {
+          onSuccess(response);
+        }
+
         setTimeout(() => {
           onClose();
         }, 2000);
