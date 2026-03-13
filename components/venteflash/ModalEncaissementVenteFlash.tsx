@@ -23,6 +23,7 @@ interface ModalEncaissementVenteFlashProps {
   isOpen: boolean;
   onClose: () => void;
   montantTotal: number;
+  walletPaiement?: boolean;
   onPaymentComplete: (method: PaymentMethod, transactionData: {
     transactionId: string;
     uuid: string;
@@ -38,6 +39,7 @@ export function ModalEncaissementVenteFlash({
   isOpen,
   onClose,
   montantTotal,
+  walletPaiement = false,
   onPaymentComplete,
   onPaymentFailed
 }: ModalEncaissementVenteFlashProps) {
@@ -176,6 +178,39 @@ export function ModalEncaissementVenteFlash({
 
     } catch (err) {
       console.error('❌ [ENCAISSEMENT] Erreur CASH:', err);
+      setError(err instanceof Error ? err.message : 'Erreur');
+      paymentCompletedRef.current = false;
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  // Validation directe wallet (mode walletPaiement = true, comme CASH)
+  const handleWalletDirect = async (method: 'OM' | 'WAVE') => {
+    if (paymentCompletedRef.current) {
+      console.warn(`⚠️ [ENCAISSEMENT] Paiement ${method} direct déjà validé, ignoré`);
+      return;
+    }
+
+    paymentCompletedRef.current = true;
+    setIsProcessing(true);
+    setError('');
+
+    try {
+      const user = authService.getUser();
+      if (!user) throw new Error('Utilisateur non connecté');
+
+      const transactionId = `${method}-${user.id_structure}-${Date.now()}`;
+
+      console.log(`📱 [VF-PAIEMENT] ${method} direct validé | Montant:`, montantTotal);
+
+      onPaymentComplete(method, {
+        transactionId,
+        uuid: 'face2face'
+      });
+
+    } catch (err) {
+      console.error(`❌ [ENCAISSEMENT] Erreur ${method} direct:`, err);
       setError(err instanceof Error ? err.message : 'Erreur');
       paymentCompletedRef.current = false;
     } finally {
@@ -510,38 +545,57 @@ export function ModalEncaissementVenteFlash({
                         >
                           <X className={isCompact ? 'w-3 h-3' : 'w-5 h-5'} />
                         </button>
-                        <input
-                          type="tel"
-                          value={telephone}
-                          onChange={(e) => {
-                            setTelephone(e.target.value.replace(/[^0-9]/g, ''));
-                            setTelephoneError('');
-                          }}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                              e.preventDefault();
-                              if (telephone.length === 9) {
-                                handleWalletInitiate('WAVE');
-                              }
-                            }
-                          }}
-                          placeholder="7X XXX XX XX"
-                          maxLength={9}
-                          className={`w-full ${isCompact ? 'py-1 px-1 text-[11px]' : 'py-2 px-3 text-base'} border ${telephoneError ? 'border-red-300' : 'border-blue-300'} rounded-lg text-center font-semibold mb-1`}
-                          autoFocus={flippedCards.has('WAVE')}
-                        />
-                        {telephoneError && (
-                          <p className={`text-red-500 ${isCompact ? 'text-[8px]' : 'text-sm'} text-center mb-1`}>{telephoneError}</p>
+                        {walletPaiement ? (
+                          <>
+                            <div className={`text-center font-bold ${isCompact ? 'text-[10px] mb-1' : 'text-xs mb-2'} text-blue-700`}>
+                              {formatAmount(montantTotal)}
+                            </div>
+                            <motion.button
+                              whileTap={{ scale: 0.95 }}
+                              onClick={() => handleWalletDirect('WAVE')}
+                              disabled={isProcessing}
+                              className={`w-full ${isCompact ? 'py-2 text-[10px]' : 'py-2.5 text-sm'} bg-blue-500 text-white font-bold rounded-lg disabled:opacity-50 flex items-center justify-center gap-1`}
+                            >
+                              {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className={isCompact ? 'w-3 h-3' : 'w-4 h-4'} />}
+                              Confirmer
+                            </motion.button>
+                          </>
+                        ) : (
+                          <>
+                            <input
+                              type="tel"
+                              value={telephone}
+                              onChange={(e) => {
+                                setTelephone(e.target.value.replace(/[^0-9]/g, ''));
+                                setTelephoneError('');
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  e.preventDefault();
+                                  if (telephone.length === 9) {
+                                    handleWalletInitiate('WAVE');
+                                  }
+                                }
+                              }}
+                              placeholder="7X XXX XX XX"
+                              maxLength={9}
+                              className={`w-full ${isCompact ? 'py-1 px-1 text-[11px]' : 'py-2 px-3 text-base'} border ${telephoneError ? 'border-red-300' : 'border-blue-300'} rounded-lg text-center font-semibold mb-1`}
+                              autoFocus={flippedCards.has('WAVE')}
+                            />
+                            {telephoneError && (
+                              <p className={`text-red-500 ${isCompact ? 'text-[8px]' : 'text-sm'} text-center mb-1`}>{telephoneError}</p>
+                            )}
+                            <motion.button
+                              whileTap={{ scale: 0.95 }}
+                              onClick={() => handleWalletInitiate('WAVE')}
+                              disabled={isProcessing || telephone.length !== 9}
+                              className={`w-full ${isCompact ? 'py-1 text-[9px]' : 'py-1.5 text-sm'} bg-blue-500 text-white font-bold rounded-lg disabled:opacity-50 flex items-center justify-center gap-2`}
+                            >
+                              {isProcessing ? <Loader2 className={isCompact ? 'w-3 h-3' : 'w-5 h-5'} /> : <QrCode className={isCompact ? 'w-3 h-3' : 'w-5 h-5'} />}
+                              QR
+                            </motion.button>
+                          </>
                         )}
-                        <motion.button
-                          whileTap={{ scale: 0.95 }}
-                          onClick={() => handleWalletInitiate('WAVE')}
-                          disabled={isProcessing || telephone.length !== 9}
-                          className={`w-full ${isCompact ? 'py-1 text-[9px]' : 'py-1.5 text-sm'} bg-blue-500 text-white font-bold rounded-lg disabled:opacity-50 flex items-center justify-center gap-2`}
-                        >
-                          {isProcessing ? <Loader2 className={isCompact ? 'w-3 h-3' : 'w-5 h-5'} /> : <QrCode className={isCompact ? 'w-3 h-3' : 'w-5 h-5'} />}
-                          QR
-                        </motion.button>
                       </div>
                     </div>
                   </div>
@@ -585,38 +639,57 @@ export function ModalEncaissementVenteFlash({
                         >
                           <X className={isCompact ? 'w-3 h-3' : 'w-5 h-5'} />
                         </button>
-                        <input
-                          type="tel"
-                          value={telephone}
-                          onChange={(e) => {
-                            setTelephone(e.target.value.replace(/[^0-9]/g, ''));
-                            setTelephoneError('');
-                          }}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                              e.preventDefault();
-                              if (telephone.length === 9) {
-                                handleWalletInitiate('OM');
-                              }
-                            }
-                          }}
-                          placeholder="77/78 XXX XX"
-                          maxLength={9}
-                          className={`w-full ${isCompact ? 'py-1 px-1 text-[11px]' : 'py-2 px-3 text-base'} border ${telephoneError ? 'border-red-300' : 'border-orange-300'} rounded-lg text-center font-semibold mb-1`}
-                          autoFocus={flippedCards.has('OM')}
-                        />
-                        {telephoneError && (
-                          <p className={`text-red-500 ${isCompact ? 'text-[8px]' : 'text-sm'} text-center mb-1`}>{telephoneError}</p>
+                        {walletPaiement ? (
+                          <>
+                            <div className={`text-center font-bold ${isCompact ? 'text-[10px] mb-1' : 'text-xs mb-2'} text-orange-700`}>
+                              {formatAmount(montantTotal)}
+                            </div>
+                            <motion.button
+                              whileTap={{ scale: 0.95 }}
+                              onClick={() => handleWalletDirect('OM')}
+                              disabled={isProcessing}
+                              className={`w-full ${isCompact ? 'py-2 text-[10px]' : 'py-2.5 text-sm'} bg-orange-500 text-white font-bold rounded-lg disabled:opacity-50 flex items-center justify-center gap-1`}
+                            >
+                              {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className={isCompact ? 'w-3 h-3' : 'w-4 h-4'} />}
+                              Confirmer
+                            </motion.button>
+                          </>
+                        ) : (
+                          <>
+                            <input
+                              type="tel"
+                              value={telephone}
+                              onChange={(e) => {
+                                setTelephone(e.target.value.replace(/[^0-9]/g, ''));
+                                setTelephoneError('');
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  e.preventDefault();
+                                  if (telephone.length === 9) {
+                                    handleWalletInitiate('OM');
+                                  }
+                                }
+                              }}
+                              placeholder="77/78 XXX XX"
+                              maxLength={9}
+                              className={`w-full ${isCompact ? 'py-1 px-1 text-[11px]' : 'py-2 px-3 text-base'} border ${telephoneError ? 'border-red-300' : 'border-orange-300'} rounded-lg text-center font-semibold mb-1`}
+                              autoFocus={flippedCards.has('OM')}
+                            />
+                            {telephoneError && (
+                              <p className={`text-red-500 ${isCompact ? 'text-[8px]' : 'text-sm'} text-center mb-1`}>{telephoneError}</p>
+                            )}
+                            <motion.button
+                              whileTap={{ scale: 0.95 }}
+                              onClick={() => handleWalletInitiate('OM')}
+                              disabled={isProcessing || telephone.length !== 9}
+                              className={`w-full ${isCompact ? 'py-1 text-[9px]' : 'py-1.5 text-sm'} bg-orange-500 text-white font-bold rounded-lg disabled:opacity-50 flex items-center justify-center gap-2`}
+                            >
+                              {isProcessing ? <Loader2 className={isCompact ? 'w-3 h-3' : 'w-5 h-5'} /> : <QrCode className={isCompact ? 'w-3 h-3' : 'w-5 h-5'} />}
+                              QR
+                            </motion.button>
+                          </>
                         )}
-                        <motion.button
-                          whileTap={{ scale: 0.95 }}
-                          onClick={() => handleWalletInitiate('OM')}
-                          disabled={isProcessing || telephone.length !== 9}
-                          className={`w-full ${isCompact ? 'py-1 text-[9px]' : 'py-1.5 text-sm'} bg-orange-500 text-white font-bold rounded-lg disabled:opacity-50 flex items-center justify-center gap-2`}
-                        >
-                          {isProcessing ? <Loader2 className={isCompact ? 'w-3 h-3' : 'w-5 h-5'} /> : <QrCode className={isCompact ? 'w-3 h-3' : 'w-5 h-5'} />}
-                          QR
-                        </motion.button>
                       </div>
                     </div>
                   </div>

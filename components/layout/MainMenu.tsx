@@ -776,7 +776,7 @@ function PasswordChangeModal({ isOpen, onClose, userId, onSuccess }: PasswordCha
                 {/* Ancien mot de passe */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Mot de passe actuel
+                    Mot de passe actuel (par défaut : 0000)
                   </label>
                   <div className="relative">
                     <input

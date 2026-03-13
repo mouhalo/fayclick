@@ -1,0 +1,107 @@
+CREATE OR REPLACE FUNCTION public.add_edit_produit(p_id_structure integer, p_nom_produit character varying, p_cout_revient numeric, p_prix_vente numeric, p_est_service boolean DEFAULT false, p_nom_categorie character varying DEFAULT 'produit_service'::character varying, p_description character varying DEFAULT 'RAS'::character varying, p_presente_au_public boolean DEFAULT false, p_id_produit integer DEFAULT 0, pcode_barre character varying DEFAULT ''::character varying, p_prix_grossiste numeric DEFAULT 0)
+ RETURNS TABLE(result_id_produit integer, result_id_structure integer, result_nom_produit character varying, result_cout_revient numeric, result_prix_vente numeric, result_est_service boolean, result_nom_categorie character varying, result_description character varying, result_code_barre character varying, result_prix_grossiste numeric, result_action_effectuee character varying)
+ LANGUAGE plpgsql
+AS $function$
+DECLARE
+    var_id_produit_result integer;
+    var_action_result varchar;
+    var_produit_existant RECORD;
+    var_id_a_modifier integer;
+BEGIN
+    IF p_id_structure IS NULL OR p_id_structure <= 0 THEN
+        RAISE EXCEPTION 'L''ID structure doit etre un entier positif valide';
+    END IF;
+
+    IF p_nom_produit IS NULL OR trim(p_nom_produit) = '' THEN
+        RAISE EXCEPTION 'Le nom du produit ne peut pas etre vide';
+    END IF;
+
+    IF p_cout_revient IS NULL OR p_cout_revient < 0 THEN
+        RAISE EXCEPTION 'Le cout de revient doit etre superieur ou egal a 0';
+    END IF;
+
+    IF p_prix_vente IS NULL OR p_prix_vente < 0 THEN
+        RAISE EXCEPTION 'Le prix de vente doit etre superieur ou egal a 0';
+    END IF;
+
+    IF p_prix_grossiste < 0 THEN
+        RAISE EXCEPTION 'Le prix grossiste ne peut pas etre negatif';
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM public.structures s WHERE s.id_structure = p_id_structure) THEN
+        RAISE EXCEPTION 'La structure avec l''ID % n''existe pas', p_id_structure;
+    END IF;
+
+    p_nom_produit := trim(p_nom_produit);
+    p_nom_categorie := COALESCE(trim(p_nom_categorie), 'produit_service');
+    p_description := COALESCE(trim(p_description), 'RAS');
+    pcode_barre := COALESCE(trim(pcode_barre), '');
+    p_prix_grossiste := COALESCE(p_prix_grossiste, 0);
+
+    IF p_id_produit > 0 THEN
+        var_id_a_modifier := p_id_produit;
+        
+        PERFORM 1 
+        FROM public.produit_service t1
+        WHERE t1.id_produit = var_id_a_modifier AND t1.id_structure = p_id_structure;
+
+        IF NOT FOUND THEN
+            RAISE EXCEPTION 'Aucun produit trouve avec l''ID % pour la structure %', var_id_a_modifier, p_id_structure;
+        END IF;
+
+        IF EXISTS (
+            SELECT 1 FROM public.produit_service t2
+            WHERE t2.id_structure = p_id_structure 
+              AND t2.nom_produit = p_nom_produit 
+              AND t2.id_produit <> var_id_a_modifier
+        ) THEN
+            RAISE EXCEPTION 'Un produit avec le nom "%" existe deja dans cette structure', p_nom_produit;
+        END IF;
+
+        EXECUTE 'UPDATE public.produit_service SET ' ||
+                'nom_produit = $1, ' ||
+                'cout_revient = $2, ' ||
+                'prix_vente = $3, ' ||
+                'est_service = $4, ' ||
+                'nom_categorie = $5, ' ||
+                'description = $6, ' ||
+                'presente_au_public = $7, ' ||
+                'code_barre = $8, ' ||
+                'prix_grossiste = $9 ' ||
+                'WHERE id_produit = $10'
+        USING p_nom_produit, p_cout_revient, p_prix_vente, p_est_service, 
+              p_nom_categorie, p_description, p_presente_au_public, pcode_barre, p_prix_grossiste, var_id_a_modifier;
+
+        var_id_produit_result := var_id_a_modifier;
+        var_action_result := 'MODIFICATION';
+
+    ELSE
+        IF EXISTS (
+            SELECT 1 FROM public.produit_service t3
+            WHERE t3.id_structure = p_id_structure AND t3.nom_produit = p_nom_produit
+        ) THEN
+            RAISE EXCEPTION 'Un produit avec le nom "%" existe deja dans cette structure', p_nom_produit;
+        END IF;
+
+        INSERT INTO public.produit_service (
+            id_structure, nom_produit, cout_revient, prix_vente, est_service,
+            nom_categorie, description, presente_au_public, code_barre, prix_grossiste
+        ) VALUES (
+            p_id_structure, p_nom_produit, p_cout_revient, p_prix_vente, p_est_service,
+            p_nom_categorie, p_description, p_presente_au_public, pcode_barre, p_prix_grossiste
+        )
+        RETURNING public.produit_service.id_produit INTO var_id_produit_result;
+
+        var_action_result := 'CREATION';
+    END IF;
+
+    RETURN QUERY
+    EXECUTE 'SELECT t.id_produit, t.id_structure, t.nom_produit, t.cout_revient, ' ||
+            't.prix_vente, t.est_service, t.nom_categorie, t.description, t.code_barre, ' ||
+            't.prix_grossiste, $1::character varying ' ||
+            'FROM public.produit_service t WHERE t.id_produit = $2'
+    USING var_action_result, var_id_produit_result;
+
+END;
+$function$
+;

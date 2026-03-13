@@ -2,6 +2,7 @@
 
 import { motion } from 'framer-motion';
 import { Search, Filter, X } from 'lucide-react';
+import { formatNomCategorie } from '@/lib/format-categorie';
 
 interface BoutiqueSearchFilterProps {
   searchTerm: string;
@@ -58,7 +59,7 @@ export default function BoutiqueSearchFilter({
           >
             <option value="" className="bg-slate-800">Toutes categories</option>
             {categories.map(cat => (
-              <option key={cat} value={cat} className="bg-slate-800">{cat}</option>
+              <option key={cat} value={cat} className="bg-slate-800">{formatNomCategorie(cat)}</option>
             ))}
           </select>
         </div>

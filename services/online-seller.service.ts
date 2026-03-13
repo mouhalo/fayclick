@@ -50,6 +50,7 @@ export interface ArticlePanier {
   prix_vente: number;
   quantite: number;
   stock_disponible: number;
+  photo_url?: string;
 }
 
 export interface CreateFactureOnlinePanierParams {

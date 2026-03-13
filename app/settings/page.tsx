@@ -92,6 +92,7 @@ interface SalesRules {
   limiteCredit: number;
   acompteAutorise: boolean;
   prixEnGrosActif: boolean;
+  walletPaiement: boolean;
 }
 
 const SALES_RULES_KEY = 'fayclick_regles_ventes';
@@ -101,6 +102,7 @@ const DEFAULT_SALES_RULES: SalesRules = {
   limiteCredit: 50000,
   acompteAutorise: true,
   prixEnGrosActif: false,
+  walletPaiement: false,
 };
 
 const DEFAULT_INFO_FACTURE: InfoFacture = {
@@ -269,6 +271,7 @@ export default function StructureEditPage() {
             limiteCredit: structureData.limite_credit ?? DEFAULT_SALES_RULES.limiteCredit,
             acompteAutorise: structureData.acompte_autorise ?? DEFAULT_SALES_RULES.acompteAutorise,
             prixEnGrosActif: structureData.prix_engros ?? DEFAULT_SALES_RULES.prixEnGrosActif,
+            walletPaiement: structureData.wallet_paiement ?? DEFAULT_SALES_RULES.walletPaiement,
           };
           setSalesRules(dbSalesRules);
           saveSalesRules(user.id_structure, dbSalesRules);
@@ -562,11 +565,12 @@ export default function StructureEditPage() {
 
     // Sauvegarde en DB
     try {
-      const dbParams: { credit_autorise?: boolean; limite_credit?: number; acompte_autorise?: boolean; prix_engros?: boolean } = {};
+      const dbParams: { credit_autorise?: boolean; limite_credit?: number; acompte_autorise?: boolean; prix_engros?: boolean; wallet_paiement?: boolean } = {};
       if ('creditAutorise' in updates) dbParams.credit_autorise = updates.creditAutorise;
       if ('limiteCredit' in updates) dbParams.limite_credit = updates.limiteCredit;
       if ('acompteAutorise' in updates) dbParams.acompte_autorise = updates.acompteAutorise;
       if ('prixEnGrosActif' in updates) dbParams.prix_engros = updates.prixEnGrosActif;
+      if ('walletPaiement' in updates) dbParams.wallet_paiement = updates.walletPaiement;
 
       const result = await databaseService.editParamStructure(user.id_structure, dbParams);
       if (!result.success) {
@@ -1122,8 +1126,38 @@ export default function StructureEditPage() {
                           </label>
                         </div>
                       </motion.div>
+
                     </>
                   )}
+
+                  {/* Wallet Paiement - visible pour toutes les structures */}
+                  <motion.div
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.5 }}
+                    className="p-6 bg-gradient-to-br from-blue-50 to-cyan-50 rounded-xl border-2 border-blue-200"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 bg-blue-500 rounded-xl flex items-center justify-center">
+                          <Wallet className="h-6 w-6 text-white" />
+                        </div>
+                        <div>
+                          <h3 className="font-bold text-gray-900">Wallet Paiement</h3>
+                          <p className="text-sm text-gray-600">Encaisser Wave/OM directement sans passer par le QR Code</p>
+                        </div>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input
+                          type="checkbox"
+                          className="sr-only peer"
+                          checked={salesRules.walletPaiement}
+                          onChange={(e) => updateSalesRules({ walletPaiement: e.target.checked })}
+                        />
+                        <div className="w-14 h-7 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-blue-500"></div>
+                      </label>
+                    </div>
+                  </motion.div>
 
                   {/* Nombre max produits - lecture seule */}
                   <motion.div

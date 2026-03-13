@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Tags, Phone, ArrowLeft, Package, MapPin } from 'lucide-react';
+import { Tags, Phone, ArrowLeft, Package, MapPin, MessageCircle, CheckCircle, Heart } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
@@ -16,119 +16,115 @@ export default function BoutiqueHeader({ catalogue, totalCategories }: BoutiqueH
   const router = useRouter();
   const { isMobile } = useBreakpoint();
 
+  const whatsappUrl = catalogue.telephone
+    ? `https://wa.me/221${catalogue.telephone}`
+    : null;
+
   return (
     <motion.div
-      initial={{ opacity: 0, y: -30, scale: 0.95 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      transition={{ type: "spring", damping: 20, stiffness: 100 }}
-      className="relative overflow-hidden rounded-3xl shadow-2xl p-5 md:p-8 mb-6"
+      initial={{ opacity: 0, y: -20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="relative overflow-hidden rounded-3xl shadow-2xl p-4 md:p-6 mb-6"
     >
-      {/* Background glassmorphe */}
-      <div className="absolute inset-0 bg-white/10 backdrop-blur-2xl" />
-      <div className="absolute inset-0 bg-gradient-to-br from-white/20 via-transparent to-transparent pointer-events-none" />
-
-      {/* Effet prismatique */}
-      <motion.div
-        animate={{
-          background: [
-            'linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, transparent 50%)',
-            'linear-gradient(135deg, transparent 0%, rgba(20, 184, 166, 0.15) 50%)',
-            'linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, transparent 50%)'
-          ]
-        }}
-        transition={{ duration: 5, repeat: Infinity }}
-        className="absolute inset-0 pointer-events-none"
-      />
-      <div className="absolute inset-0 rounded-3xl border border-white/30 shadow-inner" />
+      <div className="absolute inset-0 bg-white/5 backdrop-blur-2xl" />
+      <div className="absolute inset-0 rounded-3xl border border-white/20" />
 
       <div className="relative z-10">
         {/* Bouton retour */}
-        <motion.button
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.1 }}
+        <button
           onClick={() => router.push('/catalogues')}
-          className="flex items-center gap-1.5 mb-4 px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 text-white text-xs font-medium transition-colors"
+          className="flex items-center gap-1.5 mb-3 px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/10 text-white text-xs font-medium transition-colors"
         >
           <ArrowLeft className="w-3.5 h-3.5" />
           Marketplace
-        </motion.button>
+        </button>
 
-        <div className="text-center">
-          {/* Logo structure */}
-          <motion.div
-            initial={{ scale: 0, rotate: -180 }}
-            animate={{ scale: 1, rotate: 0 }}
-            transition={{ type: "spring", damping: 15, stiffness: 200, delay: 0.2 }}
-            className="inline-flex items-center justify-center mb-3"
-          >
-            <div className={`${isMobile ? 'w-24 h-24' : 'w-32 h-32 md:w-36 md:h-36'} rounded-2xl overflow-hidden border-2 border-white/30 shadow-lg`}>
-              <Image
-                src={catalogue.logo || '/images/mascotte.png'}
-                alt={`Logo ${catalogue.nom_structure}`}
-                width={140}
-                height={140}
-                className="object-contain w-full h-full"
-              />
+        {/* Layout principal */}
+        <div className={`flex ${isMobile ? 'flex-row items-start gap-3' : 'flex-row items-center gap-6'}`}>
+          {/* Logo */}
+          <div className={`flex-shrink-0 ${isMobile ? 'w-16 h-16' : 'w-24 h-24'} rounded-2xl overflow-hidden border-2 border-white/20 shadow-lg`}>
+            <Image
+              src={catalogue.logo || '/images/mascotte.png'}
+              alt={`Logo ${catalogue.nom_structure}`}
+              width={96}
+              height={96}
+              className="object-contain w-full h-full"
+            />
+          </div>
+
+          {/* Infos */}
+          <div className="flex-1 min-w-0">
+            {/* Nom + badge verifie */}
+            <div className="flex items-center gap-2 mb-1">
+              <h1 className={`${isMobile ? 'text-lg' : 'text-2xl'} font-bold text-white truncate`}>
+                {catalogue.nom_structure}
+              </h1>
+              {/* Badge verifie — cat_badge_verified.svg */}
+              <CheckCircle className="w-4 h-4 text-emerald-400 flex-shrink-0" />
             </div>
-          </motion.div>
 
-          {/* Nom structure */}
-          <motion.h1
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.25 }}
-            className={`${isMobile ? 'text-xl' : 'text-2xl md:text-3xl'} font-bold text-white drop-shadow-lg mb-1`}
-          >
-            {catalogue.nom_structure}
-          </motion.h1>
-
-          {/* Telephone + Adresse */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.3 }}
-            className="mb-4 space-y-1"
-          >
-            {catalogue.telephone && (
-              <a
-                href={`tel:+221${catalogue.telephone}`}
-                className="inline-flex items-center gap-1.5 text-emerald-200 hover:text-emerald-100 text-sm transition-colors"
-              >
-                <Phone className="w-3.5 h-3.5" />
-                {catalogue.telephone}
-              </a>
-            )}
+            {/* Localisation */}
             {catalogue.adresse && (
-              <p className="flex items-center justify-center gap-1.5 text-white/50 text-xs">
+              <p className="flex items-center gap-1 text-white/40 text-xs mb-2">
                 <MapPin className="w-3 h-3 flex-shrink-0" />
                 {catalogue.adresse}
               </p>
             )}
-          </motion.div>
 
-          {/* Badges stats */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.4 }}
-            className="flex items-center justify-center gap-3 flex-wrap"
-          >
-            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/20 backdrop-blur-sm rounded-full border border-emerald-400/30">
-              <Package className="w-3.5 h-3.5 text-emerald-200" />
-              <span className="font-bold text-emerald-100 text-xs">
-                {catalogue.total_produits} produit{catalogue.total_produits > 1 ? 's' : ''}
+            {/* Badges : contact + live — mobile */}
+            <div className="flex items-center gap-2 flex-wrap mb-2">
+              {catalogue.telephone && (
+                <a
+                  href={`tel:+221${catalogue.telephone}`}
+                  className="inline-flex items-center gap-1 text-emerald-200 hover:text-emerald-100 text-xs transition-colors"
+                >
+                  <Phone className="w-3 h-3" />
+                  {catalogue.telephone}
+                </a>
+              )}
+              {whatsappUrl && (
+                <a
+                  href={whatsappUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-500/20 border border-green-400/30 text-green-300 text-[10px] font-semibold hover:bg-green-500/30 transition-colors"
+                >
+                  <MessageCircle className="w-3 h-3" />
+                  Contacter
+                </a>
+              )}
+              {/* Badge Live — cat_badge_live.svg */}
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-500/20 border border-red-400/30 text-red-300 text-[10px] font-semibold">
+                <span className="relative flex h-1.5 w-1.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-red-500" />
+                </span>
+                En direct
               </span>
             </div>
-            {totalCategories > 0 && (
-              <div className="flex items-center gap-1.5 px-3 py-1.5 bg-teal-500/20 backdrop-blur-sm rounded-full border border-teal-400/30">
-                <Tags className="w-3.5 h-3.5 text-teal-200" />
-                <span className="font-bold text-teal-100 text-xs">
-                  {totalCategories} categorie{totalCategories > 1 ? 's' : ''}
-                </span>
+
+            {/* Stats + Suivre — desktop */}
+            {!isMobile && (
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/10 rounded-full border border-emerald-400/20">
+                  <Package className="w-3.5 h-3.5 text-emerald-300" />
+                  <span className="text-emerald-200 text-xs font-bold">{catalogue.total_produits}</span>
+                  <span className="text-emerald-200/50 text-xs">produits</span>
+                </div>
+                {totalCategories > 0 && (
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 bg-teal-500/10 rounded-full border border-teal-400/20">
+                    <Tags className="w-3.5 h-3.5 text-teal-300" />
+                    <span className="text-teal-200 text-xs font-bold">{totalCategories}</span>
+                    <span className="text-teal-200/50 text-xs">categories</span>
+                  </div>
+                )}
+                <button className="flex items-center gap-1.5 px-4 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-white text-xs font-bold rounded-full transition-colors">
+                  <Heart className="w-3.5 h-3.5" />
+                  Suivre
+                </button>
               </div>
             )}
-          </motion.div>
+          </div>
         </div>
       </div>
     </motion.div>
