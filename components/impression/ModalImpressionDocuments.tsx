@@ -26,7 +26,6 @@ interface Props {
 
 const DOCUMENT_TYPES: { id: DocumentType; label: string; icon: React.ElementType; description: string; color: string }[] = [
   { id: 'facture', label: 'Facture', icon: FileText, description: 'Document de facturation client', color: 'bg-blue-500' },
-  { id: 'proforma', label: 'Proforma', icon: ClipboardList, description: 'Devis / facture proforma', color: 'bg-purple-500' },
   { id: 'bl', label: 'Bon de Livraison', icon: Truck, description: 'Confirmation de livraison', color: 'bg-green-500' },
   { id: 'br', label: 'Bon de Retour', icon: RotateCcw, description: 'Retour de marchandise', color: 'bg-orange-500' },
 ];

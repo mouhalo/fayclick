@@ -1,28 +1,25 @@
 /**
- * Onglet Proformas complet
- * Contient stats + filtre + liste + tous les modals
- * A integrer dans la page factures
+ * Onglet Proformas — liste, filtres, stats + actions (détails, modifier, imprimer, convertir, supprimer)
+ * La création de proforma se fait depuis le panier (PanierSidePanel checkbox "Proforma")
  */
 
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-// framer-motion import removed - not directly used here
-import { Plus, RefreshCw, Search } from 'lucide-react';
+import { RefreshCw, Search } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-// import { useHasRight } from '@/hooks/useRights';
 import { proformaService } from '@/services/proforma.service';
 import { StatsCardsProformas } from './StatsCardsProformas';
 import { ProformasList } from './ProformasList';
 import { ModalCreerProforma } from './ModalCreerProforma';
 import { ModalProformaDetails } from './ModalProformaDetails';
 import { ModalConvertirProforma } from './ModalConvertirProforma';
+import { ModalImpressionProforma } from './ModalImpressionProforma';
 import { ModalConfirmation } from '@/components/ui/ModalConfirmation';
 import { useToast } from '@/components/ui/Toast';
 import { GlassPagination } from '@/components/ui/GlassPagination';
 import {
   Proforma,
-  ProformaListResponse,
   ProformaResumeGlobal,
   FiltresProformas,
   ProformaStatut,
@@ -35,16 +32,16 @@ interface ProformasTabProps {
 }
 
 export function ProformasTab({ canViewMontants = true }: ProformasTabProps) {
-  const { user, structure } = useAuth();
+  const { structure } = useAuth();
   const { showToast } = useToast();
 
-  // Donnees
+  // --- Données proformas ---
   const [proformas, setProformas] = useState<Proforma[]>([]);
   const [resume, setResume] = useState<ProformaResumeGlobal | null>(null);
   const [loading, setLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // Filtres
+  // --- Filtres proformas ---
   const [filtres, setFiltres] = useState<FiltresProformas>({
     search: '',
     statut: 'TOUS',
@@ -52,18 +49,18 @@ export function ProformasTab({ canViewMontants = true }: ProformasTabProps) {
     sortOrder: 'desc',
   });
 
-  // Pagination
+  // --- Pagination ---
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 10;
 
-  // Modals
-  const [modalCreer, setModalCreer] = useState(false);
+  // --- Modals ---
   const [modalDetails, setModalDetails] = useState<{ isOpen: boolean; proforma: Proforma | null }>({ isOpen: false, proforma: null });
   const [modalConvertir, setModalConvertir] = useState<{ isOpen: boolean; proforma: Proforma | null }>({ isOpen: false, proforma: null });
   const [modalSupprimer, setModalSupprimer] = useState<{ isOpen: boolean; proforma: Proforma | null }>({ isOpen: false, proforma: null });
   const [modalEditer, setModalEditer] = useState<{ isOpen: boolean; proforma: Proforma | null; details: ProformaDetail[] }>({ isOpen: false, proforma: null, details: [] });
+  const [modalImprimer, setModalImprimer] = useState<{ isOpen: boolean; proforma: Proforma | null; details: ProformaDetail[] }>({ isOpen: false, proforma: null, details: [] });
 
-  // Chargement initial
+  // --- Chargement proformas ---
   useEffect(() => {
     loadProformas();
   }, []);
@@ -85,16 +82,14 @@ export function ProformasTab({ canViewMontants = true }: ProformasTabProps) {
     }
   }, []);
 
-  // Filtrage local
+  // --- Filtrage local ---
   const filteredProformas = useMemo(() => {
     let result = [...proformas];
 
-    // Filtre par statut
     if (filtres.statut && filtres.statut !== 'TOUS') {
       result = result.filter(p => p.libelle_etat === filtres.statut);
     }
 
-    // Recherche
     if (filtres.search) {
       const search = filtres.search.toLowerCase();
       result = result.filter(p =>
@@ -104,7 +99,6 @@ export function ProformasTab({ canViewMontants = true }: ProformasTabProps) {
       );
     }
 
-    // Tri
     result.sort((a, b) => {
       const order = filtres.sortOrder === 'asc' ? 1 : -1;
       switch (filtres.sortBy) {
@@ -117,14 +111,14 @@ export function ProformasTab({ canViewMontants = true }: ProformasTabProps) {
     return result;
   }, [proformas, filtres]);
 
-  // Pagination
+  // --- Pagination ---
   const totalPages = Math.ceil(filteredProformas.length / ITEMS_PER_PAGE);
   const paginatedProformas = filteredProformas.slice(
     (currentPage - 1) * ITEMS_PER_PAGE,
     currentPage * ITEMS_PER_PAGE
   );
 
-  // Handlers actions
+  // --- Handlers actions proformas ---
   const handleVoirDetails = (proforma: Proforma) => {
     setModalDetails({ isOpen: true, proforma });
   };
@@ -134,7 +128,7 @@ export function ProformasTab({ canViewMontants = true }: ProformasTabProps) {
       const details = await proformaService.getProformaDetails(proforma.id_proforma);
       setModalEditer({ isOpen: true, proforma, details: details.details || [] });
     } catch {
-      showToast('error', 'Erreur', 'Impossible de charger les details');
+      showToast('error', 'Erreur', 'Impossible de charger les détails');
     }
   };
 
@@ -143,46 +137,17 @@ export function ProformasTab({ canViewMontants = true }: ProformasTabProps) {
   };
 
   const handleConversionSuccess = (result: ConvertProformaResponse) => {
-    showToast('success', 'Proforma convertie', `Facture ${result.num_facture || '#' + result.id_facture} creee avec succes`);
+    showToast('success', 'Proforma convertie', `Facture ${result.num_facture || '#' + result.id_facture} créée avec succès`);
     loadProformas(true);
   };
 
-  const handleImprimer = (proforma: Proforma) => {
-    // Impression via generate-ticket-html avec badge PROFORMA
-    import('@/services/proforma.service').then(async () => {
-      try {
-        const details = await proformaService.getProformaDetails(proforma.id_proforma);
-        const { generateTicketHTML, printViaIframe } = await import('@/lib/generate-ticket-html');
-
-        const html = generateTicketHTML({
-          nomStructure: structure?.nom_structure || '',
-          logoUrl: structure?.logo || '',
-          adresse: structure?.adresse || '',
-          telephone: structure?.mobile_om || '',
-          numFacture: proforma.num_proforma,
-          dateFacture: new Date(proforma.date_proforma).toLocaleDateString('fr-FR'),
-          nomClient: proforma.nom_client,
-          telClient: proforma.tel_client,
-          articles: (details.details || []).map((d: ProformaDetail) => ({
-            nom_produit: d.nom_produit,
-            quantite: d.quantite,
-            prix: d.prix_unitaire,
-            sous_total: d.sous_total,
-          })),
-          sousTotal: proforma.montant,
-          remise: proforma.mt_remise,
-          montantNet: proforma.montant_net,
-          methodePaiement: 'PROFORMA',
-          badge: 'FACTURE' as const,
-          nomCaissier: user?.username || '',
-        });
-
-        printViaIframe(html);
-      } catch (error) {
-        console.error('Erreur impression:', error);
-        showToast('error', 'Erreur', 'Impossible d\'imprimer la proforma');
-      }
-    });
+  const handleImprimer = async (proforma: Proforma) => {
+    try {
+      const response = await proformaService.getProformaDetails(proforma.id_proforma);
+      setModalImprimer({ isOpen: true, proforma, details: response.details || [] });
+    } catch {
+      showToast('error', 'Erreur', 'Impossible de charger les détails pour impression');
+    }
   };
 
   const handleSupprimer = (proforma: Proforma) => {
@@ -194,7 +159,7 @@ export function ProformasTab({ canViewMontants = true }: ProformasTabProps) {
     try {
       const result = await proformaService.deleteProforma(modalSupprimer.proforma.id_proforma);
       if (result.success) {
-        showToast('success', 'Supprimee', 'Proforma supprimee avec succes');
+        showToast('success', 'Supprimée', 'Proforma supprimée avec succès');
         loadProformas(true);
       } else {
         showToast('error', 'Erreur', result.message);
@@ -209,7 +174,7 @@ export function ProformasTab({ canViewMontants = true }: ProformasTabProps) {
   const statuts: { value: 'TOUS' | ProformaStatut; label: string }[] = [
     { value: 'TOUS', label: 'Tous' },
     { value: 'BROUILLON', label: 'Brouillons' },
-    { value: 'ACCEPTEE', label: 'Acceptees' },
+    { value: 'ACCEPTEE', label: 'Acceptées' },
     { value: 'CONVERTIE', label: 'Converties' },
   ];
 
@@ -218,15 +183,8 @@ export function ProformasTab({ canViewMontants = true }: ProformasTabProps) {
       {/* Stats */}
       <StatsCardsProformas resume={resume} loading={loading} canViewMontants={canViewMontants} />
 
-      {/* Header : Nouveau + Refresh */}
-      <div className="flex items-center justify-between">
-        <button
-          onClick={() => setModalCreer(true)}
-          className="flex items-center gap-2 bg-amber-600 text-white px-4 py-2.5 rounded-xl font-medium hover:bg-amber-700 transition-colors shadow-lg"
-        >
-          <Plus className="w-4 h-4" />
-          Nouvelle proforma
-        </button>
+      {/* Header : Refresh */}
+      <div className="flex items-center justify-end">
         <button
           onClick={() => loadProformas(true)}
           disabled={isRefreshing}
@@ -245,7 +203,7 @@ export function ProformasTab({ canViewMontants = true }: ProformasTabProps) {
             type="text"
             value={filtres.search || ''}
             onChange={(e) => { setFiltres(f => ({ ...f, search: e.target.value })); setCurrentPage(1); }}
-            placeholder="Rechercher par numero, client, telephone..."
+            placeholder="Rechercher par numéro, client, téléphone..."
             className="w-full pl-9 pr-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/40 text-sm focus:ring-2 focus:ring-amber-500"
           />
         </div>
@@ -297,14 +255,7 @@ export function ProformasTab({ canViewMontants = true }: ProformasTabProps) {
         />
       )}
 
-      {/* Modal Creer Proforma */}
-      <ModalCreerProforma
-        isOpen={modalCreer}
-        onClose={() => setModalCreer(false)}
-        onSuccess={() => loadProformas(true)}
-      />
-
-      {/* Modal Editer Proforma */}
+      {/* Modal Éditer Proforma */}
       <ModalCreerProforma
         isOpen={modalEditer.isOpen}
         onClose={() => setModalEditer({ isOpen: false, proforma: null, details: [] })}
@@ -314,7 +265,7 @@ export function ProformasTab({ canViewMontants = true }: ProformasTabProps) {
         proformaDetails={modalEditer.details}
       />
 
-      {/* Modal Details */}
+      {/* Modal Détails */}
       <ModalProformaDetails
         isOpen={modalDetails.isOpen}
         onClose={() => setModalDetails({ isOpen: false, proforma: null })}
@@ -340,10 +291,24 @@ export function ProformasTab({ canViewMontants = true }: ProformasTabProps) {
         onClose={() => setModalSupprimer({ isOpen: false, proforma: null })}
         onConfirm={confirmSupprimer}
         title="Supprimer la proforma"
-        message={`Etes-vous sur de vouloir supprimer la proforma ${modalSupprimer.proforma?.num_proforma} ? Cette action est irreversible.`}
+        message={`Êtes-vous sûr de vouloir supprimer la proforma ${modalSupprimer.proforma?.num_proforma} ? Cette action est irréversible.`}
         confirmText="Supprimer"
         type="danger"
       />
+
+      {/* Modal Impression Proforma */}
+      {modalImprimer.proforma && (
+        <ModalImpressionProforma
+          isOpen={modalImprimer.isOpen}
+          onClose={() => setModalImprimer({ isOpen: false, proforma: null, details: [] })}
+          proforma={modalImprimer.proforma}
+          details={modalImprimer.details}
+          configFacture={structure?.config_facture}
+          infoFacture={structure?.info_facture}
+          logo={structure?.logo}
+          nomStructure={structure?.nom_structure || ''}
+        />
+      )}
     </div>
   );
 }

@@ -1,56 +1,40 @@
 /**
- * PanierSidePanel - Panneau latéral non-modal pour le panier
- * Réservé au desktop (>=1024px), affiché à droite de la grille produits
- * Reprend le contenu de ModalPanier dans un format sticky panel
- * Checkbox "Proforma" : si coché, crée une proforma au lieu d'une facture
+ * ProformaSidePanel - Panneau lateral non-modal pour le panier proforma
+ * Reserve au desktop (>=1024px), affiche a droite de la grille produits
+ * Theme amber, client obligatoire, generation proforma
  */
 
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence, useDragControls } from 'framer-motion';
 import {
   ShoppingCart, Trash2, Plus, Minus,
-  Calculator, CreditCard, User, XCircle, GripVertical, X, FileCheck
+  Calculator, FileText, User, XCircle, GripVertical, X, AlertTriangle
 } from 'lucide-react';
-import { usePanierStore } from '@/stores/panierStore';
-import { factureService } from '@/services/facture.service';
+import { usePanierProformaStore } from '@/stores/panierProformaStore';
 import { proformaService } from '@/services/proforma.service';
-import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/ui/Toast';
-import { useFactureSuccessStore } from '@/hooks/useFactureSuccess';
-import { ModalRechercheClient } from './ModalRechercheClient';
-import { ModalImpressionProforma } from '@/components/proformas/ModalImpressionProforma';
+import { ModalRechercheClient } from '@/components/panier/ModalRechercheClient';
 import { Client } from '@/types/client';
-import { Proforma, ProformaDetail } from '@/types/proforma';
 
-interface PanierSidePanelProps {
+interface ProformaSidePanelProps {
   onSuccess?: () => void;
   onClose?: () => void;
 }
 
-export function PanierSidePanel({ onSuccess, onClose }: PanierSidePanelProps) {
+export function ProformaSidePanel({ onSuccess, onClose }: ProformaSidePanelProps) {
   const {
     articles, infosClient, remise,
     updateQuantity, removeArticle, clearPanier,
     updateInfosClient, updateRemise, updateRemiseArticle, clearRemisesArticles,
-    getMontantsFacture
-  } = usePanierStore();
+    getMontantsProforma
+  } = usePanierProformaStore();
 
-  const { structure } = useAuth();
-  const comptePrive = structure?.compte_prive === true;
   const { showToast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
-  const { openModal: openFactureSuccess } = useFactureSuccessStore();
   const [isModalRechercheOpen, setIsModalRechercheOpen] = useState(false);
-
-  // Mode proforma
-  const [isProforma, setIsProforma] = useState(false);
-  const [modalImpressionProforma, setModalImpressionProforma] = useState<{
-    isOpen: boolean;
-    proforma: Proforma | null;
-    details: ProformaDetail[];
-  }>({ isOpen: false, proforma: null, details: [] });
 
   // Mode remise : '%' (pourcentage) ou 'F' (valeur fixe)
   const [remiseMode, setRemiseMode] = useState<'%' | 'F'>(() => {
@@ -61,8 +45,11 @@ export function PanierSidePanel({ onSuccess, onClose }: PanierSidePanelProps) {
   });
   const [remiseInput, setRemiseInput] = useState<number>(0);
 
-  const montants = getMontantsFacture();
+  const montants = getMontantsProforma();
   const sousTotal = montants.sous_total;
+
+  // Client obligatoire : verifier si un client est selectionne
+  const hasClient = !!(infosClient.nom_client_payeur && infosClient.nom_client_payeur.trim() !== '');
 
   const handleRemiseModeChange = (mode: '%' | 'F') => {
     setRemiseMode(mode);
@@ -95,7 +82,7 @@ export function PanierSidePanel({ onSuccess, onClose }: PanierSidePanelProps) {
 
   const handleRemoveArticle = (id_produit: number) => {
     removeArticle(id_produit);
-    showToast('info', 'Article supprimé', 'L\'article a été retiré du panier');
+    showToast('info', 'Article supprime', 'L\'article a ete retire du panier');
   };
 
   const handleSelectClient = (client: Partial<Client> & { nom_client: string; tel_client: string }) => {
@@ -104,21 +91,21 @@ export function PanierSidePanel({ onSuccess, onClose }: PanierSidePanelProps) {
       nom_client_payeur: client.nom_client,
       tel_client: client.tel_client
     });
-    showToast('success', 'Client sélectionné', `${client.nom_client} - ${client.tel_client}`);
+    showToast('success', 'Client selectionne', `${client.nom_client} - ${client.tel_client}`);
   };
 
   const handleAnnulerPanier = () => {
     if (articles.length === 0) {
-      showToast('info', 'Panier vide', 'Le panier est déjà vide');
+      showToast('info', 'Panier vide', 'Le panier est deja vide');
       return;
     }
-    if (window.confirm(`Voulez-vous vraiment vider le panier ?\n${articles.length} article(s) seront supprimés.`)) {
+    if (window.confirm(`Voulez-vous vraiment vider le panier proforma ?\n${articles.length} article(s) seront supprimes.`)) {
       clearPanier();
-      showToast('success', 'Panier vidé', 'Tous les articles ont été supprimés');
+      showToast('success', 'Panier vide', 'Tous les articles ont ete supprimes');
     }
   };
 
-  const handleCommander = async () => {
+  const handleGenererProforma = async () => {
     try {
       setIsLoading(true);
 
@@ -127,86 +114,30 @@ export function PanierSidePanel({ onSuccess, onClose }: PanierSidePanelProps) {
         return;
       }
 
-      // Mode proforma : client obligatoire
-      if (isProforma) {
-        const hasClient = infosClient.id_client || (infosClient.nom_client_payeur && infosClient.nom_client_payeur !== 'CLIENT_ANONYME');
-        if (!hasClient) {
-          showToast('error', 'Client obligatoire', 'Veuillez sélectionner un client pour la proforma');
-          return;
-        }
-
-        const result = await proformaService.createProforma(
-          articles,
-          {
-            nom_client_payeur: infosClient.nom_client_payeur || '',
-            tel_client: infosClient.tel_client || '',
-          },
-          { remise }
-        );
-
-        if (result.success) {
-          // Charger les détails pour l'impression immédiate
-          try {
-            const detailsResponse = await proformaService.getProformaDetails(result.id_proforma);
-            const now = new Date().toISOString();
-            const proformaData: Proforma = {
-              id_proforma: result.id_proforma,
-              num_proforma: result.num_proforma || `PRO-${result.id_proforma}`,
-              nom_client: infosClient.nom_client_payeur || '',
-              tel_client: infosClient.tel_client || '',
-              description: '',
-              date_proforma: now,
-              date_creation: now,
-              date_modification: now,
-              montant: montants.sous_total,
-              mt_remise: montants.remise,
-              montant_net: montants.montant_net,
-              id_etat: 1,
-              libelle_etat: 'BROUILLON',
-              id_structure: 0,
-              id_utilisateur: 0,
-              id_facture_liee: null,
-              nb_articles: articles.length,
-            };
-            clearPanier();
-            setIsProforma(false);
-            onSuccess?.();
-            showToast('success', 'Proforma créée', `${proformaData.num_proforma} — ${proformaData.nom_client}`);
-            // Ouvrir le modal d'impression immédiatement
-            setModalImpressionProforma({
-              isOpen: true,
-              proforma: proformaData,
-              details: detailsResponse.details || [],
-            });
-          } catch {
-            clearPanier();
-            setIsProforma(false);
-            onSuccess?.();
-            showToast('success', 'Proforma créée', 'Impression non disponible — consultez l\'onglet Proformas');
-          }
-        } else {
-          showToast('error', 'Erreur', result.message || 'Impossible de créer la proforma');
-        }
+      if (!hasClient) {
+        showToast('error', 'Client obligatoire', 'Veuillez selectionner un client pour la proforma');
         return;
       }
 
-      // Mode facture classique
-      const result = await factureService.createFacture(
+      const result = await proformaService.createProforma(
         articles,
-        infosClient,
-        { remise, acompte: 0 },
-        false
+        {
+          tel_client: infosClient.tel_client || '',
+          nom_client_payeur: infosClient.nom_client_payeur || '',
+          description: infosClient.description
+        },
+        { remise }
       );
 
       if (result.success) {
         clearPanier();
+        showToast('success', 'Proforma creee', `Proforma ${result.num_proforma || ''} generee avec succes`);
         onSuccess?.();
-        openFactureSuccess(result.id_facture, articles);
       } else {
-        showToast('error', 'Erreur', result.message || 'Impossible de créer la facture');
+        showToast('error', 'Erreur', result.message || 'Impossible de creer la proforma');
       }
     } catch (error: any) {
-      console.error('Erreur création:', error);
+      console.error('Erreur creation proforma:', error);
       showToast('error', 'Erreur', error.message || 'Une erreur est survenue');
     } finally {
       setIsLoading(false);
@@ -216,10 +147,13 @@ export function PanierSidePanel({ onSuccess, onClose }: PanierSidePanelProps) {
   const dragControls = useDragControls();
   const constraintsRef = useRef<HTMLDivElement>(null);
 
-  return (
+  // Portal pour sortir du conteneur parent et permettre le drag libre
+  if (typeof document === 'undefined') return null;
+
+  return createPortal(
     <>
       {/* Contraintes de drag = viewport entier */}
-      <div ref={constraintsRef} className="fixed inset-0 pointer-events-none z-[60]" />
+      <div ref={constraintsRef} className="fixed inset-0 pointer-events-none z-[9999]" />
 
       <motion.div
         drag
@@ -228,30 +162,30 @@ export function PanierSidePanel({ onSuccess, onClose }: PanierSidePanelProps) {
         dragConstraints={constraintsRef}
         dragElastic={0.05}
         dragMomentum={false}
-        className="fixed top-2 right-2 z-[60] w-[380px]"
+        className="fixed top-2 right-2 z-[9999] w-[380px]"
         style={{ touchAction: 'none' }}
       >
         <div className="h-[calc(100vh-16px)] bg-white rounded-2xl shadow-2xl border border-gray-200 flex flex-col overflow-hidden">
           {/* Header - zone de drag */}
           <div
             onPointerDown={(e) => dragControls.start(e)}
-            className="flex items-center gap-3 p-3 border-b border-gray-200/50 bg-gradient-to-r from-blue-50 to-blue-100/50 cursor-grab active:cursor-grabbing select-none"
+            className="flex items-center gap-3 p-3 border-b border-gray-200/50 bg-gradient-to-r from-amber-50 to-amber-100/50 cursor-grab active:cursor-grabbing select-none"
           >
             <GripVertical className="w-4 h-4 text-gray-400 flex-shrink-0" />
-            <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-              <ShoppingCart className="w-4 h-4 text-blue-600" />
+            <div className="w-8 h-8 bg-amber-100 rounded-full flex items-center justify-center">
+              <FileText className="w-4 h-4 text-amber-600" />
             </div>
             <div className="flex-1">
-              <h2 className="text-sm font-bold text-gray-900">Mon Panier</h2>
+              <h2 className="text-sm font-bold text-gray-900">Panier Proforma</h2>
               <p className="text-xs text-gray-500">{articles.length} article{articles.length > 1 ? 's' : ''}</p>
             </div>
-            <span className="text-[10px] text-gray-400">Glisser pour déplacer</span>
+            <span className="text-[10px] text-gray-400">Glisser pour deplacer</span>
             {/* Bouton fermer */}
             {onClose && (
               <button
                 onClick={(e) => { e.stopPropagation(); onClose(); }}
                 className="w-7 h-7 bg-gray-200 hover:bg-red-100 rounded-full flex items-center justify-center transition-colors flex-shrink-0"
-                title="Fermer le panier latéral"
+                title="Fermer le panier proforma"
               >
                 <X className="w-3.5 h-3.5 text-gray-600 hover:text-red-600" />
               </button>
@@ -262,31 +196,29 @@ export function PanierSidePanel({ onSuccess, onClose }: PanierSidePanelProps) {
           <div className="flex-1 overflow-y-auto">
             {articles.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full text-gray-400 px-4">
-                <ShoppingCart className="w-12 h-12 mb-3 opacity-30" />
+                <FileText className="w-12 h-12 mb-3 opacity-30" />
                 <p className="text-sm font-medium">Panier vide</p>
                 <p className="text-xs mt-1">Ajoutez des produits depuis la grille</p>
               </div>
             ) : (
               <>
-                {/* Bouton Fidéliser client + Checkbox Proforma */}
-                <div className="px-4 pt-3 pb-1 flex items-center gap-2">
+                {/* Bouton Client (obligatoire) */}
+                <div className="px-4 pt-3 pb-1">
                   <button
                     onClick={() => setIsModalRechercheOpen(true)}
-                    className={`flex-1 flex items-center gap-3 py-2 px-3 rounded-xl transition-colors ${
-                      isProforma && !infosClient.id_client && (!infosClient.nom_client_payeur || infosClient.nom_client_payeur === 'CLIENT_ANONYME')
-                        ? 'bg-red-50 hover:bg-red-100 ring-1 ring-red-300'
-                        : 'hover:bg-blue-50'
+                    className={`w-full flex items-center gap-3 py-2 px-3 rounded-xl transition-colors ${
+                      hasClient ? 'hover:bg-amber-50' : 'bg-red-50 hover:bg-red-100 border border-red-200'
                     }`}
                   >
                     <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 ${
-                      isProforma && !infosClient.id_client && (!infosClient.nom_client_payeur || infosClient.nom_client_payeur === 'CLIENT_ANONYME')
-                        ? 'bg-gradient-to-br from-red-500 to-red-600'
-                        : 'bg-gradient-to-br from-blue-500 to-blue-600'
+                      hasClient
+                        ? 'bg-gradient-to-br from-amber-500 to-amber-600'
+                        : 'bg-gradient-to-br from-red-400 to-red-500'
                     }`}>
                       <User className="w-4 h-4 text-white" />
                     </div>
                     <div className="text-left flex-1 min-w-0">
-                      {infosClient.id_client || (infosClient.nom_client_payeur && infosClient.nom_client_payeur !== 'CLIENT_ANONYME') ? (
+                      {hasClient ? (
                         <>
                           <span className="font-semibold text-gray-900 block truncate text-sm">
                             {infosClient.nom_client_payeur}
@@ -294,38 +226,19 @@ export function PanierSidePanel({ onSuccess, onClose }: PanierSidePanelProps) {
                           <span className="text-xs text-gray-500">{infosClient.tel_client}</span>
                         </>
                       ) : (
-                        <span className={`font-bold text-sm ${isProforma ? 'text-red-600' : 'text-gray-900'}`}>
-                          Fidéliser le client{isProforma ? ' *' : ''}
-                        </span>
+                        <>
+                          <span className="font-bold text-red-700 text-sm flex items-center gap-1">
+                            <AlertTriangle className="w-3.5 h-3.5" />
+                            Client (obligatoire)
+                          </span>
+                          <span className="text-[10px] text-red-500">Selectionnez un client pour la proforma</span>
+                        </>
                       )}
                     </div>
                   </button>
-
-                  {/* Checkbox Proforma — visible uniquement si compte_prive */}
-                  {comptePrive && (
-                    <label
-                      className={`flex items-center gap-1.5 px-2.5 py-2 rounded-xl border-2 cursor-pointer transition-all flex-shrink-0 ${
-                        isProforma
-                          ? 'border-amber-400 bg-amber-50'
-                          : 'border-gray-200 hover:border-amber-200 hover:bg-amber-50/30'
-                      }`}
-                      title="Créer une proforma au lieu d'une facture"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={isProforma}
-                        onChange={(e) => setIsProforma(e.target.checked)}
-                        className="w-4 h-4 rounded border-gray-300 text-amber-500 focus:ring-amber-500"
-                      />
-                      <FileCheck className={`w-4 h-4 ${isProforma ? 'text-amber-600' : 'text-gray-400'}`} />
-                      <span className={`text-xs font-semibold ${isProforma ? 'text-amber-700' : 'text-gray-500'}`}>
-                        Proforma
-                      </span>
-                    </label>
-                  )}
                 </div>
 
-                {/* Liste articles (triés par ordre alphabétique) */}
+                {/* Liste articles (tries par ordre alphabetique) */}
                 <div className="px-4 py-2 space-y-2">
                   <AnimatePresence mode="popLayout">
                     {[...articles].sort((a, b) => a.nom_produit.localeCompare(b.nom_produit, 'fr')).map((article) => (
@@ -335,7 +248,7 @@ export function PanierSidePanel({ onSuccess, onClose }: PanierSidePanelProps) {
                         initial={{ opacity: 0, x: 20 }}
                         animate={{ opacity: 1, x: 0 }}
                         exit={{ opacity: 0, x: -20 }}
-                        className="bg-gradient-to-r from-blue-50 to-blue-100/50 rounded-lg p-2.5 border border-blue-200/50"
+                        className="bg-gradient-to-r from-amber-50 to-amber-100/50 rounded-lg p-2.5 border border-amber-200/50"
                       >
                         <div className="flex items-start justify-between mb-1">
                           <h3 className="font-semibold text-gray-900 text-xs flex-1 pr-2 line-clamp-2 leading-tight">
@@ -357,7 +270,7 @@ export function PanierSidePanel({ onSuccess, onClose }: PanierSidePanelProps) {
                                 <span className="ml-1 px-1 py-0.5 bg-purple-100 text-purple-700 text-[9px] font-bold rounded">GROS</span>
                               )}
                             </div>
-                            <div className="font-bold text-blue-600 text-xs">
+                            <div className="font-bold text-amber-600 text-xs">
                               {((article.prix_applique ?? article.prix_vente) * article.quantity).toLocaleString('fr-FR')} F
                             </div>
                           </div>
@@ -382,7 +295,7 @@ export function PanierSidePanel({ onSuccess, onClose }: PanierSidePanelProps) {
                               onFocus={(e) => e.target.select()}
                               min={1}
                               max={article.niveau_stock || 0}
-                              className="w-10 h-6 text-center font-semibold text-xs border border-gray-300 rounded-md focus:outline-none focus:border-blue-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                              className="w-10 h-6 text-center font-semibold text-xs border border-gray-300 rounded-md focus:outline-none focus:border-amber-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                             />
                             <button
                               onClick={() => handleUpdateQuantity(article.id_produit, article.quantity + 1)}
@@ -411,7 +324,7 @@ export function PanierSidePanel({ onSuccess, onClose }: PanierSidePanelProps) {
                               value={article.remise_article || 0}
                               onChange={(e) => updateRemiseArticle(article.id_produit, Number(e.target.value))}
                               onFocus={(e) => e.target.select()}
-                              className="w-14 h-5 text-center text-[10px] border border-gray-300 rounded focus:outline-none focus:border-blue-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                              className="w-14 h-5 text-center text-[10px] border border-gray-300 rounded focus:outline-none focus:border-amber-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                             />
                             <span className="text-[10px] text-gray-500">{remiseMode === '%' ? '%' : 'F'}</span>
                           </div>
@@ -445,8 +358,8 @@ export function PanierSidePanel({ onSuccess, onClose }: PanierSidePanelProps) {
                             onClick={() => handleRemiseModeChange('%')}
                             className={`px-2 py-0.5 text-xs font-bold transition-colors ${
                               remiseMode === '%'
-                                ? 'bg-blue-500 text-white'
-                                : 'bg-white text-blue-500 hover:bg-blue-50'
+                                ? 'bg-amber-500 text-white'
+                                : 'bg-white text-amber-500 hover:bg-amber-50'
                             }`}
                           >
                             %
@@ -455,8 +368,8 @@ export function PanierSidePanel({ onSuccess, onClose }: PanierSidePanelProps) {
                             onClick={() => handleRemiseModeChange('F')}
                             className={`px-2 py-0.5 text-xs font-bold transition-colors ${
                               remiseMode === 'F'
-                                ? 'bg-blue-500 text-white'
-                                : 'bg-white text-blue-500 hover:bg-blue-50'
+                                ? 'bg-amber-500 text-white'
+                                : 'bg-white text-amber-500 hover:bg-amber-50'
                             }`}
                           >
                             FCFA
@@ -469,7 +382,7 @@ export function PanierSidePanel({ onSuccess, onClose }: PanierSidePanelProps) {
                         onChange={(e) => handleRemiseInputChange(Number(e.target.value))}
                         min="0"
                         max={remiseMode === '%' ? 100 : sousTotal}
-                        className="w-full px-3 py-1.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                        className="w-full px-3 py-1.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-amber-500 focus:border-transparent text-sm"
                         placeholder={remiseMode === '%' ? '0 %' : '0 FCFA'}
                       />
                     </div>
@@ -479,10 +392,10 @@ export function PanierSidePanel({ onSuccess, onClose }: PanierSidePanelProps) {
             )}
           </div>
 
-          {/* Footer sticky — Récapitulatif + Boutons (toujours visible) */}
+          {/* Footer sticky — Recapitulatif + Boutons (toujours visible) */}
           {articles.length > 0 && (
             <div className="border-t border-gray-200 bg-white flex-shrink-0">
-              {/* Récapitulatif des montants */}
+              {/* Recapitulatif des montants */}
               <div className="px-4 pt-3 pb-2 space-y-1">
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">Sous-total:</span>
@@ -496,12 +409,22 @@ export function PanierSidePanel({ onSuccess, onClose }: PanierSidePanelProps) {
                 )}
                 <div className="flex justify-between font-bold text-base border-t border-gray-100 pt-1.5">
                   <span>Total:</span>
-                  <span className="text-blue-600">{montants.montant_net.toLocaleString('fr-FR')} FCFA</span>
+                  <span className="text-amber-600">{montants.montant_net.toLocaleString('fr-FR')} FCFA</span>
                 </div>
               </div>
 
+              {/* Avertissement client manquant */}
+              {!hasClient && (
+                <div className="px-4 pb-1">
+                  <div className="flex items-center gap-1.5 text-[10px] text-red-600 bg-red-50 px-2 py-1 rounded-lg">
+                    <AlertTriangle className="w-3 h-3 flex-shrink-0" />
+                    <span>Selectionnez un client pour generer la proforma</span>
+                  </div>
+                </div>
+              )}
+
               {/* Boutons d'action */}
-              <div className="px-4 pb-3 grid grid-cols-2 gap-2">
+              <div className="px-4 pb-3 pt-1 grid grid-cols-2 gap-2">
                 <motion.button
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
@@ -514,30 +437,25 @@ export function PanierSidePanel({ onSuccess, onClose }: PanierSidePanelProps) {
                 </motion.button>
 
                 <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={handleCommander}
-                  disabled={isLoading}
-                  className={`text-white font-semibold py-3 rounded-xl shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 text-sm ${
-                    isProforma
-                      ? 'bg-gradient-to-r from-amber-600 to-amber-700'
-                      : 'bg-gradient-to-r from-blue-600 to-blue-700'
-                  }`}
+                  whileHover={{ scale: hasClient ? 1.02 : 1 }}
+                  whileTap={{ scale: hasClient ? 0.98 : 1 }}
+                  onClick={handleGenererProforma}
+                  disabled={isLoading || !hasClient}
+                  className={`text-white font-semibold py-3 rounded-xl shadow-lg transition-all flex items-center justify-center gap-1.5 text-sm ${
+                    hasClient
+                      ? 'bg-gradient-to-r from-amber-600 to-amber-700 hover:shadow-xl'
+                      : 'bg-gray-400 cursor-not-allowed'
+                  } disabled:opacity-50 disabled:cursor-not-allowed`}
                 >
                   {isLoading ? (
                     <>
                       <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                       Traitement...
                     </>
-                  ) : isProforma ? (
-                    <>
-                      <FileCheck className="w-4 h-4" />
-                      Proforma
-                    </>
                   ) : (
                     <>
-                      <CreditCard className="w-4 h-4" />
-                      Commander
+                      <FileText className="w-4 h-4" />
+                      Generer Proforma
                     </>
                   )}
                 </motion.button>
@@ -555,20 +473,7 @@ export function PanierSidePanel({ onSuccess, onClose }: PanierSidePanelProps) {
         initialPhone={infosClient.tel_client || ''}
         initialName={infosClient.nom_client_payeur || ''}
       />
-
-      {/* Modal Impression Proforma (après création) */}
-      {modalImpressionProforma.proforma && (
-        <ModalImpressionProforma
-          isOpen={modalImpressionProforma.isOpen}
-          onClose={() => setModalImpressionProforma({ isOpen: false, proforma: null, details: [] })}
-          proforma={modalImpressionProforma.proforma}
-          details={modalImpressionProforma.details}
-          configFacture={structure?.config_facture}
-          infoFacture={structure?.info_facture}
-          logo={structure?.logo}
-          nomStructure={structure?.nom_structure || ''}
-        />
-      )}
-    </>
+    </>,
+    document.body
   );
 }
