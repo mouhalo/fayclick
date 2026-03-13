@@ -1,17 +1,20 @@
 /**
- * Composant principal avec onglets pour Factures et Paiements (Reçus)
+ * Composant principal avec onglets pour Factures, Paiements et Proformes
  * Design glassmorphism avec animations fluides
+ * Onglet Proformes visible uniquement si compte_prive = true
  */
 
 'use client';
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FileText, CreditCard, TrendingUp, Calendar } from 'lucide-react';
+import { FileText, CreditCard, FileCheck, TrendingUp, Calendar } from 'lucide-react';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 
+type TabId = 'factures' | 'paiements' | 'proformas';
+
 interface TabData {
-  id: 'factures' | 'paiements';
+  id: TabId;
   label: string;
   icon: React.ReactNode;
   count?: number;
@@ -22,17 +25,23 @@ interface FacturesOngletsProps {
   children?: React.ReactNode;
   facturesContent: React.ReactNode;
   paiementsContent: React.ReactNode;
+  proformasContent?: React.ReactNode;
   facturesCount?: number;
   paiementsCount?: number;
+  proformasCount?: number;
+  showProformas?: boolean;
 }
 
 export function FacturesOnglets({
   facturesContent,
   paiementsContent,
+  proformasContent,
   facturesCount = 0,
-  paiementsCount = 0
+  paiementsCount = 0,
+  proformasCount = 0,
+  showProformas = false
 }: FacturesOngletsProps) {
-  const [activeTab, setActiveTab] = useState<'factures' | 'paiements'>('factures');
+  const [activeTab, setActiveTab] = useState<TabId>('factures');
   const { isMobile } = useBreakpoint();
 
   const tabs: TabData[] = [
@@ -49,7 +58,14 @@ export function FacturesOnglets({
       icon: <CreditCard className="w-4 h-4 sm:w-5 sm:h-5" />,
       count: paiementsCount,
       color: 'from-green-500 to-green-600'
-    }
+    },
+    ...(showProformas ? [{
+      id: 'proformas' as TabId,
+      label: 'Proformas',
+      icon: <FileCheck className="w-4 h-4 sm:w-5 sm:h-5" />,
+      count: proformasCount,
+      color: 'from-amber-500 to-amber-600'
+    }] : [])
   ];
 
   return (
@@ -120,7 +136,7 @@ export function FacturesOnglets({
           exit={{ opacity: 0, y: -20 }}
           transition={{ duration: 0.3 }}
         >
-          {activeTab === 'factures' ? facturesContent : paiementsContent}
+          {activeTab === 'factures' ? facturesContent : activeTab === 'paiements' ? paiementsContent : proformasContent}
         </motion.div>
       </AnimatePresence>
 

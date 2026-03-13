@@ -23,6 +23,7 @@ import { FacturesList } from '@/components/factures/FacturesList';
 import { FacturesOnglets } from '@/components/factures/FacturesOnglets';
 import { ListePaiements } from '@/components/factures/ListePaiements';
 import FacturesDesktopView from '@/components/factures/FacturesDesktopView';
+import { ProformasTab } from '@/components/proformas/ProformasTab';
 import { GlassPagination } from '@/components/ui/GlassPagination';
 import { ModalPaiement } from '@/components/factures/ModalPaiement';
 import { ModalPartage } from '@/components/factures/ModalPartage';
@@ -683,8 +684,10 @@ export default function FacturesGlassPage() {
           <FacturesOnglets
             facturesContent={facturesContent}
             paiementsContent={paiementsContent}
+            proformasContent={comptePrive ? <ProformasTab canViewMontants={canViewMontants} /> : undefined}
             facturesCount={facturesResponse?.total_factures || 0}
             paiementsCount={paiementsCount}
+            showProformas={comptePrive}
           />
         </div>
 
