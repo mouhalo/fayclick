@@ -1,11 +1,13 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Package, Store, Tags } from 'lucide-react';
+import { Package, Store, Tags, Zap } from 'lucide-react';
+import Image from 'next/image';
 import LogoFayclick from '@/components/ui/LogoFayclick';
 import MarketplaceSearchBar from './MarketplaceSearchBar';
 import { MarketplaceStats, StructurePublique } from '@/types/marketplace';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
+import { marketplaceImages } from '@/lib/marketplace-images';
 
 interface MarketplaceHeroProps {
   stats: MarketplaceStats;
@@ -16,110 +18,110 @@ export default function MarketplaceHero({ stats, onSelectStructure }: Marketplac
   const { isMobile } = useBreakpoint();
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: -30, scale: 0.95 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      transition={{ type: "spring", damping: 20, stiffness: 100 }}
-      className="relative overflow-hidden rounded-3xl shadow-2xl p-5 md:p-8 mb-6"
-    >
-      {/* Background glassmorphe */}
-      <div className="absolute inset-0 bg-white/10 backdrop-blur-2xl" />
-      <div className="absolute inset-0 bg-gradient-to-br from-white/20 via-transparent to-transparent pointer-events-none" />
-
-      {/* Effet prismatique anime */}
-      <motion.div
-        animate={{
-          background: [
-            'linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, transparent 50%)',
-            'linear-gradient(135deg, transparent 0%, rgba(20, 184, 166, 0.15) 50%)',
-            'linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, transparent 50%)'
-          ]
-        }}
-        transition={{ duration: 5, repeat: Infinity }}
-        className="absolute inset-0 pointer-events-none"
-      />
-
-      {/* Bordure lumineuse */}
-      <div className="absolute inset-0 rounded-3xl border border-white/30 shadow-inner" />
-
-      <div className="text-center relative z-10">
-        {/* Logo FayClick reduit */}
+    <div className="mb-6 space-y-4">
+      {/* Top bar mobile — Logo + badge Live */}
+      {isMobile && (
         <motion.div
-          initial={{ scale: 0, rotate: -180 }}
-          animate={{ scale: 1, rotate: 0 }}
-          transition={{ type: "spring", damping: 15, stiffness: 200, delay: 0.2 }}
-          className="inline-flex items-center justify-center mb-3"
-        >
-          <LogoFayclick className={isMobile ? "w-16 h-16" : "w-20 h-20"} />
-        </motion.div>
-
-        {/* Slogan */}
-        <motion.h1
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.25 }}
-          className={`${isMobile ? 'text-xl' : 'text-2xl md:text-3xl'} font-bold text-white drop-shadow-lg mb-1`}
+          className="flex items-center justify-between"
         >
-          FayClick Marketplace
-        </motion.h1>
-
-        <motion.p
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className={`${isMobile ? 'text-sm' : 'text-base'} text-emerald-100 drop-shadow mb-5`}
-        >
-          Trouvez un marchand par nom ou telephone
-        </motion.p>
-
-        {/* Barre de recherche */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.35 }}
-          className="mb-5"
-        >
-          <MarketplaceSearchBar variant="hero" onSelectStructure={onSelectStructure} />
+          <div className="flex items-center gap-2">
+            <LogoFayclick className="w-8 h-8" />
+            <span className="text-white font-bold text-sm">FayClick</span>
+          </div>
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-500/20 border border-red-400/30">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500" />
+            </span>
+            <span className="text-red-300 text-[10px] font-bold">3 Lives</span>
+          </div>
         </motion.div>
+      )}
 
-        {/* 3 stats badges animes */}
+      {/* Barre de recherche */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1 }}
+      >
+        <MarketplaceSearchBar variant="hero" onSelectStructure={onSelectStructure} />
+      </motion.div>
+
+      {/* Stats en pilules horizontales — style Stitch */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.15 }}
+        className="flex items-center gap-3 overflow-x-auto scrollbar-hide"
+      >
+        <div className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-white/5 border border-white/10 flex-shrink-0">
+          <Package className="w-4 h-4 text-emerald-400" />
+          <div>
+            <p className="text-white font-bold text-sm leading-none">{stats.total_produits}+</p>
+            <p className="text-white/40 text-[10px]">PRODUITS</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-white/5 border border-white/10 flex-shrink-0">
+          <Store className="w-4 h-4 text-emerald-400" />
+          <div>
+            <p className="text-white font-bold text-sm leading-none">{stats.total_structures}</p>
+            <p className="text-white/40 text-[10px]">BOUTIQUES</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-white/5 border border-white/10 flex-shrink-0">
+          <Tags className="w-4 h-4 text-emerald-400" />
+          <div>
+            <p className="text-white font-bold text-sm leading-none">{stats.total_categories}</p>
+            <p className="text-white/40 text-[10px]">CATEGORIES</p>
+          </div>
+        </div>
+      </motion.div>
+
+      {/* Hero banner desktop */}
+      {!isMobile && (
         <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
+          initial={{ opacity: 0, scale: 0.98 }}
           animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.45 }}
-          className="flex items-center justify-center gap-3 md:gap-5 flex-wrap"
+          transition={{ delay: 0.2 }}
+          className="relative overflow-hidden rounded-3xl shadow-2xl p-8 lg:p-12"
         >
-          <motion.div
-            whileHover={{ scale: 1.05 }}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/20 backdrop-blur-sm rounded-full border border-emerald-400/30"
-          >
-            <Package className="w-3.5 h-3.5 text-emerald-200" />
-            <span className="font-bold text-emerald-100 text-xs md:text-sm">
-              {stats.total_produits} produit{stats.total_produits > 1 ? 's' : ''}
-            </span>
-          </motion.div>
+          <div className="absolute inset-0 bg-gradient-to-r from-slate-900 via-emerald-900/80 to-teal-900" />
+          {/* Image hero — cat_hero_banner.png fournie par infographiste */}
+          <Image
+            src={marketplaceImages.heroBanner}
+            alt="Marketplace FayClick"
+            fill
+            className="object-cover object-right opacity-70"
+            onError={(e) => { e.currentTarget.style.display = 'none'; }}
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-slate-900 via-slate-900/70 to-slate-900/20" />
 
-          <motion.div
-            whileHover={{ scale: 1.05 }}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-teal-500/20 backdrop-blur-sm rounded-full border border-teal-400/30"
-          >
-            <Store className="w-3.5 h-3.5 text-teal-200" />
-            <span className="font-bold text-teal-100 text-xs md:text-sm">
-              {stats.total_structures} boutique{stats.total_structures > 1 ? 's' : ''}
+          <div className="relative z-10 max-w-lg">
+            <span className="inline-block px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-400/30 text-emerald-300 text-[10px] font-bold uppercase tracking-wider mb-4">
+              Marketplace Premium
             </span>
-          </motion.div>
-
-          <motion.div
-            whileHover={{ scale: 1.05 }}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-sky-500/20 backdrop-blur-sm rounded-full border border-sky-400/30"
-          >
-            <Tags className="w-3.5 h-3.5 text-sky-200" />
-            <span className="font-bold text-sky-100 text-xs md:text-sm">
-              {stats.total_categories} categorie{stats.total_categories > 1 ? 's' : ''}
-            </span>
-          </motion.div>
+            <h1 className="text-3xl lg:text-4xl font-bold text-white leading-tight mb-3">
+              Les meilleurs commercants{' '}
+              <span className="text-emerald-400 italic">du Senegal</span>
+            </h1>
+            <p className="text-white/60 text-sm mb-6">
+              Decouvrez la marketplace premium pour FayClick. Qualite et authenticite garanties.
+            </p>
+            <button
+              onClick={() => {
+                const grid = document.getElementById('products-grid');
+                grid?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              }}
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-emerald-500 text-white text-sm font-bold hover:bg-emerald-400 transition-all shadow-lg shadow-emerald-500/25 active:scale-95"
+            >
+              Explorer les boutiques
+              <Zap className="w-4 h-4" />
+            </button>
+          </div>
         </motion.div>
-      </div>
-    </motion.div>
+      )}
+    </div>
   );
 }

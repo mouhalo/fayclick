@@ -200,6 +200,7 @@ class DatabaseService {
       config_facture?: Record<string, unknown>;
       inclure_tva?: boolean;
       taux_tva?: number;
+      wallet_paiement?: boolean;
     }
   ): Promise<{ success: boolean; message: string; data?: Record<string, unknown> }> {
     const args = [
@@ -212,6 +213,7 @@ class DatabaseService {
       params.config_facture !== undefined ? `'${JSON.stringify(params.config_facture).replace(/'/g, "''")}'::json` : 'NULL',
       params.inclure_tva !== undefined ? params.inclure_tva.toString() : 'NULL',
       params.taux_tva !== undefined ? params.taux_tva.toString() : 'NULL',
+      params.wallet_paiement !== undefined ? params.wallet_paiement.toString() : 'NULL',
     ];
 
     const query = `SELECT edit_param_structure(${args.join(', ')})`;

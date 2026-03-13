@@ -15,10 +15,18 @@ import CarteProduit from './CarteProduit';
 import PanierPublic from './PanierPublic';
 import { ArticlePanier } from '@/services/online-seller.service';
 import BoutiqueHeader from '@/components/marketplace/BoutiqueHeader';
-import BoutiqueSearchFilter from '@/components/marketplace/BoutiqueSearchFilter';
+// BoutiqueSearchFilter remplace par recherche inline + chips (Stitch)
 import BoutiqueFAB from '@/components/marketplace/BoutiqueFAB';
 import MarketplaceFAB from '@/components/marketplace/MarketplaceFAB';
+import ToastPanier from '@/components/marketplace/ToastPanier';
 import { SkeletonCarteProduit } from '@/components/marketplace/SkeletonCards';
+import BottomNavMarketplace from '@/components/marketplace/BottomNavMarketplace';
+import SortDropdown, { SortOption } from '@/components/marketplace/SortDropdown';
+import Pagination from '@/components/marketplace/Pagination';
+import CategoryChips from '@/components/marketplace/CategoryChips';
+import DesktopMiniCart from '@/components/marketplace/DesktopMiniCart';
+import Breadcrumb from '@/components/marketplace/Breadcrumb';
+import MarketplaceNavbar from '@/components/marketplace/MarketplaceNavbar';
 
 interface CataloguePublicClientProps {
   nomStructure?: string;
@@ -36,13 +44,19 @@ export default function CataloguePublicClient({ nomStructure, idStructure }: Cat
   // Filtres
   const [searchTerm, setSearchTerm] = useState('');
   const [categorie, setCategorie] = useState('');
+  const [sortOption, setSortOption] = useState<SortOption>('pertinence');
+  const [prixMax, setPrixMax] = useState(100000);
 
   // Panier
   const [panier, setPanier] = useState<ArticlePanier[]>([]);
   const [panierOuvert, setPanierOuvert] = useState(false);
 
-  // Pagination charger plus
-  const [visibleCount, setVisibleCount] = useState(12);
+  // Toast
+  const [toast, setToast] = useState<{ nom: string; photo?: string } | null>(null);
+
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 12;
 
   // Charger le catalogue
   const loadCatalogue = useCallback(async () => {
@@ -71,7 +85,7 @@ export default function CataloguePublicClient({ nomStructure, idStructure }: Cat
     loadCatalogue();
   }, [loadCatalogue]);
 
-  // Filtrer les produits
+  // Filtrer et trier les produits
   const produitsFiltres = useMemo(() => {
     if (!catalogue?.data) return [];
     let filtered = [...catalogue.data];
@@ -82,8 +96,22 @@ export default function CataloguePublicClient({ nomStructure, idStructure }: Cat
     if (categorie) {
       filtered = filtered.filter(p => p.nom_categorie === categorie);
     }
+    if (prixMax < 100000) {
+      filtered = filtered.filter(p => p.prix_vente <= prixMax);
+    }
+    switch (sortOption) {
+      case 'prix_asc':
+        filtered.sort((a, b) => a.prix_vente - b.prix_vente);
+        break;
+      case 'prix_desc':
+        filtered.sort((a, b) => b.prix_vente - a.prix_vente);
+        break;
+      case 'nom_az':
+        filtered.sort((a, b) => a.nom_produit.localeCompare(b.nom_produit, 'fr'));
+        break;
+    }
     return filtered;
-  }, [catalogue, searchTerm, categorie]);
+  }, [catalogue, searchTerm, categorie, sortOption, prixMax]);
 
   // Séparer promos et normaux
   const produitsPromo = useMemo(() =>
@@ -95,9 +123,9 @@ export default function CataloguePublicClient({ nomStructure, idStructure }: Cat
     [produitsFiltres]
   );
 
-  // Produits visibles (normaux seulement, promos toujours tous affichés)
-  const produitsVisibles = produitsNormaux.slice(0, visibleCount);
-  const hasMore = visibleCount < produitsNormaux.length;
+  // Produits visibles (normaux pagines, promos toujours tous affiches)
+  const totalPages = Math.ceil(produitsNormaux.length / ITEMS_PER_PAGE);
+  const produitsVisibles = produitsNormaux.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
 
   // Categories uniques
   const categories = useMemo(() => {
@@ -106,13 +134,14 @@ export default function CataloguePublicClient({ nomStructure, idStructure }: Cat
     return Array.from(unique).sort();
   }, [catalogue]);
 
-  // Reset visible count quand filtres changent
+  // Reset page quand filtres changent
   useEffect(() => {
-    setVisibleCount(12);
-  }, [searchTerm, categorie]);
+    setCurrentPage(1);
+  }, [searchTerm, categorie, prixMax]);
 
   // Fonctions panier
   const ajouterAuPanier = useCallback((produit: ProduitPublic) => {
+    setToast({ nom: produit.nom_produit, photo: produit.photos?.[0]?.url_photo });
     setPanier(prev => {
       const existe = prev.find(a => a.id_produit === produit.id_produit);
       if (existe) {
@@ -128,7 +157,8 @@ export default function CataloguePublicClient({ nomStructure, idStructure }: Cat
         nom_produit: produit.nom_produit,
         prix_vente: produit.prix_vente,
         quantite: 1,
-        stock_disponible: produit.stock_disponible
+        stock_disponible: produit.stock_disponible,
+        photo_url: produit.photos?.[0]?.url_photo
       }];
     });
   }, []);
@@ -159,7 +189,7 @@ export default function CataloguePublicClient({ nomStructure, idStructure }: Cat
   };
 
   // Styles responsifs — 3 colonnes mobile, 4 desktop, 5 xl
-  const gridCols = isMobile ? 'grid-cols-3' : isMobileLarge ? 'grid-cols-3' : 'grid-cols-4 xl:grid-cols-5';
+  const gridCols = isMobile ? 'grid-cols-2 xs:grid-cols-3' : isMobileLarge ? 'grid-cols-3' : 'grid-cols-3 xl:grid-cols-4';
 
   // Chargement
   if (loading) {
@@ -204,7 +234,7 @@ export default function CataloguePublicClient({ nomStructure, idStructure }: Cat
   if (!catalogue) return null;
 
   return (
-    <div className="min-h-screen relative overflow-hidden">
+    <div className="min-h-screen relative overflow-hidden pb-20 lg:pb-0">
       {/* Background premium anime */}
       <div className="fixed inset-0 -z-10 bg-gradient-to-br from-slate-900 via-emerald-900 to-teal-900">
         <motion.div
@@ -227,132 +257,174 @@ export default function CataloguePublicClient({ nomStructure, idStructure }: Cat
         animate={{ opacity: 1 }}
         className="max-w-7xl mx-auto relative z-10 px-3 py-4 md:px-6 md:py-6"
       >
+        {/* 0. Navbar desktop Stitch */}
+        <MarketplaceNavbar
+          cartCount={nbArticlesPanier}
+          onCartClick={() => { if (nbArticlesPanier > 0) setPanierOuvert(true); }}
+        />
+
+        {/* Breadcrumb desktop */}
+        <Breadcrumb items={[{ label: catalogue.nom_structure }]} />
+
         {/* 1. Header boutique */}
         <BoutiqueHeader catalogue={catalogue} totalCategories={categories.length} />
 
-        {/* 2. Recherche + filtres inline */}
-        <BoutiqueSearchFilter
-          searchTerm={searchTerm}
-          categorie={categorie}
-          categories={categories}
-          totalResultats={produitsFiltres.length}
-          totalProduits={catalogue.total_produits}
-          onSearchChange={setSearchTerm}
-          onCategorieChange={setCategorie}
-          onReset={resetFiltres}
-        />
-
-        {/* 3. Section Promotions (si des produits en promo existent) */}
-        {produitsPromo.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            className="mb-6"
-          >
-            {/* Titre section promo */}
-            <div className="flex items-center gap-2 mb-3">
-              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-orange-500/20 backdrop-blur-sm border border-orange-400/30">
-                <Flame className="w-4 h-4 text-orange-400 animate-pulse" />
-                <span className="text-sm font-bold text-orange-300">Promotions</span>
-                <span className="ml-1 px-1.5 py-0.5 rounded-full bg-orange-500/30 text-[10px] font-bold text-orange-200">
-                  {produitsPromo.length}
-                </span>
-              </div>
-              <div className="flex-1 h-px bg-gradient-to-r from-orange-400/30 to-transparent" />
-            </div>
-
-            {/* Grille promos */}
-            <div className={`grid ${gridCols} gap-2 sm:gap-3 md:gap-4 p-2 sm:p-3 rounded-xl bg-orange-500/5 border border-orange-400/10`}>
-              {produitsPromo.map((produit, index) => (
-                <CarteProduit
-                  key={produit.id_produit}
-                  produit={produit}
-                  index={index}
-                  showStructureName={false}
-                  onAcheter={(p) => ajouterAuPanier(p as ProduitPublic)}
+        {/* 2. Recherche + chips categories inline (style Stitch) */}
+        <div className="relative overflow-hidden rounded-2xl shadow-xl border border-white/20 p-3 md:p-4 mb-4">
+          <div className="absolute inset-0 bg-white/10 backdrop-blur-2xl" />
+          <div className="relative z-10 flex flex-col gap-3">
+            {/* Ligne recherche */}
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <input
+                  type="text"
+                  placeholder="Rechercher dans cette boutique..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-4 pr-3 py-2.5 text-sm bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl focus:ring-2 focus:ring-emerald-400/50 focus:border-emerald-400/50 transition-all text-white placeholder-white/40"
                 />
-              ))}
-            </div>
-          </motion.div>
-        )}
-
-        {/* 4. Grille produits normaux */}
-        {produitsVisibles.length === 0 && produitsPromo.length === 0 ? (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="text-center py-16 bg-white/10 backdrop-blur-2xl rounded-2xl shadow-xl border border-white/20"
-          >
-            <Package className="w-16 h-16 text-emerald-300 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-white mb-2">Aucun produit trouve</h3>
-            <p className="text-emerald-200 text-sm">
-              {searchTerm || categorie
-                ? 'Essayez de modifier vos criteres de recherche'
-                : "Cette boutique n'a pas encore de produits"
-              }
-            </p>
-          </motion.div>
-        ) : produitsVisibles.length > 0 ? (
-          <>
-            {/* Titre section si promos existent */}
-            {produitsPromo.length > 0 && (
-              <div className="flex items-center gap-2 mb-3">
-                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 backdrop-blur-sm border border-white/10">
-                  <Package className="w-4 h-4 text-emerald-400" />
-                  <span className="text-sm font-bold text-white/80">Tous les produits</span>
-                </div>
-                <div className="flex-1 h-px bg-gradient-to-r from-white/20 to-transparent" />
               </div>
+            </div>
+            {/* Chips categories inline — desktop Stitch */}
+            {categories.length > 0 && (
+              <CategoryChips
+                categories={categories}
+                selected={categorie}
+                onChange={setCategorie}
+              />
             )}
+          </div>
+        </div>
 
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.4 }}
-              className={`grid ${gridCols} gap-2 sm:gap-3 md:gap-4 mb-6`}
-            >
-              {produitsVisibles.map((produit, index) => (
-                <CarteProduit
-                  key={produit.id_produit}
-                  produit={produit}
-                  index={index}
-                  showStructureName={false}
-                  onAcheter={(p) => ajouterAuPanier(p as ProduitPublic)}
-                />
-              ))}
-            </motion.div>
+        {/* 3. Titre "Nouveautes" + Trier par — Stitch */}
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-white font-bold text-base">Nouveautes</h2>
+          <div className="flex items-center gap-2">
+            <span className="text-white/40 text-xs hidden sm:inline">Trier par:</span>
+            <SortDropdown value={sortOption} onChange={setSortOption} />
+          </div>
+        </div>
 
-            {/* 5. Charger plus */}
-            {hasMore && (
+        {/* 4. Layout: [Grille | MiniCart] — pas de sidebar (Stitch) */}
+        <div className="flex gap-6">
+          {/* Contenu principal */}
+          <div className="flex-1 min-w-0">
+            {/* Section Promotions */}
+            {produitsPromo.length > 0 && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="flex justify-center py-6"
+                transition={{ delay: 0.3 }}
+                className="mb-6"
               >
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => setVisibleCount(prev => prev + 12)}
-                  className="px-8 py-3 rounded-full bg-emerald-500/20 backdrop-blur-md border border-emerald-400/30 hover:bg-emerald-500/30 text-white font-semibold text-sm transition-all"
-                >
-                  Charger plus ({produitsNormaux.length - visibleCount} restant{produitsNormaux.length - visibleCount > 1 ? 's' : ''})
-                </motion.button>
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-orange-500/20 backdrop-blur-sm border border-orange-400/30">
+                    <Flame className="w-4 h-4 text-orange-400 animate-pulse" />
+                    <span className="text-sm font-bold text-orange-300">Promotions</span>
+                    <span className="ml-1 px-1.5 py-0.5 rounded-full bg-orange-500/30 text-[10px] font-bold text-orange-200">
+                      {produitsPromo.length}
+                    </span>
+                  </div>
+                  <div className="flex-1 h-px bg-gradient-to-r from-orange-400/30 to-transparent" />
+                </div>
+                <div className={`grid ${gridCols} gap-2 sm:gap-3 md:gap-4 p-2 sm:p-3 rounded-xl bg-orange-500/5 border border-orange-400/10`}>
+                  {produitsPromo.map((produit, index) => (
+                    <CarteProduit
+                      key={produit.id_produit}
+                      produit={produit}
+                      index={index}
+                      showStructureName={false}
+                      onAcheter={(p) => ajouterAuPanier(p as ProduitPublic)}
+                    />
+                  ))}
+                </div>
               </motion.div>
             )}
-          </>
-        ) : null}
+
+            {/* Grille produits normaux */}
+            {produitsVisibles.length === 0 && produitsPromo.length === 0 ? (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="text-center py-16 bg-white/10 backdrop-blur-2xl rounded-2xl shadow-xl border border-white/20"
+              >
+                <Package className="w-16 h-16 text-emerald-300 mx-auto mb-4" />
+                <h3 className="text-lg font-semibold text-white mb-2">Aucun produit trouve</h3>
+                <p className="text-emerald-200 text-sm">
+                  {searchTerm || categorie
+                    ? 'Essayez de modifier vos criteres de recherche'
+                    : "Cette boutique n'a pas encore de produits"
+                  }
+                </p>
+              </motion.div>
+            ) : produitsVisibles.length > 0 ? (
+              <>
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.4 }}
+                  className={`grid ${gridCols} gap-2 sm:gap-3 md:gap-4 mb-6`}
+                >
+                  {produitsVisibles.map((produit, index) => (
+                    <CarteProduit
+                      key={produit.id_produit}
+                      produit={produit}
+                      index={index}
+                      showStructureName={false}
+                      onAcheter={(p) => ajouterAuPanier(p as ProduitPublic)}
+                    />
+                  ))}
+                </motion.div>
+
+                <Pagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  onPageChange={(page) => {
+                    setCurrentPage(page);
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                />
+              </>
+            ) : null}
+          </div>
+
+          {/* Mini-Cart desktop — toujours visible (Stitch) */}
+          <DesktopMiniCart
+            articles={panier}
+            onOpenDrawer={() => setPanierOuvert(true)}
+            onSupprimer={supprimerDuPanier}
+            alwaysShow={true}
+          />
+        </div>
       </motion.div>
 
-      {/* 5. FAB panier */}
-      {!panierOuvert && (
-        <BoutiqueFAB nbArticles={nbArticlesPanier} onClick={() => setPanierOuvert(true)} />
-      )}
+      {/* 5. FAB panier — desktop only (BottomNav sur mobile) */}
+      <div className="hidden lg:block">
+        {!panierOuvert && (
+          <BoutiqueFAB nbArticles={nbArticlesPanier} onClick={() => setPanierOuvert(true)} />
+        )}
+        {nbArticlesPanier === 0 && !panierOuvert && <MarketplaceFAB />}
+      </div>
 
-      {/* Scroll top FAB (quand pas d'articles dans le panier) */}
-      {nbArticlesPanier === 0 && !panierOuvert && <MarketplaceFAB />}
+      {/* Bottom Navigation Mobile */}
+      <BottomNavMarketplace
+        activeTab="home"
+        cartCount={nbArticlesPanier}
+        onTabChange={(tab) => {
+          if (tab === 'cart' && nbArticlesPanier > 0) setPanierOuvert(true);
+          if (tab === 'home') window.scrollTo({ top: 0, behavior: 'smooth' });
+        }}
+      />
 
-      {/* 6. Drawer Panier - INCHANGE */}
+      {/* Toast ajout panier */}
+      <ToastPanier
+        visible={!!toast}
+        nomProduit={toast?.nom || ''}
+        photoUrl={toast?.photo}
+        onHide={() => setToast(null)}
+      />
+
+      {/* 6. Drawer Panier */}
       <AnimatePresence>
         {panierOuvert && (
           <PanierPublic

@@ -8,6 +8,7 @@ export interface SalesRules {
   limiteCredit: number;
   acompteAutorise: boolean;
   prixEnGrosActif: boolean;
+  walletPaiement: boolean;
 }
 
 const SALES_RULES_KEY = 'fayclick_regles_ventes';
@@ -17,6 +18,7 @@ const DEFAULT_SALES_RULES: SalesRules = {
   limiteCredit: 50000,
   acompteAutorise: true,
   prixEnGrosActif: false,
+  walletPaiement: false,
 };
 
 function getSalesRulesKey(idStructure: number): string {

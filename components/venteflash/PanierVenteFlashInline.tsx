@@ -20,6 +20,7 @@ import { ModalEncaissementVenteFlash } from './ModalEncaissementVenteFlash';
 import { ModalRecuVenteFlash } from './ModalRecuVenteFlash';
 import { PaymentMethod } from '@/types/payment-wallet';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
+import { useSalesRules } from '@/hooks/useSalesRules';
 
 interface VenteFlashResultData {
   id_facture: number;
@@ -58,6 +59,7 @@ export function PanierVenteFlashInline({
   const { showToast } = useToast();
   const { isMobile, isMobileLarge } = useBreakpoint();
   const isCompact = isMobile || isMobileLarge;
+  const salesRules = useSalesRules();
 
   const {
     articles,
@@ -584,6 +586,7 @@ export function PanierVenteFlashInline({
         isOpen={showEncaissementModal}
         onClose={() => setShowEncaissementModal(false)}
         montantTotal={total}
+        walletPaiement={salesRules.walletPaiement}
         onPaymentComplete={handlePaymentComplete}
       />
 

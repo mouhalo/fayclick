@@ -1,12 +1,12 @@
 /**
- * Panier public pour le catalogue - Drawer/Modal avec paiement OM/Wave
+ * Panier public pour le catalogue - Drawer Dark Premium avec paiement OM/Wave
  */
 
 'use client';
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Minus, Plus, Trash2, Phone, ShoppingCart, CheckCircle, ExternalLink } from 'lucide-react';
+import { X, Minus, Plus, ShoppingCart, CheckCircle, ExternalLink, Shield } from 'lucide-react';
 import Image from 'next/image';
 import { ArticlePanier } from '@/services/online-seller.service';
 import { ModalPaiementQRCode } from '@/components/factures/ModalPaiementQRCode';
@@ -121,7 +121,6 @@ export default function PanierPublic({
         setIdFacture(result.id_facture);
         setPageState('SUCCESS');
 
-        // Redirection automatique vers le reçu après 3s
         const recuUrl = recuService.generateUrlPartage(idStructure, result.id_facture);
         console.log('🔗 [PANIER] Redirection vers reçu:', recuUrl);
         setTimeout(() => {
@@ -170,48 +169,45 @@ export default function PanierPublic({
         className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
       />
 
-      {/* Drawer */}
+      {/* Drawer Dark */}
       <motion.div
         initial={{ x: '100%' }}
         animate={{ x: 0 }}
         exit={{ x: '100%' }}
         transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-        className="fixed right-0 top-0 bottom-0 w-full max-w-md bg-white z-50 shadow-2xl flex flex-col"
+        className="fixed right-0 top-0 bottom-0 w-full max-w-md bg-gradient-to-b from-slate-900 to-slate-800 border-l border-white/10 z-50 shadow-2xl flex flex-col"
       >
-        {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b bg-gradient-to-r from-emerald-500 to-emerald-600">
-          <div className="flex items-center gap-2">
-            <ShoppingCart className="w-5 h-5 text-white" />
-            <h2 className="text-lg font-bold text-white">
-              {pageState === 'SUCCESS' ? 'Commande confirmee' : `Panier (${nbArticles})`}
-            </h2>
-          </div>
-          <button onClick={handleClose} className="p-1 rounded-full hover:bg-white/20 transition-colors">
-            <X className="w-5 h-5 text-white" />
+        {/* Header — Stitch style: X gauche, titre centre */}
+        <div className="flex items-center justify-between p-4 border-b border-white/10">
+          <button onClick={handleClose} className="p-1.5 rounded-full hover:bg-white/10 transition-colors">
+            <X className="w-5 h-5 text-white/70" />
           </button>
+          <h2 className="text-lg font-bold text-white">
+            {pageState === 'SUCCESS' ? 'Commande confirmee' : `Mon Panier (${nbArticles})`}
+          </h2>
+          <div className="w-8" /> {/* Spacer pour centrer le titre */}
         </div>
 
         {/* Contenu */}
         <div className="flex-1 overflow-y-auto">
           {pageState === 'SUCCESS' ? (
             <div className="p-6 text-center space-y-4">
-              <div className="w-16 h-16 mx-auto bg-emerald-100 rounded-full flex items-center justify-center">
-                <CheckCircle className="w-10 h-10 text-emerald-500" />
+              <div className="w-16 h-16 mx-auto bg-emerald-500/20 rounded-full flex items-center justify-center">
+                <CheckCircle className="w-10 h-10 text-emerald-400" />
               </div>
-              <h3 className="text-xl font-bold text-gray-900">Paiement reussi !</h3>
-              <p className="text-gray-600 text-sm">
+              <h3 className="text-xl font-bold text-white">Paiement reussi !</h3>
+              <p className="text-white/60 text-sm">
                 Votre commande a ete enregistree avec succes.
               </p>
-              <div className="bg-gray-50 rounded-lg p-3">
-                <p className="text-xs text-gray-500">Numero de facture</p>
-                <p className="text-lg font-bold text-emerald-600">{numFacture}</p>
+              <div className="bg-white/5 rounded-lg p-3 border border-white/10">
+                <p className="text-xs text-white/40">Numero de facture</p>
+                <p className="text-lg font-bold text-emerald-400">{numFacture}</p>
               </div>
 
-              {/* Redirection vers le reçu */}
               {idFacture && (
                 <div className="space-y-2">
-                  <div className="flex items-center justify-center gap-2 text-sm text-gray-500">
-                    <div className="w-4 h-4 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+                  <div className="flex items-center justify-center gap-2 text-sm text-white/50">
+                    <div className="w-4 h-4 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" />
                     Redirection vers votre recu...
                   </div>
                   <button
@@ -229,59 +225,65 @@ export default function PanierPublic({
 
               <button
                 onClick={handleClose}
-                className="w-full py-3 bg-gray-100 text-gray-600 rounded-xl font-semibold hover:bg-gray-200 transition-colors"
+                className="w-full py-3 bg-white/10 text-white/70 rounded-xl font-semibold hover:bg-white/15 transition-colors border border-white/10"
               >
                 Fermer
               </button>
             </div>
           ) : pageState === 'PAYING' ? (
             <div className="p-6 text-center space-y-4">
-              <div className="w-12 h-12 mx-auto border-4 border-emerald-500 border-t-transparent rounded-full animate-spin" />
-              <p className="text-gray-600 font-medium">Creation de votre facture...</p>
+              <div className="w-12 h-12 mx-auto border-4 border-emerald-400 border-t-transparent rounded-full animate-spin" />
+              <p className="text-white/70 font-medium">Creation de votre facture...</p>
             </div>
           ) : (
             <>
               {/* Liste articles */}
               {articles.length === 0 ? (
                 <div className="p-8 text-center">
-                  <ShoppingCart className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                  <p className="text-gray-500">Votre panier est vide</p>
+                  <ShoppingCart className="w-12 h-12 text-white/20 mx-auto mb-3" />
+                  <p className="text-white/40">Votre panier est vide</p>
                 </div>
               ) : (
-                <div className="divide-y">
+                <div className="space-y-2 p-3">
                   {articles.map(article => (
-                    <div key={article.id_produit} className="p-3 flex items-center gap-3">
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-gray-900 truncate">{article.nom_produit}</p>
-                        <p className="text-xs text-emerald-600 font-medium">{formatMontant(article.prix_vente)}</p>
+                    <div key={article.id_produit} className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/5">
+                      {/* Miniature produit — Stitch 48x48 */}
+                      <div className="w-12 h-12 rounded-xl overflow-hidden flex-shrink-0 bg-white/5 border border-white/10">
+                        {article.photo_url ? (
+                          <Image
+                            src={article.photo_url}
+                            alt={article.nom_produit}
+                            width={48}
+                            height={48}
+                            className="object-cover w-full h-full"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <ShoppingCart className="w-5 h-5 text-white/20" />
+                          </div>
+                        )}
                       </div>
 
-                      {/* Controles quantite */}
-                      <div className="flex items-center gap-1.5">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-white truncate">{article.nom_produit}</p>
+                        <p className="text-xs text-emerald-400 font-medium">{formatMontant(article.prix_vente)}</p>
+                      </div>
+
+                      {/* Controles quantite — Stitch: - N + */}
+                      <div className="flex items-center gap-2">
                         <button
                           onClick={() => onModifierQuantite(article.id_produit, -1)}
-                          className="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors"
+                          className="w-7 h-7 rounded-lg bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors text-emerald-400 font-bold"
                         >
-                          <Minus className="w-3.5 h-3.5 text-gray-600" />
+                          <Minus className="w-3.5 h-3.5" />
                         </button>
-                        <span className="w-7 text-center text-sm font-bold">{article.quantite}</span>
+                        <span className="w-5 text-center text-sm font-bold text-white">{article.quantite}</span>
                         <button
                           onClick={() => onModifierQuantite(article.id_produit, 1)}
                           disabled={article.quantite >= article.stock_disponible}
-                          className="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200 disabled:opacity-30 transition-colors"
+                          className="w-7 h-7 rounded-lg bg-emerald-500/20 flex items-center justify-center hover:bg-emerald-500/30 disabled:opacity-30 transition-colors text-emerald-400 font-bold"
                         >
-                          <Plus className="w-3.5 h-3.5 text-gray-600" />
-                        </button>
-                      </div>
-
-                      {/* Sous-total + supprimer */}
-                      <div className="text-right">
-                        <p className="text-sm font-bold text-gray-900">{formatMontant(article.prix_vente * article.quantite)}</p>
-                        <button
-                          onClick={() => onSupprimer(article.id_produit)}
-                          className="text-red-400 hover:text-red-600 transition-colors mt-0.5"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
+                          <Plus className="w-3.5 h-3.5" />
                         </button>
                       </div>
                     </div>
@@ -294,57 +296,75 @@ export default function PanierPublic({
 
         {/* Footer - Paiement (seulement si panier non vide et etat PANIER) */}
         {pageState === 'PANIER' && articles.length > 0 && (
-          <div className="border-t p-4 space-y-3 bg-gray-50">
-            {/* Total */}
-            <div className="flex justify-between items-center">
-              <span className="text-sm font-medium text-gray-600">Total</span>
-              <span className="text-lg font-bold text-emerald-600">{formatMontant(total)}</span>
+          <div className="border-t border-white/10 p-4 space-y-3 bg-slate-900/80">
+            {/* Sous-total + Livraison separes (Stitch) */}
+            <div className="space-y-2">
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-white/50">Sous-total</span>
+                <span className="text-white font-medium">{formatMontant(total)}</span>
+              </div>
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-white/50">Livraison</span>
+                <span className="text-emerald-400 font-semibold">Gratuite</span>
+              </div>
+              <div className="border-t border-white/10 pt-2 flex justify-between items-center">
+                <span className="text-white font-bold">Total</span>
+                <span className="text-xl font-bold text-emerald-400">{formatMontant(total)}</span>
+              </div>
             </div>
 
             {/* Telephone */}
             <div>
-              <label className="text-xs text-gray-500 mb-1 block">Telephone</label>
-              <div className="relative">
-                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <label className="text-xs text-white/40 mb-1 block">Numero de telephone</label>
+              <div className="relative flex items-center">
+                <div className="absolute left-3 flex items-center gap-1 text-white/40 text-xs pointer-events-none">
+                  <span>🇸🇳</span>
+                  <span>+221</span>
+                </div>
                 <input
                   type="tel"
                   value={telephone}
                   onChange={(e) => setTelephone(e.target.value.replace(/\D/g, '').slice(0, 9))}
                   placeholder="77 123 45 67"
-                  className="w-full pl-9 pr-3 py-2.5 rounded-lg border border-gray-200 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 outline-none transition-all text-gray-900 text-sm"
+                  className="w-full pl-[4.5rem] pr-3 py-2.5 rounded-xl bg-white/10 border border-white/10 focus:border-emerald-400/50 focus:ring-2 focus:ring-emerald-400/20 outline-none transition-all text-white text-sm placeholder-white/30"
                   maxLength={9}
                 />
               </div>
               {telephone.length > 0 && !/^7/.test(telephone) && (
-                <p className="text-red-500 text-[10px] mt-0.5">Le numero doit commencer par 7</p>
+                <p className="text-red-400 text-[10px] mt-0.5">Le numero doit commencer par 7</p>
               )}
             </div>
 
             {/* Erreur */}
             {error && (
-              <p className="text-red-500 text-xs text-center">{error}</p>
+              <p className="text-red-400 text-xs text-center">{error}</p>
             )}
 
-            {/* Boutons paiement */}
-            <p className="text-xs text-gray-500 text-center">Choisissez votre mode de paiement</p>
-            <div className="grid grid-cols-2 gap-2">
+            {/* Boutons paiement — Stitch: OM vert, Wave jaune */}
+            <div className="space-y-2">
               <button
                 onClick={() => handlePayment('OM')}
                 disabled={!isFormValid() || isSubmitting}
-                className="flex items-center justify-center gap-2 bg-gradient-to-r from-orange-400 to-orange-500 text-white py-3 rounded-xl font-semibold text-xs hover:from-orange-500 hover:to-orange-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-md"
+                className="w-full flex items-center justify-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-white py-3.5 rounded-xl font-bold text-sm disabled:opacity-40 disabled:cursor-not-allowed transition-all"
               >
                 <Image src="/images/om.png" alt="OM" width={22} height={22} className="rounded" />
-                Payer
+                Payer avec OM
               </button>
               <button
                 onClick={() => handlePayment('WAVE')}
                 disabled={!isFormValid() || isSubmitting}
-                className="flex items-center justify-center gap-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white py-3 rounded-xl font-semibold text-xs hover:from-blue-600 hover:to-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-md"
+                className="w-full flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-400 text-white py-3.5 rounded-xl font-bold text-sm disabled:opacity-40 disabled:cursor-not-allowed transition-all"
               >
                 <Image src="/images/wave.png" alt="Wave" width={22} height={22} className="rounded" />
-                Payer
+                Payer avec Wave
               </button>
             </div>
+
+            {/* Securite (Stitch) */}
+            <p className="text-[10px] text-white/30 text-center flex items-center justify-center gap-1">
+              <Shield className="w-3 h-3" />
+              Paiement 100% securise
+            </p>
           </div>
         )}
       </motion.div>
