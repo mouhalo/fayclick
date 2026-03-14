@@ -8,7 +8,7 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { AlertCircle, Loader } from 'lucide-react';
+import { AlertCircle, Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { authService } from '@/services/auth.service';
 import { useHasRight } from '@/hooks/useRights';
@@ -62,8 +62,9 @@ export default function FacturesGlassPage() {
   });
   const [paiementsCount, setPaiementsCount] = useState(0);
 
-  // États de pagination
+  // Pagination serveur (20/page) — navigation sans loader plein écran
   const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 20;
 
   // États des modals
   const [modalPaiement, setModalPaiement] = useState<{
@@ -109,15 +110,21 @@ export default function FacturesGlassPage() {
   const [showCoffreModal, setShowCoffreModal] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
+  // Ref pour accéder aux filtres courants sans recréer loadFactures
+  const filtresRef = useRef(filtres);
+  filtresRef.current = filtres;
+
   // Mapper filtres UI vers paramètres get_my_factures_filtered
-  const buildFiltresDB = useCallback((f: FiltresFactures) => {
+  const buildFiltresDB = useCallback((f: FiltresFactures, page: number = 1) => {
     const filtresDB: {
       dateDebut?: string;
       dateFin?: string;
       nomClient?: string;
       telClient?: string;
       statut?: string;
-    } = {};
+      page: number;
+      limit: number;
+    } = { page, limit: ITEMS_PER_PAGE };
 
     if (f.periode?.debut) filtresDB.dateDebut = f.periode.debut;
     if (f.periode?.fin) filtresDB.dateFin = f.periode.fin;
@@ -128,25 +135,29 @@ export default function FacturesGlassPage() {
       filtresDB.statut = statutMap[f.statut] || f.statut;
     }
 
-    return Object.values(filtresDB).some(v => v) ? filtresDB : undefined;
+    return filtresDB;
   }, []);
 
-  // Chargement initial des factures (sans filtres = toutes les factures)
-  const loadFactures = useCallback(async () => {
+  // Chargement des factures avec pagination serveur (sans loader plein écran)
+  const loadFactures = useCallback(async (page: number = 1) => {
     if (!user) return;
 
     try {
-      setLoading(true);
+      setIsRefreshing(true);
       setError('');
 
-      const response = await factureListService.getMyFacturesFiltered();
+      const filtresDB = buildFiltresDB(filtresRef.current, page);
+      const response = await factureListService.getMyFacturesFiltered(filtresDB);
       setFacturesResponse(response);
 
-      const paiements = await recuService.getHistoriqueRecus({
-        id_structure: user.id_structure!,
-        limite: 100
-      });
-      setPaiementsCount(paiements.length);
+      // Charger paiements count seulement au premier chargement
+      if (loading) {
+        const paiements = await recuService.getHistoriqueRecus({
+          id_structure: user.id_structure!,
+          limite: 100
+        });
+        setPaiementsCount(paiements.length);
+      }
 
     } catch (err: unknown) {
       console.error('Erreur chargement factures:', err);
@@ -154,77 +165,45 @@ export default function FacturesGlassPage() {
       setError(errorMessage);
     } finally {
       setLoading(false);
-    }
-  }, [user]);
-
-  // Rechargement avec filtres (pas de spinner plein écran)
-  const loadFacturesWithFilters = useCallback(async (currentFiltres: FiltresFactures) => {
-    if (!user) return;
-
-    try {
-      setIsRefreshing(true);
-      setError('');
-
-      const filtresDB = buildFiltresDB(currentFiltres);
-      const response = await factureListService.getMyFacturesFiltered(filtresDB);
-      setFacturesResponse(response);
-
-    } catch (err: unknown) {
-      console.error('Erreur chargement factures filtrées:', err);
-      const errorMessage = err instanceof Error ? err.message : 'Impossible de charger les factures';
-      setError(errorMessage);
-    } finally {
       setIsRefreshing(false);
     }
-  }, [user, buildFiltresDB]);
+  }, [user, buildFiltresDB, loading]);
 
-  // Rafraîchir les données
+  // Rafraîchir les données (page courante)
   const handleRefresh = async () => {
-    setIsRefreshing(true);
-    const filtresDB = buildFiltresDB(filtres);
-    try {
-      const response = await factureListService.getMyFacturesFiltered(filtresDB);
-      setFacturesResponse(response);
-    } catch (err) {
-      console.error('Erreur refresh:', err);
-    } finally {
-      setIsRefreshing(false);
-    }
+    await loadFactures(currentPage);
   };
 
   // Chargement initial
   useEffect(() => {
-    loadFactures();
-  }, [loadFactures]);
+    loadFactures(1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
 
   // Recharger depuis la BD quand les filtres changent (debounce 500ms)
   const isInitialMount = useRef(true);
   useEffect(() => {
-    // Ignorer le premier rendu (chargement initial déjà fait)
     if (isInitialMount.current) {
       isInitialMount.current = false;
       return;
     }
 
+    setCurrentPage(1);
+
     const timer = setTimeout(() => {
-      loadFacturesWithFilters(filtres);
+      loadFactures(1);
     }, 500);
 
     return () => clearTimeout(timer);
-  }, [filtres, loadFacturesWithFilters]);
-
-  // Réinitialiser la pagination quand les filtres changent
-  useEffect(() => {
-    setCurrentPage(1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filtres]);
 
-  // Tri côté client (les données sont déjà filtrées par la BD)
+  // Recherche locale par texte pour réactivité immédiate (sur la page courante)
   const facturesFiltreesEtTriees = useMemo(() => {
     if (!facturesResponse?.factures) return [];
 
     let resultat = [...facturesResponse.factures];
 
-    // Recherche locale par texte (num_facture, nom, tel) pour réactivité immédiate
     if (filtres.searchTerm) {
       const recherche = filtres.searchTerm.toLowerCase().trim();
       resultat = resultat.filter(f => {
@@ -237,43 +216,19 @@ export default function FacturesGlassPage() {
       });
     }
 
-    // Tri
-    resultat.sort((a, b) => {
-      let comparaison = 0;
-
-      switch (filtres.sortBy) {
-        case 'date':
-          const dateA = a.facture?.date_facture || (a as any).date_facture;
-          const dateB = b.facture?.date_facture || (b as any).date_facture;
-          comparaison = new Date(dateB).getTime() - new Date(dateA).getTime();
-          break;
-        case 'montant':
-          const montantA = a.facture?.montant || (a as any).montant || 0;
-          const montantB = b.facture?.montant || (b as any).montant || 0;
-          comparaison = montantB - montantA;
-          break;
-        case 'client':
-          const clientA = a.facture?.nom_client || (a as any).nom_client || '';
-          const clientB = b.facture?.nom_client || (b as any).nom_client || '';
-          comparaison = clientA.localeCompare(clientB);
-          break;
-        default:
-          comparaison = 0;
-      }
-
-      return filtres.sortOrder === 'asc' ? -comparaison : comparaison;
-    });
-
     return resultat;
-  }, [facturesResponse, filtres]);
+  }, [facturesResponse, filtres.searchTerm]);
 
-  // Pagination
-  const itemsPerPage = 10;
-  const totalPages = Math.ceil(facturesFiltreesEtTriees.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const facturesPage = facturesFiltreesEtTriees.slice(startIndex, startIndex + itemsPerPage);
+  // Pagination serveur — factures déjà paginées par la BD
+  const pagination = facturesResponse?.pagination;
+  const totalPages = pagination?.total_pages || 1;
+  const totalFiltered = pagination?.total_factures || facturesResponse?.total_factures || 0;
+  const facturesPage = facturesFiltreesEtTriees;
 
-  const goToPage = (page: number) => setCurrentPage(page);
+  const goToPage = (page: number) => {
+    setCurrentPage(page);
+    loadFactures(page);
+  };
 
   // Actions sur les factures
   const handleViewFacture = (facture: FactureComplete) => {
@@ -420,17 +375,6 @@ export default function FacturesGlassPage() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-[#9c9125d9] via-[#203e2b] to-[#166534] flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <Loader className="animate-spin w-12 h-12 text-white mx-auto" />
-          <p className="text-white/80">Chargement des factures...</p>
-        </div>
-      </div>
-    );
-  }
-
   // Vérifier si des filtres sont actifs (pour recalculer les stats)
   const hasActiveFilters = !!(
     filtres.searchTerm ||
@@ -440,10 +384,31 @@ export default function FacturesGlassPage() {
     (filtres.statut && filtres.statut !== 'TOUS')
   );
 
+  // Overlay de chargement centré (visible pendant loading initial ou changement de page)
+  const loadingOverlay = (loading || isRefreshing) && (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
+    >
+      <motion.div
+        initial={{ scale: 0.9, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        className="bg-white rounded-2xl shadow-2xl px-8 py-6 flex flex-col items-center gap-3"
+      >
+        <Loader2 className="w-10 h-10 text-green-600 animate-spin" />
+        <p className="text-gray-700 font-medium text-sm">Chargement des factures...</p>
+        <p className="text-gray-400 text-xs">Veuillez patienter</p>
+      </motion.div>
+    </motion.div>
+  );
+
   // Desktop / Tablette : afficher la vue desktop
   if (isDesktopView || isTablet) {
     return (
       <>
+        {loadingOverlay}
         <FacturesDesktopView
           user={user!}
           structure={structure}
@@ -598,11 +563,11 @@ export default function FacturesGlassPage() {
       {facturesResponse && (
         <StatsCardsFacturesGlass
           factures={facturesFiltreesEtTriees}
-          resumeGlobal={hasActiveFilters ? undefined : facturesResponse.resume_global}
-          totalFactures={facturesFiltreesEtTriees.length}
-          montantTotal={facturesFiltreesEtTriees.reduce((sum, f) => sum + (f.facture?.montant || 0), 0)}
-          montantPaye={facturesFiltreesEtTriees.reduce((sum, f) => sum + (f.facture?.mt_acompte || 0), 0)}
-          montantImpaye={facturesFiltreesEtTriees.reduce((sum, f) => sum + (f.facture?.mt_restant || 0), 0)}
+          resumeGlobal={facturesResponse.resume_global}
+          totalFactures={totalFiltered || facturesResponse.total_factures}
+          montantTotal={facturesResponse.resume_global.montant_total}
+          montantPaye={facturesResponse.resume_global.montant_paye}
+          montantImpaye={facturesResponse.resume_global.montant_impaye}
           canViewMontants={canViewMontants}
         />
       )}
@@ -620,8 +585,8 @@ export default function FacturesGlassPage() {
           currentPage={currentPage}
           totalPages={totalPages}
           onPageChange={goToPage}
-          totalItems={facturesFiltreesEtTriees.length}
-          itemsPerPage={itemsPerPage}
+          totalItems={totalFiltered}
+          itemsPerPage={ITEMS_PER_PAGE}
         />
       )}
 
@@ -652,6 +617,7 @@ export default function FacturesGlassPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#9c9125d9] via-[#203e2b] to-[#166534]">
+      {loadingOverlay}
       <div className="max-w-md mx-auto min-h-screen relative">
         {/* Header */}
         <GlassHeader
