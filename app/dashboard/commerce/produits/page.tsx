@@ -1166,10 +1166,31 @@ export default function ProduitsCommercePage() {
     </>
   );
 
+  // Overlay de chargement centré (chargement initial)
+  const loadingOverlay = isLoadingProduits && (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
+    >
+      <motion.div
+        initial={{ scale: 0.9, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        className="bg-white rounded-2xl shadow-2xl px-8 py-6 flex flex-col items-center gap-3"
+      >
+        <Loader2 className="w-10 h-10 text-green-600 animate-spin" />
+        <p className="text-gray-700 font-medium text-sm">Chargement des produits...</p>
+        <p className="text-gray-400 text-xs">Veuillez patienter</p>
+      </motion.div>
+    </motion.div>
+  );
+
   // Desktop / Tablette : wrapper avec sidebar + top bar
   if (isDesktopView || isTablet) {
     return (
       <>
+        {loadingOverlay}
         <ProduitsDesktopView
           user={user}
           onShowCoffreModal={() => setShowCoffreModal(true)}
@@ -1503,6 +1524,7 @@ export default function ProduitsCommercePage() {
   // Mobile : code existant inchangé
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#9c9125d9] via-[#203e2b] to-[#166534]">
+      {loadingOverlay}
       <div className="max-w-md md:max-w-full md:px-6 lg:px-8 xl:px-12 mx-auto min-h-screen relative">
 
         {/* Header avec design glassmorphism */}
