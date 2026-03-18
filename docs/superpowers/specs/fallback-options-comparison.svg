@@ -1,0 +1,205 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 720" font-family="Inter, Arial, sans-serif">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0f172a"/>
+      <stop offset="100%" style="stop-color:#1e293b"/>
+    </linearGradient>
+    <linearGradient id="primaryGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#0ea5e9"/>
+      <stop offset="100%" style="stop-color:#38bdf8"/>
+    </linearGradient>
+    <linearGradient id="secondaryGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#f59e0b"/>
+      <stop offset="100%" style="stop-color:#fbbf24"/>
+    </linearGradient>
+    <linearGradient id="greenGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#22c55e"/>
+      <stop offset="100%" style="stop-color:#4ade80"/>
+    </linearGradient>
+    <linearGradient id="redGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#ef4444"/>
+      <stop offset="100%" style="stop-color:#f87171"/>
+    </linearGradient>
+    <filter id="shadow">
+      <feDropShadow dx="0" dy="2" stdDeviation="4" flood-opacity="0.3"/>
+    </filter>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1100" height="720" fill="url(#bgGrad)" rx="16"/>
+
+  <!-- Title -->
+  <text x="550" y="42" text-anchor="middle" fill="#f8fafc" font-size="22" font-weight="700">Fallback API sql_jsonpro — Comparaison des 2 Options</text>
+  <text x="550" y="65" text-anchor="middle" fill="#94a3b8" font-size="13">Bascule automatique Principal → Secours pendant correction backend</text>
+
+  <!-- ═══════════════════ OPTION A (gauche) ═══════════════════ -->
+  <rect x="20" y="85" width="520" height="620" rx="12" fill="#1e293b" stroke="#334155" stroke-width="1" filter="url(#shadow)"/>
+  <rect x="20" y="85" width="520" height="44" rx="12" fill="url(#primaryGrad)"/>
+  <rect x="20" y="107" width="520" height="22" fill="url(#primaryGrad)"/>
+  <text x="280" y="113" text-anchor="middle" fill="#0f172a" font-size="16" font-weight="700">OPTION A — Mémoire Simple (Recommandée)</text>
+
+  <!-- Client box -->
+  <rect x="195" y="148" width="170" height="38" rx="8" fill="#334155" stroke="#0ea5e9" stroke-width="1.5"/>
+  <text x="280" y="172" text-anchor="middle" fill="#e2e8f0" font-size="13" font-weight="600">🖥️ Client (Browser)</text>
+
+  <!-- Arrow client → proxy -->
+  <line x1="280" y1="186" x2="280" y2="210" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrowGray)"/>
+  <text x="310" y="203" fill="#94a3b8" font-size="10">/api/sql</text>
+
+  <!-- Proxy box -->
+  <rect x="145" y="210" width="270" height="50" rx="10" fill="#1e3a5f" stroke="#0ea5e9" stroke-width="2" filter="url(#shadow)"/>
+  <text x="280" y="233" text-anchor="middle" fill="#38bdf8" font-size="13" font-weight="700">⚡ Proxy Next.js (route.ts)</text>
+  <text x="280" y="250" text-anchor="middle" fill="#7dd3fc" font-size="10">SqlJsonProClient + variable mémoire</text>
+
+  <!-- Variable state box -->
+  <rect x="420" y="218" width="110" height="34" rx="6" fill="#312e81" stroke="#818cf8" stroke-width="1" stroke-dasharray="4,2"/>
+  <text x="475" y="233" text-anchor="middle" fill="#c7d2fe" font-size="10" font-weight="600">activeServer</text>
+  <text x="475" y="246" text-anchor="middle" fill="#a5b4fc" font-size="9">= "principal"</text>
+
+  <!-- Fork -->
+  <line x1="220" y1="260" x2="220" y2="290" stroke="#64748b" stroke-width="1.5"/>
+  <line x1="340" y1="260" x2="340" y2="290" stroke="#64748b" stroke-width="1.5" stroke-dasharray="4,2"/>
+
+  <!-- Principal server -->
+  <rect x="110" y="290" width="220" height="48" rx="8" fill="#14532d" stroke="#22c55e" stroke-width="1.5"/>
+  <text x="220" y="312" text-anchor="middle" fill="#4ade80" font-size="12" font-weight="700">🟢 api.icelabsoft.com</text>
+  <text x="220" y="328" text-anchor="middle" fill="#86efac" font-size="10">Serveur Principal</text>
+
+  <!-- Secours server -->
+  <rect x="110" y="355" width="220" height="48" rx="8" fill="#422006" stroke="#f59e0b" stroke-width="1.5"/>
+  <text x="220" y="377" text-anchor="middle" fill="#fbbf24" font-size="12" font-weight="700">🟡 secours.icelabsoft.com</text>
+  <text x="220" y="393" text-anchor="middle" fill="#fde68a" font-size="10">Serveur de Secours</text>
+
+  <!-- Flow description A -->
+  <rect x="40" y="420" width="480" height="270" rx="8" fill="#0f172a" stroke="#334155" stroke-width="1"/>
+
+  <!-- Step 1 -->
+  <circle cx="65" cy="445" r="12" fill="url(#primaryGrad)"/>
+  <text x="65" y="450" text-anchor="middle" fill="#0f172a" font-size="11" font-weight="700">1</text>
+  <text x="85" y="450" fill="#e2e8f0" font-size="12" font-weight="600">Requête arrive → tente le Principal</text>
+
+  <!-- Step 2 -->
+  <circle cx="65" cy="478" r="12" fill="url(#primaryGrad)"/>
+  <text x="65" y="483" text-anchor="middle" fill="#0f172a" font-size="11" font-weight="700">2</text>
+  <text x="85" y="478" fill="#e2e8f0" font-size="12">Timeout 10s ou erreur 5xx/réseau ?</text>
+  <text x="85" y="494" fill="#94a3b8" font-size="11">→ Bascule sur Secours automatiquement</text>
+
+  <!-- Step 3 -->
+  <circle cx="65" cy="522" r="12" fill="url(#secondaryGrad)"/>
+  <text x="65" y="527" text-anchor="middle" fill="#0f172a" font-size="11" font-weight="700">3</text>
+  <text x="85" y="522" fill="#e2e8f0" font-size="12">Secours répond → mémorise en variable</text>
+  <text x="85" y="538" fill="#94a3b8" font-size="11">→ Prochaines requêtes vont direct au Secours</text>
+
+  <!-- Step 4 -->
+  <circle cx="65" cy="566" r="12" fill="url(#greenGrad)"/>
+  <text x="65" y="571" text-anchor="middle" fill="#0f172a" font-size="11" font-weight="700">4</text>
+  <text x="85" y="566" fill="#e2e8f0" font-size="12">Backend corrigé → restart serveur Next.js</text>
+  <text x="85" y="582" fill="#94a3b8" font-size="11">→ Variable reset → retour au Principal</text>
+
+  <!-- Pros -->
+  <text x="55" y="612" fill="#4ade80" font-size="12" font-weight="700">✅ Avantages</text>
+  <text x="55" y="630" fill="#86efac" font-size="11">• Simple — 1 variable, ~30 lignes de code</text>
+  <text x="55" y="646" fill="#86efac" font-size="11">• Zéro dépendance externe</text>
+  <text x="55" y="662" fill="#86efac" font-size="11">• Restart = retour naturel au principal</text>
+
+  <!-- Con -->
+  <text x="320" y="612" fill="#fbbf24" font-size="12" font-weight="700">⚠️ Limite</text>
+  <text x="320" y="630" fill="#fde68a" font-size="11">• Pas de retour auto au principal</text>
+  <text x="320" y="646" fill="#fde68a" font-size="11">  sans restart du serveur Next.js</text>
+
+  <!-- ═══════════════════ OPTION B (droite) ═══════════════════ -->
+  <rect x="560" y="85" width="520" height="620" rx="12" fill="#1e293b" stroke="#334155" stroke-width="1" filter="url(#shadow)"/>
+  <rect x="560" y="85" width="520" height="44" rx="12" fill="url(#secondaryGrad)"/>
+  <rect x="560" y="107" width="520" height="22" fill="url(#secondaryGrad)"/>
+  <text x="820" y="113" text-anchor="middle" fill="#0f172a" font-size="16" font-weight="700">OPTION B — Mémoire + Health Check Périodique</text>
+
+  <!-- Client box B -->
+  <rect x="735" y="148" width="170" height="38" rx="8" fill="#334155" stroke="#f59e0b" stroke-width="1.5"/>
+  <text x="820" y="172" text-anchor="middle" fill="#e2e8f0" font-size="13" font-weight="600">🖥️ Client (Browser)</text>
+
+  <!-- Arrow client → proxy B -->
+  <line x1="820" y1="186" x2="820" y2="210" stroke="#64748b" stroke-width="1.5"/>
+  <text x="850" y="203" fill="#94a3b8" font-size="10">/api/sql</text>
+
+  <!-- Proxy box B -->
+  <rect x="685" y="210" width="270" height="50" rx="10" fill="#422006" stroke="#f59e0b" stroke-width="2" filter="url(#shadow)"/>
+  <text x="820" y="233" text-anchor="middle" fill="#fbbf24" font-size="13" font-weight="700">⚡ Proxy Next.js (route.ts)</text>
+  <text x="820" y="250" text-anchor="middle" fill="#fde68a" font-size="10">SqlJsonProClient + health check 30s</text>
+
+  <!-- Health check loop -->
+  <rect x="960" y="210" width="110" height="50" rx="6" fill="#312e81" stroke="#818cf8" stroke-width="1.5"/>
+  <text x="1015" y="232" text-anchor="middle" fill="#c7d2fe" font-size="10" font-weight="600">🔄 Health Check</text>
+  <text x="1015" y="246" text-anchor="middle" fill="#a5b4fc" font-size="9">setInterval 30s</text>
+  <!-- Loop arrow -->
+  <path d="M1015 260 Q1015 275 1000 275 Q985 275 985 260" fill="none" stroke="#818cf8" stroke-width="1" stroke-dasharray="3,2"/>
+
+  <!-- Principal server B -->
+  <rect x="650" y="290" width="220" height="48" rx="8" fill="#14532d" stroke="#22c55e" stroke-width="1.5"/>
+  <text x="760" y="312" text-anchor="middle" fill="#4ade80" font-size="12" font-weight="700">🟢 api.icelabsoft.com</text>
+  <text x="760" y="328" text-anchor="middle" fill="#86efac" font-size="10">Serveur Principal</text>
+
+  <!-- Health ping arrow -->
+  <path d="M960 248 Q930 248 930 290" fill="none" stroke="#818cf8" stroke-width="1.5" stroke-dasharray="4,2" marker-end="url(#arrowPurple)"/>
+  <text x="935" y="275" fill="#a5b4fc" font-size="9" transform="rotate(-90,935,275)">ping</text>
+
+  <!-- Secours server B -->
+  <rect x="650" y="355" width="220" height="48" rx="8" fill="#422006" stroke="#f59e0b" stroke-width="1.5"/>
+  <text x="760" y="377" text-anchor="middle" fill="#fbbf24" font-size="12" font-weight="700">🟡 secours.icelabsoft.com</text>
+  <text x="760" y="393" text-anchor="middle" fill="#fde68a" font-size="10">Serveur de Secours</text>
+
+  <!-- Fork B -->
+  <line x1="760" y1="260" x2="760" y2="290" stroke="#64748b" stroke-width="1.5"/>
+  <line x1="880" y1="260" x2="880" y2="290" stroke="#64748b" stroke-width="1.5" stroke-dasharray="4,2"/>
+
+  <!-- Flow description B -->
+  <rect x="580" y="420" width="480" height="270" rx="8" fill="#0f172a" stroke="#334155" stroke-width="1"/>
+
+  <!-- Step 1 B -->
+  <circle cx="605" cy="445" r="12" fill="url(#secondaryGrad)"/>
+  <text x="605" y="450" text-anchor="middle" fill="#0f172a" font-size="11" font-weight="700">1</text>
+  <text x="625" y="450" fill="#e2e8f0" font-size="12" font-weight="600">Même bascule que Option A</text>
+
+  <!-- Step 2 B -->
+  <circle cx="605" cy="478" r="12" fill="url(#secondaryGrad)"/>
+  <text x="605" y="483" text-anchor="middle" fill="#0f172a" font-size="11" font-weight="700">2</text>
+  <text x="625" y="478" fill="#e2e8f0" font-size="12">En plus : health check toutes les 30s</text>
+  <text x="625" y="494" fill="#94a3b8" font-size="11">→ Ping "SELECT 1" sur le Principal</text>
+
+  <!-- Step 3 B -->
+  <circle cx="605" cy="522" r="12" fill="url(#greenGrad)"/>
+  <text x="605" y="527" text-anchor="middle" fill="#0f172a" font-size="11" font-weight="700">3</text>
+  <text x="625" y="522" fill="#e2e8f0" font-size="12">Principal répond au ping ?</text>
+  <text x="625" y="538" fill="#94a3b8" font-size="11">→ Rebascule automatiquement vers Principal</text>
+
+  <!-- Step 4 B -->
+  <circle cx="605" cy="566" r="12" fill="url(#primaryGrad)"/>
+  <text x="605" y="571" text-anchor="middle" fill="#0f172a" font-size="11" font-weight="700">4</text>
+  <text x="625" y="566" fill="#e2e8f0" font-size="12">Retour transparent sans restart</text>
+  <text x="625" y="582" fill="#94a3b8" font-size="11">→ Délai max = 30s après correction backend</text>
+
+  <!-- Pros B -->
+  <text x="595" y="612" fill="#4ade80" font-size="12" font-weight="700">✅ Avantages</text>
+  <text x="595" y="630" fill="#86efac" font-size="11">• Retour auto au principal sans intervention</text>
+  <text x="595" y="646" fill="#86efac" font-size="11">• Bascule transparente pour l'utilisateur</text>
+  <text x="595" y="662" fill="#86efac" font-size="11">• Délai max 30s après correction</text>
+
+  <!-- Con B -->
+  <text x="860" y="612" fill="#fbbf24" font-size="12" font-weight="700">⚠️ Limites</text>
+  <text x="860" y="630" fill="#fde68a" font-size="11">• +50 lignes de code</text>
+  <text x="860" y="646" fill="#fde68a" font-size="11">• Requêtes ping régulières</text>
+  <text x="860" y="662" fill="#fde68a" font-size="11">• setInterval à gérer</text>
+
+  <!-- Arrow markers -->
+  <defs>
+    <marker id="arrowGray" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#64748b"/>
+    </marker>
+    <marker id="arrowPurple" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <polygon points="0 0, 8 3, 0 6" fill="#818cf8"/>
+    </marker>
+  </defs>
+</svg>
