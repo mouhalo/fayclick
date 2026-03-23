@@ -120,6 +120,7 @@ export interface StructureDetails extends Structure {
   inclure_tva?: boolean;
   taux_tva?: number;
   wallet_paiement?: boolean;
+  live_autorise?: boolean;
 }
 
 // Énumération des permissions disponibles

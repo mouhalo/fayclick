@@ -70,6 +70,7 @@ export default function ProduitsCommercePage() {
   // États locaux
   const [user, setUser] = useState<User | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
+  const [liveAutorise, setLiveAutorise] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'table' | 'compact'>('compact');
   const [showFilters, setShowFilters] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -235,6 +236,11 @@ export default function ProduitsCommercePage() {
       
       console.log('✅ [PRODUITS COMMERCE] Authentification validée');
       setUser(userData);
+      // Recuperer live_autorise depuis la structure
+      const structureDetails = authService.getStructureDetails();
+      if (structureDetails?.live_autorise) {
+        setLiveAutorise(true);
+      }
       setIsAuthLoading(false);
     };
 
@@ -1046,23 +1052,25 @@ export default function ProduitsCommercePage() {
   // Contenu commun (filtres, stats, liste, panier)
   const renderContent = () => (
     <>
-      {/* Live Shopping : Badge actif OU bouton creer */}
-      <div className={isDesktopView || isTablet ? 'mb-3' : 'px-5 pt-2 mb-2'}>
-        {activeLive ? (
-          <LiveBadgeHeader live={activeLive} onDelete={handleDeleteLive} />
-        ) : (
-          <button
-            onClick={() => setShowLiveModal(true)}
-            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-red-500/10 border border-red-400/20 text-red-400 text-sm font-medium hover:bg-red-500/20 transition-all"
-          >
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500" />
-            </span>
-            Creer un Live — Publier mes produits en ligne
-          </button>
-        )}
-      </div>
+      {/* Live Shopping : Badge actif OU bouton creer (si autorise) */}
+      {liveAutorise && (
+        <div className={isDesktopView || isTablet ? 'mb-3' : 'px-5 pt-2 mb-2'}>
+          {activeLive ? (
+            <LiveBadgeHeader live={activeLive} onDelete={handleDeleteLive} />
+          ) : (
+            <button
+              onClick={() => setShowLiveModal(true)}
+              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-red-500/10 border border-red-400/20 text-red-400 text-sm font-medium hover:bg-red-500/20 transition-all"
+            >
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500" />
+              </span>
+              Creer un Live — Publier mes produits en ligne
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Panneau de filtres avancés */}
       <div className={isDesktopView || isTablet ? '' : 'px-5 pt-2'}>

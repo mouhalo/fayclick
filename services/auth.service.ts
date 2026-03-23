@@ -94,6 +94,7 @@ export class AuthService {
           : undefined,
         inclure_tva: structureData.inclure_tva === true || structureData.inclure_tva === 't',
         taux_tva: structureData.taux_tva ? Number(structureData.taux_tva) : 18,
+        live_autorise: structureData.live_autorise === true || structureData.live_autorise === 't',
       };
 
       console.log('✅ [AUTH] Détails structure récupérés:', {
