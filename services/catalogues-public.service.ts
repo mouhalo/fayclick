@@ -4,6 +4,7 @@
  */
 
 import { CataloguesGlobalResponse } from '@/types/catalogues';
+import { AllStructuresResponse, StructureListItem } from '@/types/marketplace';
 
 export class CataloguesPublicException extends Error {
   constructor(message: string, public statusCode: number = 500) {
@@ -16,6 +17,8 @@ class CataloguesPublicService {
   private static instance: CataloguesPublicService;
   private cache: CataloguesGlobalResponse | null = null;
   private cacheTimestamp: number = 0;
+  private structuresCache: AllStructuresResponse | null = null;
+  private structuresCacheTimestamp: number = 0;
   private readonly CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
   static getInstance(): CataloguesPublicService {
@@ -150,11 +153,106 @@ class CataloguesPublicService {
   }
 
   /**
+   * Récupère toutes les structures actives depuis list_structures (léger, pas de produits)
+   * Cache de 5 minutes
+   */
+  async getAllStructures(): Promise<AllStructuresResponse> {
+    try {
+      const now = Date.now();
+      if (this.structuresCache && (now - this.structuresCacheTimestamp) < this.CACHE_DURATION) {
+        console.log('✅ [STRUCTURES] Données récupérées depuis le cache');
+        return this.structuresCache;
+      }
+
+      console.log('🔍 [STRUCTURES] Chargement toutes les structures depuis list_structures');
+
+      const database = (await import('./database.service')).default;
+
+      // Requete legere — pas de JOIN sur produits (table inaccessible en direct)
+      const query = `
+        SELECT ls.id_structure, ls.code_structure, ls.nom_structure, ls.adresse,
+               ls.mobile_om, ls.id_localite, ls.actif, ls.logo, ls.createdat,
+               ls.id_type, ls.type_structure
+        FROM list_structures ls
+        ORDER BY ls.nom_structure ASC
+      `;
+
+      const rows = await database.query(query, 15000);
+
+      // Identifier les vedettes via le cache produits (get_all_produits_publics)
+      // Ce cache est deja charge par la marketplace, on le reutilise
+      let produitsParStructure: Map<number, number> = new Map();
+      try {
+        const catalogue = await this.getAllProduitsPublics();
+        if (catalogue?.data) {
+          catalogue.data.forEach(p => {
+            produitsParStructure.set(
+              p.id_structure,
+              (produitsParStructure.get(p.id_structure) || 0) + 1
+            );
+          });
+        }
+      } catch {
+        // Si le cache produits echoue, on continue sans — pas de vedettes
+        console.log('⚠️ [STRUCTURES] Cache produits indisponible, vedettes non calculees');
+      }
+
+      const structures: StructureListItem[] = (rows as any[]).map(row => {
+        const nbProduits = produitsParStructure.get(row.id_structure) || 0;
+        return {
+          id_structure: row.id_structure,
+          code_structure: row.code_structure || '',
+          nom_structure: row.nom_structure || '',
+          adresse: row.adresse || null,
+          mobile_om: row.mobile_om || null,
+          id_localite: row.id_localite || null,
+          actif: row.actif ?? true,
+          logo: row.logo || null,
+          createdat: row.createdat || '',
+          id_type: row.id_type || null,
+          type_structure: row.type_structure || null,
+          a_des_produits: nbProduits > 0,
+          nb_produits_publics: nbProduits,
+        };
+      });
+
+      // Trier : vedettes en premier (par nb produits desc), puis le reste alphabetiquement
+      structures.sort((a, b) => {
+        if (a.a_des_produits && !b.a_des_produits) return -1;
+        if (!a.a_des_produits && b.a_des_produits) return 1;
+        if (a.a_des_produits && b.a_des_produits) return b.nb_produits_publics - a.nb_produits_publics;
+        return a.nom_structure.localeCompare(b.nom_structure, 'fr');
+      });
+
+      const vedettes = structures.filter(s => s.a_des_produits);
+
+      const result: AllStructuresResponse = {
+        success: true,
+        total_structures: structures.length,
+        total_vedettes: vedettes.length,
+        structures,
+      };
+
+      this.structuresCache = result;
+      this.structuresCacheTimestamp = now;
+
+      console.log('✅ [STRUCTURES] Chargées:', { total: structures.length, vedettes: vedettes.length });
+
+      return result;
+    } catch (error) {
+      console.error('❌ [STRUCTURES] Erreur:', error);
+      throw new CataloguesPublicException('Impossible de charger les structures', 500);
+    }
+  }
+
+  /**
    * Invalide le cache manuellement (utile après ajout/modification de produits)
    */
   invalidateCache(): void {
     this.cache = null;
     this.cacheTimestamp = 0;
+    this.structuresCache = null;
+    this.structuresCacheTimestamp = 0;
     console.log('🗑️ [CATALOGUES GLOBAL] Cache invalidé');
   }
 

@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Package, Store, Tags, Zap } from 'lucide-react';
+import { Store, ShoppingBag, Zap } from 'lucide-react';
 import Image from 'next/image';
 import LogoFayclick from '@/components/ui/LogoFayclick';
 import MarketplaceSearchBar from './MarketplaceSearchBar';
@@ -57,13 +57,6 @@ export default function MarketplaceHero({ stats, onSelectStructure }: Marketplac
         className="flex items-center gap-3 overflow-x-auto scrollbar-hide"
       >
         <div className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-white/5 border border-white/10 flex-shrink-0">
-          <Package className="w-4 h-4 text-emerald-400" />
-          <div>
-            <p className="text-white font-bold text-sm leading-none">{stats.total_produits}+</p>
-            <p className="text-white/40 text-[10px]">PRODUITS</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-white/5 border border-white/10 flex-shrink-0">
           <Store className="w-4 h-4 text-emerald-400" />
           <div>
             <p className="text-white font-bold text-sm leading-none">{stats.total_structures}</p>
@@ -71,10 +64,10 @@ export default function MarketplaceHero({ stats, onSelectStructure }: Marketplac
           </div>
         </div>
         <div className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-white/5 border border-white/10 flex-shrink-0">
-          <Tags className="w-4 h-4 text-emerald-400" />
+          <ShoppingBag className="w-4 h-4 text-emerald-400" />
           <div>
-            <p className="text-white font-bold text-sm leading-none">{stats.total_categories}</p>
-            <p className="text-white/40 text-[10px]">CATEGORIES</p>
+            <p className="text-white font-bold text-sm leading-none">{stats.total_vedettes || 0}</p>
+            <p className="text-white/40 text-[10px]">AVEC CATALOGUE</p>
           </div>
         </div>
       </motion.div>
@@ -111,8 +104,8 @@ export default function MarketplaceHero({ stats, onSelectStructure }: Marketplac
             </p>
             <button
               onClick={() => {
-                const grid = document.getElementById('products-grid');
-                grid?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                const section = document.getElementById('boutiques-vedettes');
+                section?.scrollIntoView({ behavior: 'smooth', block: 'start' });
               }}
               className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-emerald-500 text-white text-sm font-bold hover:bg-emerald-400 transition-all shadow-lg shadow-emerald-500/25 active:scale-95"
             >

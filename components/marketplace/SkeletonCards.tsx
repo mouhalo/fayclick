@@ -36,3 +36,15 @@ export function SkeletonSearchBar() {
     </div>
   );
 }
+
+export function SkeletonCarteBoutique() {
+  return (
+    <div className="animate-pulse rounded-2xl bg-white/5 border border-white/10 p-4">
+      <div className="w-16 h-16 rounded-xl bg-gray-300/20 mx-auto mb-3" />
+      <div className="h-3.5 bg-gray-300/20 rounded w-3/4 mx-auto mb-2" />
+      <div className="h-2.5 bg-gray-300/20 rounded w-1/2 mx-auto mb-2" />
+      <div className="h-2.5 bg-gray-300/20 rounded w-2/3 mx-auto mb-3" />
+      <div className="h-7 bg-gray-300/20 rounded-xl w-full" />
+    </div>
+  );
+}
