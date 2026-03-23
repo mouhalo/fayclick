@@ -59,6 +59,32 @@ class MarketplaceSearchService {
   }
 
   /**
+   * Récupère les structures depuis list_structures (léger, pas de chargement produits)
+   * Utilisé par search() et getStats() pour éviter le chargement de 118K+ produits
+   */
+  async getStructuresFromList(): Promise<StructurePublique[]> {
+    try {
+      const response = await cataloguesPublicService.getAllStructures();
+      return response.structures
+        .filter(s => s.a_des_produits)
+        .map(s => ({
+          id_structure: s.id_structure,
+          nom_structure: s.nom_structure,
+          logo_structure: s.logo,
+          type_structure: s.type_structure,
+          telephone: s.mobile_om,
+          adresse: s.adresse,
+          total_produits: s.nb_produits_publics,
+          categories: []
+        }))
+        .sort((a, b) => b.total_produits - a.total_produits);
+    } catch (error) {
+      console.error('[MARKETPLACE] Erreur getStructuresFromList:', error);
+      return [];
+    }
+  }
+
+  /**
    * Recherche avec détection auto tel vs nom
    * /^7\d*$/ = téléphone, sinon nom
    * Max 5 résultats
@@ -66,7 +92,7 @@ class MarketplaceSearchService {
   async search(query: string): Promise<SearchResult[]> {
     if (!query || query.trim().length < 2) return [];
 
-    const structures = await this.getStructures();
+    const structures = await this.getStructuresFromList();
     const q = query.trim();
     const isTel = /^7\d*$/.test(q);
 
@@ -103,17 +129,12 @@ class MarketplaceSearchService {
    */
   async getStats(): Promise<MarketplaceStats> {
     try {
-      const catalogue = await cataloguesPublicService.getAllProduitsPublics();
-      const structures = await this.getStructures();
-      const categories = new Set<string>();
-      catalogue.data?.forEach(p => {
-        if (p.nom_categorie) categories.add(p.nom_categorie);
-      });
-
+      const response = await cataloguesPublicService.getAllStructures();
       return {
-        total_produits: catalogue.total_produits || 0,
-        total_structures: catalogue.total_structures || 0,
-        total_categories: categories.size
+        total_produits: 0,
+        total_structures: response.total_structures,
+        total_categories: 0,
+        total_vedettes: response.total_vedettes,
       };
     } catch {
       return { total_produits: 0, total_structures: 0, total_categories: 0 };
