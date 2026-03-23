@@ -13,6 +13,8 @@ interface ModalCreerLiveProps {
   idStructure: number;
   produits: Produit[];
   onLiveCreated: () => void;
+  defaultTel1?: string;
+  defaultTel2?: string;
 }
 
 interface FormData {
@@ -29,14 +31,28 @@ const ModalCreerLive: React.FC<ModalCreerLiveProps> = ({
   idStructure,
   produits,
   onLiveCreated,
+  defaultTel1 = '',
+  defaultTel2 = '',
 }) => {
+  // Calcul des valeurs par defaut : maintenant et +4h
+  const getDefaultDates = useCallback(() => {
+    const now = new Date();
+    now.setSeconds(0, 0);
+    const debut = now.toISOString().slice(0, 16);
+    const fin = new Date(now.getTime() + 4 * 60 * 60 * 1000);
+    return { debut, fin: fin.toISOString().slice(0, 16) };
+  }, []);
+
   const [step, setStep] = useState<1 | 2>(1);
-  const [form, setForm] = useState<FormData>({
-    nom_du_live: '',
-    date_debut: '',
-    date_fin: '',
-    tel_contact1: '',
-    tel_contact2: '',
+  const [form, setForm] = useState<FormData>(() => {
+    const { debut, fin } = getDefaultDates();
+    return {
+      nom_du_live: '',
+      date_debut: debut,
+      date_fin: fin,
+      tel_contact1: defaultTel1,
+      tel_contact2: defaultTel2,
+    };
   });
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -59,20 +75,22 @@ const ModalCreerLive: React.FC<ModalCreerLiveProps> = ({
   }, [form.date_debut]);
 
   // Validation step 1
+  // On verifie que date_fin est dans le futur (un live peut demarrer maintenant)
   const isStep1Valid = useMemo(() => {
     const { nom_du_live, date_debut, date_fin } = form;
     if (!nom_du_live.trim() || nom_du_live.trim().length < 3 || nom_du_live.trim().length > 100) return false;
     if (!date_debut) return false;
-    if (new Date(date_debut) < new Date(nowISO)) return false;
     if (!date_fin) return false;
-    if (new Date(date_fin) <= new Date(date_debut)) return false;
-    // Max 7 jours
     const debut = new Date(date_debut);
     const fin = new Date(date_fin);
+    if (fin <= debut) return false;
+    // Date fin doit etre dans le futur
+    if (fin <= new Date()) return false;
+    // Max 7 jours
     const diffDays = (fin.getTime() - debut.getTime()) / (1000 * 60 * 60 * 24);
     if (diffDays > 7) return false;
     return true;
-  }, [form, nowISO]);
+  }, [form]);
 
   // Validation step 2
   const isStep2Valid = useMemo(() => selectedIds.length > 0, [selectedIds]);
@@ -119,13 +137,14 @@ const ModalCreerLive: React.FC<ModalCreerLiveProps> = ({
   }, [isStep2Valid, idStructure, form, selectedIds, onLiveCreated, onClose]);
 
   const handleReset = useCallback(() => {
+    const { debut, fin } = getDefaultDates();
     setStep(1);
-    setForm({ nom_du_live: '', date_debut: '', date_fin: '', tel_contact1: '', tel_contact2: '' });
+    setForm({ nom_du_live: '', date_debut: debut, date_fin: fin, tel_contact1: defaultTel1, tel_contact2: defaultTel2 });
     setSelectedIds([]);
     setSuccessMsg('');
     setErrorMsg('');
     setIsLoading(false);
-  }, []);
+  }, [getDefaultDates, defaultTel1, defaultTel2]);
 
   const handleClose = useCallback(() => {
     if (isLoading) return;
