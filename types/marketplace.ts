@@ -16,8 +16,9 @@ export interface StructurePublique {
 
 export interface SearchResult {
   structure: StructurePublique;
-  matchType: 'nom' | 'telephone';
+  matchType: 'nom' | 'telephone' | 'live';
   score: number;
+  live?: import('@/types/live').Live;
 }
 
 export interface MarketplaceStats {

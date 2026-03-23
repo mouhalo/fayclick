@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Phone, Store, Package, MapPin } from 'lucide-react';
+import { Search, Phone, Store, Package, MapPin, Radio } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { marketplaceSearchService } from '@/services/marketplace-search.service';
@@ -106,51 +106,78 @@ export default function MarketplaceSearchBar({ onSelectStructure, variant = 'her
             transition={{ duration: 0.15 }}
             className="absolute left-0 right-0 z-50 mt-1 rounded-2xl bg-slate-900/95 backdrop-blur-xl border border-white/15 shadow-2xl overflow-hidden"
           >
-            {results.map((r, i) => (
+            {results.map((r) => (
               <button
-                key={r.structure.id_structure}
+                key={`${r.matchType}-${r.structure.id_structure}`}
                 onClick={() => handleSelect(r.structure)}
-                className="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/10 transition-colors text-left"
+                className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-white/10 transition-colors text-left ${r.matchType === 'live' ? 'bg-red-500/5' : ''}`}
               >
-                {/* Logo ou mascotte */}
-                <div className="flex-shrink-0 w-10 h-10 rounded-full overflow-hidden bg-gradient-to-br from-emerald-500/30 to-teal-500/30 border border-white/20 flex items-center justify-center">
-                  <Image
-                    src={r.structure.logo_structure && r.structure.logo_structure.startsWith('http') ? r.structure.logo_structure : '/images/mascotte.png'}
-                    alt={r.structure.nom_structure}
-                    width={40}
-                    height={40}
-                    className="object-cover w-full h-full"
-                    onError={(e) => { e.currentTarget.src = '/images/mascotte.png'; }}
-                  />
+                {/* Logo ou indicateur live */}
+                <div className={`flex-shrink-0 w-10 h-10 rounded-full overflow-hidden border flex items-center justify-center ${r.matchType === 'live' ? 'bg-red-500/20 border-red-400/30' : 'bg-gradient-to-br from-emerald-500/30 to-teal-500/30 border-white/20'}`}>
+                  {r.matchType === 'live' ? (
+                    <Radio className="w-5 h-5 text-red-400" />
+                  ) : (
+                    <Image
+                      src={r.structure.logo_structure && r.structure.logo_structure.startsWith('http') ? r.structure.logo_structure : '/images/mascotte.png'}
+                      alt={r.structure.nom_structure}
+                      width={40}
+                      height={40}
+                      className="object-cover w-full h-full"
+                      onError={(e) => { e.currentTarget.src = '/images/mascotte.png'; }}
+                    />
+                  )}
                 </div>
 
                 {/* Infos */}
                 <div className="flex-1 min-w-0">
-                  <p className="text-white font-semibold text-sm truncate">
-                    {r.structure.nom_structure}
-                  </p>
-                  <div className="flex items-center gap-2 text-xs text-emerald-300/70">
-                    {r.matchType === 'telephone' && r.structure.telephone && (
-                      <span className="flex items-center gap-1">
-                        <Phone className="w-3 h-3" />
-                        {r.structure.telephone}
-                      </span>
-                    )}
-                    <span className="flex items-center gap-1">
-                      <Package className="w-3 h-3" />
-                      {r.structure.total_produits} produit{r.structure.total_produits > 1 ? 's' : ''}
-                    </span>
-                  </div>
-                  {r.structure.adresse && (
-                    <p className="text-[10px] text-white/40 truncate flex items-center gap-1 mt-0.5">
-                      <MapPin className="w-2.5 h-2.5 flex-shrink-0" />
-                      {r.structure.adresse}
-                    </p>
+                  {r.matchType === 'live' && r.live ? (
+                    <>
+                      <p className="text-white font-semibold text-sm truncate flex items-center gap-1.5">
+                        <span className="relative flex h-2 w-2 flex-shrink-0">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+                          <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500" />
+                        </span>
+                        {r.live.nom_du_live}
+                      </p>
+                      <div className="flex items-center gap-2 text-xs text-red-300/70">
+                        <span>{r.structure.nom_structure}</span>
+                        <span>·</span>
+                        <span>{r.live.nb_produits || 0} produit{(r.live.nb_produits || 0) > 1 ? 's' : ''}</span>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-white font-semibold text-sm truncate">
+                        {r.structure.nom_structure}
+                      </p>
+                      <div className="flex items-center gap-2 text-xs text-emerald-300/70">
+                        {r.matchType === 'telephone' && r.structure.telephone && (
+                          <span className="flex items-center gap-1">
+                            <Phone className="w-3 h-3" />
+                            {r.structure.telephone}
+                          </span>
+                        )}
+                        <span className="flex items-center gap-1">
+                          <Package className="w-3 h-3" />
+                          {r.structure.total_produits} produit{r.structure.total_produits > 1 ? 's' : ''}
+                        </span>
+                      </div>
+                      {r.structure.adresse && (
+                        <p className="text-[10px] text-white/40 truncate flex items-center gap-1 mt-0.5">
+                          <MapPin className="w-2.5 h-2.5 flex-shrink-0" />
+                          {r.structure.adresse}
+                        </p>
+                      )}
+                    </>
                   )}
                 </div>
 
                 {/* Icone */}
-                <Store className="w-4 h-4 text-emerald-400/50 flex-shrink-0" />
+                {r.matchType === 'live' ? (
+                  <span className="px-1.5 py-0.5 rounded-full bg-red-500/20 text-red-300 text-[9px] font-bold flex-shrink-0">LIVE</span>
+                ) : (
+                  <Store className="w-4 h-4 text-emerald-400/50 flex-shrink-0" />
+                )}
               </button>
             ))}
           </motion.div>
