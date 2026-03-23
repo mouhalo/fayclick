@@ -59,6 +59,10 @@ import ProduitsDesktopView from '@/components/produits/ProduitsDesktopView';
 import MainMenu from '@/components/layout/MainMenu';
 import ModalCoffreFort from '@/components/coffre-fort/ModalCoffreFort';
 import { ModalDeconnexion } from '@/components/auth/ModalDeconnexion';
+import ModalCreerLive from '@/components/live/ModalCreerLive';
+import LiveBadgeHeader from '@/components/live/LiveBadgeHeader';
+import liveService from '@/services/live.service';
+import { Live } from '@/types/live';
 
 export default function ProduitsCommercePage() {
   const router = useRouter();
@@ -133,6 +137,11 @@ export default function ProduitsCommercePage() {
   // États sélection code-barres multiples
   const [barcodeMatches, setBarcodeMatches] = useState<Produit[]>([]);
   const [showBarcodeSelectionModal, setShowBarcodeSelectionModal] = useState(false);
+
+  // États Live Shopping
+  const [showLiveModal, setShowLiveModal] = useState(false);
+  const [activeLive, setActiveLive] = useState<Live | null>(null);
+  const [loadingLive, setLoadingLive] = useState(false);
 
   // Configuration pagination
   const itemsPerPage = 10;
@@ -263,6 +272,35 @@ export default function ProduitsCommercePage() {
       loadProduits();
     }
   }, [user, isAuthLoading, loadProduits]);
+
+  // Chargement du live actif
+  const loadActiveLive = useCallback(async () => {
+    if (!user) return;
+    try {
+      setLoadingLive(true);
+      const response = await liveService.getActiveLive(user.id_structure);
+      setActiveLive(response.live || null);
+    } catch {
+      setActiveLive(null);
+    } finally {
+      setLoadingLive(false);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    if (user && !isAuthLoading) {
+      loadActiveLive();
+    }
+  }, [user, isAuthLoading, loadActiveLive]);
+
+  // Suppression du live actif
+  const handleDeleteLive = useCallback(async () => {
+    if (!user || !activeLive) return;
+    const response = await liveService.deleteLive(activeLive.id_live, user.id_structure);
+    if (response.success) {
+      setActiveLive(null);
+    }
+  }, [user, activeLive]);
 
   // Initialisation Mode Vente
   useEffect(() => {
@@ -1558,6 +1596,24 @@ export default function ProduitsCommercePage() {
           }
         />
 
+        {/* Live Shopping : Badge actif OU bouton creer */}
+        <div className="px-5 pt-2">
+          {activeLive ? (
+            <LiveBadgeHeader live={activeLive} onDelete={handleDeleteLive} />
+          ) : (
+            <button
+              onClick={() => setShowLiveModal(true)}
+              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-red-500/10 border border-red-400/20 text-red-300 text-sm font-medium hover:bg-red-500/20 transition-all"
+            >
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500" />
+              </span>
+              Creer un Live — Publier mes produits en ligne
+            </button>
+          )}
+        </div>
+
         {/* Panneau de filtres avancés */}
         <div className="px-5 pt-2">
           <ProduitsFilterPanel
@@ -2254,6 +2310,20 @@ export default function ProduitsCommercePage() {
           onClose={() => setProduitPartage(null)}
           produit={produitPartage}
           idStructure={user.id_structure}
+        />
+      )}
+
+      {/* Modal Creer Live */}
+      {user && (
+        <ModalCreerLive
+          isOpen={showLiveModal}
+          onClose={() => setShowLiveModal(false)}
+          idStructure={user.id_structure}
+          produits={produits}
+          onLiveCreated={() => {
+            loadActiveLive();
+            loadProduits();
+          }}
         />
       )}
     </div>

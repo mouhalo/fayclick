@@ -7,6 +7,8 @@
 import { cataloguesPublicService } from './catalogues-public.service';
 import { StructurePublique, SearchResult, MarketplaceStats } from '@/types/marketplace';
 import { ProduitPublicGlobal } from '@/types/catalogues';
+import { Live } from '@/types/live';
+import liveService from './live.service';
 
 class MarketplaceSearchService {
   private static instance: MarketplaceSearchService;
@@ -85,8 +87,9 @@ class MarketplaceSearchService {
   }
 
   /**
-   * Recherche avec détection auto tel vs nom
-   * /^7\d*$/ = téléphone, sinon nom
+   * Recherche avec détection auto tel vs nom + recherche par nom de live
+   * /^7\d*$/ = téléphone, sinon nom de structure OU nom de live
+   * Les résultats de lives apparaissent en priorité (score +10)
    * Max 5 résultats
    */
   async search(query: string): Promise<SearchResult[]> {
@@ -108,6 +111,8 @@ class MarketplaceSearchService {
         }));
     } else {
       const qLower = q.toLowerCase();
+
+      // 1. Recherche par nom de structure (existant)
       results = structures
         .filter(s => s.nom_structure.toLowerCase().includes(qLower))
         .map(s => {
@@ -117,6 +122,35 @@ class MarketplaceSearchService {
           else if (nomLower.includes(qLower)) score = 2;
           return { structure: s, matchType: 'nom' as const, score };
         });
+
+      // 2. Recherche par nom de live actif (prioritaire)
+      try {
+        const livesData = await liveService.getLivesActifs();
+        if (livesData?.lives?.length) {
+          const liveResults = livesData.lives
+            .filter(live => live.nom_du_live.toLowerCase().includes(qLower))
+            .map(live => {
+              // Trouver la structure correspondante ou en creer une minimale
+              const existingStructure = structures.find(s => s.id_structure === live.id_structure);
+              const structure: StructurePublique = existingStructure || {
+                id_structure: live.id_structure,
+                nom_structure: live.nom_structure || '',
+                logo_structure: live.logo,
+                total_produits: live.nb_produits || 0,
+                categories: []
+              };
+              return {
+                structure,
+                matchType: 'live' as const,
+                score: 10, // Priorite haute pour les lives
+                live,       // Attacher le live pour affichage
+              };
+            });
+          results = [...liveResults, ...results];
+        }
+      } catch {
+        // Silencieux — la recherche continue sans lives
+      }
     }
 
     return results

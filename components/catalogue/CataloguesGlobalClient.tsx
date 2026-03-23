@@ -13,6 +13,7 @@ import { useRouter } from 'next/navigation';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { cataloguesPublicService } from '@/services/catalogues-public.service';
 import { marketplaceSearchService } from '@/services/marketplace-search.service';
+import liveService from '@/services/live.service';
 import { AllStructuresResponse, StructureListItem, StructurePublique, MarketplaceStats } from '@/types/marketplace';
 import MarketplaceHero from '@/components/marketplace/MarketplaceHero';
 import BoutiquesCarousel from '@/components/marketplace/BoutiquesCarousel';
@@ -34,6 +35,9 @@ export default function CataloguesGlobalClient() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Lives actifs
+  const [livesCount, setLivesCount] = useState(0);
+
   // Filtres pour "Toutes les boutiques"
   const [typeFiltre, setTypeFiltre] = useState('');
   const [visibleCount, setVisibleCount] = useState(24);
@@ -47,13 +51,15 @@ export default function CataloguesGlobalClient() {
       setLoading(true);
       setError(null);
 
-      const [allStructures, statsData] = await Promise.all([
+      const [allStructures, statsData, livesData] = await Promise.all([
         cataloguesPublicService.getAllStructures(),
-        marketplaceSearchService.getStats()
+        marketplaceSearchService.getStats(),
+        liveService.getLivesActifs().catch(() => ({ total: 0, lives: [] }))
       ]);
 
       setStructuresData(allStructures);
       setStats(statsData);
+      setLivesCount(livesData.total || 0);
     } catch (err: unknown) {
       console.error('Erreur chargement marketplace:', err);
       setError(err instanceof Error ? err.message : 'Impossible de charger la marketplace');
@@ -206,8 +212,8 @@ export default function CataloguesGlobalClient() {
         {/* 0. Navbar desktop */}
         <MarketplaceNavbar />
 
-        {/* 1. Hero avec recherche + stats */}
-        <MarketplaceHero stats={stats} />
+        {/* 1. Hero avec recherche + stats + lives */}
+        <MarketplaceHero stats={stats} livesCount={livesCount} />
 
         {/* 2. Carrousel boutiques populaires */}
         <BoutiquesCarousel structures={structuresCarousel} />
