@@ -86,7 +86,7 @@ export default function MarketplaceSearchBar({ onSelectStructure, variant = 'her
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder={isTel ? 'Numéro de téléphone (7xx...)' : 'Rechercher une boutique...'}
+          placeholder={isTel ? 'Numéro de téléphone (7xx...)' : 'Rechercher un live ou une boutique...'}
           className={`flex-1 bg-transparent ${isSticky ? 'text-sm' : 'text-base'} text-white placeholder-white/50 outline-none pr-4`}
         />
         {isSearching && (

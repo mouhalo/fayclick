@@ -210,7 +210,7 @@ export default function CataloguesGlobalClient() {
         className="max-w-7xl mx-auto relative z-10 px-3 py-4 md:px-6 md:py-6"
       >
         {/* 0. Navbar desktop */}
-        <MarketplaceNavbar />
+        <MarketplaceNavbar livesCount={livesCount} />
 
         {/* 1. Hero avec recherche + stats + lives */}
         <MarketplaceHero stats={stats} livesCount={livesCount} />

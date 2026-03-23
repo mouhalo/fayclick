@@ -1046,6 +1046,24 @@ export default function ProduitsCommercePage() {
   // Contenu commun (filtres, stats, liste, panier)
   const renderContent = () => (
     <>
+      {/* Live Shopping : Badge actif OU bouton creer */}
+      <div className={isDesktopView || isTablet ? 'mb-3' : 'px-5 pt-2 mb-2'}>
+        {activeLive ? (
+          <LiveBadgeHeader live={activeLive} onDelete={handleDeleteLive} />
+        ) : (
+          <button
+            onClick={() => setShowLiveModal(true)}
+            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-red-500/10 border border-red-400/20 text-red-400 text-sm font-medium hover:bg-red-500/20 transition-all"
+          >
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500" />
+            </span>
+            Creer un Live — Publier mes produits en ligne
+          </button>
+        )}
+      </div>
+
       {/* Panneau de filtres avancés */}
       <div className={isDesktopView || isTablet ? '' : 'px-5 pt-2'}>
         <ProduitsFilterPanel
@@ -1347,6 +1365,20 @@ export default function ProduitsCommercePage() {
           userName={user?.username}
         />
 
+        {/* Modal Creer Live (Desktop) */}
+        <ModalCreerLive
+          isOpen={showLiveModal}
+          onClose={() => setShowLiveModal(false)}
+          idStructure={user.id_structure}
+          produits={produits}
+          defaultTel1={user.mobile_om || ''}
+          defaultTel2={user.mobile_wave || ''}
+          onLiveCreated={() => {
+            loadActiveLive();
+            loadProduits();
+          }}
+        />
+
         {/* Tous les modals existants */}
         <ModalOptionsAjout
           isOpen={showOptionsAjoutModal}
@@ -1595,24 +1627,6 @@ export default function ProduitsCommercePage() {
             />
           }
         />
-
-        {/* Live Shopping : Badge actif OU bouton creer */}
-        <div className="px-5 pt-2">
-          {activeLive ? (
-            <LiveBadgeHeader live={activeLive} onDelete={handleDeleteLive} />
-          ) : (
-            <button
-              onClick={() => setShowLiveModal(true)}
-              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-red-500/10 border border-red-400/20 text-red-300 text-sm font-medium hover:bg-red-500/20 transition-all"
-            >
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500" />
-              </span>
-              Creer un Live — Publier mes produits en ligne
-            </button>
-          )}
-        </div>
 
         {/* Panneau de filtres avancés */}
         <div className="px-5 pt-2">
@@ -2320,6 +2334,8 @@ export default function ProduitsCommercePage() {
           onClose={() => setShowLiveModal(false)}
           idStructure={user.id_structure}
           produits={produits}
+          defaultTel1={user.mobile_om || ''}
+          defaultTel2={user.mobile_wave || ''}
           onLiveCreated={() => {
             loadActiveLive();
             loadProduits();

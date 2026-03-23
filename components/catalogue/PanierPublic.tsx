@@ -345,7 +345,7 @@ export default function PanierPublic({
               <button
                 onClick={() => handlePayment('OM')}
                 disabled={!isFormValid() || isSubmitting}
-                className="w-full flex items-center justify-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-white py-3.5 rounded-xl font-bold text-sm disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                className="w-full flex items-center justify-center gap-2 bg-orange-500 hover:bg-orange-400 text-white py-3.5 rounded-xl font-bold text-sm disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-lg shadow-orange-500/25"
               >
                 <Image src="/images/om.png" alt="OM" width={22} height={22} className="rounded" />
                 Payer avec OM
@@ -353,7 +353,7 @@ export default function PanierPublic({
               <button
                 onClick={() => handlePayment('WAVE')}
                 disabled={!isFormValid() || isSubmitting}
-                className="w-full flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-400 text-white py-3.5 rounded-xl font-bold text-sm disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                className="w-full flex items-center justify-center gap-2 bg-sky-500 hover:bg-sky-400 text-white py-3.5 rounded-xl font-bold text-sm disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-lg shadow-sky-500/25"
               >
                 <Image src="/images/wave.png" alt="Wave" width={22} height={22} className="rounded" />
                 Payer avec Wave
