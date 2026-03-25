@@ -15,11 +15,14 @@ import { Produit } from '@/types/produit';
 import { VenteFlash, VenteFlashStats, DetailVente, RecuPaiement } from '@/types/venteflash.types';
 import { User } from '@/types/auth';
 import { usePanierStore } from '@/stores/panierStore';
+import { usePanierVFMultiStore } from '@/stores/panierVFMultiStore';
 import { useToast } from '@/components/ui/Toast';
+import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { VenteFlashHeader, VenteFlashHeaderRef } from '@/components/venteflash/VenteFlashHeader';
 import { VenteFlashStatsCards } from '@/components/venteflash/VenteFlashStatsCards';
 import { VenteFlashListeVentes } from '@/components/venteflash/VenteFlashListeVentes';
 import { PanierVenteFlashInline } from '@/components/venteflash/PanierVenteFlashInline';
+import { PanierVFTabs } from '@/components/venteflash/PanierVFTabs';
 import { ModalRecuGenere } from '@/components/recu/ModalRecuGenere';
 import { ModalRecuVenteFlash } from '@/components/venteflash/ModalRecuVenteFlash';
 import { ModalRefresh } from '@/components/venteflash/ModalRefresh';
@@ -31,12 +34,18 @@ export default function VenteFlashPage() {
   const { showToast, ToastComponent } = useToast();
   const { addArticle, getTotalItems, clearPanier } = usePanierStore();
   const salesRules = useSalesRules();
+  const { isDesktop: isDesktopBase, isDesktopLarge } = useBreakpoint();
+  const isDesktop = isDesktopBase || isDesktopLarge;
+
+  // Store multi-panier (desktop uniquement)
+  const multiStore = usePanierVFMultiStore();
 
   // Vider le panier quand on quitte la page venteflash
   useEffect(() => {
     return () => {
       console.log('🧹 [VENTE FLASH] Nettoyage panier - sortie de page');
       usePanierStore.getState().clearPanier();
+      usePanierVFMultiStore.getState().clearAll();
     };
   }, []);
 
@@ -496,7 +505,13 @@ export default function VenteFlashPage() {
     const prixChoisi = vfPrixType === 'gros' && (vfProduit.prix_grossiste || 0) > 0
       ? vfProduit.prix_grossiste!
       : vfProduit.prix_vente;
-    addArticle(vfProduit, vfQuantity, prixChoisi);
+
+    // Desktop → multi-panier store, Mobile → panierStore classique
+    if (isDesktop) {
+      multiStore.addArticle(vfProduit, vfQuantity, prixChoisi);
+    } else {
+      addArticle(vfProduit, vfQuantity, prixChoisi);
+    }
     showToast('success', 'Ajouté au panier', `${vfQuantity} x ${vfProduit.nom_produit}`);
 
     setShowQuantityModal(false);
@@ -506,7 +521,7 @@ export default function VenteFlashPage() {
 
     // Auto-focus sur le champ de recherche pour enchaîner les scans
     headerRef.current?.focusSearch();
-  }, [vfProduit, vfQuantity, vfPrixType, addArticle, showToast]);
+  }, [vfProduit, vfQuantity, vfPrixType, addArticle, multiStore, isDesktop, showToast]);
 
   /**
    * Annuler le modal de quantité
@@ -847,12 +862,18 @@ export default function VenteFlashPage() {
           onMultipleMatches={handleMultipleMatches}
           onRefresh={handleRefresh}
           onPrint={handlePrintRapport}
+          externalTotalItems={isDesktop ? multiStore.getTotalItems() : undefined}
         />
 
-        {/* Section 2: Panier Inline (s'affiche automatiquement quand articles ajoutés) */}
-        <PanierVenteFlashInline
-          onSuccess={(venteData) => {
-            // Ajout direct aux ventes du jour SANS appel API (données déjà disponibles)
+        {/* Section 2: Onglets multi-panier (desktop uniquement) */}
+        {isDesktop && (
+          <PanierVFTabs switchDisabled={showQuantityModal} />
+        )}
+
+        {/* Section 2b: Panier Inline (s'affiche automatiquement quand articles ajoutés) */}
+        {(() => {
+          // Callback commun onSuccess pour les deux modes
+          const handleVenteSuccess = (venteData: any) => {
             const nomCaissier = user.nom && user.prenom ? `${user.prenom} ${user.nom}` : user.login;
             const nouvelleVente: VenteFlash = {
               id_facture: venteData.id_facture,
@@ -868,7 +889,7 @@ export default function VenteFlashPage() {
               nom_caissier: nomCaissier,
               id_utilisateur: user.id,
               statut: 'PAYEE',
-              details: venteData.details.map(d => ({
+              details: venteData.details.map((d: any) => ({
                 id_detail: d.id_detail as number,
                 id_produit: 0,
                 nom_produit: d.nom_produit,
@@ -876,7 +897,7 @@ export default function VenteFlashPage() {
                 prix_unitaire: d.prix_unitaire,
                 total: d.total
               })),
-              recus_paiements: venteData.recus_paiements?.map(r => ({
+              recus_paiements: venteData.recus_paiements?.map((r: any) => ({
                 id_recu: r.id_recu as number,
                 id_facture: venteData.id_facture,
                 numero_recu: r.numero_recu,
@@ -886,13 +907,11 @@ export default function VenteFlashPage() {
               }))
             };
 
-            // Ajouter en tête de liste (plus récente en premier)
             setVentesJour(prev => {
               const filtered = prev.filter(v => v.id_facture !== venteData.id_facture);
               return [nouvelleVente, ...filtered];
             });
 
-            // Mettre à jour les stats localement
             setStats(prev => ({
               nb_ventes: prev.nb_ventes + 1,
               total_ventes: prev.total_ventes + venteData.montant_total,
@@ -900,13 +919,55 @@ export default function VenteFlashPage() {
               total_remises: prev.total_remises + venteData.mt_remise
             }));
 
+            // Desktop : fermer le panier actif après encaissement
+            if (isDesktop && multiStore.activePanierId) {
+              multiStore.closePanier(multiStore.activePanierId);
+            }
+
             console.log(`✅ [VF] Vente ajoutée localement (0 API call) | #${venteData.num_facture} | ${venteData.montant_total} FCFA`);
-          }}
-          onShowRecu={(idFacture: number, numFacture: string, montantTotal: number) => {
+          };
+
+          const handleShowRecu = (idFacture: number, numFacture: string, montantTotal: number) => {
             setRecuData({ idFacture, numFacture, montantTotal });
             setShowRecu(true);
-          }}
-        />
+          };
+
+          // Desktop : passer les données du multi-store en props
+          if (isDesktop) {
+            const activePanier = multiStore.getActivePanier();
+            return (
+              <PanierVenteFlashInline
+                onSuccess={handleVenteSuccess}
+                onShowRecu={handleShowRecu}
+                externalArticles={activePanier?.articles || []}
+                externalRemise={activePanier?.remise || 0}
+                externalActions={{
+                  updateRemise: multiStore.updateRemise,
+                  updateQuantity: multiStore.updateQuantity,
+                  removeArticle: multiStore.removeArticle,
+                  clearPanier: () => {
+                    if (multiStore.activePanierId) {
+                      multiStore.closePanier(multiStore.activePanierId);
+                    }
+                  },
+                  getTotalItems: multiStore.getTotalItems,
+                  getSousTotal: multiStore.getSousTotal,
+                  getMontantsFacture: multiStore.getMontantsFacture,
+                  updateRemiseArticle: multiStore.updateRemiseArticle,
+                  clearRemisesArticles: multiStore.clearRemisesArticles
+                }}
+              />
+            );
+          }
+
+          // Mobile : comportement classique (panierStore)
+          return (
+            <PanierVenteFlashInline
+              onSuccess={handleVenteSuccess}
+              onShowRecu={handleShowRecu}
+            />
+          );
+        })()}
 
         {/* Section 3: StatCards */}
         <VenteFlashStatsCards

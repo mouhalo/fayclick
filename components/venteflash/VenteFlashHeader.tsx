@@ -31,6 +31,8 @@ interface VenteFlashHeaderProps {
   onRefresh?: () => void;
   /** Callback pour imprimer le rapport du jour */
   onPrint?: () => void;
+  /** Nombre total d'articles dans le panier actif (override le store interne) */
+  externalTotalItems?: number;
 }
 
 export const VenteFlashHeader = forwardRef<VenteFlashHeaderRef, VenteFlashHeaderProps>(({
@@ -38,7 +40,8 @@ export const VenteFlashHeader = forwardRef<VenteFlashHeaderRef, VenteFlashHeader
   onAddToPanier,
   onMultipleMatches,
   onRefresh,
-  onPrint
+  onPrint,
+  externalTotalItems
 }, ref) => {
   const router = useRouter();
   const { getTotalItems } = usePanierStore();
@@ -48,7 +51,8 @@ export const VenteFlashHeader = forwardRef<VenteFlashHeaderRef, VenteFlashHeader
   const searchRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const totalItems = getTotalItems();
+  // Si externalTotalItems est fourni (mode multi-panier), l'utiliser au lieu du store
+  const totalItems = externalTotalItems !== undefined ? externalTotalItems : getTotalItems();
 
   // Exposer focusSearch() au parent pour auto-focus après ajout au panier
   useImperativeHandle(ref, () => ({

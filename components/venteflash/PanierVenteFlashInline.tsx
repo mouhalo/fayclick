@@ -19,6 +19,7 @@ import database from '@/services/database.service';
 import { ModalEncaissementVenteFlash } from './ModalEncaissementVenteFlash';
 import { ModalRecuVenteFlash } from './ModalRecuVenteFlash';
 import { PaymentMethod } from '@/types/payment-wallet';
+import { ArticlePanier } from '@/types/produit';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { useSalesRules } from '@/hooks/useSalesRules';
 
@@ -50,30 +51,54 @@ interface PanierVenteFlashInlineProps {
   onSuccess?: (venteData: VenteFlashResultData) => void;
   /** Callback affichage reçu */
   onShowRecu?: (idFacture: number, numFacture: string, montantTotal: number) => void;
+
+  // --- Props optionnelles pour le mode multi-panier desktop ---
+  // Si fournies, le composant les utilise au lieu de usePanierStore
+  /** Articles du panier actif (mode multi-panier) */
+  externalArticles?: ArticlePanier[];
+  /** Remise globale (mode multi-panier) */
+  externalRemise?: number;
+  /** Callbacks store externes (mode multi-panier) */
+  externalActions?: {
+    updateRemise: (remise: number) => void;
+    updateQuantity: (id_produit: number, quantity: number) => void;
+    removeArticle: (id_produit: number) => void;
+    clearPanier: () => void;
+    getTotalItems: () => number;
+    getSousTotal: () => number;
+    getMontantsFacture: () => { sous_total: number; remise: number; montant_net: number; acompte: number; reste_a_payer: number };
+    updateRemiseArticle: (id_produit: number, remise_val: number) => void;
+    clearRemisesArticles: () => void;
+  };
 }
 
 export function PanierVenteFlashInline({
   onSuccess,
-  onShowRecu
+  onShowRecu,
+  externalArticles,
+  externalRemise,
+  externalActions
 }: PanierVenteFlashInlineProps) {
   const { showToast } = useToast();
   const { isMobile, isMobileLarge } = useBreakpoint();
   const isCompact = isMobile || isMobileLarge;
   const salesRules = useSalesRules();
 
-  const {
-    articles,
-    remise,
-    updateRemise,
-    updateQuantity,
-    removeArticle,
-    clearPanier,
-    getTotalItems,
-    getSousTotal,
-    getMontantsFacture,
-    updateRemiseArticle,
-    clearRemisesArticles
-  } = usePanierStore();
+  // Mode multi-panier : utilise les props externes si fournies, sinon fallback sur panierStore
+  const storeData = usePanierStore();
+  const isExternalMode = !!(externalArticles && externalActions);
+
+  const articles = isExternalMode ? externalArticles! : storeData.articles;
+  const remise = isExternalMode ? (externalRemise ?? 0) : storeData.remise;
+  const updateRemise = isExternalMode ? externalActions!.updateRemise : storeData.updateRemise;
+  const updateQuantity = isExternalMode ? externalActions!.updateQuantity : storeData.updateQuantity;
+  const removeArticle = isExternalMode ? externalActions!.removeArticle : storeData.removeArticle;
+  const clearPanier = isExternalMode ? externalActions!.clearPanier : storeData.clearPanier;
+  const getTotalItems = isExternalMode ? externalActions!.getTotalItems : storeData.getTotalItems;
+  const getSousTotal = isExternalMode ? externalActions!.getSousTotal : storeData.getSousTotal;
+  const getMontantsFacture = isExternalMode ? externalActions!.getMontantsFacture : storeData.getMontantsFacture;
+  const updateRemiseArticle = isExternalMode ? externalActions!.updateRemiseArticle : storeData.updateRemiseArticle;
+  const clearRemisesArticles = isExternalMode ? externalActions!.clearRemisesArticles : storeData.clearRemisesArticles;
 
   const [isProcessing, setIsProcessing] = useState(false);
   const [isExpanded, setIsExpanded] = useState(true);
