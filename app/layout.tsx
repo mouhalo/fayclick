@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from "next";
 // import { Inter, Montserrat } from "next/font/google";
-import { Montserrat } from "next/font/google";
 import "./globals.css";
 import ConditionalAuthProvider from '@/components/providers/ConditionalAuthProvider';
 import { VersionProvider } from '@/contexts/VersionContext';
@@ -19,13 +18,10 @@ const montserrat = {
   variable: "--font-montserrat",
 };
 
-// Landing heading font (Montserrat 800 as Clash Display fallback)
-const landingHeading = Montserrat({
-  subsets: ['latin'],
-  weight: ['700', '800'],
-  variable: '--font-landing-heading',
-  display: 'swap',
-});
+// Landing heading font (system fallback, same as other fonts)
+const landingHeading = {
+  variable: "--font-landing-heading",
+};
 
 export const metadata: Metadata = {
   title: "FayClick - La Super App du Sénégal",
