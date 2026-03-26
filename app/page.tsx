@@ -15,7 +15,7 @@ const MobileHome = dynamic(() => import('@/components/home/MobileHome'), {
   ssr: false // Désactiver le SSR pour éviter les problèmes d'hydratation
 });
 
-const DesktopHome = dynamic(() => import('@/components/home/DesktopHome'), {
+const DesktopHome = dynamic(() => import('@/components/landing/DesktopLandingPage'), {
   loading: () => <LoadingScreen />,
   ssr: false
 });
@@ -27,15 +27,15 @@ const FloatingWhatsAppButton = dynamic(() => import('@/components/ui/FloatingWha
 // Écran de chargement
 function LoadingScreen() {
   return (
-    <div className="min-h-screen bg-gradient-to-b from-sky-400 to-sky-200 flex items-center justify-center">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-emerald-900 to-teal-900 flex items-center justify-center">
       <div className="text-center">
         <div className="w-20 h-20 mx-auto mb-4 relative">
-          <div className="absolute inset-0 bg-orange-500 rounded-full animate-ping opacity-30"></div>
-          <div className="relative w-20 h-20 bg-gradient-to-br from-orange-500 to-orange-600 rounded-full flex items-center justify-center">
+          <div className="absolute inset-0 bg-emerald-500 rounded-full animate-ping opacity-30"></div>
+          <div className="relative w-20 h-20 bg-gradient-to-br from-emerald-500 to-amber-500 rounded-2xl flex items-center justify-center shadow-xl">
             <span className="text-2xl font-black text-white">FC</span>
           </div>
         </div>
-        <p className="text-white text-lg font-medium animate-pulse">Chargement...</p>
+        <p className="text-emerald-200 text-lg font-medium animate-pulse">Chargement...</p>
       </div>
     </div>
   );
