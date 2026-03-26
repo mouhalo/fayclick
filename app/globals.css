@@ -5,6 +5,11 @@
 /* Import des styles glassmorphism pour les selects */
 @import '../styles/glassmorphism-select.css';
 
+/* Landing page heading font fallback */
+:root {
+  --font-landing-heading: 'Montserrat', system-ui, -apple-system, sans-serif;
+}
+
 /* Configuration Body de Base */
 body {
   margin: 0;

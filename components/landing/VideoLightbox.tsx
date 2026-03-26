@@ -54,6 +54,7 @@ export default function VideoLightbox({ isOpen, onClose, src, title }: VideoLigh
           >
             <button
               onClick={onClose}
+              aria-label="Fermer la vidéo"
               className="absolute -top-12 right-0 w-10 h-10 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center text-white transition-colors"
             >
               <X size={20} />
@@ -64,7 +65,7 @@ export default function VideoLightbox({ isOpen, onClose, src, title }: VideoLigh
                 ref={videoRef}
                 src={src}
                 controls
-                autoPlay
+                preload="metadata"
                 className="w-full aspect-video"
                 controlsList="nodownload"
               >
