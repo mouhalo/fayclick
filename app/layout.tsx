@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 // import { Inter, Montserrat } from "next/font/google";
+import { Montserrat } from "next/font/google";
 import "./globals.css";
 import ConditionalAuthProvider from '@/components/providers/ConditionalAuthProvider';
 import { VersionProvider } from '@/contexts/VersionContext';
@@ -17,6 +18,14 @@ const inter = {
 const montserrat = {
   variable: "--font-montserrat",
 };
+
+// Landing heading font (Montserrat 800 as Clash Display fallback)
+const landingHeading = Montserrat({
+  subsets: ['latin'],
+  weight: ['700', '800'],
+  variable: '--font-landing-heading',
+  display: 'swap',
+});
 
 export const metadata: Metadata = {
   title: "FayClick - La Super App du Sénégal",
@@ -66,7 +75,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="fr" className={`${inter.variable} ${montserrat.variable}`}>
+    <html lang="fr" className={`${inter.variable} ${montserrat.variable} ${landingHeading.variable}`}>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
