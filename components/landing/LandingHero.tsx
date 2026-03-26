@@ -9,9 +9,9 @@ function AnimatedCounter({ value }: { value: string }) {
   const ref = useRef<HTMLDivElement>(null);
   const isInView = useInView(ref, { once: true });
   const [display, setDisplay] = useState('0');
-  const numericMatch = value.match(/(\d+)/);
 
   useEffect(() => {
+    const numericMatch = value.match(/(\d+)/);
     if (!isInView || !numericMatch) {
       if (!numericMatch) setDisplay(value);
       return;
@@ -31,7 +31,7 @@ function AnimatedCounter({ value }: { value: string }) {
       requestAnimationFrame(animate);
     };
     animate();
-  }, [isInView, value, numericMatch]);
+  }, [isInView, value]);
 
   return <div ref={ref}>{display}</div>;
 }
@@ -135,7 +135,12 @@ export default function LandingHero() {
                 >
                   Commencer gratuitement →
                 </Link>
-                <button className="flex items-center gap-3 px-6 py-3.5 border border-white/20 rounded-full text-sm text-white/70 hover:bg-white/5 hover:border-white/30 transition-all duration-300">
+                <button
+                  type="button"
+                  aria-label="Voir la démo — aller aux tutoriels vidéo"
+                  onClick={() => document.getElementById('support')?.scrollIntoView({ behavior: 'smooth' })}
+                  className="flex items-center gap-3 px-6 py-3.5 border border-white/20 rounded-full text-sm text-white/70 hover:bg-white/5 hover:border-white/30 transition-all duration-300"
+                >
                   <span className="w-7 h-7 bg-white/10 rounded-full flex items-center justify-center text-xs">▶</span>
                   Voir la démo
                 </button>

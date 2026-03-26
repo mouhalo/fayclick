@@ -30,6 +30,7 @@ export default function LandingNavbar({ activeSection }: LandingNavbarProps) {
 
   return (
     <motion.nav
+      aria-label="Navigation principale"
       initial={{ y: -80 }}
       animate={{ y: 0 }}
       transition={{ duration: 0.5, delay: 0.2 }}

@@ -50,7 +50,11 @@ export default function LandingSupport() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: (i % 3) * 0.1 + Math.floor(i / 3) * 0.12, duration: 0.4 }}
+                role="button"
+                tabIndex={0}
+                aria-label={`Regarder : ${video.title}`}
                 onClick={() => setActiveVideo({ src: video.src, title: video.title })}
+                onKeyDown={(e) => { if (e.key === 'Enter') setActiveVideo({ src: video.src, title: video.title }); }}
                 className="group bg-white/[0.03] backdrop-blur-xl border border-white/[0.06] rounded-2xl overflow-hidden cursor-pointer hover:border-emerald-500/30 transition-all duration-300"
               >
                 <div className="aspect-video bg-gradient-to-br from-slate-800 to-slate-900 relative flex items-center justify-center">
