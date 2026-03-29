@@ -116,6 +116,7 @@ export default function FacturesGlassPage() {
 
   // Mapper filtres UI vers paramètres get_my_factures_filtered
   const buildFiltresDB = useCallback((f: FiltresFactures, page: number = 1) => {
+    const hasSearchTerm = !!f.searchTerm?.trim();
     const filtresDB: {
       dateDebut?: string;
       dateFin?: string;
@@ -124,7 +125,7 @@ export default function FacturesGlassPage() {
       statut?: string;
       page: number;
       limit: number;
-    } = { page, limit: ITEMS_PER_PAGE };
+    } = { page: hasSearchTerm ? 1 : page, limit: hasSearchTerm ? 200 : ITEMS_PER_PAGE };
 
     if (f.periode?.debut) filtresDB.dateDebut = f.periode.debut;
     if (f.periode?.fin) filtresDB.dateFin = f.periode.fin;
