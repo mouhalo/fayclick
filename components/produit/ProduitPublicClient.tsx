@@ -135,7 +135,8 @@ export default function ProduitPublicClient({ token }: ProduitPublicClientProps)
   };
 
   // Callback après paiement réussi - créer la facture
-  const handlePaymentComplete = async (statusResponse?: {
+  // useCallback obligatoire pour éviter stale closure avec le polling ModalPaiementQRCode
+  const handlePaymentComplete = useCallback(async (statusResponse?: {
     data?: {
       uuid?: string;
       reference_externe?: string;
@@ -188,15 +189,15 @@ export default function ProduitPublicClient({ token }: ProduitPublicClientProps)
       // Transition vers mascotte même en cas d'erreur (le paiement wallet a réussi)
       setTimeout(() => setPageState('MASCOTTE'), 2500);
     }
-  };
+  }, [produit, selectedPaymentMethod, idStructure, quantite, prenom, telephone, montantTotal]);
 
-  const handlePaymentFailed = (errorMsg: string) => {
+  const handlePaymentFailed = useCallback((errorMsg: string) => {
     console.error('❌ [PRODUIT-PUBLIC] Paiement échoué:', errorMsg);
     setShowQRCode(false);
     setIsSubmitting(false);
     setError('Le paiement a échoué. Veuillez réessayer.');
     setTimeout(() => setError(''), 5000);
-  };
+  }, []);
 
   // Partage WhatsApp
   const handleShare = () => {
