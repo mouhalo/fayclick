@@ -17,7 +17,7 @@ interface FactureSuccessStore {
   factureId: number | null;
   /** Articles pré-chargés depuis le panier (évite un re-fetch DB) */
   preloadedArticles: PreloadedArticle[] | null;
-  openModal: (factureId: number, articles?: Array<{ nom_produit: string; quantity: number; prix_vente: number }>) => void;
+  openModal: (factureId: number, articles?: Array<{ nom_produit: string; quantity: number; prix_vente: number; prix_applique?: number }>) => void;
   closeModal: () => void;
 }
 
@@ -27,12 +27,15 @@ export const useFactureSuccessStore = create<FactureSuccessStore>((set) => ({
   preloadedArticles: null,
   openModal: (factureId, articles) => {
     console.log('🎉 Ouverture modal facture succès, ID:', factureId, articles ? `(${articles.length} articles pré-chargés)` : '');
-    const preloaded = articles?.map(a => ({
-      nom_produit: a.nom_produit,
-      quantite: a.quantity,
-      prix: a.prix_vente,
-      sous_total: a.prix_vente * a.quantity
-    })) || null;
+    const preloaded = articles?.map(a => {
+      const prixEffectif = a.prix_applique ?? a.prix_vente;
+      return {
+        nom_produit: a.nom_produit,
+        quantite: a.quantity,
+        prix: prixEffectif,
+        sous_total: prixEffectif * a.quantity
+      };
+    }) || null;
     set({ isOpen: true, factureId, preloadedArticles: preloaded });
   },
   closeModal: () => {
