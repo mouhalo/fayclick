@@ -13,6 +13,7 @@ import { ModalPaiementQRCode } from '@/components/factures/ModalPaiementQRCode';
 import { PaymentContext } from '@/types/payment-wallet';
 import { onlineSellerService } from '@/services/online-seller.service';
 import { recuService } from '@/services/recu.service';
+import { encodeFactureParams } from '@/lib/url-encoder';
 
 interface PanierPublicProps {
   isOpen: boolean;
@@ -56,81 +57,108 @@ export default function PanierPublic({
     return telephone.length === 9 && /^7\d{8}$/.test(telephone) && articles.length > 0;
   };
 
+  // État pour stocker le contexte de la facture draft
+  const [draftContext, setDraftContext] = useState<{ id_facture: number; purl_success: string } | null>(null);
+
   // Anti-abus : cooldown 5s entre deux tentatives
-  const handlePayment = (method: 'OM' | 'WAVE') => {
+  // Crée la facture draft AVANT le paiement pour obtenir id_facture + purl_success
+  const handlePayment = async (method: 'OM' | 'WAVE') => {
     if (!isFormValid() || isSubmitting) return;
     const now = Date.now();
     if (now - lastSubmitTime < 5000) return;
     setIsSubmitting(true);
     setLastSubmitTime(now);
     setSelectedMethod(method);
-    setShowQRCode(true);
+
+    try {
+      const draft = await onlineSellerService.createDraftFacture({
+        id_structure: idStructure,
+        articles,
+        prenom: `Client_${telephone}`,
+        telephone,
+        montant: total,
+      });
+
+      setIdFacture(draft.id_facture);
+
+      const baseUrl = window.location.origin;
+      const recuToken = encodeFactureParams(idStructure, draft.id_facture);
+      const purlSuccess = `${baseUrl}/recu?token=${recuToken}`;
+
+      console.log('📋 [PANIER-PUBLIC] Facture draft créée:', draft.id_facture, '→ purl_success:', purlSuccess);
+
+      setDraftContext({ id_facture: draft.id_facture, purl_success: purlSuccess });
+      setShowQRCode(true);
+    } catch (err) {
+      console.error('❌ [PANIER-PUBLIC] Erreur création facture draft:', err);
+      setError('Erreur lors de la préparation du paiement');
+      setIsSubmitting(false);
+      setTimeout(() => setError(''), 5000);
+    }
   };
 
   const createPaymentContext = (): PaymentContext | null => {
-    if (articles.length === 0) return null;
-    const timestamp = Date.now();
+    if (articles.length === 0 || !draftContext) return null;
     return {
       facture: {
-        id_facture: 0,
-        num_facture: `PANIER-${idStructure}-${timestamp}`,
+        id_facture: draftContext.id_facture,
+        num_facture: `FAC-${draftContext.id_facture}`,
         nom_client: `Client_${telephone}`,
         tel_client: telephone,
         nom_structure: nomStructure,
         montant_total: total,
         montant_restant: total
       },
-      montant_acompte: total
+      montant_acompte: total,
+      purl_success: draftContext.purl_success,
     };
   };
 
   const handlePaymentComplete = async (
     statusResponse?: { data?: { uuid?: string; reference_externe?: string } },
     method?: 'OM' | 'WAVE',
-    articlesSnapshot?: ArticlePanier[],
+    _articlesSnapshot?: ArticlePanier[],
     totalSnapshot?: number
   ) => {
     setShowQRCode(false);
     setPageState('PAYING');
 
     const payMethod = method || selectedMethod;
-    const payArticles = articlesSnapshot || articles;
     const payTotal = totalSnapshot || total;
 
     try {
-      if (!payMethod) throw new Error('Methode de paiement manquante');
+      if (!payMethod || !draftContext) throw new Error('Methode de paiement ou facture draft manquante');
 
       const uuid = statusResponse?.data?.uuid || '';
       const ref = statusResponse?.data?.reference_externe || '';
       const timestamp = Date.now();
       const transactionId = `${payMethod}-PANIER-${idStructure}-${timestamp}`;
 
-      const result = await onlineSellerService.createFactureOnlinePanier({
+      // Étape 2 : enregistrer le paiement sur la facture draft existante
+      const result = await onlineSellerService.registerPaymentOnline({
         id_structure: idStructure,
-        articles: payArticles,
-        prenom: `Client_${telephone}`,
-        telephone,
-        montant_total: payTotal,
+        id_facture: draftContext.id_facture,
+        montant: payTotal,
         transaction_id: transactionId,
         uuid: uuid || ref || transactionId,
-        mode_paiement: payMethod
+        mode_paiement: payMethod,
+        telephone,
       });
 
       if (result.success) {
         setNumFacture(result.num_facture);
-        setIdFacture(result.id_facture);
         setPageState('SUCCESS');
 
-        const recuUrl = recuService.generateUrlPartage(idStructure, result.id_facture);
+        const recuUrl = recuService.generateUrlPartage(idStructure, draftContext.id_facture);
         console.log('🔗 [PANIER] Redirection vers reçu:', recuUrl);
         setTimeout(() => {
           window.location.href = recuUrl;
         }, 3000);
       } else {
-        throw new Error('Echec creation facture');
+        throw new Error('Echec enregistrement paiement');
       }
     } catch (err) {
-      console.error('Erreur creation facture panier:', err);
+      console.error('Erreur enregistrement paiement panier:', err);
       setPageState('SUCCESS');
       setNumFacture('En cours de traitement');
     }

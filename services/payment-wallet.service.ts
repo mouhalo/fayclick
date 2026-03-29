@@ -132,6 +132,7 @@ class PaymentWalletService {
         pServiceName: WALLET_SERVICE_MAP[method],
         pNomClient: context.facture.nom_client,
         pnom_structure: context.facture.nom_structure || 'FAYCLICK',
+        ...(context.purl_success && { purl_success: context.purl_success }),
       };
 
       console.log('🔄 Création de paiement wallet:', {

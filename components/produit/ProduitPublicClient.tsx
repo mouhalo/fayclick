@@ -15,7 +15,7 @@ import {
   Share2
 } from 'lucide-react';
 import Image from 'next/image';
-import { decodeProduitParams } from '@/lib/url-encoder';
+import { decodeProduitParams, encodeFactureParams } from '@/lib/url-encoder';
 import { onlineSellerService, ProduitPublic } from '@/services/online-seller.service';
 import { recuService } from '@/services/recu.service';
 import { ModalPaiementQRCode } from '@/components/factures/ModalPaiementQRCode';
@@ -99,9 +99,9 @@ export default function ProduitPublicClient({ token }: ProduitPublicClientProps)
     );
   };
 
-  // Lancer le paiement - génère le prénom automatiquement depuis le téléphone
+  // Lancer le paiement - crée la facture draft AVANT pour obtenir id_facture + purl_success
   // STORY-010 : Anti-abus - cooldown 5s entre deux tentatives
-  const handlePayment = (method: PaymentMethod) => {
+  const handlePayment = async (method: PaymentMethod) => {
     if (!isFormValid() || !produit || isSubmitting) return;
 
     const now = Date.now();
@@ -109,32 +109,63 @@ export default function ProduitPublicClient({ token }: ProduitPublicClientProps)
 
     setIsSubmitting(true);
     setLastSubmitTime(now);
-    setPrenom(`Client_${telephone}`);
+    const clientPrenom = `Client_${telephone}`;
+    setPrenom(clientPrenom);
     setSelectedPaymentMethod(method);
-    setShowQRCode(true);
+
+    try {
+      // Créer facture draft (IMPAYEE) AVANT le paiement pour obtenir id_facture
+      const draft = await onlineSellerService.createDraftFacture({
+        id_structure: idStructure,
+        id_produit: produit.id_produit,
+        quantite,
+        prenom: clientPrenom,
+        telephone,
+        montant: montantTotal,
+      });
+
+      setIdFacture(draft.id_facture);
+
+      // Construire purl_success avec le token du reçu
+      const baseUrl = window.location.origin;
+      const recuToken = encodeFactureParams(idStructure, draft.id_facture);
+      const purlSuccess = `${baseUrl}/recu?token=${recuToken}`;
+
+      console.log('📋 [PRODUIT-PUBLIC] Facture draft créée:', draft.id_facture, '→ purl_success:', purlSuccess);
+
+      // Stocker le contexte de paiement avec la vraie facture
+      setDraftContext({ id_facture: draft.id_facture, purl_success: purlSuccess });
+      setShowQRCode(true);
+    } catch (err) {
+      console.error('❌ [PRODUIT-PUBLIC] Erreur création facture draft:', err);
+      setError('Erreur lors de la préparation du paiement');
+      setIsSubmitting(false);
+      setTimeout(() => setError(''), 5000);
+    }
   };
 
-  // Contexte de paiement pour le modal QR
+  // État pour stocker le contexte de la facture draft
+  const [draftContext, setDraftContext] = useState<{ id_facture: number; purl_success: string } | null>(null);
+
+  // Contexte de paiement pour le modal QR — utilise la vraie facture draft
   const createPaymentContext = (): PaymentContext | null => {
-    if (!produit) return null;
-    // On crée un "faux" contexte facture car le modal attend ce format
-    // La vraie facture sera créée après le paiement
-    const timestamp = Date.now();
+    if (!produit || !draftContext) return null;
     return {
       facture: {
-        id_facture: 0, // Pas encore de facture
-        num_facture: `ON${idStructure}-${String(timestamp).slice(-8)}`,
-        nom_client: prenom.trim(),
+        id_facture: draftContext.id_facture,
+        num_facture: `FAC-${draftContext.id_facture}`,
+        nom_client: prenom.trim() || `Client_${telephone}`,
         tel_client: telephone,
         nom_structure: nomStructure,
         montant_total: montantTotal,
         montant_restant: montantTotal
       },
-      montant_acompte: montantTotal
+      montant_acompte: montantTotal,
+      purl_success: draftContext.purl_success,
     };
   };
 
-  // Callback après paiement réussi - créer la facture
+  // Callback après paiement réussi — la facture draft existe déjà, on enregistre le paiement
   // useCallback obligatoire pour éviter stale closure avec le polling ModalPaiementQRCode
   const handlePaymentComplete = useCallback(async (statusResponse?: {
     data?: {
@@ -148,8 +179,8 @@ export default function ProduitPublicClient({ token }: ProduitPublicClientProps)
     setPageState('PAYING');
 
     try {
-      if (!produit || !selectedPaymentMethod) {
-        throw new Error('Données manquantes');
+      if (!draftContext || !selectedPaymentMethod) {
+        throw new Error('Données manquantes (facture draft ou méthode)');
       }
 
       const uuid = statusResponse?.data?.uuid || '';
@@ -157,39 +188,34 @@ export default function ProduitPublicClient({ token }: ProduitPublicClientProps)
       const timestamp = Date.now();
       const transactionId = `${selectedPaymentMethod}-ONLINE-${idStructure}-${timestamp}`;
 
-      const result = await onlineSellerService.createFactureOnline({
+      // Étape 2 : enregistrer le paiement sur la facture draft existante
+      const result = await onlineSellerService.registerPaymentOnline({
         id_structure: idStructure,
-        id_produit: produit.id_produit,
-        quantite,
-        prenom: prenom.trim(),
-        telephone,
+        id_facture: draftContext.id_facture,
         montant: montantTotal,
         transaction_id: transactionId,
         uuid: uuid || referenceExterne || transactionId,
-        mode_paiement: selectedPaymentMethod as 'OM' | 'WAVE'
+        mode_paiement: selectedPaymentMethod as 'OM' | 'WAVE',
+        telephone,
       });
 
       if (result.success) {
         setNumFacture(result.num_facture);
-        setIdFacture(result.id_facture);
         setPageState('SUCCESS');
-
-        // Le reçu est créé automatiquement par add_acompte_facture1 côté BD
-        console.log('🧾 [PRODUIT-PUBLIC] Paiement + reçu enregistrés par add_acompte_facture1:', result.acompte);
+        console.log('🧾 [PRODUIT-PUBLIC] Paiement enregistré sur facture', draftContext.id_facture);
 
         // Transition vers mascotte après 2.5s
         setTimeout(() => setPageState('MASCOTTE'), 2500);
       } else {
-        throw new Error('Échec création facture');
+        throw new Error('Échec enregistrement paiement');
       }
     } catch (err) {
-      console.error('❌ [PRODUIT-PUBLIC] Erreur création facture:', err);
+      console.error('❌ [PRODUIT-PUBLIC] Erreur enregistrement paiement:', err);
       setPageState('SUCCESS');
       setNumFacture('En cours de traitement');
-      // Transition vers mascotte même en cas d'erreur (le paiement wallet a réussi)
       setTimeout(() => setPageState('MASCOTTE'), 2500);
     }
-  }, [produit, selectedPaymentMethod, idStructure, quantite, prenom, telephone, montantTotal]);
+  }, [draftContext, selectedPaymentMethod, idStructure, montantTotal, telephone]);
 
   const handlePaymentFailed = useCallback((errorMsg: string) => {
     console.error('❌ [PRODUIT-PUBLIC] Paiement échoué:', errorMsg);

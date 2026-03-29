@@ -131,6 +131,7 @@ export interface PaymentContext {
   payment_method?: PaymentMethod;
   payment_uuid?: string;
   qr_code?: string;
+  purl_success?: string;  // URL de redirection après paiement réussi (ventes publiques uniquement)
 }
 
 /**
