@@ -64,6 +64,31 @@ export interface CreateFactureOnlinePanierParams {
   mode_paiement: 'OM' | 'WAVE';
 }
 
+export interface CreateDraftFactureParams {
+  id_structure: number;
+  id_produit?: number;
+  articles?: ArticlePanier[];
+  quantite?: number;
+  prenom: string;
+  telephone: string;
+  montant: number;
+}
+
+export interface CreateDraftFactureResult {
+  success: boolean;
+  id_facture: number;
+}
+
+export interface RegisterPaymentParams {
+  id_structure: number;
+  id_facture: number;
+  montant: number;
+  transaction_id: string;
+  uuid: string;
+  mode_paiement: 'OM' | 'WAVE';
+  telephone: string;
+}
+
 export interface CreateFactureOnlineResult {
   success: boolean;
   id_facture: number;
@@ -397,6 +422,103 @@ class OnlineSellerService {
       console.error('❌ [ONLINE-SELLER] Erreur création facture panier:', error);
       if (error instanceof OnlineSellerException) throw error;
       throw new OnlineSellerException('Impossible de créer la facture', 500);
+    }
+  }
+
+  /**
+   * Étape 1 seule : Crée une facture draft (IMPAYEE) AVANT le paiement
+   * Permet d'obtenir id_facture pour construire purl_success
+   */
+  async createDraftFacture(params: CreateDraftFactureParams): Promise<CreateDraftFactureResult> {
+    try {
+      if (!params.telephone || !/^7\d{8}$/.test(params.telephone)) {
+        throw new OnlineSellerException('Numéro de téléphone invalide', 400);
+      }
+
+      const prenomSafe = params.prenom.replace(/'/g, "''");
+
+      // Construire articles_string
+      let articlesString: string;
+      if (params.articles && params.articles.length > 0) {
+        articlesString = params.articles
+          .map(a => `${a.id_produit}-${a.quantite}-${a.prix_vente}`)
+          .join('#') + '#';
+      } else if (params.id_produit && params.quantite) {
+        const prixUnitaire = params.montant / params.quantite;
+        articlesString = `${params.id_produit}-${params.quantite}-${prixUnitaire}#`;
+      } else {
+        throw new OnlineSellerException('Articles ou produit manquant', 400);
+      }
+
+      const createQuery = `
+        SELECT * FROM create_facture_online(
+          '${new Date().toISOString().split('T')[0]}',
+          ${params.id_structure},
+          '${params.telephone}',
+          '${prenomSafe}',
+          ${params.montant},
+          'Achat en ligne - ${prenomSafe}',
+          '${articlesString}'
+        )
+      `;
+      console.log('📋 [ONLINE-SELLER] Création facture draft:', createQuery);
+
+      const result = await DatabaseService.query(createQuery);
+      if (!result || result.length === 0) {
+        throw new OnlineSellerException('Aucune réponse de create_facture_online', 500);
+      }
+
+      const facture = this.parseResult(result[0] as Record<string, unknown>);
+      if (!facture.success && !facture.id_facture) {
+        throw new OnlineSellerException(facture.message || 'Erreur création facture draft', 500);
+      }
+
+      console.log('✅ [ONLINE-SELLER] Facture draft créée:', facture.id_facture);
+      return { success: true, id_facture: facture.id_facture };
+    } catch (error) {
+      console.error('❌ [ONLINE-SELLER] Erreur création facture draft:', error);
+      if (error instanceof OnlineSellerException) throw error;
+      throw new OnlineSellerException('Impossible de créer la facture', 500);
+    }
+  }
+
+  /**
+   * Étape 2 seule : Enregistre le paiement sur une facture existante
+   * Appeler APRÈS confirmation du paiement wallet
+   */
+  async registerPaymentOnline(params: RegisterPaymentParams): Promise<CreateFactureOnlineResult> {
+    try {
+      const acompteQuery = `
+        SELECT * FROM add_acompte_facture1(
+          ${params.id_structure},
+          ${params.id_facture},
+          ${params.montant},
+          '${params.transaction_id}',
+          '${params.uuid}',
+          '${params.mode_paiement}',
+          '${params.telephone}'
+        )
+      `;
+      console.log('💳 [ONLINE-SELLER] Enregistrement paiement facture', params.id_facture);
+
+      const result = await DatabaseService.query(acompteQuery);
+      let acompteData = null;
+
+      if (result && result.length > 0) {
+        acompteData = this.parseResult(result[0] as Record<string, unknown>);
+      }
+
+      const numFacture = acompteData?.facture?.num_facture || `FAC-${params.id_facture}`;
+
+      return {
+        success: true,
+        id_facture: params.id_facture,
+        num_facture: numFacture,
+        acompte: acompteData
+      };
+    } catch (error) {
+      console.error('❌ [ONLINE-SELLER] Erreur enregistrement paiement:', error);
+      throw new OnlineSellerException('Impossible d\'enregistrer le paiement', 500);
     }
   }
 
