@@ -4,7 +4,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Minus, Plus, ShoppingCart, CheckCircle, ExternalLink, Shield } from 'lucide-react';
 import Image from 'next/image';
@@ -60,17 +60,30 @@ export default function PanierPublic({
   // État pour stocker le contexte de la facture draft
   const [draftContext, setDraftContext] = useState<{ id_facture: number; purl_success: string } | null>(null);
 
+  // Verrous synchrones pour empêcher double création/enregistrement
+  const isCreatingDraft = useRef(false);
+  const isRegisteringPayment = useRef(false);
+
   // Anti-abus : cooldown 5s entre deux tentatives
   // Crée la facture draft AVANT le paiement pour obtenir id_facture + purl_success
   const handlePayment = async (method: 'OM' | 'WAVE') => {
-    if (!isFormValid() || isSubmitting) return;
+    if (!isFormValid() || isSubmitting || isCreatingDraft.current) return;
     const now = Date.now();
     if (now - lastSubmitTime < 5000) return;
+
+    isCreatingDraft.current = true;
     setIsSubmitting(true);
     setLastSubmitTime(now);
     setSelectedMethod(method);
 
     try {
+      // Réutiliser la facture draft existante si on re-clique après fermeture du modal
+      if (draftContext) {
+        console.log('♻️ [PANIER-PUBLIC] Réutilisation facture draft existante:', draftContext.id_facture);
+        setShowQRCode(true);
+        return;
+      }
+
       const draft = await onlineSellerService.createDraftFacture({
         id_structure: idStructure,
         articles,
@@ -94,6 +107,8 @@ export default function PanierPublic({
       setError('Erreur lors de la préparation du paiement');
       setIsSubmitting(false);
       setTimeout(() => setError(''), 5000);
+    } finally {
+      isCreatingDraft.current = false;
     }
   };
 
@@ -120,6 +135,13 @@ export default function PanierPublic({
     _articlesSnapshot?: ArticlePanier[],
     totalSnapshot?: number
   ) => {
+    // Protection contre double appel
+    if (isRegisteringPayment.current) {
+      console.warn('⚠️ [PANIER-PUBLIC] registerPayment déjà en cours, ignoré');
+      return;
+    }
+    isRegisteringPayment.current = true;
+
     setShowQRCode(false);
     setPageState('PAYING');
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ShoppingBag,
@@ -99,14 +99,19 @@ export default function ProduitPublicClient({ token }: ProduitPublicClientProps)
     );
   };
 
+  // Verrou synchrone pour empêcher le double clic (setState est async)
+  const isCreatingDraft = useRef(false);
+
   // Lancer le paiement - crée la facture draft AVANT pour obtenir id_facture + purl_success
   // STORY-010 : Anti-abus - cooldown 5s entre deux tentatives
   const handlePayment = async (method: PaymentMethod) => {
-    if (!isFormValid() || !produit || isSubmitting) return;
+    if (!isFormValid() || !produit || isSubmitting || isCreatingDraft.current) return;
 
     const now = Date.now();
     if (now - lastSubmitTime < 5000) return;
 
+    // Verrou synchrone + state async
+    isCreatingDraft.current = true;
     setIsSubmitting(true);
     setLastSubmitTime(now);
     const clientPrenom = `Client_${telephone}`;
@@ -114,6 +119,13 @@ export default function ProduitPublicClient({ token }: ProduitPublicClientProps)
     setSelectedPaymentMethod(method);
 
     try {
+      // Réutiliser la facture draft existante si on re-clique après fermeture du modal
+      if (draftContext) {
+        console.log('♻️ [PRODUIT-PUBLIC] Réutilisation facture draft existante:', draftContext.id_facture);
+        setShowQRCode(true);
+        return;
+      }
+
       // Créer facture draft (IMPAYEE) AVANT le paiement pour obtenir id_facture
       const draft = await onlineSellerService.createDraftFacture({
         id_structure: idStructure,
@@ -141,6 +153,8 @@ export default function ProduitPublicClient({ token }: ProduitPublicClientProps)
       setError('Erreur lors de la préparation du paiement');
       setIsSubmitting(false);
       setTimeout(() => setError(''), 5000);
+    } finally {
+      isCreatingDraft.current = false;
     }
   };
 
@@ -165,6 +179,9 @@ export default function ProduitPublicClient({ token }: ProduitPublicClientProps)
     };
   };
 
+  // Verrou pour empêcher double enregistrement du paiement
+  const isRegisteringPayment = useRef(false);
+
   // Callback après paiement réussi — la facture draft existe déjà, on enregistre le paiement
   // useCallback obligatoire pour éviter stale closure avec le polling ModalPaiementQRCode
   const handlePaymentComplete = useCallback(async (statusResponse?: {
@@ -174,6 +191,13 @@ export default function ProduitPublicClient({ token }: ProduitPublicClientProps)
       telephone?: string;
     }
   }) => {
+    // Protection contre double appel
+    if (isRegisteringPayment.current) {
+      console.warn('⚠️ [PRODUIT-PUBLIC] registerPayment déjà en cours, ignoré');
+      return;
+    }
+    isRegisteringPayment.current = true;
+
     console.log('💳 [PRODUIT-PUBLIC] Paiement complété:', statusResponse);
     setShowQRCode(false);
     setPageState('PAYING');
