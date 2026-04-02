@@ -144,7 +144,7 @@ export function ModalImpressionProforma({
       ${proforma.mt_remise > 0 ? `
       <tr>
         <td colspan="3" style="padding:3px 6px;text-align:right;font-size:11px;">Sous-total:</td>
-        <td style="padding:3px 6px;text-align:right;font-size:11px;">${(proforma.montant + proforma.mt_remise).toLocaleString('fr-FR')} FCFA</td>
+        <td style="padding:3px 6px;text-align:right;font-size:11px;">${proforma.montant.toLocaleString('fr-FR')} FCFA</td>
       </tr>
       <tr>
         <td colspan="3" style="padding:3px 6px;text-align:right;font-size:11px;color:#e65100;">Remise:</td>
