@@ -949,6 +949,160 @@ html, body {
     border-color: rgba(255, 255, 255, 0.3);
   }
 
+  /* === Multi-country phone input (Sprint 3 CEDEAO) === */
+  .reg_country-trigger {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.875rem 0.75rem;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-right: none;
+    border-top-left-radius: 0.75rem;
+    border-bottom-left-radius: 0.75rem;
+    color: rgba(255, 255, 255, 0.95);
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-width: 110px;
+    white-space: nowrap;
+  }
+
+  .reg_country-trigger:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.12);
+  }
+
+  .reg_country-trigger:focus-visible {
+    outline: 2px solid #10b981;
+    outline-offset: 2px;
+  }
+
+  .reg_country-trigger[aria-expanded="true"] {
+    background: rgba(16, 185, 129, 0.15);
+    border-color: rgba(16, 185, 129, 0.4);
+  }
+
+  .reg_country-trigger:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .reg_country-dropdown {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    right: 0;
+    background: rgba(20, 40, 30, 0.95);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    border-radius: 0.875rem;
+    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.4);
+    z-index: 50;
+    padding: 0.375rem;
+    overflow: hidden;
+  }
+
+  .reg_country-dropdown ul {
+    max-height: 280px;
+    overflow-y: auto;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .reg_country-dropdown ul::-webkit-scrollbar {
+    width: 6px;
+  }
+  .reg_country-dropdown ul::-webkit-scrollbar-thumb {
+    background: rgba(16, 185, 129, 0.4);
+    border-radius: 3px;
+  }
+
+  .reg_country-search-wrap {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    margin-bottom: 0.25rem;
+  }
+
+  .reg_country-search {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: white;
+    font-size: 0.875rem;
+  }
+  .reg_country-search::placeholder {
+    color: rgba(255, 255, 255, 0.4);
+  }
+
+  .reg_country-option {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    padding: 0.625rem 0.75rem;
+    border-radius: 0.5rem;
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: background 0.1s ease;
+  }
+
+  .reg_country-option[data-focused="true"],
+  .reg_country-option:hover {
+    background: rgba(16, 185, 129, 0.2);
+  }
+
+  .reg_country-option[aria-selected="true"] {
+    background: rgba(16, 185, 129, 0.28);
+    font-weight: 600;
+  }
+
+  .reg_country-option .flag {
+    font-size: 1.25rem;
+    line-height: 1;
+  }
+
+  .reg_country-option .dial {
+    color: rgba(255, 255, 255, 0.65);
+    min-width: 44px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .reg_country-option .check {
+    color: #10b981;
+    flex-shrink: 0;
+  }
+
+  @keyframes reg_country-flash {
+    0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.5); }
+    100% { box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
+  }
+
+  .reg_country-trigger.reg_country-flash {
+    animation: reg_country-flash 400ms ease-out;
+  }
+
+  @media (max-width: 360px) {
+    .reg_country-trigger {
+      min-width: 96px;
+      padding: 0.75rem 0.5rem;
+      font-size: 0.8125rem;
+    }
+    .reg_country-dropdown ul {
+      max-height: 240px;
+    }
+    .reg_country-option {
+      padding: 0.5rem 0.625rem;
+      font-size: 0.8125rem;
+    }
+  }
+
   /* Step Animations */
   .reg_step-enter {
     animation: reg_step-enter 0.4s ease-out forwards;

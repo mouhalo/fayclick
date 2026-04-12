@@ -26,6 +26,10 @@ export interface RegistrationData {
   p_nom_service?: string;      // Type de service (OPTIONNEL, défaut: "SERVICES")
   p_code_promo?: string;       // Code promo partenaire (OPTIONNEL, défaut: "FAYCLICK")
   p_id_structure?: number;     // ID structure (0 pour nouvelle inscription)
+
+  // Multi-pays CEDEAO (Sprint 2)
+  p_code_iso_pays?: string;    // Code ISO alpha-2 (défaut 'SN') — obligatoire côté caller
+  p_email_gmail?: string;      // Email Gmail (obligatoire si p_code_iso_pays !== 'SN')
 }
 
 // Interface pour le résultat de la fonction PostgreSQL add_edit_inscription
@@ -60,6 +64,11 @@ export interface RegistrationFormData {
   address: string;             // Adresse complète
   logoUrl?: string;            // URL du logo uploadé (optionnel)
   codePromo?: string;          // Code parrainage partenaire (optionnel)
+
+  // Multi-pays CEDEAO (Sprint 2)
+  countryCode: string;         // Code ISO pays sélectionné (défaut 'SN')
+  email?: string;              // Email de contact (si Gmail → utilisé pour OTP pays ≠ SN)
+  emailGmail?: string;         // Email Gmail dédié OTP (si countryCode !== 'SN')
 
   // Étape 3: Récapitulatif et validation
   acceptTerms: boolean;        // Acceptation CGU

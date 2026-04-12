@@ -82,6 +82,16 @@ export interface AdminStructureItem {
     nombre_factures: number;
     chiffre_affaire: number;
   };
+  // Multi-pays CEDEAO (Sprint 2)
+  code_iso_pays?: string;
+  pays?: {
+    nom_fr: string;
+    devise_code: string;
+    devise_symbole: string;
+    indicatif_tel: string;
+    sms_supporte: boolean;
+    emoji_drapeau: string;
+  };
 }
 
 export interface AdminListStructuresResponse {
@@ -762,6 +772,16 @@ export interface StructureDetailData {
   etat_abonnement: StructureEtatAbonnement | null;
   abonnements?: {
     coalesce: StructureAbonnementHistorique[];
+  };
+  // Multi-pays CEDEAO (Sprint 2)
+  code_iso_pays?: string;
+  pays?: {
+    nom_fr: string;
+    devise_code: string;
+    devise_symbole: string;
+    indicatif_tel: string;
+    sms_supporte: boolean;
+    emoji_drapeau: string;
   };
 }
 

@@ -258,7 +258,7 @@ export default function AdminDashboard() {
   const [debouncedCAValue, setDebouncedCAValue] = useState<string>('');
 
   // Tri Structures
-  type StructureSortColumn = 'nom_structure' | 'type_structure' | 'abonnement' | 'produits' | 'ca';
+  type StructureSortColumn = 'nom_structure' | 'date_creation' | 'abonnement' | 'produits' | 'ca';
   const [structureSortColumn, setStructureSortColumn] = useState<StructureSortColumn | null>(null);
   const [structureSortDirection, setStructureSortDirection] = useState<'asc' | 'desc'>('asc');
 
@@ -474,9 +474,9 @@ export default function AdminDashboard() {
           aValue = a.nom_structure.toLowerCase();
           bValue = b.nom_structure.toLowerCase();
           break;
-        case 'type_structure':
-          aValue = a.type_structure.toLowerCase();
-          bValue = b.type_structure.toLowerCase();
+        case 'date_creation':
+          aValue = a.date_creation || '';
+          bValue = b.date_creation || '';
           break;
         case 'abonnement':
           aValue = a.abonnement.statut.toLowerCase();
@@ -936,8 +936,8 @@ export default function AdminDashboard() {
                         </button>
                       </th>
                       <th className="pb-3 font-medium">
-                        <button onClick={() => handleStructureSort('type_structure')} className="flex items-center gap-1.5 hover:text-white transition-colors">
-                          Type {getStructureSortIcon('type_structure')}
+                        <button onClick={() => handleStructureSort('date_creation')} className="flex items-center gap-1.5 hover:text-white transition-colors">
+                          Créée le {getStructureSortIcon('date_creation')}
                         </button>
                       </th>
                       <th className="pb-3 font-medium">
@@ -979,7 +979,9 @@ export default function AdminDashboard() {
                           </div>
                         </td>
                         <td className="py-3">
-                          <span className="text-sm text-gray-300">{s.type_structure}</span>
+                          <span className="text-sm text-gray-300">
+                            {s.date_creation ? new Date(s.date_creation).toLocaleDateString('fr-FR') : '-'}
+                          </span>
                         </td>
                         <td className="py-3">
                           <StatutBadge statut={s.abonnement.statut} />

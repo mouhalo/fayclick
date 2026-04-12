@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Phone, Building2, Send, CheckCircle, AlertCircle, ShieldAlert } from 'lucide-react';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { registrationService } from '@/services/registration.service';
-import smsService from '@/services/sms.service';
+import otpRouter from '@/services/otp-router.service';
 
 interface ModalRecoveryOTPProps {
   isOpen: boolean;
@@ -45,6 +45,8 @@ export function ModalRecoveryOTP({ isOpen, onClose, onSuccess }: ModalRecoveryOT
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [step, setStep] = useState<'form' | 'success'>('form');
+  const [sentChannel, setSentChannel] = useState<'sms' | 'email'>('sms');
+  const [sentTo, setSentTo] = useState<string>('');
 
   useEffect(() => {
     if (isOpen) {
@@ -106,11 +108,27 @@ export function ModalRecoveryOTP({ isOpen, onClose, onSuccess }: ModalRecoveryOT
         return;
       }
 
-      // Générer et envoyer le nouveau code OTP
+      // Générer et router l'OTP (SMS si SN, Email Gmail sinon)
       const otpCode = registrationService.generateOTPCode();
-      const message = `FAYCLICK - Votre nouveau code de connexion rapide est : ${otpCode}. Ne le partagez avec personne.`;
+      const codeIsoPays = result.codeIsoPays || 'SN';
+      const email = result.email || null;
 
-      await smsService.sendDirectSMS(cleanPhone, message);
+      try {
+        const routed = await otpRouter.sendOTP({
+          codeIsoPays,
+          phone: cleanPhone,
+          email,
+          otpCode,
+          context: 'recovery',
+        });
+        setSentChannel(routed.channel);
+        setSentTo(routed.recipient);
+      } catch (otpErr: any) {
+        // Si email manquant pour un pays non-SN → message clair à l'utilisateur
+        setError(otpErr?.message || 'Impossible d\'envoyer le code de récupération');
+        setIsLoading(false);
+        return;
+      }
 
       // Stocker le PIN dans localStorage
       const pinData = { pin: otpCode, login: result.login, pwd: '0000', lastMode: 'pin' };
@@ -316,21 +334,21 @@ export function ModalRecoveryOTP({ isOpen, onClose, onSuccess }: ModalRecoveryOT
                     <CheckCircle className="w-8 h-8 text-white" />
                   </div>
                   <h3 className={`${styles.title} font-bold text-white mb-2`}>
-                    Code envoyé par SMS !
+                    Code envoyé par {sentChannel === 'email' ? 'Email' : 'SMS'} !
                   </h3>
 
                   <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 mb-4">
                     <Phone className="w-6 h-6 text-amber-400 mx-auto mb-2" />
                     <p className={`${styles.subtitle} text-orange-100`}>
-                      Un nouveau code à 5 chiffres a été envoyé au
+                      Un nouveau code à 5 chiffres a été envoyé {sentChannel === 'email' ? 'à' : 'au'}
                     </p>
                     <p className={`${styles.subtitle} font-bold text-white mt-1`}>
-                      +221 {telephone}
+                      {sentChannel === 'email' ? sentTo : `+221 ${telephone}`}
                     </p>
                   </div>
 
                   <p className={`${styles.subtitle} text-orange-200/80 mb-1`}>
-                    Vérifiez vos SMS et saisissez le code reçu
+                    {sentChannel === 'email' ? 'Vérifiez votre boîte Gmail et saisissez le code reçu' : 'Vérifiez vos SMS et saisissez le code reçu'}
                   </p>
                   <p className={`${styles.subtitle} text-orange-200/60 text-xs`}>
                     Ne partagez ce code avec personne
