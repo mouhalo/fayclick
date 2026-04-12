@@ -110,6 +110,22 @@ export class RegistrationService {
       errors.push('Téléphone Orange Money requis (7 à 10 chiffres)');
     }
 
+    // Validation pays (Sprint 2 multi-pays CEDEAO)
+    const codeIso = (data.p_code_iso_pays || 'SN').trim().toUpperCase();
+    if (codeIso.length !== 2) {
+      errors.push('Code pays ISO (2 lettres) invalide');
+    }
+
+    // Validation email Gmail strict si pays ≠ SN
+    if (codeIso !== 'SN') {
+      const email = (data.p_email_gmail || data.p_email || '').trim().toLowerCase();
+      if (!email) {
+        errors.push('Email Gmail requis pour les inscriptions hors Sénégal');
+      } else if (!/^[^\s@]+@gmail\.com$/i.test(email)) {
+        errors.push('Seules les adresses @gmail.com sont acceptées pour les inscriptions hors Sénégal');
+      }
+    }
+
     if (errors.length > 0) {
       throw new ApiException(`Erreurs de validation: ${errors.join(', ')}`, 400);
     }
@@ -119,6 +135,13 @@ export class RegistrationService {
    * Formate les données avant soumission
    */
   private formatRegistrationData(data: RegistrationData): RegistrationData {
+    const codeIso = (data.p_code_iso_pays || 'SN').toUpperCase().trim();
+    const emailGmail = (data.p_email_gmail || '').trim().toLowerCase();
+    // Si pays ≠ SN, on force p_email = email_gmail pour cohérence DB (contrainte CHECK côté DB)
+    const finalEmail = codeIso !== 'SN'
+      ? emailGmail
+      : (data.p_email || '').trim();
+
     return {
       ...data,
       // Nom structure en majuscules
@@ -131,11 +154,14 @@ export class RegistrationService {
       p_mobile_wave: data.p_mobile_wave || '',
       p_numautorisatioon: data.p_numautorisatioon || '',
       p_nummarchand: data.p_nummarchand || '',
-      p_email: data.p_email || '',
+      p_email: finalEmail,
       p_logo: data.p_logo || '',
       p_nom_service: data.p_nom_service || 'SERVICES',
       p_code_promo: data.p_code_promo?.toUpperCase().trim() || 'FAYCLICK',
-      p_id_structure: 0 // Toujours 0 pour une nouvelle inscription
+      p_id_structure: 0, // Toujours 0 pour une nouvelle inscription
+      // Multi-pays CEDEAO (Sprint 2)
+      p_code_iso_pays: codeIso,
+      p_email_gmail: emailGmail,
     };
   }
 
@@ -155,10 +181,11 @@ export class RegistrationService {
       // 2. Formatage des données
       const formattedData = this.formatRegistrationData(registrationData);
 
-      // 3. Construction de la requête SQL pour add_edit_inscription
+      // 3. Construction de la requête SQL pour add_edit_inscription_v2 (Sprint 2 multi-pays)
       // Ordre des paramètres: id_type, nom_structure, adresse, mobile_om, mobile_wave,
-      // numautorisatioon, nummarchand, email, logo, nom_service, code_promo, id_structure
-      const query = `SELECT add_edit_inscription(
+      // numautorisatioon, nummarchand, email, logo, nom_service, code_promo, id_structure,
+      // code_iso_pays (13e param — NEW)
+      const query = `SELECT add_edit_inscription_v2(
         ${formattedData.p_id_type}::integer,
         '${formattedData.p_nom_structure}'::varchar,
         '${formattedData.p_adresse}'::varchar,
@@ -170,7 +197,8 @@ export class RegistrationService {
         '${formattedData.p_logo}'::varchar,
         '${formattedData.p_nom_service}'::varchar,
         '${formattedData.p_code_promo}'::varchar,
-        ${formattedData.p_id_structure}::integer
+        ${formattedData.p_id_structure}::integer,
+        '${formattedData.p_code_iso_pays}'::char(2)
       ) AS message;`;
 
       console.log('📤 [REGISTRATION] Exécution requête inscription');
@@ -301,13 +329,14 @@ export class RegistrationService {
    * Recherche une structure par son nom et vérifie le numéro de téléphone OM
    * Retourne le login de l'admin (id_profil = 1) si trouvé et téléphone correspond
    */
-  async getStructureAdminByName(nomStructure: string, telephone: string): Promise<{ found: boolean; login?: string }> {
+  async getStructureAdminByName(nomStructure: string, telephone: string): Promise<{ found: boolean; login?: string; codeIsoPays?: string; email?: string }> {
     try {
       const escapedName = nomStructure.toUpperCase().trim().replace(/'/g, "''");
 
       // Étape 1 : Chercher la structure via la vue list_structures
+      // (code_iso_pays + email remontés en Sprint 3 pour routage OTP multi-pays)
       const structQuery = `
-        SELECT id_structure, mobile_om
+        SELECT id_structure, mobile_om, code_iso_pays, email
         FROM list_structures
         WHERE UPPER(nom_structure) = '${escapedName}'
         LIMIT 1;
@@ -321,7 +350,7 @@ export class RegistrationService {
         return { found: false };
       }
 
-      const struct = structResult[0] as { id_structure: number; mobile_om: string };
+      const struct = structResult[0] as { id_structure: number; mobile_om: string; code_iso_pays?: string; email?: string };
       const cleanInput = telephone.replace(/\D/g, '');
       const cleanStored = (struct.mobile_om || '').replace(/\D/g, '');
 
@@ -355,7 +384,12 @@ export class RegistrationService {
 
       const login = admin.login || admin.username;
       console.log('✅ [REGISTRATION] Structure admin trouvé:', login);
-      return { found: true, login };
+      return {
+        found: true,
+        login,
+        codeIsoPays: (struct.code_iso_pays || 'SN').toUpperCase(),
+        email: struct.email || undefined,
+      };
     } catch (error) {
       console.error('❌ [REGISTRATION] Erreur recherche structure admin:', error);
       return { found: false };

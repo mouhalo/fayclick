@@ -14,7 +14,8 @@ import {
   ChevronLeft,
   Sparkles,
   Home,
-  Tag
+  Tag,
+  Mail
 } from 'lucide-react';
 import {
   RegistrationFormData,
@@ -23,7 +24,9 @@ import {
 import LogoFayclick from '@/components/ui/LogoFayclick';
 import { UploadResult, UploadProgress } from '@/types/upload.types';
 import registrationService from '@/services/registration.service';
-import smsService from '@/services/sms.service';
+import otpRouter from '@/services/otp-router.service';
+import { validatePhoneForPays, PAYS_DEFAULT_CODE, getPaysByCode } from '@/types/pays';
+import CountryPhoneInput from '@/components/register/CountryPhoneInput';
 import SuccessModal from '@/components/ui/SuccessModal';
 import LogoUpload from '@/components/ui/LogoUpload';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
@@ -67,8 +70,21 @@ export default function RegisterPage() {
     address: '',
     logoUrl: '',
     codePromo: '',
+    countryCode: PAYS_DEFAULT_CODE,
+    emailGmail: '',
     acceptTerms: false,
   });
+
+  // Raccourcis
+  const countryCode = formData.countryCode;
+  const emailGmail = formData.emailGmail || '';
+
+  // État "touched" pour l'email (validation affichée après 1er blur)
+  const [emailTouched, setEmailTouched] = useState(false);
+
+  // Regex Gmail strict
+  const GMAIL_REGEX = /^[^\s@]+@gmail\.com$/i;
+  const isEmailValid = GMAIL_REGEX.test(emailGmail.trim().toLowerCase());
 
   // Validation states
   const [nameCheckState, setNameCheckState] = useState<{
@@ -86,14 +102,20 @@ export default function RegisterPage() {
   });
 
   // Success modal
-  const [successModal, setSuccessModal] = useState({
+  const [successModal, setSuccessModal] = useState<{
+    isOpen: boolean; message: string; login: string; password: string;
+    structureName: string; otpCode: string; phoneOM: string;
+    otpChannel: 'sms' | 'email'; otpRecipient: string;
+  }>({
     isOpen: false,
     message: '',
     login: '',
     password: '',
     structureName: '',
     otpCode: '',
-    phoneOM: ''
+    phoneOM: '',
+    otpChannel: 'sms',
+    otpRecipient: ''
   });
 
   // Refs
@@ -196,6 +218,21 @@ export default function RegisterPage() {
     }));
   };
 
+  // Handlers CountryPhoneInput
+  const handlePhoneChange = (phone: string) => {
+    setFormData(prev => ({ ...prev, phoneOM: phone }));
+  };
+
+  const handleCountryChange = (code: string) => {
+    setFormData(prev => ({ ...prev, countryCode: code }));
+    // Reset "touched" quand on revient à SN (masque l'email)
+    if (code === 'SN') setEmailTouched(false);
+  };
+
+  const handleEmailGmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData(prev => ({ ...prev, emailGmail: e.target.value.trim().toLowerCase() }));
+  };
+
   const handleLogoUploadComplete = (result: UploadResult) => {
     if (result.success && result.url) {
       if (result.url.startsWith('data:')) {
@@ -241,9 +278,16 @@ export default function RegisterPage() {
           setError('Ce nom de structure est déjà pris');
           return false;
         }
-        if (!formData.phoneOM || !registrationService.validateMobilePhone(formData.phoneOM)) {
-          setError('Téléphone Orange Money invalide (7 à 10 chiffres)');
+        if (!formData.phoneOM || !validatePhoneForPays(formData.phoneOM, countryCode)) {
+          const pays = getPaysByCode(countryCode);
+          setError(`Numéro de téléphone invalide pour ${pays?.nom_fr || 'le pays sélectionné'}`);
           return false;
+        }
+        if (countryCode !== 'SN') {
+          if (!emailGmail || !isEmailValid) {
+            setError('Email Gmail requis pour les inscriptions hors Sénégal (ex: vous@gmail.com)');
+            return false;
+          }
         }
         break;
       case 2:
@@ -294,7 +338,11 @@ export default function RegisterPage() {
         p_mobile_wave: formData.phoneOM,                 // Auto-copie du OM
         p_nom_service: 'SERVICES',                       // Forcé
         p_logo: formData.logoUrl || '',
-        p_code_promo: formData.codePromo?.toUpperCase().trim() || 'FAYCLICK'
+        p_code_promo: formData.codePromo?.toUpperCase().trim() || 'FAYCLICK',
+        // Multi-pays CEDEAO (Sprint 3)
+        p_code_iso_pays: countryCode,
+        p_email_gmail: countryCode !== 'SN' ? emailGmail : '',
+        p_email: countryCode !== 'SN' ? emailGmail : ''
       };
 
       const result = await registrationService.registerMerchant(registrationData);
@@ -315,13 +363,23 @@ export default function RegisterPage() {
         localStorage.setItem('fayclick_quick_pin', btoa(pinData));
       }
 
-      // Envoyer le SMS OTP
+      // Envoi OTP via routeur (SMS si SN, Email Gmail sinon)
       const phoneNumber = formData.phoneOM;
-      const smsMessage = `Bienvenue sur FayClick ! Votre code de connexion rapide est : ${otpCode}. Utilisez-le pour vous connecter facilement. Ne le partagez pas.`;
+      let otpChannel: 'sms' | 'email' = countryCode === 'SN' ? 'sms' : 'email';
+      let otpRecipient = countryCode === 'SN' ? phoneNumber : emailGmail;
       try {
-        await smsService.sendDirectSMS(phoneNumber, smsMessage);
-      } catch (smsError) {
-        console.warn('SMS OTP non envoyé (non bloquant):', smsError);
+        const routed = await otpRouter.sendOTP({
+          codeIsoPays: countryCode,
+          phone: phoneNumber,
+          email: countryCode !== 'SN' ? emailGmail : null,
+          otpCode,
+          context: 'registration',
+          structureName: formData.businessName,
+        });
+        otpChannel = routed.channel;
+        otpRecipient = routed.recipient;
+      } catch (otpError) {
+        console.warn('OTP non envoyé (non bloquant):', otpError);
       }
 
       // Celebration confettis AVANT le SuccessModal
@@ -335,7 +393,9 @@ export default function RegisterPage() {
           password,
           structureName: formData.businessName,
           otpCode,
-          phoneOM: phoneNumber
+          phoneOM: phoneNumber,
+          otpChannel,
+          otpRecipient,
         });
       }, 2800);
 
@@ -359,8 +419,11 @@ export default function RegisterPage() {
       address: '',
       logoUrl: '',
       codePromo: '',
+      countryCode: PAYS_DEFAULT_CODE,
+      emailGmail: '',
       acceptTerms: false,
     });
+    setEmailTouched(false);
     setLogoUploadState({
       isUploaded: false,
       fileName: '',
@@ -391,8 +454,10 @@ export default function RegisterPage() {
   const [direction, setDirection] = useState(0);
 
   // Step 1 validation for button
+  const phoneValidForCountry = validatePhoneForPays(formData.phoneOM, countryCode);
+  const emailValidIfNeeded = countryCode === 'SN' || (emailGmail.length > 0 && isEmailValid);
   const isStep1Valid = businessNameValidation.isValid && !nameCheckState.checking &&
-    formData.phoneOM.length >= 7 && registrationService.validateMobilePhone(formData.phoneOM);
+    phoneValidForCountry && emailValidIfNeeded;
 
   return (
     <>
@@ -456,11 +521,11 @@ export default function RegisterPage() {
         </header>
 
         {/* Main Content */}
-        <main className="max-w-lg mx-auto px-4 py-6 md:py-10 relative z-10">
+        <main className="max-w-lg mx-auto px-4 py-3 md:py-10 relative z-10">
           <form onSubmit={step === 2 ? handleSubmit : (e) => { e.preventDefault(); nextStep(); }}>
 
             {/* Glass Card */}
-            <div className="reg_glass-card p-6 md:p-8 mb-6">
+            <div className="reg_glass-card p-4 md:p-8 mb-4">
               <AnimatePresence mode="wait" custom={direction}>
                 {step === 1 ? (
                   <motion.div
@@ -470,29 +535,29 @@ export default function RegisterPage() {
                     initial="enter"
                     animate="center"
                     exit="exit"
-                    className="space-y-6"
+                    className="space-y-3 md:space-y-6"
                   >
                     {/* Welcome */}
-                    <div className="text-center space-y-3">
+                    <div className="text-center space-y-1.5 md:space-y-3">
                       <motion.div
                         initial={{ scale: 0 }}
                         animate={{ scale: 1 }}
                         transition={{ type: 'spring', delay: 0.1 }}
-                        className="inline-flex items-center justify-center w-16 h-16 rounded-full text-3xl shadow-lg"
+                        className="inline-flex items-center justify-center w-12 h-12 md:w-16 md:h-16 rounded-full text-2xl md:text-3xl shadow-lg"
                         style={{ background: 'linear-gradient(135deg, #10b981, #14b8a6)' }}
                       >
                         🏪
                       </motion.div>
-                      <h2 className="text-2xl md:text-3xl font-bold text-white">
+                      <h2 className="text-xl md:text-3xl font-bold text-white">
                         Votre Commerce
                       </h2>
-                      <p className="text-green-200/70 max-w-md mx-auto text-sm">
+                      <p className="text-green-200/70 max-w-md mx-auto text-xs md:text-sm">
                         Commencez par donner un nom à votre structure
                       </p>
                     </div>
 
                     {/* Business Name */}
-                    <div className="space-y-3">
+                    <div className="space-y-1.5 md:space-y-3">
                       <label className="block text-green-100 font-semibold text-sm">
                         Nom de votre commerce <span className="text-red-400">*</span>
                       </label>
@@ -567,35 +632,77 @@ export default function RegisterPage() {
                       </div>
                     </div>
 
-                    {/* Phone OM */}
-                    <div className="space-y-3">
+                    {/* Phone OM — multi-pays CEDEAO */}
+                    <div className="space-y-1.5 md:space-y-3">
                       <label className="flex items-center gap-2 text-green-100 font-semibold text-sm">
                         <Phone className="w-4 h-4 text-emerald-400" />
                         Téléphone Orange Money <span className="text-red-400">*</span>
                       </label>
-                      <div className="flex">
-                        <span className="inline-flex items-center px-3 text-green-200 rounded-l-xl text-sm font-medium" style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)', borderRight: 'none' }}>
-                          +221
-                        </span>
-                        <input
-                          type="tel"
-                          name="phoneOM"
-                          value={formData.phoneOM}
-                          onChange={handleChange}
-                          className="reg_glass-input flex-1"
-                          style={{ borderTopLeftRadius: 0, borderBottomLeftRadius: 0 }}
-                          placeholder="77 123 45 67"
-                          maxLength={10}
-                          required
-                        />
-                      </div>
-                      {formData.phoneOM && !registrationService.validateMobilePhone(formData.phoneOM) && (
-                        <p className="text-red-400 text-xs">Numéro invalide (7 à 10 chiffres)</p>
-                      )}
+                      <CountryPhoneInput
+                        value={formData.phoneOM}
+                        countryCode={countryCode}
+                        onPhoneChange={handlePhoneChange}
+                        onCountryChange={handleCountryChange}
+                        error={
+                          formData.phoneOM && !validatePhoneForPays(formData.phoneOM, countryCode)
+                            ? `Numéro invalide pour ${getPaysByCode(countryCode)?.nom_fr}`
+                            : undefined
+                        }
+                      />
                     </div>
 
-                    {/* Benefits Grid */}
-                    <div className="grid grid-cols-2 gap-3 pt-2">
+                    {/* Email Gmail conditionnel — pays ≠ SN */}
+                    <AnimatePresence initial={false}>
+                      {countryCode !== 'SN' && (
+                        <motion.div
+                          key="email-field"
+                          initial={{ opacity: 0, height: 0, marginTop: 0 }}
+                          animate={{ opacity: 1, height: 'auto', marginTop: 12 }}
+                          exit={{ opacity: 0, height: 0, marginTop: 0 }}
+                          transition={{ duration: 0.25, ease: 'easeOut' }}
+                          style={{ overflow: 'hidden' }}
+                        >
+                          <div className="space-y-1.5 md:space-y-3">
+                            <label className="flex items-center gap-2 text-green-100 font-semibold text-sm">
+                              <Mail className="w-4 h-4 text-emerald-400" />
+                              Email Gmail <span className="text-red-400">*</span>
+                            </label>
+                            <input
+                              type="email"
+                              name="emailGmail"
+                              value={emailGmail}
+                              onChange={handleEmailGmailChange}
+                              onBlur={() => setEmailTouched(true)}
+                              className="reg_glass-input"
+                              placeholder="vous@gmail.com"
+                              autoComplete="email"
+                              inputMode="email"
+                              required
+                              aria-required="true"
+                              aria-invalid={emailTouched && !isEmailValid}
+                            />
+                            {emailTouched && emailGmail && !isEmailValid && (
+                              <p className="text-red-400 text-xs flex items-center gap-1">
+                                <AlertCircle className="w-3.5 h-3.5" />
+                                Email Gmail requis (ex: vous@gmail.com)
+                              </p>
+                            )}
+                            {emailGmail && isEmailValid && (
+                              <p className="text-emerald-400 text-xs flex items-center gap-1">
+                                <Check className="w-3.5 h-3.5" />
+                                Email Gmail valide
+                              </p>
+                            )}
+                            <p className="text-xs text-green-300/50">
+                              Le SMS n&apos;étant pas disponible pour ce pays, votre code OTP sera envoyé par email.
+                            </p>
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+
+                    {/* Benefits Grid - Masqué sur très petits écrans */}
+                    <div className="hidden sm:grid grid-cols-2 gap-3 pt-2">
                       {[
                         { icon: '🚀', text: t('step1.benefits.free') },
                         { icon: '💰', text: t('step1.benefits.instant') },
@@ -627,7 +734,7 @@ export default function RegisterPage() {
                     initial="enter"
                     animate="center"
                     exit="exit"
-                    className="space-y-6"
+                    className="space-y-3 md:space-y-6"
                   >
                     {/* Step Title */}
                     <div className="text-center space-y-2">
@@ -788,7 +895,7 @@ export default function RegisterPage() {
             </div>
 
             {/* Login link */}
-            <div className="text-center mt-6">
+            <div className="text-center mt-3 md:mt-6 pb-4">
               <p className="text-green-200/50 text-sm">
                 Déjà inscrit ?{' '}
                 <button
@@ -882,6 +989,8 @@ export default function RegisterPage() {
         structureName={successModal.structureName}
         otpCode={successModal.otpCode}
         phoneOM={successModal.phoneOM}
+        otpChannel={successModal.otpChannel}
+        otpRecipient={successModal.otpRecipient}
       />
     </>
   );

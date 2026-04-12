@@ -272,6 +272,23 @@ export function ModalDetailStructure({
                         </div>
                       </div>
 
+                      {/* Date de création */}
+                      {structure.createdat && (
+                        <div className="flex items-start gap-3">
+                          <Calendar className="w-5 h-5 text-emerald-400 mt-0.5 flex-shrink-0" />
+                          <div>
+                            <p className="text-xs text-gray-400">Créée le</p>
+                            <p className="text-white">
+                              {new Date(structure.createdat).toLocaleDateString('fr-FR', {
+                                day: '2-digit',
+                                month: 'long',
+                                year: 'numeric',
+                              })}
+                            </p>
+                          </div>
+                        </div>
+                      )}
+
                       {/* Email */}
                       {structure.email && (
                         <div className="flex items-start gap-3">

@@ -13,6 +13,8 @@ interface SuccessModalProps {
   structureName: string;
   otpCode?: string;
   phoneOM?: string;
+  otpChannel?: 'sms' | 'email';
+  otpRecipient?: string;
 }
 
 export default function SuccessModal({
@@ -23,7 +25,9 @@ export default function SuccessModal({
   password,
   structureName,
   otpCode,
-  phoneOM
+  phoneOM,
+  otpChannel = 'sms',
+  otpRecipient
 }: SuccessModalProps) {
   const router = useRouter();
   const [showCredentials, setShowCredentials] = useState(false);
@@ -137,9 +141,11 @@ export default function SuccessModal({
                   <h4 className="text-xs font-bold text-emerald-800 uppercase tracking-wide">
                     Votre code de connexion rapide
                   </h4>
-                  {phoneOM && (
+                  {(phoneOM || otpRecipient) && (
                     <p className="text-[10px] text-emerald-600 mt-0.5">
-                      Envoyé par SMS au +221 {phoneOM}
+                      {otpChannel === 'email'
+                        ? `Envoyé par Email à ${otpRecipient || ''}`
+                        : `Envoyé par SMS au +221 ${phoneOM}`}
                     </p>
                   )}
                 </div>
