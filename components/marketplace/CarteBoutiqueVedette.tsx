@@ -27,10 +27,16 @@ export default function CarteBoutiqueVedette({ structure, index, onClick }: Cart
       className="group text-left w-full"
     >
       <div className="relative overflow-hidden rounded-2xl bg-white/5 backdrop-blur-xl border border-white/10 p-4 hover:bg-white/10 hover:border-emerald-400/30 transition-all duration-300 hover:shadow-lg hover:shadow-emerald-500/10">
-        {/* Badge vedette */}
-        <div className="absolute top-2.5 right-2.5">
-          <span className="px-1.5 py-0.5 rounded-full bg-amber-500/20 border border-amber-400/20 text-amber-300 text-[9px] font-bold">
-            Catalogue actif
+        {/* Badge statut */}
+        <div className="absolute top-2.5 left-2.5">
+          <span
+            className={`px-2 py-0.5 rounded-full text-[9px] font-bold border ${
+              structure.actif
+                ? 'bg-emerald-500/20 border-emerald-400/30 text-emerald-300'
+                : 'bg-gray-500/20 border-gray-400/30 text-gray-300'
+            }`}
+          >
+            {structure.actif ? 'Actif' : 'Off'}
           </span>
         </div>
 

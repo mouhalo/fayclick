@@ -222,11 +222,14 @@
       "logo": "Logo",
       "terms": "J'accepte les {termsLink} et les {privacyLink} de FayClick.",
       "termsLink": "conditions générales d'utilisation",
-      "privacyLink": "termes de service",
+      "privacyLink": "politique de confidentialité",
       "createButton": "Créer ma structure",
       "creating": "Création..."
     },
     "errors": {
+      "uploadFailed": "Erreur : l'upload vers le serveur a échoué. Veuillez réessayer.",
+      "invalidImageUrl": "Erreur : URL de l'image invalide. Veuillez réessayer.",
+      "registrationFailed": "Erreur lors de l'inscription",
       "businessNameRequired": "Nom du business requis (minimum {min} caractères)",
       "businessNameTaken": "Ce nom de structure est déjà pris",
       "structureTypeRequired": "Veuillez sélectionner un type de structure",

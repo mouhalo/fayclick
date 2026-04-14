@@ -1,0 +1,69 @@
+- generic [ref=e1]:
+  - generic [ref=e14]:
+    - banner [ref=e15]:
+      - generic [ref=e16]:
+        - generic [ref=e17]:
+          - button "Retour à l'accueil" [ref=e18] [cursor=pointer]:
+            - img [ref=e19]
+          - img "Logo FayClick Logo circulaire avec anneau tricolore du Sénégal et caddie stylisé" [ref=e22]:
+            - generic [ref=e29]: FC
+          - generic [ref=e34]:
+            - heading "Inscription Marchand" [level=1] [ref=e35]
+            - paragraph [ref=e36]: Créez votre structure
+        - generic [ref=e37]:
+          - generic [ref=e39]: 1/2
+          - button "🇫🇷" [ref=e44] [cursor=pointer]:
+            - generic [ref=e45]: 🇫🇷
+            - img [ref=e46]
+    - main [ref=e50]:
+      - generic [ref=e51]:
+        - generic [ref=e53]:
+          - generic [ref=e54]:
+            - generic [ref=e55]: 🏪
+            - heading "Votre Commerce" [level=2] [ref=e56]
+            - paragraph [ref=e57]: Commencez par donner un nom à votre structure
+          - generic [ref=e58]:
+            - generic [ref=e59]: Nom de votre commerce *
+            - 'textbox "Ex: BOUTIQUE AMINATA" [ref=e61]'
+            - generic [ref=e62]:
+              - generic [ref=e63]: 5-100 caractères
+              - generic [ref=e64]: 0/100
+          - generic [ref=e65]:
+            - generic [ref=e66]:
+              - img [ref=e67]
+              - text: Téléphone Orange Money
+              - generic [ref=e69]: "*"
+            - generic [ref=e71]:
+              - 'button "Pays : Côte d''Ivoire, indicatif +225" [ref=e176] [cursor=pointer]':
+                - generic [ref=e73]: 🇨🇮
+                - generic [ref=e74]: "+225"
+                - img [ref=e75]
+              - textbox "01 23 45 67 89" [active] [ref=e177]
+          - generic [ref=e179]:
+            - generic [ref=e180]:
+              - img [ref=e181]
+              - text: Email Gmail
+              - generic [ref=e184]: "*"
+            - textbox "vous@gmail.com" [ref=e185]
+            - paragraph [ref=e186]: Le SMS n'étant pas disponible pour ce pays, votre code OTP sera envoyé par email.
+          - generic [ref=e78]:
+            - generic [ref=e79]:
+              - generic [ref=e80]: 🚀
+              - generic [ref=e81]: Inscription gratuite
+            - generic [ref=e82]:
+              - generic [ref=e83]: 💰
+              - generic [ref=e84]: Paiement instantané
+            - generic [ref=e85]:
+              - generic [ref=e86]: 🔒
+              - generic [ref=e87]: Sécurisé et fiable
+            - generic [ref=e88]:
+              - generic [ref=e89]: 📱
+              - generic [ref=e90]: QR Code personnel
+        - button "Suivant" [disabled] [ref=e92]:
+          - text: Suivant
+          - img [ref=e93]
+        - paragraph [ref=e96]:
+          - text: Déjà inscrit ?
+          - button "Se connecter" [ref=e97] [cursor=pointer]
+  - region "Notifications alt+T"
+  - alert [ref=e98]

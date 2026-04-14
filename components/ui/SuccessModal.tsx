@@ -13,7 +13,7 @@ interface SuccessModalProps {
   structureName: string;
   otpCode?: string;
   phoneOM?: string;
-  otpChannel?: 'sms' | 'email';
+  otpChannel?: 'sms' | 'email' | 'whatsapp';
   otpRecipient?: string;
 }
 
@@ -145,6 +145,8 @@ export default function SuccessModal({
                     <p className="text-[10px] text-emerald-600 mt-0.5">
                       {otpChannel === 'email'
                         ? `Envoyé par Email à ${otpRecipient || ''}`
+                        : otpChannel === 'whatsapp'
+                        ? `Envoyé par WhatsApp au ${otpRecipient || ''}`
                         : `Envoyé par SMS au +221 ${phoneOM}`}
                     </p>
                   )}

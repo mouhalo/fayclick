@@ -17,6 +17,7 @@ export interface Pays {
   emoji_drapeau: string;       // ex: '🇸🇳'
   ordre_affichage: number;     // Pour tri UI (SN = 1)
   actif: boolean;              // Pays activé au MVP
+  langue: 'fr' | 'en';         // Langue par défaut pour templates WhatsApp
 }
 
 /**
@@ -25,29 +26,29 @@ export interface Pays {
  */
 export const PAYS_LIST: readonly Pays[] = [
   // Sénégal (défaut, SMS actif)
-  { code_iso: 'SN', nom_fr: 'Sénégal',        indicatif_tel: '+221', devise_code: 'XOF', devise_symbole: 'FCFA', sms_supporte: true,  emoji_drapeau: '🇸🇳', ordre_affichage: 1,  actif: true },
+  { code_iso: 'SN', nom_fr: 'Sénégal',        indicatif_tel: '+221', devise_code: 'XOF', devise_symbole: 'FCFA', sms_supporte: true,  emoji_drapeau: '🇸🇳', ordre_affichage: 1,  actif: true, langue: 'fr' },
 
-  // UEMOA (FCFA, pas de SMS au MVP)
-  { code_iso: 'CI', nom_fr: "Côte d'Ivoire",  indicatif_tel: '+225', devise_code: 'XOF', devise_symbole: 'FCFA', sms_supporte: false, emoji_drapeau: '🇨🇮', ordre_affichage: 2,  actif: true },
-  { code_iso: 'ML', nom_fr: 'Mali',           indicatif_tel: '+223', devise_code: 'XOF', devise_symbole: 'FCFA', sms_supporte: false, emoji_drapeau: '🇲🇱', ordre_affichage: 3,  actif: true },
-  { code_iso: 'BF', nom_fr: 'Burkina Faso',   indicatif_tel: '+226', devise_code: 'XOF', devise_symbole: 'FCFA', sms_supporte: false, emoji_drapeau: '🇧🇫', ordre_affichage: 4,  actif: true },
-  { code_iso: 'TG', nom_fr: 'Togo',           indicatif_tel: '+228', devise_code: 'XOF', devise_symbole: 'FCFA', sms_supporte: false, emoji_drapeau: '🇹🇬', ordre_affichage: 5,  actif: true },
-  { code_iso: 'BJ', nom_fr: 'Bénin',          indicatif_tel: '+229', devise_code: 'XOF', devise_symbole: 'FCFA', sms_supporte: false, emoji_drapeau: '🇧🇯', ordre_affichage: 6,  actif: true },
-  { code_iso: 'NE', nom_fr: 'Niger',          indicatif_tel: '+227', devise_code: 'XOF', devise_symbole: 'FCFA', sms_supporte: false, emoji_drapeau: '🇳🇪', ordre_affichage: 7,  actif: true },
-  { code_iso: 'GW', nom_fr: 'Guinée-Bissau',  indicatif_tel: '+245', devise_code: 'XOF', devise_symbole: 'FCFA', sms_supporte: false, emoji_drapeau: '🇬🇼', ordre_affichage: 8,  actif: true },
+  // UEMOA (francophones)
+  { code_iso: 'CI', nom_fr: "Côte d'Ivoire",  indicatif_tel: '+225', devise_code: 'XOF', devise_symbole: 'FCFA', sms_supporte: false, emoji_drapeau: '🇨🇮', ordre_affichage: 2,  actif: true, langue: 'fr' },
+  { code_iso: 'ML', nom_fr: 'Mali',           indicatif_tel: '+223', devise_code: 'XOF', devise_symbole: 'FCFA', sms_supporte: false, emoji_drapeau: '🇲🇱', ordre_affichage: 3,  actif: true, langue: 'fr' },
+  { code_iso: 'BF', nom_fr: 'Burkina Faso',   indicatif_tel: '+226', devise_code: 'XOF', devise_symbole: 'FCFA', sms_supporte: false, emoji_drapeau: '🇧🇫', ordre_affichage: 4,  actif: true, langue: 'fr' },
+  { code_iso: 'TG', nom_fr: 'Togo',           indicatif_tel: '+228', devise_code: 'XOF', devise_symbole: 'FCFA', sms_supporte: false, emoji_drapeau: '🇹🇬', ordre_affichage: 5,  actif: true, langue: 'fr' },
+  { code_iso: 'BJ', nom_fr: 'Bénin',          indicatif_tel: '+229', devise_code: 'XOF', devise_symbole: 'FCFA', sms_supporte: false, emoji_drapeau: '🇧🇯', ordre_affichage: 6,  actif: true, langue: 'fr' },
+  { code_iso: 'NE', nom_fr: 'Niger',          indicatif_tel: '+227', devise_code: 'XOF', devise_symbole: 'FCFA', sms_supporte: false, emoji_drapeau: '🇳🇪', ordre_affichage: 7,  actif: true, langue: 'fr' },
+  { code_iso: 'GW', nom_fr: 'Guinée-Bissau',  indicatif_tel: '+245', devise_code: 'XOF', devise_symbole: 'FCFA', sms_supporte: false, emoji_drapeau: '🇬🇼', ordre_affichage: 8,  actif: true, langue: 'fr' },
 
   // CEDEAO hors UEMOA
-  { code_iso: 'GN', nom_fr: 'Guinée Conakry', indicatif_tel: '+224', devise_code: 'GNF', devise_symbole: 'GNF',  sms_supporte: false, emoji_drapeau: '🇬🇳', ordre_affichage: 9,  actif: true },
-  { code_iso: 'SL', nom_fr: 'Sierra Leone',   indicatif_tel: '+232', devise_code: 'SLL', devise_symbole: 'SLL',  sms_supporte: false, emoji_drapeau: '🇸🇱', ordre_affichage: 10, actif: true },
-  { code_iso: 'LR', nom_fr: 'Liberia',        indicatif_tel: '+231', devise_code: 'LRD', devise_symbole: 'LRD',  sms_supporte: false, emoji_drapeau: '🇱🇷', ordre_affichage: 11, actif: true },
-  { code_iso: 'GH', nom_fr: 'Ghana',          indicatif_tel: '+233', devise_code: 'GHS', devise_symbole: 'GHS',  sms_supporte: false, emoji_drapeau: '🇬🇭', ordre_affichage: 12, actif: true },
-  { code_iso: 'NG', nom_fr: 'Nigeria',        indicatif_tel: '+234', devise_code: 'NGN', devise_symbole: 'NGN',  sms_supporte: false, emoji_drapeau: '🇳🇬', ordre_affichage: 13, actif: true },
-  { code_iso: 'CV', nom_fr: 'Cap-Vert',       indicatif_tel: '+238', devise_code: 'CVE', devise_symbole: 'CVE',  sms_supporte: false, emoji_drapeau: '🇨🇻', ordre_affichage: 14, actif: true },
+  { code_iso: 'GN', nom_fr: 'Guinée Conakry', indicatif_tel: '+224', devise_code: 'GNF', devise_symbole: 'GNF',  sms_supporte: false, emoji_drapeau: '🇬🇳', ordre_affichage: 9,  actif: true, langue: 'fr' },
+  { code_iso: 'SL', nom_fr: 'Sierra Leone',   indicatif_tel: '+232', devise_code: 'SLL', devise_symbole: 'SLL',  sms_supporte: false, emoji_drapeau: '🇸🇱', ordre_affichage: 10, actif: true, langue: 'en' },
+  { code_iso: 'LR', nom_fr: 'Liberia',        indicatif_tel: '+231', devise_code: 'LRD', devise_symbole: 'LRD',  sms_supporte: false, emoji_drapeau: '🇱🇷', ordre_affichage: 11, actif: true, langue: 'en' },
+  { code_iso: 'GH', nom_fr: 'Ghana',          indicatif_tel: '+233', devise_code: 'GHS', devise_symbole: 'GHS',  sms_supporte: false, emoji_drapeau: '🇬🇭', ordre_affichage: 12, actif: true, langue: 'en' },
+  { code_iso: 'NG', nom_fr: 'Nigeria',        indicatif_tel: '+234', devise_code: 'NGN', devise_symbole: 'NGN',  sms_supporte: false, emoji_drapeau: '🇳🇬', ordre_affichage: 13, actif: true, langue: 'en' },
+  { code_iso: 'CV', nom_fr: 'Cap-Vert',       indicatif_tel: '+238', devise_code: 'CVE', devise_symbole: 'CVE',  sms_supporte: false, emoji_drapeau: '🇨🇻', ordre_affichage: 14, actif: true, langue: 'en' },
 
-  // Maghreb
-  { code_iso: 'MA', nom_fr: 'Maroc',          indicatif_tel: '+212', devise_code: 'MAD', devise_symbole: 'MAD',  sms_supporte: false, emoji_drapeau: '🇲🇦', ordre_affichage: 15, actif: true },
-  { code_iso: 'DZ', nom_fr: 'Algérie',        indicatif_tel: '+213', devise_code: 'DZD', devise_symbole: 'DZD',  sms_supporte: false, emoji_drapeau: '🇩🇿', ordre_affichage: 16, actif: true },
-  { code_iso: 'TN', nom_fr: 'Tunisie',        indicatif_tel: '+216', devise_code: 'TND', devise_symbole: 'TND',  sms_supporte: false, emoji_drapeau: '🇹🇳', ordre_affichage: 17, actif: true },
+  // Maghreb (francophones)
+  { code_iso: 'MA', nom_fr: 'Maroc',          indicatif_tel: '+212', devise_code: 'MAD', devise_symbole: 'MAD',  sms_supporte: false, emoji_drapeau: '🇲🇦', ordre_affichage: 15, actif: true, langue: 'fr' },
+  { code_iso: 'DZ', nom_fr: 'Algérie',        indicatif_tel: '+213', devise_code: 'DZD', devise_symbole: 'DZD',  sms_supporte: false, emoji_drapeau: '🇩🇿', ordre_affichage: 16, actif: true, langue: 'fr' },
+  { code_iso: 'TN', nom_fr: 'Tunisie',        indicatif_tel: '+216', devise_code: 'TND', devise_symbole: 'TND',  sms_supporte: false, emoji_drapeau: '🇹🇳', ordre_affichage: 17, actif: true, langue: 'fr' },
 ] as const;
 
 export const PAYS_DEFAULT_CODE = 'SN';
@@ -105,4 +106,28 @@ export function validatePhoneForPays(phone: string, code: string): boolean {
   const expected = PHONE_LENGTH_BY_PAYS[code.toUpperCase()];
   if (!expected) return false;
   return cleaned.length === expected;
+}
+
+/**
+ * Compose un numéro de téléphone au format E.164 strict : +<indicatif><numero>
+ * pour envoi WhatsApp / APIs internationales.
+ *
+ * @param phone - Numéro local (chiffres uniquement après nettoyage)
+ * @param code - Code ISO pays pour récupérer l'indicatif
+ * @returns string au format '+221777301221' ou '' si invalide
+ */
+export function toE164Phone(phone: string, code: string): string {
+  const pays = getPaysByCode(code);
+  if (!pays) return '';
+  const cleaned = (phone || '').replace(/\D/g, '');
+  if (!cleaned) return '';
+  return `${pays.indicatif_tel}${cleaned}`;
+}
+
+/**
+ * Langue par défaut pour templates WhatsApp selon le pays.
+ * Anglophones (GH, NG, LR, SL, CV) → 'en', tous les autres → 'fr'.
+ */
+export function getLangueForPays(code: string): 'fr' | 'en' {
+  return getPaysByCode(code)?.langue ?? 'fr';
 }

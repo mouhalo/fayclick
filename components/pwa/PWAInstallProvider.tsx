@@ -3,7 +3,6 @@
 import { useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import { useInstallPrompt } from '@/hooks/useInstallPrompt';
-import { InstallPromptModal } from './InstallPromptModal';
 import { UpdateToast } from './UpdateToast';
 
 // Pages publiques où on ne propose pas l'installation
@@ -21,9 +20,7 @@ const PUBLIC_ROUTES = [
 export function PWAInstallProvider({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const {
-    showInstallPrompt,
     installApp,
-    dismissPrompt,
     isInstalled,
     isLoading
   } = useInstallPrompt();
@@ -118,14 +115,7 @@ export function PWAInstallProvider({ children }: { children: React.ReactNode }) 
   return (
     <>
       {children}
-      {!isPublicRoute && (
-        <InstallPromptModal
-          isOpen={showInstallPrompt}
-          onInstall={installApp}
-          onDismiss={dismissPrompt}
-        />
-      )}
-      {/* Toast de mise à jour - visible sur toutes les pages (y compris publiques) */}
+      {/* Modal d'installation PWA supprimé : mises à jour gérées automatiquement par le Service Worker */}
       <UpdateToast />
     </>
   );

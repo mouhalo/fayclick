@@ -1,0 +1,137 @@
+- generic [ref=e1]:
+  - generic [ref=e4]:
+    - banner [ref=e5]:
+      - generic [ref=e6]:
+        - generic [ref=e7]:
+          - button "Retour à l'accueil" [ref=e8] [cursor=pointer]:
+            - img [ref=e9]
+          - img "Logo FayClick Logo circulaire avec anneau tricolore du Sénégal et caddie stylisé" [ref=e12]:
+            - generic [ref=e19]: FC
+          - generic [ref=e24]:
+            - heading "Inscription Marchand" [level=1] [ref=e25]
+            - paragraph [ref=e26]: Créez votre structure
+        - generic [ref=e27]:
+          - generic [ref=e29]: 1/2
+          - button "🇫🇷" [ref=e34] [cursor=pointer]:
+            - generic [ref=e35]: 🇫🇷
+            - img [ref=e36]
+    - main [ref=e40]:
+      - generic [ref=e41]:
+        - generic [ref=e43]:
+          - generic [ref=e44]:
+            - generic [ref=e45]: 🏪
+            - heading "Votre Commerce" [level=2] [ref=e46]
+            - paragraph [ref=e47]: Commencez par donner un nom à votre structure
+          - generic [ref=e48]:
+            - generic [ref=e49]: Nom de votre commerce *
+            - 'textbox "Ex: BOUTIQUE AMINATA" [ref=e51]'
+            - generic [ref=e52]:
+              - generic [ref=e53]: 5-100 caractères
+              - generic [ref=e54]: 0/100
+          - generic [ref=e55]:
+            - generic [ref=e56]:
+              - img [ref=e57]
+              - text: Téléphone Orange Money
+              - generic [ref=e59]: "*"
+            - generic [ref=e60]:
+              - generic [ref=e61]:
+                - 'button "Pays : Sénégal, indicatif +221" [expanded] [ref=e62] [cursor=pointer]':
+                  - generic [ref=e63]: 🇸🇳
+                  - generic [ref=e64]: "+221"
+                  - img [ref=e65]
+                - textbox "77 123 45 67" [ref=e67]
+              - generic [ref=e89]:
+                - generic [ref=e90]:
+                  - img [ref=e91]
+                  - textbox "Rechercher un pays..." [active] [ref=e94]
+                - listbox "Liste des pays" [ref=e95]:
+                  - option "🇸🇳 +221 Sénégal" [selected] [ref=e96] [cursor=pointer]:
+                    - generic [ref=e97]: 🇸🇳
+                    - generic [ref=e98]: "+221"
+                    - generic [ref=e99]: Sénégal
+                    - img [ref=e100]
+                  - option "🇨🇮 +225 Côte d'Ivoire" [ref=e102] [cursor=pointer]:
+                    - generic [ref=e103]: 🇨🇮
+                    - generic [ref=e104]: "+225"
+                    - generic [ref=e105]: Côte d'Ivoire
+                  - option "🇲🇱 +223 Mali" [ref=e106] [cursor=pointer]:
+                    - generic [ref=e107]: 🇲🇱
+                    - generic [ref=e108]: "+223"
+                    - generic [ref=e109]: Mali
+                  - option "🇧🇫 +226 Burkina Faso" [ref=e110] [cursor=pointer]:
+                    - generic [ref=e111]: 🇧🇫
+                    - generic [ref=e112]: "+226"
+                    - generic [ref=e113]: Burkina Faso
+                  - option "🇹🇬 +228 Togo" [ref=e114] [cursor=pointer]:
+                    - generic [ref=e115]: 🇹🇬
+                    - generic [ref=e116]: "+228"
+                    - generic [ref=e117]: Togo
+                  - option "🇧🇯 +229 Bénin" [ref=e118] [cursor=pointer]:
+                    - generic [ref=e119]: 🇧🇯
+                    - generic [ref=e120]: "+229"
+                    - generic [ref=e121]: Bénin
+                  - option "🇳🇪 +227 Niger" [ref=e122] [cursor=pointer]:
+                    - generic [ref=e123]: 🇳🇪
+                    - generic [ref=e124]: "+227"
+                    - generic [ref=e125]: Niger
+                  - option "🇬🇼 +245 Guinée-Bissau" [ref=e126] [cursor=pointer]:
+                    - generic [ref=e127]: 🇬🇼
+                    - generic [ref=e128]: "+245"
+                    - generic [ref=e129]: Guinée-Bissau
+                  - option "🇬🇳 +224 Guinée Conakry" [ref=e130] [cursor=pointer]:
+                    - generic [ref=e131]: 🇬🇳
+                    - generic [ref=e132]: "+224"
+                    - generic [ref=e133]: Guinée Conakry
+                  - option "🇸🇱 +232 Sierra Leone" [ref=e134] [cursor=pointer]:
+                    - generic [ref=e135]: 🇸🇱
+                    - generic [ref=e136]: "+232"
+                    - generic [ref=e137]: Sierra Leone
+                  - option "🇱🇷 +231 Liberia" [ref=e138] [cursor=pointer]:
+                    - generic [ref=e139]: 🇱🇷
+                    - generic [ref=e140]: "+231"
+                    - generic [ref=e141]: Liberia
+                  - option "🇬🇭 +233 Ghana" [ref=e142] [cursor=pointer]:
+                    - generic [ref=e143]: 🇬🇭
+                    - generic [ref=e144]: "+233"
+                    - generic [ref=e145]: Ghana
+                  - option "🇳🇬 +234 Nigeria" [ref=e146] [cursor=pointer]:
+                    - generic [ref=e147]: 🇳🇬
+                    - generic [ref=e148]: "+234"
+                    - generic [ref=e149]: Nigeria
+                  - option "🇨🇻 +238 Cap-Vert" [ref=e150] [cursor=pointer]:
+                    - generic [ref=e151]: 🇨🇻
+                    - generic [ref=e152]: "+238"
+                    - generic [ref=e153]: Cap-Vert
+                  - option "🇲🇦 +212 Maroc" [ref=e154] [cursor=pointer]:
+                    - generic [ref=e155]: 🇲🇦
+                    - generic [ref=e156]: "+212"
+                    - generic [ref=e157]: Maroc
+                  - option "🇩🇿 +213 Algérie" [ref=e158] [cursor=pointer]:
+                    - generic [ref=e159]: 🇩🇿
+                    - generic [ref=e160]: "+213"
+                    - generic [ref=e161]: Algérie
+                  - option "🇹🇳 +216 Tunisie" [ref=e162] [cursor=pointer]:
+                    - generic [ref=e163]: 🇹🇳
+                    - generic [ref=e164]: "+216"
+                    - generic [ref=e165]: Tunisie
+          - generic [ref=e68]:
+            - generic [ref=e69]:
+              - generic [ref=e70]: 🚀
+              - generic [ref=e71]: Inscription gratuite
+            - generic [ref=e72]:
+              - generic [ref=e73]: 💰
+              - generic [ref=e74]: Paiement instantané
+            - generic [ref=e75]:
+              - generic [ref=e76]: 🔒
+              - generic [ref=e77]: Sécurisé et fiable
+            - generic [ref=e78]:
+              - generic [ref=e79]: 📱
+              - generic [ref=e80]: QR Code personnel
+        - button "Suivant" [disabled] [ref=e82]:
+          - text: Suivant
+          - img [ref=e83]
+        - paragraph [ref=e86]:
+          - text: Déjà inscrit ?
+          - button "Se connecter" [ref=e87] [cursor=pointer]
+  - region "Notifications alt+T"
+  - alert [ref=e88]

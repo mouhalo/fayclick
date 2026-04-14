@@ -1,0 +1,79 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e23]:
+    - generic [ref=e24]:
+      - banner [ref=e25]:
+        - generic [ref=e26]:
+          - generic [ref=e27]:
+            - button "Retour à l'accueil" [ref=e28] [cursor=pointer]:
+              - img [ref=e29]
+            - img "Logo FayClick Logo circulaire avec anneau tricolore du Sénégal et caddie stylisé" [ref=e32]:
+              - generic [ref=e39]: FC
+            - generic [ref=e44]:
+              - heading "Inscription Marchand" [level=1] [ref=e45]
+              - paragraph [ref=e46]: Créez votre structure
+          - generic [ref=e47]:
+            - generic [ref=e49]: 1/2
+            - button "🇫🇷" [ref=e54] [cursor=pointer]:
+              - generic [ref=e55]: 🇫🇷
+              - img [ref=e56]
+      - main [ref=e60]:
+        - generic [ref=e61]:
+          - generic [ref=e116]:
+            - generic [ref=e117]:
+              - heading "Finalisation" [level=2] [ref=e118]
+              - paragraph [ref=e119]: Encore quelques infos et c'est parti !
+            - generic [ref=e120]:
+              - generic [ref=e121]:
+                - img [ref=e122]
+                - text: Adresse
+                - generic [ref=e125]: "*"
+              - 'textbox "Ex: Marché Sandaga, Dakar" [ref=e126]': Marché Sandaga
+              - generic [ref=e127]: 14/255
+            - generic [ref=e128]:
+              - generic [ref=e129]:
+                - img [ref=e130]
+                - text: Logo
+                - generic [ref=e133]: (Optionnel)
+              - generic [ref=e134]:
+                - generic [ref=e135]:
+                  - generic [ref=e137]: 🎨
+                  - heading "Logo de votre business" [level=3] [ref=e138]
+                  - generic [ref=e270]: ✓ Uploadé
+                - paragraph [ref=e139]: Photo/Logo du commerce (optionnel)
+                - generic [ref=e141] [cursor=pointer]:
+                  - img "Preview logo" [ref=e172]
+                  - button "🗑️ Supprimer" [ref=e271]
+                  - generic [ref=e273]: ✓ Uploadé
+                - generic [ref=e274]:
+                  - img [ref=e275]
+                  - text: Logo uploadé avec succès !
+                - generic [ref=e150]: "💡 Optionnel : Ajoutez le logo de votre commerce pour personnaliser vos factures"
+            - generic [ref=e151]:
+              - generic [ref=e152]:
+                - img [ref=e153]
+                - text: Code Parrainage
+                - generic [ref=e156]: (Optionnel)
+              - 'textbox "Ex: ORANGE2026" [ref=e157]'
+              - paragraph [ref=e158]: Avez-vous un code partenaire ?
+            - generic [ref=e160] [cursor=pointer]:
+              - checkbox "J'accepte les conditions générales et la politique de confidentialité de FayClick." [checked] [ref=e161]
+              - generic [ref=e162]:
+                - text: J'accepte les
+                - link "conditions générales" [ref=e163]:
+                  - /url: /terms
+                - text: et la
+                - link "politique de confidentialité" [ref=e164]:
+                  - /url: /privacy
+                - text: de FayClick.
+          - button "Suivant" [disabled] [ref=e277]:
+            - text: Suivant
+            - img [ref=e278]
+          - paragraph [ref=e106]:
+            - text: Déjà inscrit ?
+            - button "Se connecter" [ref=e107] [cursor=pointer]
+    - generic [ref=e281]:
+      - img [ref=e282]
+      - heading "Félicitations !" [level=2] [ref=e285]
+      - paragraph [ref=e286]: Votre commerce est créé
+  - region "Notifications alt+T"
+  - alert [ref=e21]

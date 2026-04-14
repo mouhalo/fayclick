@@ -69,10 +69,10 @@ export default function MobileHome() {
   const getStyles = () => {
     if (isMobile) {
       return {
-        logoSize: 'w-28 h-28',
-        titleSize: 'text-4xl',
-        subtitleSize: 'text-lg',
-        containerPadding: 'px-4 py-6'
+        logoSize: 'w-20 h-20',
+        titleSize: 'text-3xl',
+        subtitleSize: 'text-base',
+        containerPadding: 'px-4 py-3'
       };
     } else if (isMobileLarge) {
       return {
@@ -162,7 +162,7 @@ export default function MobileHome() {
             rotate: [0, 5, -5, 0],
             transition: { duration: 0.8 }
           }}
-          className="mb-8 relative group cursor-pointer"
+          className="mb-3 md:mb-8 relative group cursor-pointer"
         >
           {/* Effet d'aura autour du logo */}
           <motion.div
@@ -213,7 +213,7 @@ export default function MobileHome() {
           initial={{ y: 50, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.8, duration: 1.2, type: "spring" }}
-          className="text-center mb-4"
+          className="text-center mb-2"
         >
           <motion.h1
             className={`${styles.titleSize} font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-300 via-green-200 to-teal-300 mb-2`}
@@ -296,7 +296,7 @@ export default function MobileHome() {
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 1.4, duration: 1 }}
-          className="text-base text-emerald-100/90 mb-12 text-center max-w-sm leading-relaxed font-medium"
+          className="text-sm md:text-base text-emerald-100/90 mb-4 md:mb-12 text-center max-w-sm leading-relaxed font-medium"
         >
           {t('mobile.tagline')}{' '}
           <span className="text-emerald-300 font-semibold">{t('mobile.taglineHighlight')}</span>
@@ -307,7 +307,7 @@ export default function MobileHome() {
           initial={{ y: 40, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 1.6, duration: 1 }}
-          className="w-full max-w-sm space-y-4 mb-16"
+          className="w-full max-w-sm space-y-2.5 md:space-y-4 mb-3 md:mb-16"
         >
           {/* Bouton Créer un Compte - Premium Glass */}
           <Link href="/register" className="block">
@@ -317,12 +317,13 @@ export default function MobileHome() {
                 boxShadow: "0 20px 40px rgba(16, 185, 129, 0.3)"
               }}
               whileTap={{ scale: 0.98 }}
-              className="w-full py-4 px-6 relative overflow-hidden rounded-2xl font-bold text-lg text-white border border-emerald-400/30 group"
+              className="w-full py-3 md:py-4 px-6 relative overflow-hidden font-bold text-base md:text-lg text-white border border-emerald-400/30 group"
               style={{
+                borderRadius: '25px',
                 background: `
-                  linear-gradient(135deg, 
-                    rgba(16, 185, 129, 0.4) 0%, 
-                    rgba(6, 182, 212, 0.3) 50%, 
+                  linear-gradient(135deg,
+                    rgba(16, 185, 129, 0.4) 0%,
+                    rgba(6, 182, 212, 0.3) 50%,
                     rgba(34, 197, 94, 0.4) 100%
                   )
                 `,
@@ -358,8 +359,9 @@ export default function MobileHome() {
                 borderColor: "rgba(16, 185, 129, 0.6)"
               }}
               whileTap={{ scale: 0.98 }}
-              className="w-full py-4 px-6 rounded-2xl font-bold text-lg text-emerald-100 border-2 border-emerald-300/40 group relative overflow-hidden"
+              className="w-full py-3 md:py-4 px-6 font-bold text-base md:text-lg text-emerald-100 border-2 border-emerald-300/40 group relative overflow-hidden"
               style={{
+                borderRadius: '25px',
                 background: 'rgba(255, 255, 255, 0.05)',
                 backdropFilter: 'blur(10px)',
               }}
@@ -389,7 +391,7 @@ export default function MobileHome() {
           initial={{ opacity: 0, y: 60 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 1.8, duration: 1.2 }}
-          className="grid grid-cols-3 gap-4 w-full max-w-md"
+          className="grid grid-cols-3 gap-2 md:gap-4 w-full max-w-md"
         >
           {[
             {
