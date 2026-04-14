@@ -9,6 +9,7 @@
     "export": "next build",
     "start": "next start",
     "lint": "next lint",
+    "i18n:check": "node scripts/check-i18n-keys.mjs",
     "clean:server": "node scripts/clean-server.mjs",
     "deploy": "node deploy.mjs",
     "deploy:force": "node deploy.mjs --force",

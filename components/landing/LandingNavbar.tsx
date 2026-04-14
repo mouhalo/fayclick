@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { NAV_LINKS } from './landing-data';
+import LanguageSwitcher from '@/components/ui/LanguageSwitcher';
 
 interface LandingNavbarProps {
   activeSection: string;
@@ -88,6 +89,7 @@ export default function LandingNavbar({ activeSection }: LandingNavbarProps) {
 
           {/* CTA buttons */}
           <div className="flex items-center gap-3">
+            <LanguageSwitcher variant="dark" />
             <Link
               href="/login"
               className="px-5 py-2 text-sm font-medium text-white/80 border border-white/20 rounded-full hover:bg-white/5 hover:border-white/30 transition-all duration-300"
