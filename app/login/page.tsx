@@ -11,6 +11,8 @@ import { ModalRecoveryOTP } from '@/components/auth/ModalRecoveryOTP'
 import { useAuth } from '@/contexts/AuthContext'
 import { authService } from '@/services/auth.service'
 import OTPInput from '@/components/coffre-fort/OTPInput'
+import LanguageSwitcher from '@/components/ui/LanguageSwitcher'
+import { useTranslations } from '@/hooks/useTranslations'
 
 const FloatingWhatsAppButton = dynamic(() => import('@/components/ui/FloatingWhatsAppButton'), {
   ssr: false
@@ -18,6 +20,8 @@ const FloatingWhatsAppButton = dynamic(() => import('@/components/ui/FloatingWha
 
 export default function LoginPage() {
   const router = useRouter()
+  const t = useTranslations('auth')
+  const tCommon = useTranslations('common')
   const { login: authLogin, isAuthenticated, isLoading: authLoading, error: authError, clearError, user } = useAuth()
   const [isLoaded, setIsLoaded] = useState(false)
   const [formData, setFormData] = useState({
@@ -34,7 +38,13 @@ export default function LoginPage() {
   const [hasPinConfigured, setHasPinConfigured] = useState(false)
   const [pinError, setPinError] = useState('')
   const [pinLength, setPinLength] = useState(5)
-  const [loginStep, setLoginStep] = useState('')
+  type LoginStepKey = '' | 'credentials' | 'structure' | 'dashboard' | 'redirect'
+  const [loginStepKey, setLoginStepKey] = useState<LoginStepKey>('')
+  const loginStep = loginStepKey === 'credentials' ? t('loadingModal.checkingCredentials')
+    : loginStepKey === 'structure' ? t('loadingModal.loadingStructure')
+    : loginStepKey === 'dashboard' ? t('loadingModal.preparingDashboard')
+    : loginStepKey === 'redirect' ? t('loadingModal.redirecting')
+    : ''
 
   useEffect(() => {
     setIsLoaded(true)
@@ -92,16 +102,12 @@ export default function LoginPage() {
   // Progression automatique du texte de chargement
   useEffect(() => {
     if (!isLoading && !authLoading) return
-    const steps = [
-      'Vérification des identifiants',
-      'Chargement de votre structure',
-      'Préparation du tableau de bord',
-    ]
+    const steps: LoginStepKey[] = ['credentials', 'structure', 'dashboard']
     let i = 0
     const interval = setInterval(() => {
       i++
       if (i < steps.length) {
-        setLoginStep(steps[i])
+        setLoginStepKey(steps[i])
       }
     }, 1200)
     return () => clearInterval(interval)
@@ -122,10 +128,10 @@ export default function LoginPage() {
     try {
       // Validation basique
       if (!formData.email || !formData.password) {
-        throw new Error('Veuillez remplir tous les champs')
+        throw new Error(t('errors.fillAllFields'))
       }
 
-      setLoginStep('Vérification des identifiants')
+      setLoginStepKey('credentials')
 
       // Utiliser le login du contexte AuthContext avec la logique restaurée
       await authLogin({
@@ -133,7 +139,7 @@ export default function LoginPage() {
         pwd: formData.password
       })
 
-      setLoginStep('Redirection')
+      setLoginStepKey('redirect')
       // Mettre à jour lastMode si PIN configuré
       const raw = localStorage.getItem('fayclick_quick_pin')
       if (raw) {
@@ -148,7 +154,7 @@ export default function LoginPage() {
       console.error('❌ [LOGIN PAGE] Erreur lors de la connexion:', error)
     } finally {
       setIsLoading(false)
-      setLoginStep('')
+      setLoginStepKey('')
     }
   }
 
@@ -166,14 +172,14 @@ export default function LoginPage() {
     setPinError('')
     const raw = localStorage.getItem('fayclick_quick_pin')
     if (!raw) {
-      setPinError('Aucun PIN configuré')
+      setPinError(t('errors.noPinConfigured'))
       return
     }
 
     try {
       const pinData = JSON.parse(atob(raw))
       if (pin !== pinData.pin) {
-        setPinError('Code PIN incorrect')
+        setPinError(t('errors.wrongPin'))
         return
       }
 
@@ -182,17 +188,17 @@ export default function LoginPage() {
       localStorage.setItem('fayclick_quick_pin', btoa(updated))
 
       setIsLoading(true)
-      setLoginStep('Vérification des identifiants')
+      setLoginStepKey('credentials')
       clearError()
       await authLogin({ login: pinData.login, pwd: pinData.pwd })
-      setLoginStep('Redirection')
+      setLoginStepKey('redirect')
     } catch {
-      setPinError('Erreur de connexion')
+      setPinError(t('errors.connectionError'))
     } finally {
       setIsLoading(false)
-      setLoginStep('')
+      setLoginStepKey('')
     }
-  }, [authLogin, clearError])
+  }, [authLogin, clearError, t])
 
   // Basculer entre les modes et sauver la préférence
   const toggleLoginMode = useCallback((mode: 'credentials' | 'pin') => {
@@ -205,7 +211,7 @@ export default function LoginPage() {
   if (!isLoaded) {
     return (
       <div className="reg_page flex items-center justify-center">
-        <div className="text-white/60 text-lg">Chargement...</div>
+        <div className="text-white/60 text-lg">{t('loadingPage')}</div>
       </div>
     )
   }
@@ -219,13 +225,17 @@ export default function LoginPage() {
 
       {/* Container principal */}
       <div className="w-full max-w-sm relative z-10">
+        {/* Switch langue en haut à droite */}
+        <div className="absolute top-0 right-0 z-20">
+          <LanguageSwitcher variant="dark" />
+        </div>
         {/* Logo et titre */}
         <div className="text-center mb-6">
           <div className="inline-flex items-center justify-center mb-3">
             <LogoFayclick className="w-16 h-16 sm:w-20 sm:h-20" />
           </div>
           <h1 className="text-2xl sm:text-3xl font-bold text-white drop-shadow-lg">FayClick</h1>
-          <p className="text-emerald-200/60 text-sm mt-1">Gestion simplifiée de votre business</p>
+          <p className="text-emerald-200/60 text-sm mt-1">{t('appTagline')}</p>
         </div>
 
         {/* Glass Card premium */}
@@ -246,7 +256,7 @@ export default function LoginPage() {
                     type="button"
                     onClick={() => toggleLoginMode('pin')}
                     className="login_icon-btn-pulse"
-                    title="Connexion par PIN"
+                    title={t('login.switchToPin')}
                   >
                     <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
                       <line x1="4" y1="9" x2="20" y2="9" />
@@ -255,7 +265,7 @@ export default function LoginPage() {
                       <line x1="16" y1="3" x2="14" y2="21" />
                     </svg>
                   </button>
-                  <h2 className="text-xl font-semibold text-white mb-4">Connexion</h2>
+                  <h2 className="text-xl font-semibold text-white mb-4">{t('login.title')}</h2>
 
                   {/* Affichage des erreurs */}
                   {authError && (
@@ -268,7 +278,7 @@ export default function LoginPage() {
                     {/* Champ Email */}
                     <div>
                       <label htmlFor="email" className="block text-sm font-medium text-emerald-100/80 mb-1.5">
-                        Email / Login
+                        {t('login.emailLabel')}
                       </label>
                       <div className="relative">
                         <input
@@ -281,7 +291,7 @@ export default function LoginPage() {
                           onChange={handleChange}
                           className="login_glass-input"
                           style={{ paddingLeft: '2.5rem' }}
-                          placeholder="votre@email.com ou login"
+                          placeholder={t('login.emailPlaceholder')}
                         />
                         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                           <svg className="h-4 w-4 text-emerald-300/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -294,7 +304,7 @@ export default function LoginPage() {
                     {/* Champ Mot de passe */}
                     <div>
                       <label htmlFor="password" className="block text-sm font-medium text-emerald-100/80 mb-1.5">
-                        Mot de passe
+                        {t('login.passwordLabel')}
                       </label>
                       <div className="relative">
                         <input
@@ -307,7 +317,7 @@ export default function LoginPage() {
                           onChange={handleChange}
                           className="login_glass-input"
                           style={{ paddingLeft: '2.5rem', paddingRight: '2.5rem' }}
-                          placeholder="••••••••"
+                          placeholder={t('login.passwordPlaceholder')}
                         />
                         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                           <svg className="h-4 w-4 text-emerald-300/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -336,7 +346,7 @@ export default function LoginPage() {
                       disabled={isLoading || authLoading}
                       className="login_btn-primary"
                     >
-                      {(isLoading || authLoading) ? 'Connexion...' : 'Se connecter'}
+                      {(isLoading || authLoading) ? t('login.submitting') : t('login.submit')}
                     </button>
 
                     {/* Lien mot de passe oublié */}
@@ -346,7 +356,7 @@ export default function LoginPage() {
                         onClick={() => setShowPasswordRecovery(true)}
                         className="text-emerald-200/60 hover:text-white text-sm underline transition-colors"
                       >
-                        Mot de passe oublié ?
+                        {t('login.forgotPassword')}
                       </button>
                     </div>
                   </form>
@@ -354,13 +364,13 @@ export default function LoginPage() {
                   {/* Liens supplémentaires */}
                   <div className="mt-4 text-center space-y-2">
                     <p className="text-emerald-100/50 text-sm">
-                      Pas encore de compte ?{' '}
+                      {t('login.noAccount')}{' '}
                       <Link href="/register" className="text-emerald-200 hover:text-white underline transition-colors">
-                        Inscrivez-vous
+                        {t('login.signup')}
                       </Link>
                     </p>
                     <Link href="/" className="inline-block text-emerald-200/50 hover:text-white text-sm underline transition-colors">
-                      ← Retour vers Accueil
+                      {t('login.backHome')}
                     </Link>
                   </div>
                 </div>
@@ -379,15 +389,15 @@ export default function LoginPage() {
                     type="button"
                     onClick={() => toggleLoginMode('credentials')}
                     className="login_icon-btn-pulse"
-                    title="Connexion classique"
+                    title={t('login.switchToClassic')}
                   >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
                     </svg>
                   </button>
                   {/* Header */}
-                  <h2 className="text-xl font-semibold text-white mb-1">Connexion rapide</h2>
-                  <p className="text-emerald-200/60 text-sm">Saisissez votre code à {pinLength} chiffres</p>
+                  <h2 className="text-xl font-semibold text-white mb-1">{t('pin.title')}</h2>
+                  <p className="text-emerald-200/60 text-sm">{t('pin.subtitle', { length: pinLength })}</p>
 
                   {/* Zone centrale - PIN centré */}
                   <div className="flex-1 flex flex-col items-center justify-center py-6">
@@ -422,7 +432,8 @@ export default function LoginPage() {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
                       <p className="text-emerald-200/50 text-xs leading-relaxed">
-                        Pour créer ou modifier votre PIN, connectez-vous puis allez dans <span className="text-emerald-100/80 font-medium">Menu → Mon Profil → Code PIN rapide</span>
+                        {t('pin.helpText', { menuPath: '' })}
+                        <span className="text-emerald-100/80 font-medium">{t('pin.helpMenuPath')}</span>
                       </p>
                     </div>
 
@@ -432,7 +443,7 @@ export default function LoginPage() {
                       onClick={() => setShowRecoveryOTP(true)}
                       className="mt-3 text-orange-300/80 hover:text-orange-200 text-sm underline transition-colors"
                     >
-                      Code perdu ?
+                      {t('pin.codeLost')}
                     </button>
                   </div>
 
@@ -440,13 +451,13 @@ export default function LoginPage() {
                   <div className="space-y-3">
                     <div className="text-center space-y-2">
                       <p className="text-emerald-100/50 text-sm">
-                        Pas encore de compte ?{' '}
+                        {t('login.noAccount')}{' '}
                         <Link href="/register" className="text-emerald-200 hover:text-white underline transition-colors">
-                          Inscrivez-vous
+                          {t('login.signup')}
                         </Link>
                       </p>
                       <Link href="/" className="inline-block text-emerald-200/50 hover:text-white text-sm underline transition-colors">
-                        ← Retour vers Accueil
+                        {t('login.backHome')}
                       </Link>
                     </div>
                   </div>
@@ -481,9 +492,9 @@ export default function LoginPage() {
 
             {/* Texte */}
             <div className="text-center relative z-10">
-              <p className="text-white text-base font-bold mb-1">Connexion en cours</p>
+              <p className="text-white text-base font-bold mb-1">{t('loadingModal.title')}</p>
               <p className="text-green-200/70 text-sm login_step-text">
-                {loginStep || 'Initialisation'}
+                {loginStep || t('loadingModal.initializing')}
               </p>
             </div>
 
@@ -492,9 +503,9 @@ export default function LoginPage() {
               <div
                 className="login_progress-fill"
                 style={{
-                  width: loginStep.includes('tableau') ? '90%'
-                    : loginStep.includes('structure') ? '60%'
-                    : loginStep.includes('identifiants') ? '30%'
+                  width: loginStepKey === 'dashboard' || loginStepKey === 'redirect' ? '90%'
+                    : loginStepKey === 'structure' ? '60%'
+                    : loginStepKey === 'credentials' ? '30%'
                     : '10%'
                 }}
               />

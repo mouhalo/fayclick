@@ -10,7 +10,113 @@
     "edit": "Modifier",
     "delete": "Supprimer",
     "required": "Requis",
-    "optional": "Optionnel"
+    "optional": "Optionnel",
+    "close": "Fermer",
+    "confirm": "Confirmer",
+    "continue": "Continuer",
+    "retry": "Réessayer",
+    "search": "Rechercher",
+    "yes": "Oui",
+    "no": "Non"
+  },
+  "auth": {
+    "appTagline": "Gestion simplifiée de votre business",
+    "loadingPage": "Chargement...",
+    "login": {
+      "title": "Connexion",
+      "emailLabel": "Email / Login",
+      "emailPlaceholder": "votre@email.com ou login",
+      "passwordLabel": "Mot de passe",
+      "passwordPlaceholder": "••••••••",
+      "submit": "Se connecter",
+      "submitting": "Connexion...",
+      "forgotPassword": "Mot de passe oublié ?",
+      "noAccount": "Pas encore de compte ?",
+      "signup": "Inscrivez-vous",
+      "backHome": "← Retour vers Accueil",
+      "switchToPin": "Connexion par PIN",
+      "switchToClassic": "Connexion classique"
+    },
+    "pin": {
+      "title": "Connexion rapide",
+      "subtitle": "Saisissez votre code à {length} chiffres",
+      "helpText": "Pour créer ou modifier votre PIN, connectez-vous puis allez dans {menuPath}",
+      "helpMenuPath": "Menu → Mon Profil → Code PIN rapide",
+      "codeLost": "Code perdu ?"
+    },
+    "loadingModal": {
+      "title": "Connexion en cours",
+      "initializing": "Initialisation",
+      "checkingCredentials": "Vérification des identifiants",
+      "loadingStructure": "Chargement de votre structure",
+      "preparingDashboard": "Préparation du tableau de bord",
+      "redirecting": "Redirection"
+    },
+    "errors": {
+      "fillAllFields": "Veuillez remplir tous les champs",
+      "noPinConfigured": "Aucun PIN configuré",
+      "wrongPin": "Code PIN incorrect",
+      "connectionError": "Erreur de connexion"
+    },
+    "passwordRecovery": {
+      "title": "Mot de passe oublié ?",
+      "subtitle": "Récupérez l'accès à votre compte en quelques étapes",
+      "stepLogin": "Identifiant",
+      "stepOtp": "Code OTP",
+      "stepNewPassword": "Nouveau mot de passe",
+      "stepSuccess": "Terminé",
+      "loginLabel": "Votre identifiant (login ou email)",
+      "loginPlaceholder": "ex: boutique@exemple.com",
+      "loginHelp": "Nous allons vous envoyer un code par SMS",
+      "sendOtp": "Envoyer le code",
+      "sendingOtp": "Envoi en cours...",
+      "otpLabel": "Code reçu par SMS",
+      "otpHelp": "Saisissez le code à 5 chiffres reçu au {phone}",
+      "resendOtp": "Renvoyer le code",
+      "resendIn": "Renvoyer dans {seconds}s",
+      "newPasswordLabel": "Nouveau mot de passe",
+      "newPasswordPlaceholder": "Minimum 6 caractères",
+      "confirmPasswordLabel": "Confirmer le mot de passe",
+      "confirmPasswordPlaceholder": "Retapez le même mot de passe",
+      "updatePassword": "Mettre à jour",
+      "updating": "Mise à jour...",
+      "successTitle": "Mot de passe mis à jour !",
+      "successMessage": "Vous pouvez désormais vous connecter avec votre nouveau mot de passe.",
+      "successLogin": "Aller à la connexion",
+      "errors": {
+        "loginRequired": "Veuillez saisir votre identifiant",
+        "loginNotFound": "Identifiant introuvable",
+        "otpRequired": "Veuillez saisir le code",
+        "otpInvalid": "Code OTP incorrect",
+        "otpExpired": "Code expiré, veuillez en redemander un",
+        "passwordTooShort": "Minimum 6 caractères",
+        "passwordsDontMatch": "Les mots de passe ne correspondent pas",
+        "updateFailed": "Échec de la mise à jour du mot de passe",
+        "sendFailed": "Impossible d'envoyer le SMS, réessayez"
+      }
+    },
+    "recoveryOtp": {
+      "title": "Code PIN perdu ?",
+      "subtitle": "Récupérez l'accès à votre connexion rapide",
+      "loginLabel": "Votre identifiant",
+      "loginPlaceholder": "login ou email",
+      "sendCode": "Recevoir un nouveau code",
+      "sending": "Envoi...",
+      "otpLabel": "Code reçu par SMS",
+      "newPinLabel": "Nouveau code PIN (5 chiffres)",
+      "confirmPinLabel": "Confirmer le code PIN",
+      "save": "Enregistrer",
+      "saving": "Enregistrement...",
+      "successTitle": "Code PIN mis à jour",
+      "successMessage": "Votre nouveau code PIN est actif.",
+      "errors": {
+        "loginRequired": "Identifiant requis",
+        "otpInvalid": "Code OTP incorrect",
+        "pinInvalid": "Le PIN doit contenir 5 chiffres",
+        "pinsDontMatch": "Les codes PIN ne correspondent pas",
+        "saveFailed": "Échec de l'enregistrement"
+      }
+    }
   },
   "register": {
     "title": "Inscription Marchand",
@@ -142,6 +248,12 @@
       "title": "Prêt à démarrer ?",
       "subtitle": "Rejoignez des milliers de marchands qui utilisent FayClick",
       "button": "Commencer gratuitement"
+    },
+    "marketplaceCta": {
+      "badge": "Nouveau",
+      "title": "Découvrez notre Marketplace",
+      "subtitle": "Explorez les boutiques et catalogues publics des marchands FayClick",
+      "button": "Voir le Marketplace"
     }
   }
 }
