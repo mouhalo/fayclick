@@ -10,7 +10,113 @@
     "edit": "Edit",
     "delete": "Delete",
     "required": "Required",
-    "optional": "Optional"
+    "optional": "Optional",
+    "close": "Close",
+    "confirm": "Confirm",
+    "continue": "Continue",
+    "retry": "Retry",
+    "search": "Search",
+    "yes": "Yes",
+    "no": "No"
+  },
+  "auth": {
+    "appTagline": "Simplified management for your business",
+    "loadingPage": "Loading...",
+    "login": {
+      "title": "Sign in",
+      "emailLabel": "Email / Username",
+      "emailPlaceholder": "you@email.com or username",
+      "passwordLabel": "Password",
+      "passwordPlaceholder": "••••••••",
+      "submit": "Sign in",
+      "submitting": "Signing in...",
+      "forgotPassword": "Forgot password?",
+      "noAccount": "Don't have an account?",
+      "signup": "Sign up",
+      "backHome": "← Back to Home",
+      "switchToPin": "Sign in with PIN",
+      "switchToClassic": "Classic sign in"
+    },
+    "pin": {
+      "title": "Quick sign in",
+      "subtitle": "Enter your {length}-digit PIN",
+      "helpText": "To create or change your PIN, sign in first then go to {menuPath}",
+      "helpMenuPath": "Menu → My Profile → Quick PIN",
+      "codeLost": "Lost your code?"
+    },
+    "loadingModal": {
+      "title": "Signing in",
+      "initializing": "Initializing",
+      "checkingCredentials": "Checking credentials",
+      "loadingStructure": "Loading your structure",
+      "preparingDashboard": "Preparing dashboard",
+      "redirecting": "Redirecting"
+    },
+    "errors": {
+      "fillAllFields": "Please fill in all fields",
+      "noPinConfigured": "No PIN configured",
+      "wrongPin": "Wrong PIN code",
+      "connectionError": "Connection error"
+    },
+    "passwordRecovery": {
+      "title": "Forgot password?",
+      "subtitle": "Recover access to your account in a few steps",
+      "stepLogin": "Username",
+      "stepOtp": "OTP code",
+      "stepNewPassword": "New password",
+      "stepSuccess": "Done",
+      "loginLabel": "Your username (login or email)",
+      "loginPlaceholder": "e.g., shop@example.com",
+      "loginHelp": "We will send you a code by SMS",
+      "sendOtp": "Send code",
+      "sendingOtp": "Sending...",
+      "otpLabel": "SMS code",
+      "otpHelp": "Enter the 5-digit code sent to {phone}",
+      "resendOtp": "Resend code",
+      "resendIn": "Resend in {seconds}s",
+      "newPasswordLabel": "New password",
+      "newPasswordPlaceholder": "Minimum 6 characters",
+      "confirmPasswordLabel": "Confirm password",
+      "confirmPasswordPlaceholder": "Type the password again",
+      "updatePassword": "Update",
+      "updating": "Updating...",
+      "successTitle": "Password updated!",
+      "successMessage": "You can now sign in with your new password.",
+      "successLogin": "Go to sign in",
+      "errors": {
+        "loginRequired": "Please enter your username",
+        "loginNotFound": "Username not found",
+        "otpRequired": "Please enter the code",
+        "otpInvalid": "Wrong OTP code",
+        "otpExpired": "Code expired, please request a new one",
+        "passwordTooShort": "Minimum 6 characters",
+        "passwordsDontMatch": "Passwords do not match",
+        "updateFailed": "Failed to update password",
+        "sendFailed": "Could not send SMS, please retry"
+      }
+    },
+    "recoveryOtp": {
+      "title": "Lost PIN code?",
+      "subtitle": "Recover access to your quick sign in",
+      "loginLabel": "Your username",
+      "loginPlaceholder": "login or email",
+      "sendCode": "Get a new code",
+      "sending": "Sending...",
+      "otpLabel": "SMS code",
+      "newPinLabel": "New PIN code (5 digits)",
+      "confirmPinLabel": "Confirm PIN code",
+      "save": "Save",
+      "saving": "Saving...",
+      "successTitle": "PIN code updated",
+      "successMessage": "Your new PIN code is active.",
+      "errors": {
+        "loginRequired": "Username required",
+        "otpInvalid": "Wrong OTP code",
+        "pinInvalid": "PIN must contain 5 digits",
+        "pinsDontMatch": "PIN codes do not match",
+        "saveFailed": "Save failed"
+      }
+    }
   },
   "register": {
     "title": "Merchant Registration",
@@ -57,9 +163,9 @@
       "orangeMoney": "Orange Money",
       "wave": "Wave",
       "logo": "Logo",
-      "terms": "I accept the {termsLink} and {privacyLink} of FayClick.",
-      "termsLink": "terms and conditions",
-      "privacyLink": "privacy policy",
+      "terms": "I accept the {termsLink} and the {privacyLink} of FayClick.",
+      "termsLink": "terms of use",
+      "privacyLink": "terms of service",
       "createButton": "Create my structure",
       "creating": "Creating..."
     },
@@ -71,18 +177,18 @@
       "addressRequired": "Address required",
       "addressTooLong": "Address too long (maximum {max} characters)",
       "termsRequired": "Please accept the terms and conditions",
-      "loadingTypes": "Unable to load structure types"
+      "loadingTypes": "Could not load structure types"
     }
   },
   "landing": {
     "desktop": {
       "login": "Sign In",
-      "title": "The Digital Commerce Super App",
-      "subtitle": "Manage your business, accept Orange Money and Wave payments, and grow your activity with Senegal's first Super App",
-      "ctaButton": "Get Started Free",
+      "title": "The Super App for Digital Commerce",
+      "subtitle": "Manage your business, accept Orange Money and Wave payments, and grow your activity with Senegal's leading Super App",
+      "ctaButton": "Start for Free",
       "slides": {
         "dashboard": "Intuitive dashboard",
-        "inventory": "Simplified inventory management",
+        "inventory": "Simplified stock management",
         "payments": "Instant payments",
         "reports": "Detailed reports"
       },
@@ -94,9 +200,9 @@
     "mobile": {
       "title": "FayClick",
       "subtitle": "Digital Commerce Senegal",
-      "tagline": "Revolutionize your business with an all-in-one",
+      "tagline": "Revolutionize your business with an all-in-one platform",
       "taglineHighlight": "ultra-modern",
-      "createAccount": "Create Account",
+      "createAccount": "Create an Account",
       "login": "Sign In",
       "features": {
         "mobilePayments": "Mobile\nPayments",
@@ -107,24 +213,24 @@
     },
     "hero": {
       "title": "The Super App for Senegalese Merchants",
-      "subtitle": "Manage your business, receive payments and grow your activity with FayClick",
-      "ctaRegister": "Create account",
+      "subtitle": "Manage your business, receive payments, and grow your activity with FayClick",
+      "ctaRegister": "Create my account",
       "ctaLogin": "Sign in"
     },
     "features": {
       "title": "Everything you need",
-      "subtitle": "A complete solution to manage your activity",
+      "subtitle": "A complete solution to manage your business",
       "payments": {
         "title": "Instant Payments",
-        "description": "Receive Orange Money and Wave payments in real-time"
+        "description": "Receive Orange Money and Wave payments in real time"
       },
       "invoicing": {
         "title": "Simplified Invoicing",
         "description": "Create and send professional invoices in a few clicks"
       },
       "inventory": {
-        "title": "Inventory Management",
-        "description": "Track your products and services in real-time"
+        "title": "Stock Management",
+        "description": "Track your products and services in real time"
       },
       "analytics": {
         "title": "Detailed Analytics",
@@ -139,9 +245,15 @@
       "realestate": "Real Estate"
     },
     "cta": {
-      "title": "Ready to start?",
+      "title": "Ready to get started?",
       "subtitle": "Join thousands of merchants using FayClick",
-      "button": "Get started for free"
+      "button": "Start for free"
+    },
+    "marketplaceCta": {
+      "badge": "New",
+      "title": "Discover our Marketplace",
+      "subtitle": "Browse public shops and catalogs of FayClick merchants",
+      "button": "View Marketplace"
     }
   }
 }
