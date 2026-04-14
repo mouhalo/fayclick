@@ -42,7 +42,8 @@ class LogoUploadSimpleService {
   async uploadLogoOnly(
     file: File,
     onProgress?: (progress: UploadProgress) => void,
-    uploadType: 'logo' | 'photo' = 'logo'
+    uploadType: 'logo' | 'photo' = 'logo',
+    structureName: string = 'fayclick'
   ): Promise<UploadResult> {
     try {
       const typeLabel = uploadType === 'photo' ? 'PHOTO-PRODUIT' : 'LOGO-REGISTER';
@@ -69,7 +70,7 @@ class LogoUploadSimpleService {
 
       // 4. Upload FTP uniquement (pas de sauvegarde BD)
       this.updateProgress(onProgress, 'uploading', 60, 'Upload serveur...');
-      const fileUrl = await this.uploadToFTP(compressedFile, filename);
+      const fileUrl = await this.uploadToFTP(compressedFile, filename, structureName);
 
       this.updateProgress(onProgress, 'success', 100, 'Upload terminé!');
 
@@ -106,7 +107,8 @@ class LogoUploadSimpleService {
     file: File,
     id_structure: number,
     onProgress?: (progress: UploadProgress) => void,
-    uploadType: 'logo' | 'photo' = 'logo'
+    uploadType: 'logo' | 'photo' = 'logo',
+    structureName: string = 'fayclick'
   ): Promise<UploadResult> {
     try {
       const typeLabel = uploadType === 'photo' ? 'PHOTO-PRODUIT' : 'LOGO-SIMPLE';
@@ -133,7 +135,7 @@ class LogoUploadSimpleService {
 
       // 4. Upload FTP via endpoint PHP
       this.updateProgress(onProgress, 'uploading', 50, 'Upload serveur...');
-      const fileUrl = await this.uploadToFTP(compressedFile, filename);
+      const fileUrl = await this.uploadToFTP(compressedFile, filename, structureName);
 
       // 5. Sauvegarde URL en base de données (uniquement pour les logos)
       // Pour les photos produits, la sauvegarde se fait via produitsService.addEditPhoto()
@@ -236,111 +238,45 @@ class LogoUploadSimpleService {
   }
 
   /**
-   * Upload vers serveur FTP
-   * - DEV (localhost): API Route Next.js locale
-   * - PROD (export): API Backend (api.icelabsoft.com/api/upload_logo)
+   * Upload vers backend dédié api.icelabsoft.com
+   * Endpoint: POST https://api.icelabsoft.com/pay_services/api/upload_logo
+   * Multipart/form-data: logo (File) + structure_name (string)
+   * Réponse: { success, url, filename, size } ou { success:false, code, error }
    */
-  /**
-   * Convertir un File en data URL base64
-   */
-  private fileToBase64(file: File): Promise<string> {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = () => reject(new Error('Erreur lecture fichier'));
-      reader.readAsDataURL(file);
-    });
-  }
+  private async uploadToFTP(file: File, _filename: string, structureName: string): Promise<string> {
+    const uploadUrl = 'https://api.icelabsoft.com/pay_services/api/upload_logo';
 
-  private async uploadToFTP(file: File, filename: string): Promise<string> {
-    // Détection environnement
-    const isLocalhost = typeof window !== 'undefined' &&
-      (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+    console.log('📤 [LOGO-UPLOAD] Upload vers backend dédié:', uploadUrl, `(${Math.round(file.size / 1024)} KB)`);
 
-    const uploadUrl = isLocalhost
-      ? '/api/upload-logo'
-      : '/upload-logo.php';
-
-    console.log('📤 [LOGO-SIMPLE] Upload vers:', isLocalhost ? 'API Route locale' : 'Endpoint PHP', uploadUrl);
-
-    // Tentative 1 : Multipart classique
-    try {
-      const result = await this.uploadMultipart(uploadUrl, file, filename);
-
-      // Si le serveur répond "use_base64_mode", basculer automatiquement
-      if (!result.success && result.details === 'use_base64_mode') {
-        console.log('🔄 [LOGO-SIMPLE] Bascule vers mode base64 (tmp dir manquant)');
-        return await this.uploadBase64(uploadUrl, file, filename);
-      }
-
-      if (!result.success) {
-        throw new Error(result.error || 'Erreur upload');
-      }
-
-      if (!result.url) {
-        throw new Error('URL manquante dans la réponse');
-      }
-
-      console.log('✅ [LOGO-SIMPLE] Upload FTP réussi:', result.url);
-      return result.url;
-    } catch (error) {
-      // Si erreur multipart, tenter base64 en fallback
-      console.warn('⚠️ [LOGO-SIMPLE] Multipart échoué, tentative base64...', error);
-      try {
-        return await this.uploadBase64(uploadUrl, file, filename);
-      } catch (base64Error) {
-        console.error('❌ [LOGO-SIMPLE] Erreur upload base64:', base64Error);
-        throw base64Error;
-      }
-    }
-  }
-
-  /**
-   * Upload via FormData multipart (mode classique)
-   */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private async uploadMultipart(url: string, file: File, filename: string): Promise<any> {
     const formData = new FormData();
-    formData.append('file', file);
-    formData.append('filename', filename);
+    formData.append('logo', file);
+    formData.append('structure_name', structureName || 'fayclick');
 
-    const response = await fetch(url, { method: 'POST', body: formData });
-    const responseText = await response.text();
+    let response: Response;
     try {
-      return JSON.parse(responseText);
-    } catch {
-      throw new Error(`Erreur serveur ${response.status}: Réponse invalide`);
+      response = await fetch(uploadUrl, { method: 'POST', body: formData });
+    } catch (err) {
+      console.error('❌ [LOGO-UPLOAD] Erreur réseau:', err);
+      throw new Error('Impossible de joindre le serveur d\'upload. Vérifiez votre connexion.');
     }
-  }
-
-  /**
-   * Upload via base64 JSON (contourne UPLOAD_ERR_NO_TMP_DIR)
-   */
-  private async uploadBase64(url: string, file: File, filename: string): Promise<string> {
-    console.log('📤 [LOGO-SIMPLE] Upload base64:', filename, `(${Math.round(file.size / 1024)} KB)`);
-
-    const base64Data = await this.fileToBase64(file);
-
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ file_base64: base64Data, filename })
-    });
 
     const responseText = await response.text();
     let result;
     try {
       result = JSON.parse(responseText);
     } catch {
-      console.error('❌ [LOGO-SIMPLE] Réponse base64 non-JSON:', responseText);
-      throw new Error(`Erreur serveur ${response.status}: Réponse invalide`);
+      console.error('❌ [LOGO-UPLOAD] Réponse non-JSON:', response.status, responseText.slice(0, 200));
+      throw new Error(`Erreur serveur ${response.status}. Veuillez réessayer.`);
     }
 
     if (!result.success || !result.url) {
-      throw new Error(result.error || 'Erreur upload base64');
+      const code = result.code || 'UNKNOWN';
+      const msg = result.error || 'Erreur upload';
+      console.error('❌ [LOGO-UPLOAD] Échec upload:', code, msg);
+      throw new Error(`${msg}`);
     }
 
-    console.log('✅ [LOGO-SIMPLE] Upload base64 réussi:', result.url);
+    console.log('✅ [LOGO-UPLOAD] Upload réussi:', result.url, `(${result.size} bytes)`);
     return result.url;
   }
 

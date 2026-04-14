@@ -69,6 +69,7 @@ export interface LogoUploadProps {
   label?: string; // Label personnalisé pour l'upload
   uploadType?: 'logo' | 'photo'; // Type d'upload (logo ou photo)
   registerMode?: boolean; // Si true, mode Register (upload FTP uniquement, sans sauvegarde BD)
+  structureName?: string; // Nom de la structure (utilisé pour nommer le fichier côté serveur)
 }
 
 // Interface pour l'état du logo dans le formulaire

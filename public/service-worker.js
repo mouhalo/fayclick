@@ -1,10 +1,10 @@
 // Service Worker FayClick V2 - PWA Complète
 // Version: 2.8.0 - 2026-02-01 - Intégration add_acompte_facture1 + photo produit
-// Build: 2026-03-13T18:31:54.153Z - Force upload fix for ftp-deploy size comparison bug
+// Build: 2026-04-14T17:21:01.769Z - Force upload fix for ftp-deploy size comparison bug
 // Build: 2026-02-01T21:12:32.816Z
 
-const CACHE_NAME = 'fayclick-v2-cache-v2.9-20260304';
-const DYNAMIC_CACHE_NAME = 'fayclick-v2-dynamic-v2.9-20260304';
+const CACHE_NAME = 'fayclick-v3.0-cache-20260414';
+const DYNAMIC_CACHE_NAME = 'fayclick-v3.0-dynamic-20260414';
 const OFFLINE_PAGE_URL = '/offline';
 
 // Nom de l'IndexedDB pour les requêtes en attente (Background Sync)

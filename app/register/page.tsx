@@ -105,7 +105,7 @@ export default function RegisterPage() {
   const [successModal, setSuccessModal] = useState<{
     isOpen: boolean; message: string; login: string; password: string;
     structureName: string; otpCode: string; phoneOM: string;
-    otpChannel: 'sms' | 'email'; otpRecipient: string;
+    otpChannel: 'sms' | 'email' | 'whatsapp'; otpRecipient: string;
   }>({
     isOpen: false,
     message: '',
@@ -365,7 +365,7 @@ export default function RegisterPage() {
 
       // Envoi OTP via routeur (SMS si SN, Email Gmail sinon)
       const phoneNumber = formData.phoneOM;
-      let otpChannel: 'sms' | 'email' = countryCode === 'SN' ? 'sms' : 'email';
+      let otpChannel: 'sms' | 'email' | 'whatsapp' = countryCode === 'SN' ? 'sms' : 'whatsapp';
       let otpRecipient = countryCode === 'SN' ? phoneNumber : emailGmail;
       try {
         const routed = await otpRouter.sendOTP({
@@ -636,7 +636,7 @@ export default function RegisterPage() {
                     <div className="space-y-1.5 md:space-y-3">
                       <label className="flex items-center gap-2 text-green-100 font-semibold text-sm">
                         <Phone className="w-4 h-4 text-emerald-400" />
-                        Téléphone Orange Money <span className="text-red-400">*</span>
+                        Votre N°Tél avec WhatsApp <span className="text-red-400">*</span>
                       </label>
                       <CountryPhoneInput
                         value={formData.phoneOM}
@@ -694,7 +694,7 @@ export default function RegisterPage() {
                               </p>
                             )}
                             <p className="text-xs text-green-300/50">
-                              Le SMS n&apos;étant pas disponible pour ce pays, votre code OTP sera envoyé par email.
+                              Votre code OTP sera envoyé par WhatsApp. Un email Gmail est requis comme secours.
                             </p>
                           </div>
                         </motion.div>
@@ -779,6 +779,7 @@ export default function RegisterPage() {
                         onUploadProgress={handleLogoUploadProgress}
                         onFileSelect={handleLogoFileSelect}
                         registerMode={true}
+                        structureName={formData.nomStructure || 'fayclick'}
                       />
                     </div>
 
