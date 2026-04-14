@@ -6,6 +6,7 @@ import { X, Phone, Building2, Send, CheckCircle, AlertCircle, ShieldAlert } from
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { registrationService } from '@/services/registration.service';
 import otpRouter from '@/services/otp-router.service';
+import { useTranslations } from '@/hooks/useTranslations';
 
 interface ModalRecoveryOTPProps {
   isOpen: boolean;
@@ -39,13 +40,14 @@ function isDailyLimitReached(): boolean {
 
 export function ModalRecoveryOTP({ isOpen, onClose, onSuccess }: ModalRecoveryOTPProps) {
   const { isMobile, isMobileLarge } = useBreakpoint();
+  const t = useTranslations('auth');
 
   const [nomStructure, setNomStructure] = useState('');
   const [telephone, setTelephone] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [step, setStep] = useState<'form' | 'success'>('form');
-  const [sentChannel, setSentChannel] = useState<'sms' | 'email'>('sms');
+  const [sentChannel, setSentChannel] = useState<'sms' | 'email' | 'whatsapp'>('sms');
   const [sentTo, setSentTo] = useState<string>('');
 
   useEffect(() => {
@@ -78,22 +80,22 @@ export function ModalRecoveryOTP({ isOpen, onClose, onSuccess }: ModalRecoveryOT
     setError('');
 
     if (!nomStructure.trim()) {
-      setError('Le nom de la structure est requis');
+      setError(t('recoveryOtp.errors.structureRequired'));
       return;
     }
     if (nomStructure.trim().length < 3) {
-      setError('Nom de structure trop court (minimum 3 caractères)');
+      setError(t('recoveryOtp.errors.structureTooShort'));
       return;
     }
 
     const cleanPhone = telephone.replace(/\D/g, '');
     if (cleanPhone.length < 7 || cleanPhone.length > 10) {
-      setError('Numéro de téléphone invalide (7 à 10 chiffres)');
+      setError(t('recoveryOtp.errors.phoneInvalid'));
       return;
     }
 
     if (isDailyLimitReached()) {
-      setError('Limite quotidienne atteinte (3 max). Réessayez demain.');
+      setError(t('recoveryOtp.errors.dailyLimit'));
       return;
     }
 
@@ -103,7 +105,7 @@ export function ModalRecoveryOTP({ isOpen, onClose, onSuccess }: ModalRecoveryOT
       const result = await registrationService.getStructureAdminByName(nomStructure, cleanPhone);
 
       if (!result.found || !result.login) {
-        setError('Structure non trouvée ou numéro ne correspond pas');
+        setError(t('recoveryOtp.errors.structureNotFound'));
         setIsLoading(false);
         return;
       }
@@ -125,7 +127,7 @@ export function ModalRecoveryOTP({ isOpen, onClose, onSuccess }: ModalRecoveryOT
         setSentTo(routed.recipient);
       } catch (otpErr: any) {
         // Si email manquant pour un pays non-SN → message clair à l'utilisateur
-        setError(otpErr?.message || 'Impossible d\'envoyer le code de récupération');
+        setError(otpErr?.message || t('recoveryOtp.errors.sendFailed'));
         setIsLoading(false);
         return;
       }
@@ -139,7 +141,7 @@ export function ModalRecoveryOTP({ isOpen, onClose, onSuccess }: ModalRecoveryOT
 
       setStep('success');
     } catch (err: any) {
-      setError(err.message || 'Une erreur est survenue');
+      setError(err.message || t('recoveryOtp.errors.generic'));
     } finally {
       setIsLoading(false);
     }
@@ -187,10 +189,10 @@ export function ModalRecoveryOTP({ isOpen, onClose, onSuccess }: ModalRecoveryOT
                   </div>
                   <div>
                     <h2 className={`${styles.title} font-bold text-white`}>
-                      Code perdu ?
+                      {t('recoveryOtp.title')}
                     </h2>
                     <p className={`${styles.subtitle} text-orange-100 mt-1`}>
-                      {step === 'form' ? 'Récupérez votre code de connexion' : 'Nouveau code généré'}
+                      {step === 'form' ? t('recoveryOtp.subtitleForm') : t('recoveryOtp.subtitleSuccess')}
                     </p>
                   </div>
                 </div>
@@ -208,7 +210,7 @@ export function ModalRecoveryOTP({ isOpen, onClose, onSuccess }: ModalRecoveryOT
                   {/* Nom de la structure */}
                   <div>
                     <label className={`block ${styles.subtitle} font-medium text-orange-100 mb-2`}>
-                      Nom de votre structure
+                      {t('recoveryOtp.structureNameLabel')}
                     </label>
                     <div className="relative">
                       <Building2 className={`absolute left-3 top-1/2 -translate-y-1/2 ${styles.icon} text-orange-300`} />
@@ -223,7 +225,7 @@ export function ModalRecoveryOTP({ isOpen, onClose, onSuccess }: ModalRecoveryOT
                           focus:ring-2 focus:ring-amber-400 focus:border-transparent
                           transition-all duration-200 hover:bg-white/30
                         `}
-                        placeholder="Ex: MA BOUTIQUE"
+                        placeholder={t('recoveryOtp.structureNamePlaceholder')}
                         disabled={isLoading}
                         autoFocus
                       />
@@ -233,7 +235,7 @@ export function ModalRecoveryOTP({ isOpen, onClose, onSuccess }: ModalRecoveryOT
                   {/* Numéro OM */}
                   <div>
                     <label className={`block ${styles.subtitle} font-medium text-orange-100 mb-2`}>
-                      Téléphone Orange Money
+                      {t('recoveryOtp.phoneLabel')}
                     </label>
                     <div className="relative">
                       <Phone className={`absolute left-3 top-1/2 -translate-y-1/2 ${styles.icon} text-orange-300`} />
@@ -248,12 +250,12 @@ export function ModalRecoveryOTP({ isOpen, onClose, onSuccess }: ModalRecoveryOT
                           focus:ring-2 focus:ring-amber-400 focus:border-transparent
                           transition-all duration-200 hover:bg-white/30
                         `}
-                        placeholder="77XXXXXXX"
+                        placeholder={t('recoveryOtp.phonePlaceholder')}
                         disabled={isLoading}
                       />
                     </div>
                     <p className={`${styles.subtitle} text-orange-200/80 mt-1`}>
-                      Le numéro utilisé lors de l&apos;inscription
+                      {t('recoveryOtp.phoneHelp')}
                     </p>
                   </div>
 
@@ -283,7 +285,7 @@ export function ModalRecoveryOTP({ isOpen, onClose, onSuccess }: ModalRecoveryOT
                         disabled:opacity-50 disabled:cursor-not-allowed
                       `}
                     >
-                      Annuler
+                      {t('recoveryOtp.cancel')}
                     </button>
                     <button
                       type="submit"
@@ -304,12 +306,12 @@ export function ModalRecoveryOTP({ isOpen, onClose, onSuccess }: ModalRecoveryOT
                             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                           </svg>
-                          <span>Recherche...</span>
+                          <span>{t('recoveryOtp.submitting')}</span>
                         </>
                       ) : (
                         <>
                           <Send className={styles.icon} />
-                          <span>Récupérer</span>
+                          <span>{t('recoveryOtp.submit')}</span>
                         </>
                       )}
                     </button>
@@ -318,7 +320,7 @@ export function ModalRecoveryOTP({ isOpen, onClose, onSuccess }: ModalRecoveryOT
                   {/* Note d'information */}
                   <div className="mt-4 p-3 bg-white/5 backdrop-blur-sm rounded-lg border border-orange-200/20">
                     <p className={`${styles.subtitle} text-orange-200/80 text-center`}>
-                      Le nom et le numéro doivent correspondre à ceux utilisés lors de l&apos;inscription.
+                      {t('recoveryOtp.note')}
                     </p>
                   </div>
                 </form>
@@ -334,24 +336,34 @@ export function ModalRecoveryOTP({ isOpen, onClose, onSuccess }: ModalRecoveryOT
                     <CheckCircle className="w-8 h-8 text-white" />
                   </div>
                   <h3 className={`${styles.title} font-bold text-white mb-2`}>
-                    Code envoyé par {sentChannel === 'email' ? 'Email' : 'SMS'} !
+                    {sentChannel === 'email'
+                      ? t('recoveryOtp.successTitleEmail')
+                      : sentChannel === 'whatsapp'
+                      ? t('recoveryOtp.successTitleWhatsapp')
+                      : t('recoveryOtp.successTitleSms')}
                   </h3>
 
                   <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4 mb-4">
                     <Phone className="w-6 h-6 text-amber-400 mx-auto mb-2" />
                     <p className={`${styles.subtitle} text-orange-100`}>
-                      Un nouveau code à 5 chiffres a été envoyé {sentChannel === 'email' ? 'à' : 'au'}
+                      {sentChannel === 'email' || sentChannel === 'whatsapp'
+                        ? t('recoveryOtp.successMessageEmail')
+                        : t('recoveryOtp.successMessageSms')}
                     </p>
                     <p className={`${styles.subtitle} font-bold text-white mt-1`}>
-                      {sentChannel === 'email' ? sentTo : `+221 ${telephone}`}
+                      {sentChannel === 'sms' ? `+221 ${telephone}` : sentTo}
                     </p>
                   </div>
 
                   <p className={`${styles.subtitle} text-orange-200/80 mb-1`}>
-                    {sentChannel === 'email' ? 'Vérifiez votre boîte Gmail et saisissez le code reçu' : 'Vérifiez vos SMS et saisissez le code reçu'}
+                    {sentChannel === 'email'
+                      ? t('recoveryOtp.checkEmail')
+                      : sentChannel === 'whatsapp'
+                      ? t('recoveryOtp.checkWhatsapp')
+                      : t('recoveryOtp.checkSms')}
                   </p>
                   <p className={`${styles.subtitle} text-orange-200/60 text-xs`}>
-                    Ne partagez ce code avec personne
+                    {t('recoveryOtp.doNotShare')}
                   </p>
 
                   <button
@@ -364,7 +376,7 @@ export function ModalRecoveryOTP({ isOpen, onClose, onSuccess }: ModalRecoveryOT
                       transition-all duration-200 shadow-lg hover:shadow-xl
                     `}
                   >
-                    Saisir mon code
+                    {t('recoveryOtp.enterCode')}
                   </button>
                 </motion.div>
               )}

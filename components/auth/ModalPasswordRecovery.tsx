@@ -7,6 +7,7 @@ import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { authService } from '@/services/auth.service';
 import { registrationService } from '@/services/registration.service';
 import { toast } from 'sonner';
+import { useTranslations } from '@/hooks/useTranslations';
 
 interface ModalPasswordRecoveryProps {
   isOpen: boolean;
@@ -17,6 +18,7 @@ type Step = 'request' | 'verify' | 'success';
 
 export function ModalPasswordRecovery({ isOpen, onClose }: ModalPasswordRecoveryProps) {
   const { isMobile, isMobileLarge, isDesktop } = useBreakpoint();
+  const t = useTranslations('auth');
   
   // État du workflow
   const [currentStep, setCurrentStep] = useState<Step>('request');
@@ -67,7 +69,7 @@ export function ModalPasswordRecovery({ isOpen, onClose }: ModalPasswordRecovery
       countdownInterval.current = setInterval(() => {
         setCountdown(prev => {
           if (prev <= 1) {
-            setError('Le code a expiré. Veuillez recommencer.');
+            setError(t('passwordRecovery.errors.codeExpired'));
             setCurrentStep('request');
             return 120;
           }
@@ -130,24 +132,24 @@ export function ModalPasswordRecovery({ isOpen, onClose }: ModalPasswordRecovery
     
     // Validation
     if (!formData.nomStructure.trim()) {
-      setError('Le nom de la structure est requis');
+      setError(t('passwordRecovery.errors.structureRequired'));
       return;
     }
 
     if (formData.nomStructure.trim().length < 3) {
-      setError('Nom de structure trop court (minimum 3 caractères)');
+      setError(t('passwordRecovery.errors.structureTooShort'));
       return;
     }
 
     if (!formData.phoneNumber.trim()) {
-      setError('Le numéro de téléphone est requis');
+      setError(t('passwordRecovery.errors.phoneRequired'));
       return;
     }
 
     // Validation du format téléphone (7 à 10 chiffres)
     const cleanPhone = formData.phoneNumber.replace(/\D/g, '');
     if (cleanPhone.length < 7 || cleanPhone.length > 10) {
-      setError('Numéro de téléphone invalide (7 à 10 chiffres)');
+      setError(t('passwordRecovery.errors.phoneInvalid'));
       return;
     }
 
@@ -158,7 +160,7 @@ export function ModalPasswordRecovery({ isOpen, onClose }: ModalPasswordRecovery
       const structResult = await registrationService.getStructureAdminByName(formData.nomStructure, cleanPhone);
 
       if (!structResult.found || !structResult.login) {
-        setError('Structure non trouvée ou numéro ne correspond pas');
+        setError(t('passwordRecovery.errors.structureNotFound'));
         setIsLoading(false);
         return;
       }
@@ -176,14 +178,14 @@ export function ModalPasswordRecovery({ isOpen, onClose }: ModalPasswordRecovery
         });
         setCurrentStep('verify');
         setCountdown(120); // Réinitialiser le compte à rebours
-        toast.success('Code envoyé par SMS', {
-          description: 'Vérifiez votre téléphone'
+        toast.success(t('passwordRecovery.toasts.codeSentTitle'), {
+          description: t('passwordRecovery.toasts.codeSentDescription')
         });
       } else {
-        setError(response.message || 'Erreur lors de la demande');
+        setError(response.message || t('passwordRecovery.errors.requestFailed'));
       }
     } catch (err: any) {
-      setError(err.message || 'Une erreur est survenue');
+      setError(err.message || t('passwordRecovery.errors.generic'));
     } finally {
       setIsLoading(false);
     }
@@ -195,12 +197,12 @@ export function ModalPasswordRecovery({ isOpen, onClose }: ModalPasswordRecovery
     setError('');
     
     if (!formData.verificationCode.trim()) {
-      setError('Le code de vérification est requis');
+      setError(t('passwordRecovery.errors.codeRequired'));
       return;
     }
-    
+
     if (formData.verificationCode.length !== 6) {
-      setError('Le code doit contenir 6 caractères');
+      setError(t('passwordRecovery.errors.codeLength'));
       return;
     }
 
@@ -222,8 +224,8 @@ export function ModalPasswordRecovery({ isOpen, onClose }: ModalPasswordRecovery
         setCurrentStep('success');
         
         // Toast de succès
-        toast.success('Mot de passe réinitialisé !', {
-          description: response.instruction || 'Connectez-vous avec votre nouveau mot de passe',
+        toast.success(t('passwordRecovery.success.toastTitle'), {
+          description: response.instruction || t('passwordRecovery.success.toastDescription'),
           duration: 5000
         });
         
@@ -232,10 +234,10 @@ export function ModalPasswordRecovery({ isOpen, onClose }: ModalPasswordRecovery
           onClose();
         }, 5000);
       } else {
-        setError(response.message || 'Code invalide ou expiré');
+        setError(response.message || t('passwordRecovery.errors.codeInvalid'));
       }
     } catch (err: any) {
-      setError(err.message || 'Erreur lors de la vérification');
+      setError(err.message || t('passwordRecovery.errors.verifyFailed'));
     } finally {
       setIsLoading(false);
     }
@@ -298,12 +300,12 @@ export function ModalPasswordRecovery({ isOpen, onClose }: ModalPasswordRecovery
                   </div>
                   <div>
                     <h2 className={`${styles.title} font-bold text-white`}>
-                      Récupération du mot de passe
+                      {t('passwordRecovery.title')}
                     </h2>
                     <p className={`${styles.subtitle} text-green-100 mt-1`}>
-                      {currentStep === 'request' && 'Étape 1: Demande de récupération'}
-                      {currentStep === 'verify' && 'Étape 2: Vérification du code'}
-                      {currentStep === 'success' && 'Récupération réussie'}
+                      {currentStep === 'request' && t('passwordRecovery.stepRequestLabel')}
+                      {currentStep === 'verify' && t('passwordRecovery.stepVerifyLabel')}
+                      {currentStep === 'success' && t('passwordRecovery.stepSuccessLabel')}
                     </p>
                   </div>
                 </div>
@@ -332,7 +334,7 @@ export function ModalPasswordRecovery({ isOpen, onClose }: ModalPasswordRecovery
                   {/* Nom de la structure */}
                   <div>
                     <label className={`block ${styles.subtitle} font-medium text-green-100 mb-2`}>
-                      Nom de la structure
+                      {t('passwordRecovery.request.structureNameLabel')}
                     </label>
                     <div className="relative">
                       <Building2 className={`absolute left-3 top-1/2 -translate-y-1/2 ${styles.icon} text-green-300`} />
@@ -348,7 +350,7 @@ export function ModalPasswordRecovery({ isOpen, onClose }: ModalPasswordRecovery
                           transition-all duration-200 hover:bg-white/30
                           uppercase
                         `}
-                        placeholder="Ex: MA BOUTIQUE"
+                        placeholder={t('passwordRecovery.request.structureNamePlaceholder')}
                         disabled={isLoading}
                         autoFocus
                       />
@@ -358,7 +360,7 @@ export function ModalPasswordRecovery({ isOpen, onClose }: ModalPasswordRecovery
                   {/* Numéro de téléphone */}
                   <div>
                     <label className={`block ${styles.subtitle} font-medium text-green-100 mb-2`}>
-                      Numéro de téléphone
+                      {t('passwordRecovery.request.phoneLabel')}
                     </label>
                     <div className="relative">
                       <Phone className={`absolute left-3 top-1/2 -translate-y-1/2 ${styles.icon} text-green-300`} />
@@ -373,12 +375,12 @@ export function ModalPasswordRecovery({ isOpen, onClose }: ModalPasswordRecovery
                           focus:ring-2 focus:ring-emerald-400 focus:border-transparent
                           transition-all duration-200 hover:bg-white/30
                         `}
-                        placeholder="Téléphone Orange Money"
+                        placeholder={t('passwordRecovery.request.phonePlaceholder')}
                         disabled={isLoading}
                       />
                     </div>
                     <p className={`${styles.subtitle} text-green-200/80 mt-1`}>
-                      Le numéro utilisé lors de l&apos;inscription (7 à 10 chiffres)
+                      {t('passwordRecovery.request.phoneHelp')}
                     </p>
                   </div>
 
@@ -408,7 +410,7 @@ export function ModalPasswordRecovery({ isOpen, onClose }: ModalPasswordRecovery
                         disabled:opacity-50 disabled:cursor-not-allowed
                       `}
                     >
-                      Annuler
+                      {t('passwordRecovery.cancel')}
                     </button>
                     <button
                       type="submit"
@@ -429,12 +431,12 @@ export function ModalPasswordRecovery({ isOpen, onClose }: ModalPasswordRecovery
                             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                           </svg>
-                          <span>Envoi...</span>
+                          <span>{t('passwordRecovery.request.submitting')}</span>
                         </>
                       ) : (
                         <>
                           <Send className={styles.icon} />
-                          <span>Envoyer le code</span>
+                          <span>{t('passwordRecovery.request.submit')}</span>
                         </>
                       )}
                     </button>
@@ -450,7 +452,7 @@ export function ModalPasswordRecovery({ isOpen, onClose }: ModalPasswordRecovery
                       <Shield className={`${styles.icon} text-emerald-400 mt-1`} />
                       <div>
                         <p className={`${styles.subtitle} text-green-100`}>
-                          Un code de vérification a été envoyé au
+                          {t('passwordRecovery.verify.codeSentTo')}
                         </p>
                         <p className={`${styles.subtitle} font-bold text-white mt-1`}>
                           +221 {formData.phoneNumber}
@@ -472,7 +474,7 @@ export function ModalPasswordRecovery({ isOpen, onClose }: ModalPasswordRecovery
                   {/* Code de vérification */}
                   <div>
                     <label className={`block ${styles.subtitle} font-medium text-green-100 mb-2`}>
-                      Code de vérification (6 caractères)
+                      {t('passwordRecovery.verify.codeLabel')}
                     </label>
                     <input
                       type="text"
@@ -486,7 +488,7 @@ export function ModalPasswordRecovery({ isOpen, onClose }: ModalPasswordRecovery
                         transition-all duration-200 hover:bg-white/30
                         font-mono text-2xl
                       `}
-                      placeholder="XXXXXX"
+                      placeholder={t('passwordRecovery.verify.codePlaceholder')}
                       disabled={isLoading}
                       autoFocus
                       maxLength={6}
@@ -523,7 +525,7 @@ export function ModalPasswordRecovery({ isOpen, onClose }: ModalPasswordRecovery
                         disabled:opacity-50 disabled:cursor-not-allowed
                       `}
                     >
-                      Retour
+                      {t('passwordRecovery.back')}
                     </button>
                     <button
                       type="submit"
@@ -544,12 +546,12 @@ export function ModalPasswordRecovery({ isOpen, onClose }: ModalPasswordRecovery
                             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                           </svg>
-                          <span>Vérification...</span>
+                          <span>{t('passwordRecovery.verify.submitting')}</span>
                         </>
                       ) : (
                         <>
                           <CheckCircle className={styles.icon} />
-                          <span>Vérifier</span>
+                          <span>{t('passwordRecovery.verify.submit')}</span>
                         </>
                       )}
                     </button>
@@ -563,7 +565,7 @@ export function ModalPasswordRecovery({ isOpen, onClose }: ModalPasswordRecovery
                       className={`${styles.subtitle} text-green-200 hover:text-white underline`}
                       disabled={isLoading}
                     >
-                      Renvoyer le code
+                      {t('passwordRecovery.verify.resend')}
                     </button>
                   </div>
                 </form>
@@ -579,10 +581,10 @@ export function ModalPasswordRecovery({ isOpen, onClose }: ModalPasswordRecovery
                     <CheckCircle className="w-8 h-8 text-white" />
                   </div>
                   <h3 className={`${styles.title} font-bold text-white mb-2`}>
-                    Mot de passe réinitialisé !
+                    {t('passwordRecovery.success.title')}
                   </h3>
                   <p className={`${styles.subtitle} text-green-100 mb-4`}>
-                    Votre nouveau mot de passe temporaire est :
+                    {t('passwordRecovery.success.tempPasswordLabel')}
                   </p>
                   
                   {/* Affichage du nouveau mot de passe */}
@@ -595,9 +597,9 @@ export function ModalPasswordRecovery({ isOpen, onClose }: ModalPasswordRecovery
                   )}
                   
                   <p className={`${styles.subtitle} text-green-200/80 mt-4`}>
-                    Connectez-vous avec ce mot de passe et changez-le immédiatement
+                    {t('passwordRecovery.success.instruction')}
                   </p>
-                  
+
                   <button
                     onClick={onClose}
                     className={`
@@ -608,7 +610,7 @@ export function ModalPasswordRecovery({ isOpen, onClose }: ModalPasswordRecovery
                       transition-all duration-200 shadow-lg hover:shadow-xl
                     `}
                   >
-                    Fermer
+                    {t('passwordRecovery.close')}
                   </button>
                 </motion.div>
               )}
@@ -617,7 +619,7 @@ export function ModalPasswordRecovery({ isOpen, onClose }: ModalPasswordRecovery
               {currentStep === 'request' && (
                 <div className="mt-6 p-3 bg-white/5 backdrop-blur-sm rounded-lg border border-green-200/20">
                   <p className={`${styles.subtitle} text-green-200/80 text-center`}>
-                    Saisissez le nom exact de votre structure et le numéro de téléphone utilisé lors de l&apos;inscription.
+                    {t('passwordRecovery.request.note')}
                   </p>
                 </div>
               )}
