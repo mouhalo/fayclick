@@ -1,6 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
+import LanguageSwitcher from '@/components/ui/LanguageSwitcher';
 
 interface DashboardHeaderProps {
   title: string;
@@ -56,6 +57,8 @@ export default function DashboardHeader({
           <span className="text-xl lg:text-2xl">☰</span>
         </motion.button>
 
+        <div className="flex items-center gap-2">
+        <LanguageSwitcher variant="dark" compact />
         <motion.button
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.9 }}
@@ -73,6 +76,7 @@ export default function DashboardHeader({
             </motion.div>
           )}
         </motion.button>
+        </div>
       </div>
 
       {/* Welcome Section */}

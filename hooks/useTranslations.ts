@@ -2,49 +2,61 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import fr from '@/messages/fr.json';
 import en from '@/messages/en.json';
 
-const translations = { fr, en };
+const translations = { fr, en } as const;
 
+export type Locale = keyof typeof translations;
 export type Namespace = keyof typeof fr;
-export type TranslationKey<N extends Namespace> = keyof typeof fr[N];
+export type TranslationKey<N extends Namespace> = keyof (typeof fr)[N];
+
+function resolveKey(messages: any, namespace: string, key: string): string | undefined {
+  const namespaceMessages = messages[namespace];
+  if (!namespaceMessages) return undefined;
+
+  const keys = key.split('.');
+  let value: any = namespaceMessages;
+  for (const k of keys) {
+    if (value && typeof value === 'object') {
+      value = value[k];
+    } else {
+      return undefined;
+    }
+  }
+  return typeof value === 'string' ? value : undefined;
+}
+
+function interpolate(template: string, params?: Record<string, unknown>): string {
+  if (!params) return template;
+  return template.replace(/\{(\w+)\}/g, (match, param: string) =>
+    params[param] !== undefined ? String(params[param]) : match
+  );
+}
 
 export function useTranslations<N extends Namespace>(namespace: N) {
   const { locale } = useLanguage();
 
-  const t = (key: TranslationKey<N> | string, params?: Record<string, any>): string => {
-    const messages = translations[locale];
-    const namespaceMessages = messages[namespace] as any;
+  const t = (
+    key: TranslationKey<N> | string,
+    params?: Record<string, unknown>
+  ): string => {
+    const keyStr = key as string;
 
-    if (!namespaceMessages) {
-      console.warn(`Namespace "${namespace}" not found`);
-      return key as string;
-    }
+    let value = resolveKey(translations[locale], namespace, keyStr);
 
-    // Support pour les clés imbriquées comme "step1.title"
-    const keys = (key as string).split('.');
-    let translation: any = namespaceMessages;
-
-    for (const k of keys) {
-      if (translation && typeof translation === 'object') {
-        translation = translation[k];
-      } else {
-        translation = undefined;
-        break;
+    if (value === undefined && locale !== 'fr') {
+      value = resolveKey(translations.fr, namespace, keyStr);
+      if (value !== undefined && typeof window !== 'undefined') {
+        console.warn(`[i18n] Missing "${namespace}.${keyStr}" in "${locale}", using FR fallback`);
       }
     }
 
-    if (!translation || typeof translation !== 'string') {
-      console.warn(`Translation key "${String(key)}" not found in namespace "${namespace}"`);
-      return key as string;
+    if (value === undefined) {
+      if (typeof window !== 'undefined') {
+        console.warn(`[i18n] Missing "${namespace}.${keyStr}" in all locales`);
+      }
+      return keyStr;
     }
 
-    // Support pour les paramètres comme {name}, {count}
-    if (params) {
-      translation = translation.replace(/\{(\w+)\}/g, (match: string, param: string) => {
-        return params[param] !== undefined ? String(params[param]) : match;
-      });
-    }
-
-    return translation;
+    return interpolate(value, params);
   };
 
   return t;
