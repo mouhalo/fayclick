@@ -16,7 +16,8 @@ export default function LogoUpload({
   disabled = false,
   label,
   uploadType = 'logo',
-  registerMode = false
+  registerMode = false,
+  structureName
 }: LogoUploadProps) {
   const { structure } = useAuth(); // Récupérer id_structure (optionnel en mode Register)
   const [logoState, setLogoState] = useState<LogoState>({
@@ -58,13 +59,15 @@ export default function LogoUpload({
       // Mode Register : Upload FTP uniquement (sans sauvegarde BD)
       // Mode normal : Upload FTP + Sauvegarde BD (seulement pour les logos)
       // Pour les photos produits : uploadLogoOnly car la sauvegarde BD se fait via produitsService.addEditPhoto()
+      const effectiveStructureName = structureName || structure?.nom_structure || 'fayclick';
       const result = registerMode
-        ? await logoUploadSimpleService.uploadLogoOnly(file, progressCallback, uploadType)
+        ? await logoUploadSimpleService.uploadLogoOnly(file, progressCallback, uploadType, effectiveStructureName)
         : await logoUploadSimpleService.uploadLogo(
             file,
             structure!.id_structure,
             progressCallback,
-            uploadType
+            uploadType,
+            effectiveStructureName
           );
 
       if (result.success) {
