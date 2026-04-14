@@ -87,10 +87,19 @@ export interface ResumeGlobal {
   marge_totale?: number;
 }
 
+// Interface pour la pagination serveur
+export interface PaginationInfo {
+  page_courante: number;
+  taille_page: number;
+  total_factures: number;
+  total_pages: number;
+}
+
 // Interface pour la réponse complète de get_my_facture
 export interface GetMyFactureResponse {
   factures: FactureComplete[];
   resume_global: ResumeGlobal;
+  pagination?: PaginationInfo;
   timestamp_generation?: string;
   // Champs additionnels pour compatibilité avec les stats cards
   total_factures: number;

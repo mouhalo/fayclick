@@ -236,11 +236,11 @@ export default function RegisterPage() {
   const handleLogoUploadComplete = (result: UploadResult) => {
     if (result.success && result.url) {
       if (result.url.startsWith('data:')) {
-        alert('Erreur: L\'upload vers le serveur a échoué. Veuillez réessayer.');
+        alert(t('errors.uploadFailed'));
         return;
       }
       if (!result.url.startsWith('http://') && !result.url.startsWith('https://')) {
-        alert('Erreur: URL de l\'image invalide. Veuillez réessayer.');
+        alert(t('errors.invalidImageUrl'));
         return;
       }
       setFormData(prev => ({ ...prev, logoUrl: result.url! }));
@@ -402,7 +402,7 @@ export default function RegisterPage() {
       resetForm();
 
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Erreur lors de l\'inscription';
+      const errorMessage = error instanceof Error ? error.message : t('errors.registrationFailed');
       setError(errorMessage);
     } finally {
       setIsLoading(false);

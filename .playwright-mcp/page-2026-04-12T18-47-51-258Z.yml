@@ -1,0 +1,86 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - generic [ref=e6]:
+      - img "FayClick Mascotte" [ref=e12]
+      - paragraph [ref=e14]: Votre Super App au Sénégal
+      - paragraph [ref=e19]: Chargement...
+    - generic [ref=e20]: Version 2.5.0
+  - generic:
+    - generic:
+      - generic:
+        - generic:
+          - generic:
+            - generic:
+              - img "Logo FayClick Logo circulaire avec anneau tricolore du Sénégal et caddie stylisé":
+                - generic:
+                  - generic: FC
+            - heading "FayClick" [level=1]
+            - paragraph: Gestion simplifiée de votre business
+          - generic:
+            - generic:
+              - generic:
+                - generic:
+                  - generic:
+                    - button "Connexion par PIN":
+                      - img
+                    - heading "Connexion" [level=2]
+                    - generic:
+                      - generic:
+                        - generic: Email / Login
+                        - generic:
+                          - textbox "Email / Login":
+                            - /placeholder: votre@email.com ou login
+                          - generic:
+                            - img
+                      - generic:
+                        - generic: Mot de passe
+                        - generic:
+                          - textbox "Mot de passe":
+                            - /placeholder: ••••••••
+                          - generic:
+                            - img
+                          - button:
+                            - img
+                      - button "Se connecter"
+                      - generic:
+                        - button "Mot de passe oublié ?"
+                    - generic:
+                      - paragraph:
+                        - text: Pas encore de compte ?
+                        - link "Inscrivez-vous":
+                          - /url: /register
+                      - link "← Retour vers Accueil":
+                        - /url: /
+                  - generic:
+                    - button "Connexion classique":
+                      - img
+                    - heading "Connexion rapide" [level=2]
+                    - paragraph: Saisissez votre code à 5 chiffres
+                    - generic:
+                      - generic:
+                        - img
+                      - generic:
+                        - generic:
+                          - textbox
+                          - textbox
+                          - textbox
+                          - textbox
+                          - textbox
+                        - paragraph
+                      - generic:
+                        - img
+                        - paragraph: Pour créer ou modifier votre PIN, connectez-vous puis allez dans Menu → Mon Profil → Code PIN rapide
+                      - button "Code perdu ?"
+                    - generic:
+                      - generic:
+                        - paragraph:
+                          - text: Pas encore de compte ?
+                          - link "Inscrivez-vous":
+                            - /url: /register
+                        - link "← Retour vers Accueil":
+                          - /url: /
+        - link "Contacter via WhatsApp":
+          - /url: https://wa.me/221781043505?text=Bonjour%2C%20j'aimerais%20discuter%20de%20votre%20solution%20FayClick.
+          - img "WhatsApp"
+  - region "Notifications alt+T"
+  - alert [ref=e21]

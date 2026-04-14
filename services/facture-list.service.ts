@@ -247,7 +247,7 @@ class FactureListService {
 
   /**
    * Récupérer les factures avec filtres côté BD via get_my_factures_filtered
-   * Tous les paramètres de filtre sont optionnels
+   * Supporte la pagination serveur (page + limit)
    */
   async getMyFacturesFiltered(filtres?: {
     dateDebut?: string;
@@ -255,6 +255,8 @@ class FactureListService {
     nomClient?: string;
     telClient?: string;
     statut?: string;
+    page?: number;
+    limit?: number;
   }): Promise<GetMyFactureResponse> {
     try {
       const user = authService.getUser();
@@ -267,13 +269,16 @@ class FactureListService {
       const pNomClient = filtres?.nomClient || '';
       const pTelClient = filtres?.telClient || '';
       const pStatut = filtres?.statut || '';
+      const pPage = filtres?.page || 1;
+      const pLimit = filtres?.limit || 20;
 
       console.log('📋 [FACTURE-LIST] getMyFacturesFiltered:', {
         id_structure: user.id_structure,
-        pDateDebut, pDateFin, pNomClient, pTelClient, pStatut
+        pDateDebut, pDateFin, pNomClient, pTelClient, pStatut,
+        page: pPage, limit: pLimit
       });
 
-      const query = `SELECT * FROM get_my_factures_filtered(${user.id_structure}, '${pDateDebut}', '${pDateFin}', '${pNomClient}', '${pTelClient}', '${pStatut}')`;
+      const query = `SELECT * FROM get_my_factures_filtered(${user.id_structure}, '${pDateDebut}', '${pDateFin}', '${pNomClient}', '${pTelClient}', '${pStatut}', ${pPage}, ${pLimit})`;
 
       const result = await DatabaseService.query(query);
 
@@ -284,6 +289,7 @@ class FactureListService {
             nombre_factures: 0, montant_total: 0, montant_paye: 0,
             montant_impaye: 0, nombre_payees: 0, nombre_impayees: 0
           },
+          pagination: { page_courante: pPage, taille_page: pLimit, total_factures: 0, total_pages: 0 },
           total_factures: 0, montant_total: 0, montant_paye: 0, montant_impaye: 0
         };
       }
@@ -330,13 +336,22 @@ class FactureListService {
         }));
       }
 
+      // Extraire pagination depuis la réponse PostgreSQL
+      const pagination = factureData.pagination || {
+        page_courante: pPage,
+        taille_page: pLimit,
+        total_factures: factureData.resume_global?.nombre_factures || facturesFormatees.length,
+        total_pages: Math.ceil((factureData.resume_global?.nombre_factures || facturesFormatees.length) / pLimit)
+      };
+
       return {
         factures: facturesFormatees,
         resume_global: factureData.resume_global || {
           nombre_factures: facturesFormatees.length, montant_total: 0,
           montant_paye: 0, montant_impaye: 0, nombre_payees: 0, nombre_impayees: 0
         },
-        total_factures: factureData.resume_global?.nombre_factures || facturesFormatees.length,
+        pagination,
+        total_factures: factureData.resume_global?.nombre_factures || pagination.total_factures || facturesFormatees.length,
         montant_total: factureData.resume_global?.montant_total || 0,
         montant_paye: factureData.resume_global?.montant_paye || 0,
         montant_impaye: factureData.resume_global?.montant_impaye || 0

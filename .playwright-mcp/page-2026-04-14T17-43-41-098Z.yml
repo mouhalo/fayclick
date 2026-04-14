@@ -1,0 +1,124 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e24]:
+    - banner [ref=e25]:
+      - generic [ref=e26]:
+        - generic [ref=e27]:
+          - button "Retour à l'accueil" [ref=e28] [cursor=pointer]:
+            - img [ref=e29]
+          - img "Logo FayClick Logo circulaire avec anneau tricolore du Sénégal et caddie stylisé" [ref=e32]:
+            - generic [ref=e39]: FC
+          - generic [ref=e44]:
+            - heading "Inscription Marchand" [level=1] [ref=e45]
+            - paragraph [ref=e46]: Créez votre structure
+        - generic [ref=e47]:
+          - generic [ref=e49]: 2/2
+          - button "🇫🇷" [ref=e54] [cursor=pointer]:
+            - generic [ref=e55]: 🇫🇷
+            - img [ref=e56]
+    - main [ref=e60]:
+      - generic [ref=e61]:
+        - generic [ref=e116]:
+          - generic [ref=e117]:
+            - heading "Finalisation" [level=2] [ref=e118]
+            - paragraph [ref=e119]: Encore quelques infos et c'est parti !
+          - generic [ref=e120]:
+            - generic [ref=e121]:
+              - img [ref=e122]
+              - text: Adresse
+              - generic [ref=e125]: "*"
+            - 'textbox "Ex: Marché Sandaga, Dakar" [ref=e126]': Marché Sandaga
+            - generic [ref=e127]: 14/255
+          - generic [ref=e128]:
+            - generic [ref=e129]:
+              - img [ref=e130]
+              - text: Logo
+              - generic [ref=e133]: (Optionnel)
+            - generic [ref=e134]:
+              - generic [ref=e135]:
+                - generic [ref=e137]: 🎨
+                - heading "Logo de votre business" [level=3] [ref=e138]
+              - paragraph [ref=e139]: Photo/Logo du commerce (optionnel)
+              - generic [ref=e141] [cursor=pointer]:
+                - img "Preview logo" [ref=e172]
+                - button "🗑️ Supprimer" [ref=e175]
+              - generic [ref=e150]: "💡 Optionnel : Ajoutez le logo de votre commerce pour personnaliser vos factures"
+          - generic [ref=e151]:
+            - generic [ref=e152]:
+              - img [ref=e153]
+              - text: Code Parrainage
+              - generic [ref=e156]: (Optionnel)
+            - 'textbox "Ex: ORANGE2026" [ref=e157]'
+            - paragraph [ref=e158]: Avez-vous un code partenaire ?
+          - generic [ref=e160] [cursor=pointer]:
+            - checkbox "J'accepte les conditions générales et la politique de confidentialité de FayClick." [ref=e161]
+            - generic [ref=e162]:
+              - text: J'accepte les
+              - link "conditions générales" [ref=e163]:
+                - /url: /terms
+              - text: et la
+              - link "politique de confidentialité" [ref=e164]:
+                - /url: /privacy
+              - text: de FayClick.
+        - generic [ref=e101]:
+          - button "Précédent" [ref=e165] [cursor=pointer]:
+            - img [ref=e166]
+            - text: Précédent
+          - button "Créer ma structure" [ref=e168] [cursor=pointer]:
+            - img [ref=e169]
+            - text: Créer ma structure
+        - paragraph [ref=e106]:
+          - text: Déjà inscrit ?
+          - button "Se connecter" [ref=e107] [cursor=pointer]
+  - region "Notifications alt+T"
+  - alert [ref=e21]
+  - generic [ref=e181]:
+    - generic [ref=e182]:
+      - generic [ref=e183]:
+        - img [ref=e221]
+        - generic [ref=e188]:
+          - heading "Ajuster la taille" [level=2] [ref=e225]
+          - paragraph [ref=e190]: Ajustez la taille et la qualité
+          - generic [ref=e194]: Étape 2/2
+      - button [ref=e195] [cursor=pointer]:
+        - img [ref=e196]
+    - generic [ref=e227]:
+      - img "Preview" [ref=e228]
+      - generic [ref=e229]: 1147 × 1147 px
+    - generic [ref=e230]:
+      - generic [ref=e231]:
+        - generic [ref=e232]: Taille
+        - generic [ref=e233]: 100%
+      - slider [ref=e234] [cursor=pointer]: "100"
+      - generic [ref=e235]:
+        - generic [ref=e236]: 25%
+        - generic [ref=e237]: 100%
+    - generic [ref=e239]:
+      - generic [ref=e240]:
+        - generic [ref=e241]: "Original:"
+        - generic [ref=e242]: 1147×1147 (127 KB)
+      - generic [ref=e243]:
+        - generic [ref=e244]: "Nouveau:"
+        - generic [ref=e245]: 1147×1147 (101 KB)
+    - generic [ref=e246]:
+      - text: Qualité JPEG
+      - generic [ref=e247]:
+        - button "Basse (60%)" [ref=e248] [cursor=pointer]
+        - button "Moyenne (80%)" [ref=e249] [cursor=pointer]
+        - button "Haute (90%)" [ref=e250] [cursor=pointer]
+    - generic [ref=e251]:
+      - generic [ref=e252]: 🟢
+      - generic [ref=e253]:
+        - strong [ref=e254]: Taille optimale pour un logo!
+        - text: 101 KB
+    - generic [ref=e255]:
+      - img [ref=e256]
+      - paragraph [ref=e258]: Un logo de 100-200 KB est idéal pour vos factures et votre profil.
+    - generic [ref=e259]:
+      - button "Retour" [ref=e260] [cursor=pointer]:
+        - img [ref=e261]
+        - generic [ref=e263]: Retour
+      - generic [ref=e264]:
+        - button "Annuler" [ref=e265] [cursor=pointer]
+        - button "Valider" [ref=e266] [cursor=pointer]:
+          - img [ref=e267]
+          - generic [ref=e269]: Valider

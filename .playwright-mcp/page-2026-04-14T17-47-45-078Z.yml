@@ -1,0 +1,101 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e23]:
+    - generic [ref=e24]:
+      - banner [ref=e25]:
+        - generic [ref=e26]:
+          - generic [ref=e27]:
+            - button "Retour à l'accueil" [ref=e28] [cursor=pointer]:
+              - img [ref=e29]
+            - img "Logo FayClick Logo circulaire avec anneau tricolore du Sénégal et caddie stylisé" [ref=e32]:
+              - generic [ref=e39]: FC
+            - generic [ref=e44]:
+              - heading "Inscription Marchand" [level=1] [ref=e45]
+              - paragraph [ref=e46]: Créez votre structure
+          - generic [ref=e47]:
+            - generic [ref=e49]: 1/2
+            - button "🇫🇷" [ref=e54] [cursor=pointer]:
+              - generic [ref=e55]: 🇫🇷
+              - img [ref=e56]
+      - main [ref=e60]:
+        - generic [ref=e61]:
+          - generic [ref=e287]:
+            - generic [ref=e288]:
+              - generic [ref=e289]: 🏪
+              - heading "Votre Commerce" [level=2] [ref=e290]
+              - paragraph [ref=e291]: Commencez par donner un nom à votre structure
+            - generic [ref=e292]:
+              - generic [ref=e293]: Nom de votre commerce *
+              - 'textbox "Ex: BOUTIQUE AMINATA" [ref=e295]'
+              - generic [ref=e296]:
+                - generic [ref=e297]: 5-100 caractères
+                - generic [ref=e298]: 0/100
+            - generic [ref=e299]:
+              - generic [ref=e300]:
+                - img [ref=e301]
+                - text: Votre N°Tél avec WhatsApp
+                - generic [ref=e303]: "*"
+              - generic [ref=e305]:
+                - 'button "Pays : Sénégal, indicatif +221" [ref=e306] [cursor=pointer]':
+                  - generic [ref=e307]: 🇸🇳
+                  - generic [ref=e308]: "+221"
+                  - img [ref=e309]
+                - textbox "77 123 45 67" [ref=e311]
+            - generic [ref=e312]:
+              - generic [ref=e313]:
+                - generic [ref=e314]: 🚀
+                - generic [ref=e315]: Inscription gratuite
+              - generic [ref=e316]:
+                - generic [ref=e317]: 💰
+                - generic [ref=e318]: Paiement instantané
+              - generic [ref=e319]:
+                - generic [ref=e320]: 🔒
+                - generic [ref=e321]: Sécurisé et fiable
+              - generic [ref=e322]:
+                - generic [ref=e323]: 📱
+                - generic [ref=e324]: QR Code personnel
+          - button "Suivant" [disabled] [ref=e277]:
+            - text: Suivant
+            - img [ref=e278]
+          - paragraph [ref=e106]:
+            - text: Déjà inscrit ?
+            - button "Se connecter" [ref=e107] [cursor=pointer]
+    - generic [ref=e328]:
+      - generic [ref=e332]:
+        - generic [ref=e334]: 🎉
+        - heading "Inscription Réussie !" [level=2] [ref=e335]
+        - paragraph [ref=e336]: Bienvenue dans l'écosystème FayClick
+      - generic [ref=e337]:
+        - heading "BTK025TEST2" [level=3] [ref=e339]
+        - generic [ref=e340]:
+          - generic [ref=e341]:
+            - heading "Votre code de connexion rapide" [level=4] [ref=e342]
+            - paragraph [ref=e343]: Envoyé par SMS au +221 781043506
+          - generic [ref=e344]:
+            - generic [ref=e346]: "1"
+            - generic [ref=e348]: "7"
+            - generic [ref=e350]: "4"
+            - generic [ref=e352]: "3"
+            - generic [ref=e354]: "6"
+          - button "📋 Copier le code" [ref=e355] [cursor=pointer]
+          - paragraph [ref=e356]: Utilisez ce code pour vous connecter rapidement
+        - button "Identifiants classiques (login / mot de passe) ▼" [ref=e358] [cursor=pointer]:
+          - generic [ref=e359]: Identifiants classiques (login / mot de passe)
+          - generic [ref=e360]: ▼
+        - generic [ref=e361]:
+          - heading "🚀 Prochaines étapes :" [level=4] [ref=e362]
+          - generic [ref=e363]:
+            - generic [ref=e364]:
+              - generic [ref=e365]: "1"
+              - generic [ref=e366]: Se connecter avec le code
+            - generic [ref=e367]:
+              - generic [ref=e368]: "2"
+              - generic [ref=e369]: Changer le mot de passe
+            - generic [ref=e370]:
+              - generic [ref=e371]: "3"
+              - generic [ref=e372]: Configurer la structure
+      - generic [ref=e373]:
+        - button "Se connecter avec le code" [ref=e374] [cursor=pointer]:
+          - generic [ref=e375]: Se connecter avec le code
+        - button "Fermer" [ref=e376] [cursor=pointer]
+  - region "Notifications alt+T"
+  - alert [ref=e21]
