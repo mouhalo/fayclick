@@ -251,9 +251,11 @@
     },
     "marketplaceCta": {
       "badge": "New",
-      "title": "Discover our Marketplace",
-      "subtitle": "Browse public shops and catalogs of FayClick merchants",
-      "button": "View Marketplace"
+      "title": "Discover our marketplace",
+      "subtitle": "Find a merchant by name or phone in seconds",
+      "button": "Explore marketplace",
+      "statsProducts": "+3K products",
+      "statsShops": "{count} shops"
     }
   }
 }
