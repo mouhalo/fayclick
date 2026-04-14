@@ -148,9 +148,14 @@
     "title": "Merchant Registration",
     "subtitle": "Create your structure",
     "step": "Step {current}/{total}",
+    "backToHome": "Back to home",
     "step1": {
       "title": "Welcome to FayClick!",
       "subtitle": "Let's start with your structure's name. Choose a unique and memorable name.",
+      "heading": "Your Business",
+      "helperText": "Start by giving a name to your structure",
+      "businessNameLabelStrong": "Name of your business",
+      "businessNamePlaceholderExample": "e.g., AMINATA SHOP",
       "businessNameLabel": "Your structure name",
       "businessNamePlaceholder": "YOUR BUSINESS NAME",
       "available": "Available ✓",
@@ -179,7 +184,33 @@
       "phoneWavePlaceholder": "70 XXX XX XX",
       "address": "Full address",
       "addressPlaceholder": "Your structure's full address",
-      "logo": "Logo"
+      "logo": "Logo",
+      "emailGmailLabel": "Gmail Email",
+      "emailGmailPlaceholder": "you@gmail.com",
+      "emailGmailRequired": "Gmail email required (e.g., you@gmail.com)",
+      "emailGmailValid": "Valid Gmail email",
+      "otpInfo": "Your OTP code will be sent via WhatsApp. A Gmail email is required as a fallback."
+    },
+    "step3Extended": {
+      "heading": "Finalization",
+      "helperText": "A few more details and you're done!",
+      "addressPlaceholderExample": "e.g., Sandaga Market, Dakar",
+      "promoCodeLabel": "Referral Code",
+      "promoCodePlaceholder": "e.g., ORANGE2026",
+      "promoCodeHelp": "Do you have a partner code?",
+      "logoLabel": "Logo"
+    },
+    "submit": {
+      "creating": "Creating...",
+      "create": "Create my structure"
+    },
+    "loginLink": {
+      "text": "Already registered?",
+      "action": "Sign in"
+    },
+    "celebration": {
+      "title": "Congratulations!",
+      "subtitle": "Your business is created"
     },
     "step3": {
       "title": "Summary",
@@ -200,6 +231,9 @@
       "businessNameTaken": "This structure name is already taken",
       "structureTypeRequired": "Please select a structure type",
       "phoneOMInvalid": "Invalid Orange Money phone (9 digits, prefixes: 77, 78, 70, 76, 75)",
+      "phoneInvalidForCountry": "Invalid phone number for {country}",
+      "countryFallback": "the selected country",
+      "emailGmailRequiredOutsideSN": "Gmail email required for registrations outside Senegal (e.g., you@gmail.com)",
       "addressRequired": "Address required",
       "addressTooLong": "Address too long (maximum {max} characters)",
       "termsRequired": "Please accept the terms and conditions",

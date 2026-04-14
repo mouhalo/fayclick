@@ -271,36 +271,36 @@ export default function RegisterPage() {
     switch (currentStep) {
       case 1:
         if (!formData.businessName || formData.businessName.trim().length < VALIDATION_RULES.BUSINESS_NAME_MIN_LENGTH) {
-          setError(`Nom du commerce requis (minimum ${VALIDATION_RULES.BUSINESS_NAME_MIN_LENGTH} caractères)`);
+          setError(t('errors.businessNameRequired', { min: VALIDATION_RULES.BUSINESS_NAME_MIN_LENGTH }));
           return false;
         }
         if (nameCheckState.exists) {
-          setError('Ce nom de structure est déjà pris');
+          setError(t('errors.businessNameTaken'));
           return false;
         }
         if (!formData.phoneOM || !validatePhoneForPays(formData.phoneOM, countryCode)) {
           const pays = getPaysByCode(countryCode);
-          setError(`Numéro de téléphone invalide pour ${pays?.nom_fr || 'le pays sélectionné'}`);
+          setError(t('errors.phoneInvalidForCountry', { country: pays?.nom_fr || t('errors.countryFallback') }));
           return false;
         }
         if (countryCode !== 'SN') {
           if (!emailGmail || !isEmailValid) {
-            setError('Email Gmail requis pour les inscriptions hors Sénégal (ex: vous@gmail.com)');
+            setError(t('errors.emailGmailRequiredOutsideSN'));
             return false;
           }
         }
         break;
       case 2:
         if (!formData.address || formData.address.trim().length === 0) {
-          setError('Adresse requise');
+          setError(t('errors.addressRequired'));
           return false;
         }
         if (formData.address.length > VALIDATION_RULES.ADDRESS_MAX_LENGTH) {
-          setError(`Adresse trop longue (maximum ${VALIDATION_RULES.ADDRESS_MAX_LENGTH} caractères)`);
+          setError(t('errors.addressTooLong', { max: VALIDATION_RULES.ADDRESS_MAX_LENGTH }));
           return false;
         }
         if (!formData.acceptTerms) {
-          setError('Veuillez accepter les conditions générales');
+          setError(t('errors.termsRequired'));
           return false;
         }
         break;
@@ -477,7 +477,7 @@ export default function RegisterPage() {
                 onClick={() => router.push('/')}
                 className="p-2 rounded-lg transition-colors"
                 style={{ background: 'rgba(255,255,255,0.1)' }}
-                title="Retour à l'accueil"
+                title={t('backToHome')}
               >
                 <Home className="w-5 h-5 text-green-200" />
               </button>
@@ -549,17 +549,17 @@ export default function RegisterPage() {
                         🏪
                       </motion.div>
                       <h2 className="text-xl md:text-3xl font-bold text-white">
-                        Votre Commerce
+                        {t('step1.heading')}
                       </h2>
                       <p className="text-green-200/70 max-w-md mx-auto text-xs md:text-sm">
-                        Commencez par donner un nom à votre structure
+                        {t('step1.helperText')}
                       </p>
                     </div>
 
                     {/* Business Name */}
                     <div className="space-y-1.5 md:space-y-3">
                       <label className="block text-green-100 font-semibold text-sm">
-                        Nom de votre commerce <span className="text-red-400">*</span>
+                        {t('step1.businessNameLabelStrong')} <span className="text-red-400">*</span>
                       </label>
                       <div className="relative">
                         <input
@@ -582,7 +582,7 @@ export default function RegisterPage() {
                               ? '#ef4444'
                               : undefined
                           }}
-                          placeholder="Ex: BOUTIQUE AMINATA"
+                          placeholder={t('step1.businessNamePlaceholderExample')}
                           maxLength={VALIDATION_RULES.BUSINESS_NAME_MAX_LENGTH}
                           required
                         />
@@ -665,7 +665,7 @@ export default function RegisterPage() {
                           <div className="space-y-1.5 md:space-y-3">
                             <label className="flex items-center gap-2 text-green-100 font-semibold text-sm">
                               <Mail className="w-4 h-4 text-emerald-400" />
-                              Email Gmail <span className="text-red-400">*</span>
+                              {t('step2.emailGmailLabel')} <span className="text-red-400">*</span>
                             </label>
                             <input
                               type="email"
@@ -674,7 +674,7 @@ export default function RegisterPage() {
                               onChange={handleEmailGmailChange}
                               onBlur={() => setEmailTouched(true)}
                               className="reg_glass-input"
-                              placeholder="vous@gmail.com"
+                              placeholder={t('step2.emailGmailPlaceholder')}
                               autoComplete="email"
                               inputMode="email"
                               required
@@ -684,17 +684,17 @@ export default function RegisterPage() {
                             {emailTouched && emailGmail && !isEmailValid && (
                               <p className="text-red-400 text-xs flex items-center gap-1">
                                 <AlertCircle className="w-3.5 h-3.5" />
-                                Email Gmail requis (ex: vous@gmail.com)
+                                {t('step2.emailGmailRequired')}
                               </p>
                             )}
                             {emailGmail && isEmailValid && (
                               <p className="text-emerald-400 text-xs flex items-center gap-1">
                                 <Check className="w-3.5 h-3.5" />
-                                Email Gmail valide
+                                {t('step2.emailGmailValid')}
                               </p>
                             )}
                             <p className="text-xs text-green-300/50">
-                              Votre code OTP sera envoyé par WhatsApp. Un email Gmail est requis comme secours.
+                              {t('step2.otpInfo')}
                             </p>
                           </div>
                         </motion.div>
@@ -739,10 +739,10 @@ export default function RegisterPage() {
                     {/* Step Title */}
                     <div className="text-center space-y-2">
                       <h2 className="text-2xl md:text-3xl font-bold text-white">
-                        Finalisation
+                        {t('step3Extended.heading')}
                       </h2>
                       <p className="text-green-200/70 text-sm">
-                        Encore quelques infos et c&apos;est parti !
+                        {t('step3Extended.helperText')}
                       </p>
                     </div>
 
@@ -759,7 +759,7 @@ export default function RegisterPage() {
                         value={formData.address}
                         onChange={handleChange}
                         className="reg_glass-input"
-                        placeholder="Ex: Marché Sandaga, Dakar"
+                        placeholder={t('step3Extended.addressPlaceholderExample')}
                         maxLength={VALIDATION_RULES.ADDRESS_MAX_LENGTH}
                         required
                       />
@@ -772,7 +772,7 @@ export default function RegisterPage() {
                     <div className="space-y-2">
                       <label className="flex items-center gap-2 text-green-100 font-semibold text-sm">
                         <Upload className="w-4 h-4 text-emerald-400" />
-                        Logo <span className="text-green-300/40 text-xs font-normal">({tCommon('optional')})</span>
+                        {t('step3Extended.logoLabel')} <span className="text-green-300/40 text-xs font-normal">({tCommon('optional')})</span>
                       </label>
                       <LogoUpload
                         onUploadComplete={handleLogoUploadComplete}
@@ -787,7 +787,7 @@ export default function RegisterPage() {
                     <div className="space-y-2">
                       <label className="flex items-center gap-2 text-green-100 font-semibold text-sm">
                         <Tag className="w-4 h-4 text-orange-400" />
-                        Code Parrainage <span className="text-green-300/40 text-xs font-normal">({tCommon('optional')})</span>
+                        {t('step3Extended.promoCodeLabel')} <span className="text-green-300/40 text-xs font-normal">({tCommon('optional')})</span>
                       </label>
                       <input
                         type="text"
@@ -795,11 +795,11 @@ export default function RegisterPage() {
                         value={formData.codePromo || ''}
                         onChange={handleChange}
                         className="reg_glass-input uppercase"
-                        placeholder="Ex: ORANGE2026"
+                        placeholder={t('step3Extended.promoCodePlaceholder')}
                         maxLength={11}
                       />
                       <p className="text-xs text-green-300/40">
-                        Avez-vous un code partenaire ?
+                        {t('step3Extended.promoCodeHelp')}
                       </p>
                     </div>
 
@@ -878,12 +878,12 @@ export default function RegisterPage() {
                   isLoading ? (
                     <>
                       <Loader2 className="w-5 h-5 animate-spin" />
-                      Création en cours...
+                      {t('submit.creating')}
                     </>
                   ) : (
                     <>
                       <Sparkles className="w-5 h-5" />
-                      Créer ma structure
+                      {t('submit.create')}
                     </>
                   )
                 ) : (
@@ -898,13 +898,13 @@ export default function RegisterPage() {
             {/* Login link */}
             <div className="text-center mt-3 md:mt-6 pb-4">
               <p className="text-green-200/50 text-sm">
-                Déjà inscrit ?{' '}
+                {t('loginLink.text')}{' '}
                 <button
                   type="button"
                   onClick={() => router.push('/login')}
                   className="text-emerald-400 hover:text-emerald-300 font-semibold underline"
                 >
-                  Se connecter
+                  {t('loginLink.action')}
                 </button>
               </p>
             </div>
@@ -966,7 +966,7 @@ export default function RegisterPage() {
               transition={{ delay: 1.2, type: 'spring' }}
               className="text-3xl font-bold text-white reg_celebration-pulse"
             >
-              Félicitations !
+              {t('celebration.title')}
             </motion.h2>
             <motion.p
               initial={{ opacity: 0 }}
@@ -974,7 +974,7 @@ export default function RegisterPage() {
               transition={{ delay: 1.6 }}
               className="text-green-200 mt-2"
             >
-              Votre commerce est créé
+              {t('celebration.subtitle')}
             </motion.p>
           </div>
         </div>
