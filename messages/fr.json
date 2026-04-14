@@ -251,9 +251,11 @@
     },
     "marketplaceCta": {
       "badge": "Nouveau",
-      "title": "Découvrez notre Marketplace",
-      "subtitle": "Explorez les boutiques et catalogues publics des marchands FayClick",
-      "button": "Voir le Marketplace"
+      "title": "Découvrez notre marketplace",
+      "subtitle": "Trouvez un marchand par nom ou téléphone en quelques secondes",
+      "button": "Explorer la marketplace",
+      "statsProducts": "+3K produits",
+      "statsShops": "{count} boutiques"
     }
   }
 }
