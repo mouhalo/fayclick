@@ -1624,6 +1624,14 @@
         "removed": "retirées du",
         "stock": "stock"
       }
+    },
+    "qrModal": {
+      "title": "Partager ce produit",
+      "copy": "Copier",
+      "copied": "Copié !",
+      "whatsapp": "Partager sur WhatsApp",
+      "downloadQR": "Télécharger le QR code",
+      "downloading": "Export en cours..."
     }
   },
   "commerceDashboard": {
@@ -1695,7 +1703,7 @@
     "dragHint": "Glisser pour déplacer",
     "empty": "Panier vide",
     "emptyHint": "Ajoutez des produits depuis la grille",
-    "loyalizeClient": "Fidéliser le client",
+    "loyalizeClient": "Saisir le client",
     "unitPrice": "Prix unitaire",
     "subtotal": "Sous-total",
     "quantity": "Quantité",

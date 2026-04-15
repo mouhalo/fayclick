@@ -1624,6 +1624,14 @@
         "removed": "removed from",
         "stock": "stock"
       }
+    },
+    "qrModal": {
+      "title": "Share this product",
+      "copy": "Copy",
+      "copied": "Copied!",
+      "whatsapp": "Share on WhatsApp",
+      "downloadQR": "Download QR code",
+      "downloading": "Exporting..."
     }
   },
   "commerceDashboard": {
@@ -1695,7 +1703,7 @@
     "dragHint": "Drag to move",
     "empty": "Cart empty",
     "emptyHint": "Add products from the grid",
-    "loyalizeClient": "Add client",
+    "loyalizeClient": "Enter Client Info",
     "unitPrice": "Unit price",
     "subtotal": "Subtotal",
     "quantity": "Quantity",
