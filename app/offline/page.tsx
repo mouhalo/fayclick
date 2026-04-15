@@ -3,9 +3,11 @@
 import { WifiOff, RefreshCw, Home } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import { useTranslations } from '@/hooks/useTranslations';
 
 export default function OfflinePage() {
   const [isOnline, setIsOnline] = useState(false);
+  const t = useTranslations('offline');
 
   useEffect(() => {
     // Vérifier l'état de connexion
@@ -51,13 +53,10 @@ export default function OfflinePage() {
         {/* Contenu */}
         <div className="bg-white rounded-2xl shadow-xl p-8 text-center">
           <h1 className="text-2xl font-bold text-gray-900 mb-2">
-            Vous êtes hors ligne
+            {t('title')}
           </h1>
           <p className="text-gray-600 mb-8">
-            {isOnline
-              ? "Reconnexion en cours..."
-              : "Vérifiez votre connexion internet pour continuer à utiliser FayClick"
-            }
+            {isOnline ? t('messageReconnecting') : t('messageOffline')}
           </p>
 
           {/* Boutons d'action */}
@@ -72,7 +71,7 @@ export default function OfflinePage() {
               }`}
             >
               <RefreshCw className={`w-5 h-5 ${isOnline ? 'animate-spin' : ''}`} />
-              <span>{isOnline ? 'Reconnexion...' : 'Réessayer'}</span>
+              <span>{isOnline ? t('reconnecting') : t('retry')}</span>
             </button>
 
             <Link
@@ -80,14 +79,14 @@ export default function OfflinePage() {
               className="w-full px-6 py-3 border border-gray-300 text-gray-700 font-medium rounded-xl hover:bg-gray-50 transition-colors flex items-center justify-center space-x-2"
             >
               <Home className="w-5 h-5" />
-              <span>Retour à l'accueil</span>
+              <span>{t('backHome')}</span>
             </Link>
           </div>
 
           {/* Informations supplémentaires */}
           <div className="mt-8 pt-6 border-t border-gray-100">
             <p className="text-sm text-gray-500">
-              Certaines fonctionnalités peuvent être disponibles hors ligne si vous avez déjà visité les pages.
+              {t('info')}
             </p>
           </div>
 
@@ -95,7 +94,7 @@ export default function OfflinePage() {
           <div className="mt-4 flex items-center justify-center space-x-2">
             <div className={`w-2 h-2 rounded-full ${isOnline ? 'bg-green-500' : 'bg-red-500'} animate-pulse`}></div>
             <span className="text-xs text-gray-500">
-              {isOnline ? 'Connexion rétablie' : 'Pas de connexion'}
+              {isOnline ? t('statusOnline') : t('statusOffline')}
             </span>
           </div>
         </div>
@@ -103,7 +102,7 @@ export default function OfflinePage() {
         {/* Tips */}
         <div className="mt-6 text-center">
           <p className="text-xs text-gray-500">
-            Astuce : L'application FayClick fonctionne mieux lorsqu'elle est installée
+            {t('tip')}
           </p>
         </div>
       </div>
