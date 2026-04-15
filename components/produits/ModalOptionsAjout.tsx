@@ -7,6 +7,7 @@
 
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, PenTool, Camera, Mic, Sparkles } from 'lucide-react';
+import { useTranslations } from '@/hooks/useTranslations';
 
 interface ModalOptionsAjoutProps {
   isOpen: boolean;
@@ -23,13 +24,15 @@ export function ModalOptionsAjout({
   onSelectPhoto,
   onSelectVoix
 }: ModalOptionsAjoutProps) {
+  const t = useTranslations('produits');
+
   if (!isOpen) return null;
 
   const options = [
     {
       id: 'manuel',
-      title: 'Ajout manuel',
-      description: 'Saisissez les informations du produit',
+      title: t('optionsModal.manualTitle'),
+      description: t('optionsModal.manualDesc'),
       icon: PenTool,
       gradient: 'from-green-500 to-emerald-600',
       bgColor: 'bg-green-50',
@@ -42,8 +45,8 @@ export function ModalOptionsAjout({
     },
     {
       id: 'photo',
-      title: 'Capture photo',
-      description: 'Reconnaissance par intelligence artificielle',
+      title: t('optionsModal.photoTitle'),
+      description: t('optionsModal.photoDesc'),
       icon: Camera,
       gradient: 'from-purple-500 to-indigo-600',
       bgColor: 'bg-purple-50',
@@ -58,13 +61,13 @@ export function ModalOptionsAjout({
     },
     {
       id: 'voix',
-      title: 'Ajout vocal',
-      description: 'Dictez les informations du produit',
+      title: t('optionsModal.voiceTitle'),
+      description: t('optionsModal.voiceDesc'),
       icon: Mic,
       gradient: 'from-blue-500 to-cyan-600',
       bgColor: 'bg-blue-50',
       iconColor: 'text-blue-600',
-      badge: 'Bientôt',
+      badge: t('optionsModal.comingSoon'),
       badgeColor: 'bg-slate-300 text-slate-600',
       available: false,
       onClick: onSelectVoix
@@ -106,8 +109,8 @@ export function ModalOptionsAjout({
                   <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                 </div>
                 <div>
-                  <h3 className="text-base sm:text-lg font-bold">Ajouter un produit</h3>
-                  <p className="text-white/80 text-xs sm:text-sm">Choisissez votre méthode</p>
+                  <h3 className="text-base sm:text-lg font-bold">{t('optionsModal.title')}</h3>
+                  <p className="text-white/80 text-xs sm:text-sm">{t('optionsModal.subtitle')}</p>
                 </div>
               </div>
               <button
@@ -179,7 +182,7 @@ export function ModalOptionsAjout({
               onClick={onClose}
               className="w-full py-2.5 sm:py-3 text-slate-500 text-sm sm:text-base font-medium hover:text-slate-700 transition-colors"
             >
-              Annuler
+              {t('optionsModal.cancel')}
             </button>
           </div>
         </motion.div>

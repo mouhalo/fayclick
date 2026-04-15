@@ -1371,5 +1371,165 @@
       "subtitle": "Updating data",
       "hint": "Please wait a moment"
     }
+  },
+  "produits": {
+    "loading": "Loading products...",
+    "loadingSubtitle": "Please wait",
+    "live": {
+      "createBtn": "Create a Live — Publish my products online"
+    },
+    "stats": {
+      "title": "Value of your Stocks",
+      "collapse": "Click to collapse",
+      "expand": "Click to see details"
+    },
+    "error": {
+      "loadingTitle": "Loading error"
+    },
+    "toasts": {
+      "passwordRequired": "Password required",
+      "passwordRequiredMsg": "Please change your initial password first.",
+      "passwordRequiredSaleMsg": "Please change your initial password first to make sales.",
+      "noStock": "Out of stock",
+      "noStockMsg": "\"{name}\" is no longer in stock",
+      "noStockAvailable": "This product is no longer available",
+      "modeVenteOn": "Sale Mode activated",
+      "modeVenteOff": "Sale Mode deactivated",
+      "modeVenteOnMsg": "Search will automatically add to cart",
+      "modeVenteOffMsg": "Search in normal filter mode",
+      "addedToCart": "Added to cart",
+      "addedToCartMsg": "{qty}x \"{name}\" added",
+      "addedToCartMsgPlural": "{qty}x \"{name}\" added",
+      "articleAdded": "Item added!",
+      "articleAddedMsg": "{qty} x {name} added to cart",
+      "articleAddedMsgPlural": "{qty} x {name} added to cart",
+      "deletePartial": "Partial deletion",
+      "deletePartialMsg": "{success} deleted, {error} error(s)",
+      "deleteSuccess": "Deletion successful",
+      "deleteSuccessMsg": "{count} product(s) deleted",
+      "productsCreated": "Products created!",
+      "productsCreatedMsg": "{count} product added successfully",
+      "productsCreatedMsgPlural": "{count} products added successfully",
+      "productNotFound": "Product not found",
+      "productNotFoundMsg": "No product found with barcode {code}",
+      "noProducts": "No products",
+      "noProductsExport": "No products to export",
+      "exportSuccess": "Export successful",
+      "exportSuccessMsg": "{count} products exported",
+      "exportError": "Error",
+      "exportErrorMsg": "Error during CSV export"
+    },
+    "selectionBar": {
+      "count": "{count} product",
+      "countPlural": "{count} products",
+      "selectAll": "Select all",
+      "deselectAll": "Deselect all",
+      "delete": "Delete"
+    },
+    "fab": {
+      "label": "Add",
+      "ariaLabel": "Add a product"
+    },
+    "stockModal": {
+      "stockLabel": "Stock: {count}",
+      "pricePublic": "Public: {price} F",
+      "priceGros": "Wholesale: {price} F",
+      "subtotal": "Subtotal: ",
+      "cancel": "Cancel",
+      "addToCart": "Add to cart"
+    },
+    "barcodeModal": {
+      "title": "Multiple products found",
+      "subtitle": "{count} products with this barcode",
+      "noCategory": "No category",
+      "outOfStock": "Out of stock",
+      "stockLabel": "Stock: {count}",
+      "cancel": "Cancel"
+    },
+    "stockConfirmModal": {
+      "title": "Product created successfully!",
+      "body": "Would you like to add stock quantities for this product now?",
+      "later": "Later",
+      "confirm": "Yes, add stock"
+    },
+    "deleteModal": {
+      "title": "Delete product?",
+      "irreversible": "This action is irreversible.",
+      "irreversibleFull": "This action is irreversible. The product and all its associated data will be permanently deleted.",
+      "cancel": "Cancel",
+      "confirm": "Delete"
+    },
+    "batchDeleteModal": {
+      "title": "Delete {count} product?",
+      "titlePlural": "Delete {count} products?",
+      "irreversible": "This action is irreversible. The products and all their associated data will be permanently deleted.",
+      "deleting": "Deleting... {progress}%",
+      "cancel": "Cancel",
+      "confirm": "Delete all",
+      "confirming": "Deleting..."
+    },
+    "alertErrors": {
+      "deleteError": "Unable to delete the product. Please try again.",
+      "missingId": "Error: Product ID missing. Unable to add stock."
+    },
+    "card": {
+      "noName": "Unnamed product",
+      "noDescription": "No description",
+      "uncategorized": "Uncategorized",
+      "priceLabel": "Price",
+      "grossLabel": "Wholesale: {price}",
+      "stockLabel": "Stock",
+      "stockUnits": "{count} units",
+      "categoryLabel": "Category",
+      "descriptionLabel": "Description",
+      "btnSell": "Sell this product",
+      "outOfStock": "Out of stock"
+    },
+    "cardReduit": {
+      "stockHeader": "Stock: {count}",
+      "priceLabel": "Price",
+      "grossLabel": "Wholesale: {price}",
+      "availableLabel": "Avail.",
+      "unitSingular": "unit",
+      "unitPlural": "units",
+      "outOfStockBadge": "Out of stock",
+      "lowStockBadge": "Low",
+      "availableBadge": "Avail.",
+      "menuQR": "QR Code",
+      "menuEdit": "Edit",
+      "menuDelete": "Delete",
+      "btnSell": "Sell",
+      "btnOutOfStock": "Out of stock"
+    },
+    "list": {
+      "empty": "No products registered",
+      "emptyHint": "Start by adding your first products",
+      "addFirst": "Add a product",
+      "noResults": "No products found",
+      "noResultsHint": "No products match your search criteria",
+      "clearFilters": "Clear filters",
+      "addNew": "Add a product"
+    },
+    "table": {
+      "productName": "Product name",
+      "stockHeader": "Avail. stock",
+      "noResults": "No products found",
+      "noCategory": "No category",
+      "outOfStock": "Out of stock",
+      "stockTooltip": "Out of stock",
+      "addToCart": "Add to cart"
+    },
+    "optionsModal": {
+      "title": "Add a product",
+      "subtitle": "Choose your method",
+      "cancel": "Cancel",
+      "manualTitle": "Manual entry",
+      "manualDesc": "Enter the product information",
+      "photoTitle": "Photo capture",
+      "photoDesc": "AI-powered recognition",
+      "voiceTitle": "Voice entry",
+      "voiceDesc": "Dictate the product information",
+      "comingSoon": "Soon"
+    }
   }
 }

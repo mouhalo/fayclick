@@ -8,6 +8,7 @@
 import { motion } from 'framer-motion';
 import { ShoppingCart } from 'lucide-react';
 import { Produit } from '@/types/produit';
+import { useTranslations } from '@/hooks/useTranslations';
 
 interface TableProduitsProps {
   produits: Produit[];
@@ -32,12 +33,13 @@ export function TableProduits({
   onToggleSelect,
   onSelectAll
 }: TableProduitsProps) {
+  const t = useTranslations('produits');
 
   // Fonction pour obtenir le niveau de stock avec couleur
   const getStockLevel = (stock: number | undefined) => {
     const stockValue = stock || 0;
     if (stockValue === 0) {
-      return { label: 'Épuisé', color: 'text-red-600 bg-red-50' };
+      return { label: t('table.outOfStock'), color: 'text-red-600 bg-red-50' };
     } else if (stockValue < 10) {
       return { label: `${stockValue} (Faible)`, color: 'text-orange-600 bg-orange-50' };
     } else if (stockValue < 50) {
@@ -68,8 +70,8 @@ export function TableProduits({
             </div>
           )}
           <div className="col-span-2 md:col-span-1">#</div>
-          <div className={selectionMode ? 'col-span-4 md:col-span-5' : 'col-span-5 md:col-span-6'}>Nom produit</div>
-          <div className="col-span-3 md:col-span-3 text-center">Stock dispo</div>
+          <div className={selectionMode ? 'col-span-4 md:col-span-5' : 'col-span-5 md:col-span-6'}>{t('table.productName')}</div>
+          <div className="col-span-3 md:col-span-3 text-center">{t('table.stockHeader')}</div>
           <div className="col-span-2 md:col-span-2 text-center">Action</div>
         </div>
       </div>
@@ -78,7 +80,7 @@ export function TableProduits({
       <div className="divide-y divide-gray-100">
         {produits.length === 0 ? (
           <div className="px-6 py-12 text-center text-gray-500">
-            <p className="text-lg">Aucun produit trouvé</p>
+            <p className="text-lg">{t('table.noResults')}</p>
           </div>
         ) : (
           produits.map((produit, index) => {
@@ -128,7 +130,7 @@ export function TableProduits({
                     />
                   </div>
                   <span className="text-xs text-gray-600 font-medium text-center">
-                    {produit.nom_categorie || 'Sans catégorie'}
+                    {produit.nom_categorie || t('table.noCategory')}
                   </span>
                 </div>
 
@@ -179,7 +181,7 @@ export function TableProduits({
                         : 'bg-gradient-to-r from-green-500 to-green-600 text-white hover:from-green-600 hover:to-green-700'
                       }
                     `}
-                    title={!produit.niveau_stock || produit.niveau_stock === 0 ? 'Stock épuisé' : 'Ajouter au panier'}
+                    title={!produit.niveau_stock || produit.niveau_stock === 0 ? t('table.stockTooltip') : t('table.addToCart')}
                   >
                     <ShoppingCart className="w-5 h-5" />
                   </motion.button>
@@ -197,14 +199,15 @@ export function TableProduits({
  * Skeleton pour le chargement de la vue tableau
  */
 export function TableProduitsSkeleton() {
+  const t = useTranslations('produits');
   return (
     <div className="bg-white/80 backdrop-blur-sm rounded-2xl overflow-hidden shadow-lg">
       {/* En-tête */}
       <div className="bg-gradient-to-r from-green-500 to-green-600 text-white">
         <div className="grid grid-cols-12 gap-4 px-6 py-4 font-semibold text-sm">
           <div className="col-span-2">#</div>
-          <div className="col-span-5">Nom produit</div>
-          <div className="col-span-3 text-center">Stock dispo</div>
+          <div className="col-span-5">{t('table.productName')}</div>
+          <div className="col-span-3 text-center">{t('table.stockHeader')}</div>
           <div className="col-span-2 text-center">Action</div>
         </div>
       </div>

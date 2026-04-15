@@ -10,6 +10,7 @@ import { Package, Plus } from 'lucide-react';
 import { ItemsList } from '@/components/ui/ItemsList';
 import { Produit } from '@/types/produit';
 import { TableProduits, TableProduitsSkeleton } from './TableProduits';
+import { useTranslations } from '@/hooks/useTranslations';
 
 interface ProduitsListProps {
   items: Produit[];
@@ -56,6 +57,7 @@ export function ProduitsList({
   onSelectAll,
   reducedGrid = false
 }: ProduitsListProps) {
+  const t = useTranslations('produits');
 
   // Classes de grille selon le mode de vue (réduit si side panel actif)
   const getGridClassName = () => {
@@ -115,13 +117,13 @@ export function ProduitsList({
         </div>
         
         <h3 className="text-lg font-semibold text-white/80 mb-2">
-          Aucun produit enregistré
+          {t('list.empty')}
         </h3>
-        
+
         <p className="text-emerald-100/70 text-sm mb-6">
-          Commencez par ajouter vos premiers produits
+          {t('list.emptyHint')}
         </p>
-        
+
         <motion.button
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
@@ -129,7 +131,7 @@ export function ProduitsList({
           className="px-6 py-3 bg-white/20 backdrop-blur-sm text-white rounded-lg border border-white/30 hover:bg-white/30 transition-colors flex items-center gap-2 mx-auto"
         >
           <Plus className="w-4 h-4" />
-          Ajouter un produit
+          {t('list.addFirst')}
         </motion.button>
       </motion.div>
     );
@@ -148,13 +150,13 @@ export function ProduitsList({
         </div>
         
         <h3 className="text-lg font-semibold text-white/80 mb-2">
-          Aucun produit trouvé
+          {t('list.noResults')}
         </h3>
-        
+
         <p className="text-emerald-100/70 text-sm mb-6">
-          Aucun produit ne correspond à vos critères de recherche
+          {t('list.noResultsHint')}
         </p>
-        
+
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
           {(searchTerm || hasFilters) && onClearFilters && (
             <motion.button
@@ -163,10 +165,10 @@ export function ProduitsList({
               onClick={onClearFilters}
               className="px-4 py-2 border border-white/30 text-white/80 rounded-lg hover:bg-white/10 transition-colors"
             >
-              Effacer les filtres
+              {t('list.clearFilters')}
             </motion.button>
           )}
-          
+
           <motion.button
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
@@ -174,7 +176,7 @@ export function ProduitsList({
             className="px-6 py-2 bg-white/20 backdrop-blur-sm text-white rounded-lg border border-white/30 hover:bg-white/30 transition-colors flex items-center gap-2"
           >
             <Plus className="w-4 h-4" />
-            Ajouter un produit
+            {t('list.addNew')}
           </motion.button>
         </div>
       </motion.div>

@@ -1371,5 +1371,165 @@
       "subtitle": "Mise à jour des données",
       "hint": "Veuillez patienter quelques instants"
     }
+  },
+  "produits": {
+    "loading": "Chargement des produits...",
+    "loadingSubtitle": "Veuillez patienter",
+    "live": {
+      "createBtn": "Créer un Live — Publier mes produits en ligne"
+    },
+    "stats": {
+      "title": "Valeur de vos Stocks",
+      "collapse": "Cliquez pour replier",
+      "expand": "Cliquez pour voir les détails"
+    },
+    "error": {
+      "loadingTitle": "Erreur de chargement"
+    },
+    "toasts": {
+      "passwordRequired": "Mot de passe requis",
+      "passwordRequiredMsg": "Veuillez d'abord modifier votre mot de passe initial.",
+      "passwordRequiredSaleMsg": "Veuillez d'abord modifier votre mot de passe initial pour effectuer des ventes.",
+      "noStock": "Stock épuisé",
+      "noStockMsg": "\"{name}\" n'est plus en stock",
+      "noStockAvailable": "Ce produit n'est plus disponible",
+      "modeVenteOn": "Mode Vente activé",
+      "modeVenteOff": "Mode Vente désactivé",
+      "modeVenteOnMsg": "La recherche ajoutera automatiquement au panier",
+      "modeVenteOffMsg": "Recherche en mode filtrage normal",
+      "addedToCart": "Ajouté au panier",
+      "addedToCartMsg": "{qty}x \"{name}\" ajouté",
+      "addedToCartMsgPlural": "{qty}x \"{name}\" ajoutés",
+      "articleAdded": "Article ajouté !",
+      "articleAddedMsg": "{qty} x {name} ajouté au panier",
+      "articleAddedMsgPlural": "{qty} x {name} ajoutés au panier",
+      "deletePartial": "Suppression partielle",
+      "deletePartialMsg": "{success} supprimé(s), {error} erreur(s)",
+      "deleteSuccess": "Suppression réussie",
+      "deleteSuccessMsg": "{count} produit(s) supprimé(s)",
+      "productsCreated": "Produits créés !",
+      "productsCreatedMsg": "{count} produit ajouté avec succès",
+      "productsCreatedMsgPlural": "{count} produits ajoutés avec succès",
+      "productNotFound": "Produit non trouvé",
+      "productNotFoundMsg": "Aucun produit trouvé avec le code-barres {code}",
+      "noProducts": "Aucun produit",
+      "noProductsExport": "Aucun produit à exporter",
+      "exportSuccess": "Export réussi",
+      "exportSuccessMsg": "{count} produits exportés",
+      "exportError": "Erreur",
+      "exportErrorMsg": "Erreur lors de l'export CSV"
+    },
+    "selectionBar": {
+      "count": "{count} produit",
+      "countPlural": "{count} produits",
+      "selectAll": "Tout sélect.",
+      "deselectAll": "Tout désélect.",
+      "delete": "Supprimer"
+    },
+    "fab": {
+      "label": "Ajouter",
+      "ariaLabel": "Ajouter un produit"
+    },
+    "stockModal": {
+      "stockLabel": "Stock: {count}",
+      "pricePublic": "Public: {price} F",
+      "priceGros": "Gros: {price} F",
+      "subtotal": "Sous-total : ",
+      "cancel": "Annuler",
+      "addToCart": "Ajouter au panier"
+    },
+    "barcodeModal": {
+      "title": "Plusieurs produits trouvés",
+      "subtitle": "{count} produits avec ce code-barres",
+      "noCategory": "Sans catégorie",
+      "outOfStock": "Rupture",
+      "stockLabel": "Stock: {count}",
+      "cancel": "Annuler"
+    },
+    "stockConfirmModal": {
+      "title": "Produit créé avec succès !",
+      "body": "Voulez-vous ajouter des quantités au stock pour ce produit maintenant ?",
+      "later": "Plus tard",
+      "confirm": "Oui, ajouter du stock"
+    },
+    "deleteModal": {
+      "title": "Supprimer le produit ?",
+      "irreversible": "Cette action est irréversible.",
+      "irreversibleFull": "Cette action est irréversible. Le produit et toutes ses données associées seront définitivement supprimés.",
+      "cancel": "Annuler",
+      "confirm": "Supprimer"
+    },
+    "batchDeleteModal": {
+      "title": "Supprimer {count} produit ?",
+      "titlePlural": "Supprimer {count} produits ?",
+      "irreversible": "Cette action est irréversible. Les produits et toutes leurs données associées seront définitivement supprimés.",
+      "deleting": "Suppression en cours... {progress}%",
+      "cancel": "Annuler",
+      "confirm": "Supprimer tout",
+      "confirming": "Suppression..."
+    },
+    "alertErrors": {
+      "deleteError": "Impossible de supprimer le produit. Veuillez réessayer.",
+      "missingId": "Erreur: ID du produit manquant. Impossible d'ajouter du stock."
+    },
+    "card": {
+      "noName": "Produit sans nom",
+      "noDescription": "Aucune description",
+      "uncategorized": "Non classé",
+      "priceLabel": "Prix",
+      "grossLabel": "Gros: {price}",
+      "stockLabel": "Stock",
+      "stockUnits": "{count} unités",
+      "categoryLabel": "Catégorie",
+      "descriptionLabel": "Description",
+      "btnSell": "Vendre ce produit",
+      "outOfStock": "Rupture de stock"
+    },
+    "cardReduit": {
+      "stockHeader": "Stock: {count}",
+      "priceLabel": "Prix",
+      "grossLabel": "Gros: {price}",
+      "availableLabel": "Dispo",
+      "unitSingular": "unité",
+      "unitPlural": "unités",
+      "outOfStockBadge": "Rupture",
+      "lowStockBadge": "Faible",
+      "availableBadge": "Dispo",
+      "menuQR": "QR Code",
+      "menuEdit": "Modifier",
+      "menuDelete": "Supprimer",
+      "btnSell": "Vendre",
+      "btnOutOfStock": "Rupture"
+    },
+    "list": {
+      "empty": "Aucun produit enregistré",
+      "emptyHint": "Commencez par ajouter vos premiers produits",
+      "addFirst": "Ajouter un produit",
+      "noResults": "Aucun produit trouvé",
+      "noResultsHint": "Aucun produit ne correspond à vos critères de recherche",
+      "clearFilters": "Effacer les filtres",
+      "addNew": "Ajouter un produit"
+    },
+    "table": {
+      "productName": "Nom produit",
+      "stockHeader": "Stock dispo",
+      "noResults": "Aucun produit trouvé",
+      "noCategory": "Sans catégorie",
+      "outOfStock": "Épuisé",
+      "stockTooltip": "Stock épuisé",
+      "addToCart": "Ajouter au panier"
+    },
+    "optionsModal": {
+      "title": "Ajouter un produit",
+      "subtitle": "Choisissez votre méthode",
+      "cancel": "Annuler",
+      "manualTitle": "Ajout manuel",
+      "manualDesc": "Saisissez les informations du produit",
+      "photoTitle": "Capture photo",
+      "photoDesc": "Reconnaissance par intelligence artificielle",
+      "voiceTitle": "Ajout vocal",
+      "voiceDesc": "Dictez les informations du produit",
+      "comingSoon": "Bientôt"
+    }
   }
 }
