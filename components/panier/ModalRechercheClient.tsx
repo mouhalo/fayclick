@@ -7,6 +7,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useTranslations } from '@/hooks/useTranslations';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Phone, User, Search, CheckCircle, UserPlus, Loader2, ShoppingCart, AlertCircle, Banknote, ArrowLeft } from 'lucide-react';
 import { clientsService } from '@/services/clients.service';
@@ -250,6 +251,8 @@ export function ModalRechercheClient({
     return `${cleaned.substring(0, 2)} ${cleaned.substring(2, 5)} ${cleaned.substring(5, 7)} ${cleaned.substring(7, 9)}`;
   };
 
+  const t = useTranslations('panier');
+
   if (!isOpen) return null;
 
   return (
@@ -294,7 +297,7 @@ export function ModalRechercheClient({
                     )}
                   </div>
                   <h2 className="text-lg font-bold text-gray-900">
-                    {mode === 'search' ? 'Rechercher un client' : 'Nouveau client'}
+                    {mode === 'search' ? t('clientSearch.titleSearch') : t('clientSearch.titleNew')}
                   </h2>
                 </div>
                 <button
@@ -328,7 +331,7 @@ export function ModalRechercheClient({
                             type="text"
                             value={searchQuery}
                             onChange={handleSearchInputChange}
-                            placeholder="Tapez un nom ou un n° de téléphone..."
+                            placeholder={t('clientSearch.searchPlaceholder')}
                             autoFocus
                             className="
                               w-full pl-10 pr-10 py-3 rounded-xl border-2 border-gray-300 bg-white
@@ -347,8 +350,8 @@ export function ModalRechercheClient({
                         {searchQuery.trim().length > 0 && (
                           <p className="text-[10px] text-gray-400 mt-1 ml-1">
                             {isPhoneInput(searchQuery)
-                              ? `Recherche par téléphone (${searchQuery.replace(/\D/g, '').length}/9)`
-                              : `Recherche par nom (${searchQuery.trim().length} car.)`
+                              ? t('clientSearch.phoneHint', { count: searchQuery.replace(/\D/g, '').length })
+                              : t('clientSearch.nameHint', { count: searchQuery.trim().length })
                             }
                           </p>
                         )}
@@ -373,7 +376,7 @@ export function ModalRechercheClient({
                               <p className="text-sm text-green-700">{formatPhoneDisplay(clientData.tel_client)}</p>
                             </div>
                           </div>
-                          <p className="text-xs text-green-600 font-medium">Client trouvé dans la base</p>
+                          <p className="text-xs text-green-600 font-medium">{t('clientSearch.clientFound')}</p>
                         </div>
 
                         {/* Statistiques Client (2x2 Grid) */}
@@ -382,7 +385,7 @@ export function ModalRechercheClient({
                             <div className="bg-gradient-to-br from-red-50 to-red-100/50 p-2.5 rounded-lg border border-red-200/50">
                               <div className="flex items-center gap-1.5 mb-1">
                                 <AlertCircle className="w-3.5 h-3.5 text-red-600" />
-                                <p className="text-xs font-medium text-red-700">Impayé</p>
+                                <p className="text-xs font-medium text-red-700">{t('clientSearch.unpaid')}</p>
                               </div>
                               <p className="text-sm font-bold text-red-900">
                                 {clientStats.montant_restant.toLocaleString('fr-FR')} F
@@ -392,7 +395,7 @@ export function ModalRechercheClient({
                             <div className="bg-gradient-to-br from-blue-50 to-blue-100/50 p-2.5 rounded-lg border border-blue-200/50">
                               <div className="flex items-center gap-1.5 mb-1">
                                 <ShoppingCart className="w-3.5 h-3.5 text-blue-600" />
-                                <p className="text-xs font-medium text-blue-700">Ventes</p>
+                                <p className="text-xs font-medium text-blue-700">{t('clientSearch.sales')}</p>
                               </div>
                               <p className="text-sm font-bold text-blue-900">
                                 {clientStats.nombre_total_ventes}
@@ -402,7 +405,7 @@ export function ModalRechercheClient({
                             <div className="bg-gradient-to-br from-green-50 to-green-100/50 p-2.5 rounded-lg border border-green-200/50">
                               <div className="flex items-center gap-1.5 mb-1">
                                 <Banknote className="w-3.5 h-3.5 text-green-600" />
-                                <p className="text-xs font-medium text-green-700">Achats</p>
+                                <p className="text-xs font-medium text-green-700">{t('clientSearch.purchases')}</p>
                               </div>
                               <p className="text-sm font-bold text-green-900">
                                 {clientStats.montant_total_achats.toLocaleString('fr-FR')} F
@@ -412,10 +415,10 @@ export function ModalRechercheClient({
                             <div className="bg-gradient-to-br from-orange-50 to-orange-100/50 p-2.5 rounded-lg border border-orange-200/50">
                               <div className="flex items-center gap-1.5 mb-1">
                                 <AlertCircle className="w-3.5 h-3.5 text-orange-600" />
-                                <p className="text-xs font-medium text-orange-700">Impayées</p>
+                                <p className="text-xs font-medium text-orange-700">{t('clientSearch.unpaidInvoices')}</p>
                               </div>
                               <p className="text-sm font-bold text-orange-900">
-                                {clientStats.nombre_factures_impayees} {clientStats.nombre_factures_impayees > 1 ? 'factures' : 'facture'}
+                                {clientStats.nombre_factures_impayees} {clientStats.nombre_factures_impayees > 1 ? t('clientSearch.invoicePlural') : t('clientSearch.invoiceSingular')}
                               </p>
                             </div>
                           </div>
@@ -448,13 +451,13 @@ export function ModalRechercheClient({
                     <div>
                       <label className="text-sm font-medium text-gray-700 flex items-center gap-1.5 mb-1.5">
                         <User className="w-3.5 h-3.5 text-blue-600" />
-                        Nom du client
+                        {t('clientSearch.clientName')}
                       </label>
                       <input
                         type="text"
                         value={newNom}
                         onChange={(e) => setNewNom(e.target.value)}
-                        placeholder="Saisir le nom du client"
+                        placeholder={t('clientSearch.clientNamePlaceholder')}
                         autoFocus={!newNom}
                         className="
                           w-full px-3 py-2.5 rounded-lg border-2 border-gray-300 bg-white
@@ -469,7 +472,7 @@ export function ModalRechercheClient({
                     <div>
                       <label className="text-sm font-medium text-gray-700 flex items-center gap-1.5 mb-1.5">
                         <Phone className="w-3.5 h-3.5 text-blue-600" />
-                        N° de Tél. ({newTel.replace(/\D/g, '').length}/9)
+                        {t('clientSearch.phone', { count: newTel.replace(/\D/g, '').length })}
                       </label>
                       <input
                         type="tel"
@@ -513,7 +516,7 @@ export function ModalRechercheClient({
                   transition-colors
                 "
               >
-                Annuler
+                {t('clientSearch.cancel')}
               </button>
 
               {mode === 'search' && clientTrouve ? (
@@ -530,7 +533,7 @@ export function ModalRechercheClient({
                   "
                 >
                   <CheckCircle className="w-4 h-4" />
-                  Confirmer
+                  {t('clientSearch.confirm')}
                 </button>
               ) : mode === 'create' ? (
                 <button
@@ -548,7 +551,7 @@ export function ModalRechercheClient({
                   "
                 >
                   <UserPlus className="w-4 h-4" />
-                  Ajouter
+                  {t('clientSearch.add')}
                 </button>
               ) : null}
             </div>

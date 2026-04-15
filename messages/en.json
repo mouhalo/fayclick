@@ -1537,6 +1537,93 @@
       "voiceTitle": "Voice entry",
       "voiceDesc": "Dictate the product information",
       "comingSoon": "Soon"
+    },
+    "modal": {
+      "titleEdit": "Edit product",
+      "titleAdd": "Add a product",
+      "tabs": {
+        "informations": "Information",
+        "infosShort": "Info",
+        "photos": "Photos",
+        "gestionStock": "Stock management",
+        "stockShort": "Stock",
+        "historique": "History",
+        "histoShort": "Histo"
+      },
+      "fields": {
+        "productName": "Product name *",
+        "serviceName": "Service name *",
+        "barcode": "Barcode (optional)",
+        "type": "Type",
+        "typeProduct": "Product",
+        "typeService": "Service",
+        "purchasePrice": "Purchase price (FCFA) *",
+        "purchasePriceShort": "P.Purchase *",
+        "salePrice": "Sale price (FCFA) *",
+        "salePriceShort": "P.Sale *",
+        "wholesalePrice": "Wholesale price (FCFA)",
+        "margin": "Margin:",
+        "category": "Category",
+        "categorySelect": "Select a category",
+        "loading": "Loading...",
+        "description": "Description",
+        "descriptionPlaceholderProduct": "Describe your product...",
+        "descriptionPlaceholderService": "Describe your service...",
+        "presentPublic": "Present to public",
+        "presentPublicDescProduct": "This product will be visible in your public catalog",
+        "presentPublicDescService": "This service will be visible in your public catalog",
+        "inPromo": "On promotion",
+        "inPromoDescProduct": "This product will be featured in the Promotions section of the catalog",
+        "inPromoDescService": "This service will be featured in the Promotions section of the catalog"
+      },
+      "actions": {
+        "close": "Close",
+        "cancel": "Cancel",
+        "saving": "Saving...",
+        "save": "Save",
+        "edit": "Update",
+        "create": "Create",
+        "continue": "Continue"
+      },
+      "adminOnly": "Only the administrator can edit products",
+      "stock": {
+        "productLabel": "Product:",
+        "currentStock": "Current stock:",
+        "units": "units",
+        "movementType": "Movement type",
+        "entry": "Entry",
+        "exit": "Exit",
+        "quantity": "Quantity *",
+        "unitPrice": "Unit price (FCFA) *",
+        "unitPriceShort": "Unit price *",
+        "descriptionOptional": "Description (optional)",
+        "descriptionPlaceholder": "Reason for movement...",
+        "totalMovement": "Total {type}:"
+      },
+      "history": {
+        "totalEntries": "Total Entries",
+        "totalExits": "Total Exits",
+        "colDate": "Date",
+        "colType": "Type",
+        "colQty": "Qty",
+        "colPurchasePrice": "P.Cost",
+        "colTotal": "Total",
+        "empty": "No stock movements recorded",
+        "error": "Error loading history"
+      },
+      "photos": {
+        "title": "Product photos",
+        "loading": "Loading...",
+        "delete": "Delete",
+        "tip": "Tip: Use high-quality photos to showcase your product."
+      },
+      "stockSuccess": {
+        "title": "Stock updated!",
+        "units": "units",
+        "added": "added to",
+        "removed": "removed from",
+        "stock": "stock"
+      }
     }
   },
   "commerceDashboard": {
@@ -1623,6 +1710,26 @@
     "clear": "Clear cart",
     "clientSearch": "Search client",
     "itemSingular": "{count} item",
-    "itemPlural": "{count} items"
+    "itemPlural": "{count} items",
+    "clientSearch": {
+      "titleSearch": "Search for a client",
+      "titleNew": "New client",
+      "searchPlaceholder": "Type a name or phone number...",
+      "phoneHint": "Search by phone ({count}/9)",
+      "nameHint": "Search by name ({count} chars.)",
+      "clientFound": "Client found in database",
+      "unpaid": "Unpaid",
+      "sales": "Sales",
+      "purchases": "Purchases",
+      "unpaidInvoices": "Overdue",
+      "invoiceSingular": "invoice",
+      "invoicePlural": "invoices",
+      "clientName": "Client name",
+      "clientNamePlaceholder": "Enter client name",
+      "phone": "Phone no. ({count}/9)",
+      "cancel": "Cancel",
+      "confirm": "Confirm",
+      "add": "Add"
+    }
   }
 }
