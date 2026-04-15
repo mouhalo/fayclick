@@ -5,10 +5,12 @@ import { motion } from 'framer-motion';
 import { Package, MapPin } from 'lucide-react';
 import Image from 'next/image';
 import { CarteStructureProps } from '@/types/marketplace';
+import { useTranslations } from '@/hooks/useTranslations';
 
 const FALLBACK = '/images/mascotte.png';
 
 export default function CarteStructure({ structure, index, onClick }: CarteStructureProps) {
+  const t = useTranslations('marketplace');
   const logoSrc = structure.logo_structure && structure.logo_structure.startsWith('http')
     ? structure.logo_structure
     : FALLBACK;
@@ -51,12 +53,12 @@ export default function CarteStructure({ structure, index, onClick }: CarteStruc
         {/* Badge produits */}
         <div className="flex items-center justify-center gap-1 text-emerald-300/70 text-[10px] mb-1">
           <Package className="w-3 h-3" />
-          <span>{structure.total_produits} produit{structure.total_produits > 1 ? 's' : ''}</span>
+          <span>{structure.total_produits > 1 ? t('structure.productPlural', { count: structure.total_produits }) : t('structure.productSingular', { count: structure.total_produits })}</span>
         </div>
 
         {/* Bouton Voir */}
         <div className="py-1 px-3 rounded-lg bg-emerald-500/20 border border-emerald-400/20 text-emerald-200 text-[11px] font-medium text-center group-hover:bg-emerald-500/30 transition-colors">
-          Voir
+          {t('structure.view')}
         </div>
       </div>
     </motion.button>

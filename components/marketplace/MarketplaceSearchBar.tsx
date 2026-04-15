@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { marketplaceSearchService } from '@/services/marketplace-search.service';
 import { SearchResult, StructurePublique } from '@/types/marketplace';
+import { useTranslations } from '@/hooks/useTranslations';
 
 interface MarketplaceSearchBarProps {
   onSelectStructure?: (structure: StructurePublique) => void;
@@ -15,6 +16,7 @@ interface MarketplaceSearchBarProps {
 
 export default function MarketplaceSearchBar({ onSelectStructure, variant = 'hero' }: MarketplaceSearchBarProps) {
   const router = useRouter();
+  const t = useTranslations('marketplace');
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<SearchResult[]>([]);
   const [isOpen, setIsOpen] = useState(false);
@@ -86,7 +88,7 @@ export default function MarketplaceSearchBar({ onSelectStructure, variant = 'her
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder={isTel ? 'Numéro de téléphone (7xx...)' : 'Rechercher un live ou une boutique...'}
+          placeholder={isTel ? t('search.placeholderPhone') : t('search.placeholderText')}
           className={`flex-1 bg-transparent ${isSticky ? 'text-sm' : 'text-base'} text-white placeholder-white/50 outline-none pr-4`}
         />
         {isSearching && (

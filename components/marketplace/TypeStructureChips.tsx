@@ -1,12 +1,6 @@
 'use client';
 
-const TYPES = [
-  { key: '', label: 'Tous' },
-  { key: 'COMMERCIALE', label: 'Commerce' },
-  { key: 'SCOLAIRE', label: 'Scolaire' },
-  { key: 'IMMOBILIER', label: 'Immobilier' },
-  { key: 'PRESTATAIRE', label: 'Prestataire' },
-];
+import { useTranslations } from '@/hooks/useTranslations';
 
 interface TypeStructureChipsProps {
   selected: string;
@@ -15,6 +9,14 @@ interface TypeStructureChipsProps {
 }
 
 export default function TypeStructureChips({ selected, onChange, counts }: TypeStructureChipsProps) {
+  const t = useTranslations('marketplace');
+  const TYPES = [
+    { key: '', label: t('types.all') },
+    { key: 'COMMERCIALE', label: t('types.commerce') },
+    { key: 'SCOLAIRE', label: t('types.scolaire') },
+    { key: 'IMMOBILIER', label: t('types.immobilier') },
+    { key: 'PRESTATAIRE', label: t('types.prestataire') },
+  ];
   return (
     <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
       {TYPES.map(type => {

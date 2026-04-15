@@ -8,6 +8,7 @@ import MarketplaceSearchBar from './MarketplaceSearchBar';
 import { MarketplaceStats, StructurePublique } from '@/types/marketplace';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { marketplaceImages } from '@/lib/marketplace-images';
+import { useTranslations } from '@/hooks/useTranslations';
 
 interface MarketplaceHeroProps {
   stats: MarketplaceStats;
@@ -17,6 +18,7 @@ interface MarketplaceHeroProps {
 
 export default function MarketplaceHero({ stats, livesCount = 0, onSelectStructure }: MarketplaceHeroProps) {
   const { isMobile } = useBreakpoint();
+  const t = useTranslations('marketplace');
 
   return (
     <div className="mb-6 space-y-4">
@@ -37,7 +39,7 @@ export default function MarketplaceHero({ stats, livesCount = 0, onSelectStructu
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500" />
               </span>
-              <span className="text-red-300 text-[10px] font-bold">{livesCount} Live{livesCount > 1 ? 's' : ''}</span>
+              <span className="text-red-300 text-[10px] font-bold">{livesCount > 1 ? t('hero.livePlural', { count: livesCount }) : t('hero.liveSingular', { count: livesCount })}</span>
             </div>
           )}
         </motion.div>
@@ -63,14 +65,14 @@ export default function MarketplaceHero({ stats, livesCount = 0, onSelectStructu
           <Store className="w-4 h-4 text-emerald-400" />
           <div>
             <p className="text-white font-bold text-sm leading-none">{stats.total_structures}</p>
-            <p className="text-white/40 text-[10px]">BOUTIQUES</p>
+            <p className="text-white/40 text-[10px]">{t('hero.statsShops')}</p>
           </div>
         </div>
         <div className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-white/5 border border-white/10 flex-shrink-0">
           <ShoppingBag className="w-4 h-4 text-emerald-400" />
           <div>
             <p className="text-white font-bold text-sm leading-none">{stats.total_vedettes || 0}</p>
-            <p className="text-white/40 text-[10px]">AVEC CATALOGUE</p>
+            <p className="text-white/40 text-[10px]">{t('hero.statsWithCatalog')}</p>
           </div>
         </div>
       </motion.div>
@@ -96,14 +98,14 @@ export default function MarketplaceHero({ stats, livesCount = 0, onSelectStructu
 
           <div className="relative z-10 max-w-lg">
             <span className="inline-block px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-400/30 text-emerald-300 text-[10px] font-bold uppercase tracking-wider mb-4">
-              Marketplace Premium
+              {t('hero.badge')}
             </span>
             <h1 className="text-3xl lg:text-4xl font-bold text-white leading-tight mb-3">
-              Les meilleurs commercants{' '}
-              <span className="text-emerald-400 italic">du Senegal</span>
+              {t('hero.titlePart1')}{' '}
+              <span className="text-emerald-400 italic">{t('hero.titlePart2')}</span>
             </h1>
             <p className="text-white/60 text-sm mb-6">
-              Decouvrez la marketplace premium pour FayClick. Qualite et authenticite garanties.
+              {t('hero.subtitle')}
             </p>
             <button
               onClick={() => {
@@ -112,7 +114,7 @@ export default function MarketplaceHero({ stats, livesCount = 0, onSelectStructu
               }}
               className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-emerald-500 text-white text-sm font-bold hover:bg-emerald-400 transition-all shadow-lg shadow-emerald-500/25 active:scale-95"
             >
-              Explorer les boutiques
+              {t('hero.explore')}
               <Zap className="w-4 h-4" />
             </button>
           </div>
