@@ -1,6 +1,6 @@
 # Progression Internationalisation FayClick V2 (FR/EN)
 
-**Dernière mise à jour** : 2026-04-14
+**Dernière mise à jour** : 2026-04-15
 **Branche Git** : `gestion_multilangue_fr_et_en`
 **PRD** : [docs/prd-i18n-complete-2026-04-14.md](./prd-i18n-complete-2026-04-14.md)
 **Guide dev** : [docs/i18n-guide.md](./i18n-guide.md)
@@ -13,15 +13,15 @@
 |--------|--------|----|-------------|
 | EPIC-001 — Infrastructure | ✅ Terminé | ✅ GO | ⏳ En attente validation utilisateur |
 | Sprint 1 — Auth & Landing | ✅ Terminé | ✅ GO (92/100) | ⏳ En attente validation utilisateur |
-| Sprint 2 — Pages publiques | ⏸️ À démarrer | — | — |
+| Sprint 2 — Pages publiques | 🟡 En cours (2/4 lots) | — | — |
 | Sprint 3 — Dashboards & Navigation | ⏸️ À démarrer | — | — |
 | Sprint 4 — Modules Commerce | ⏸️ À démarrer | — | — |
 | Sprint 5 — Modals & Impression | ⏸️ À démarrer | — | — |
 | Sprint 6 — Services, Validations, Exports | ⏸️ À démarrer | — | — |
 | Sprint 7 — Paramètres, Structure, KALPE | ⏸️ À démarrer | — | — |
 
-**Couverture actuelle** : 244 clés FR = 244 clés EN (parité parfaite)
-**Commits Sprint 1** : 6 commits atomiques
+**Couverture actuelle** : 317 clés FR = 317 clés EN (parité parfaite)
+**Commits totaux** : 10 commits atomiques
 
 ---
 
@@ -41,6 +41,9 @@ Solution **custom** (pas `next-intl` ni `react-i18next`) :
 - `auth` — login, PIN, modals récup mot de passe/PIN (80+ clés)
 - `register` — inscription 3 steps + célébration (50+ clés)
 - `landing` — landing page mobile/desktop + marketplace CTA (40+ clés)
+- `offline` — page /offline (10 clés)
+- `publicFacture` — facture publique partageable (35 clés)
+- `publicRecu` — reçu public partageable (28 clés)
 
 ---
 
@@ -90,7 +93,34 @@ Blockers résolus (commit `c9b21c7`) :
 
 ---
 
-## Sprint 2 — Pages publiques (à venir)
+## Sprint 2 — Pages publiques (en cours)
+
+### Lot 1 — Pages légales + offline — ✅ Partiel
+- ✅ `/offline` traduit (commit `b7e9df9`)
+- ⏸️ `/privacy` (287L, server component) — reporté passe dédiée
+- ⏸️ `/terms` (228L, server component) — reporté passe dédiée
+
+**Pourquoi report** : `/privacy` et `/terms` sont des server components avec `export metadata` et contiennent du texte légal dense (~200 strings). Nécessitent refactor en client component + traduction juridique soignée. À traiter dans session dédiée.
+
+### Lot 2 — Facture + Reçu publique — ✅ Terminé
+- ✅ `FacturePubliqueClient` (659L) — namespace `publicFacture` (commit `00d630b`)
+- ✅ `RecuPubliqueClient` (407L) — namespace `publicRecu` (commit `036ffac`)
+- ✅ `formatMontant` utilise `formatCurrency` + `locale` (pas de `fr-SN` hardcodé)
+- ✅ `formatDate`/`formatHeure` utilisent `toBcp47(locale)`
+- ✅ Template WhatsApp interpolé avec paramètres traduits
+- ✅ Pluralisation simple (articleCountSingular/Plural via count)
+- ⏸️ `ModalPaiementWalletNew` (335L) — flow authentifié, reporté au **Sprint 5 (Modals)**
+
+### Lot 3 — Catalogue public — ⏸️ À faire
+- `CataloguePublicClient` (447L), `CarteProduit` (176L), `ModalCarrouselProduit` (452L), `PanierPublic` (438L)
+
+### Lot 4 — Marketplace — ⏸️ À faire
+- `CataloguesGlobalClient` (361L) + 22 composants marketplace (~1646L)
+
+### Prochaine session Sprint 2
+Lot 3 + Lot 4 à traiter ensemble (catalogue dépend de ~10 sous-composants marketplace). ~3000 lignes. Possible découpage en 2-3 sessions.
+
+### Ancien périmètre Sprint 2 — pour référence
 
 ### Périmètre prévu
 - `/facture` (facture publique avec lien partageable) + `FacturePubliqueClient`
