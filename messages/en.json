@@ -320,5 +320,17 @@
       "statsProducts": "+3K products",
       "statsShops": "{count} shops"
     }
+  },
+  "offline": {
+    "title": "You are offline",
+    "messageOffline": "Check your internet connection to continue using FayClick",
+    "messageReconnecting": "Reconnecting...",
+    "retry": "Retry",
+    "reconnecting": "Reconnecting...",
+    "backHome": "Back to home",
+    "info": "Some features may be available offline if you have already visited the pages.",
+    "statusOnline": "Connection restored",
+    "statusOffline": "No connection",
+    "tip": "Tip: The FayClick app works best when installed"
   }
 }
