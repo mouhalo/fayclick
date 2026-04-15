@@ -22,6 +22,9 @@ import QRCodeLib from 'qrcode';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { FactureComplete } from '@/types/facture';
 import { encodeFactureParams } from '@/lib/url-encoder';
+import { useTranslations } from '@/hooks/useTranslations';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { formatNumber, toBcp47 } from '@/lib/format-locale';
 
 interface ModalPartageProps {
   isOpen: boolean;
@@ -31,6 +34,8 @@ interface ModalPartageProps {
 
 export function ModalPartage({ isOpen, onClose, facture }: ModalPartageProps) {
   const { isMobile, isMobileLarge } = useBreakpoint();
+  const t = useTranslations('invoicesModals');
+  const { locale } = useLanguage();
   
   // États
   const [isQrExpanded, setIsQrExpanded] = useState(false);
@@ -155,9 +160,11 @@ export function ModalPartage({ isOpen, onClose, facture }: ModalPartageProps) {
     if (!urlPublique || !facture) return;
 
     const message = encodeURIComponent(
-      `Facture ${facture.facture.num_facture}\n` +
-      `Montant: ${facture.facture.montant.toLocaleString('fr-FR')} FCFA\n` +
-      `Voir la facture: ${urlPublique}`
+      t('share.whatsappMessage', {
+        num: facture.facture.num_facture,
+        amount: formatNumber(facture.facture.montant, locale),
+        url: urlPublique
+      })
     );
     
     const whatsappUrl = `https://wa.me/?text=${message}`;
@@ -201,7 +208,7 @@ export function ModalPartage({ isOpen, onClose, facture }: ModalPartageProps) {
               </div>
               <div>
                 <h2 className={`text-gray-900 font-bold ${styles.title}`}>
-                  Partager la facture
+                  {t('share.title')}
                 </h2>
                 <p className={`text-gray-600 ${styles.subtitle}`}>
                   {facture.facture.num_facture}
@@ -221,17 +228,17 @@ export function ModalPartage({ isOpen, onClose, facture }: ModalPartageProps) {
           <div className="bg-blue-50/50 rounded-xl p-4 mb-6">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <p className={`text-gray-600 font-medium ${styles.subtitle}`}>Client</p>
+                <p className={`text-gray-600 font-medium ${styles.subtitle}`}>{t('share.infoClient')}</p>
                 <p className={`text-gray-900 ${styles.subtitle}`}>{facture.facture.nom_client}</p>
               </div>
               <div>
-                <p className={`text-gray-600 font-medium ${styles.subtitle}`}>Montant</p>
+                <p className={`text-gray-600 font-medium ${styles.subtitle}`}>{t('share.infoAmount')}</p>
                 <p className={`text-gray-900 font-bold ${styles.subtitle}`}>
-                  {facture.facture.montant.toLocaleString('fr-FR')} FCFA
+                  {formatNumber(facture.facture.montant, locale)} FCFA
                 </p>
               </div>
               <div>
-                <p className={`text-gray-600 font-medium ${styles.subtitle}`}>Statut</p>
+                <p className={`text-gray-600 font-medium ${styles.subtitle}`}>{t('share.infoStatus')}</p>
                 <span className={`
                   inline-flex px-2 py-1 text-xs font-medium rounded-full
                   ${facture.facture.libelle_etat === 'PAYEE' 
@@ -243,9 +250,9 @@ export function ModalPartage({ isOpen, onClose, facture }: ModalPartageProps) {
                 </span>
               </div>
               <div>
-                <p className={`text-gray-600 font-medium ${styles.subtitle}`}>Date</p>
+                <p className={`text-gray-600 font-medium ${styles.subtitle}`}>{t('share.infoDate')}</p>
                 <p className={`text-gray-900 ${styles.subtitle}`}>
-                  {new Date(facture.facture.date_facture).toLocaleDateString('fr-FR')}
+                  {new Date(facture.facture.date_facture).toLocaleDateString(toBcp47(locale))}
                 </p>
               </div>
             </div>
@@ -255,7 +262,7 @@ export function ModalPartage({ isOpen, onClose, facture }: ModalPartageProps) {
           <div className="space-y-4 mb-6">
             <div>
               <label className={`block text-gray-700 font-medium mb-2 ${styles.subtitle}`}>
-                Lien de partage
+                {t('share.shareLink')}
               </label>
               <div className="flex items-center space-x-2">
                 <div className="flex-1 relative">
@@ -281,12 +288,12 @@ export function ModalPartage({ isOpen, onClose, facture }: ModalPartageProps) {
                   {copied ? (
                     <>
                       <CheckCircle className={styles.icon} />
-                      {!isMobile && <span>Copié !</span>}
+                      {!isMobile && <span>{t('share.copied')}</span>}
                     </>
                   ) : (
                     <>
                       <Copy className={styles.icon} />
-                      {!isMobile && <span>Copier</span>}
+                      {!isMobile && <span>{t('share.copy')}</span>}
                     </>
                   )}
                 </button>
@@ -305,7 +312,7 @@ export function ModalPartage({ isOpen, onClose, facture }: ModalPartageProps) {
                 disabled={!urlPublique}
               >
                 <MessageCircle className={styles.icon} />
-                <span>WhatsApp</span>
+                <span>{t('share.whatsapp')}</span>
               </button>
 
               <button
@@ -318,7 +325,7 @@ export function ModalPartage({ isOpen, onClose, facture }: ModalPartageProps) {
                 disabled={!urlPublique}
               >
                 <ExternalLink className={styles.icon} />
-                <span>Ouvrir</span>
+                <span>{t('share.open')}</span>
               </button>
             </div>
           </div>
@@ -336,7 +343,7 @@ export function ModalPartage({ isOpen, onClose, facture }: ModalPartageProps) {
               <div className="flex items-center space-x-2">
                 <QrCode className={styles.icon} />
                 <span className="font-medium text-gray-700">
-                  {isQrExpanded ? 'Masquer' : 'Afficher'} le QR Code
+                  {isQrExpanded ? t('share.qrHide') : t('share.qrShow')}
                 </span>
               </div>
               <ChevronDown 
@@ -378,7 +385,7 @@ export function ModalPartage({ isOpen, onClose, facture }: ModalPartageProps) {
                       </div>
                       
                       <p className={`text-gray-600 ${styles.subtitle}`}>
-                        Scannez ce code QR pour accéder à la facture
+                        {t('share.qrInstruction')}
                       </p>
                       
                       <button
@@ -390,12 +397,12 @@ export function ModalPartage({ isOpen, onClose, facture }: ModalPartageProps) {
                         `}
                       >
                         <Download className={styles.icon} />
-                        <span>Télécharger QR</span>
+                        <span>{t('share.qrDownload')}</span>
                       </button>
                     </div>
                   ) : (
                     <p className={`text-red-600 ${styles.subtitle}`}>
-                      Erreur lors de la génération du QR Code
+                      {t('share.qrError')}
                     </p>
                   )}
                 </div>
@@ -413,7 +420,7 @@ export function ModalPartage({ isOpen, onClose, facture }: ModalPartageProps) {
                 ${styles.button}
               `}
             >
-              Fermer
+              {t('share.close')}
             </button>
           </div>
         </motion.div>

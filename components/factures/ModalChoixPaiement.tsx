@@ -9,6 +9,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Wallet, Banknote } from 'lucide-react';
 import { PaymentMethod, formatAmount } from '@/types/payment-wallet';
 import Image from 'next/image';
+import { useTranslations } from '@/hooks/useTranslations';
 
 interface ModalChoixPaiementProps {
   isOpen: boolean;
@@ -25,6 +26,7 @@ export function ModalChoixPaiement({
   montantAcompte,
   nomClient
 }: ModalChoixPaiementProps) {
+  const t = useTranslations('invoicesModals');
 
   const walletMethods: Array<{
     id: PaymentMethod;
@@ -84,10 +86,10 @@ export function ModalChoixPaiement({
                 </div>
                 <div>
                   <h2 className="text-lg font-bold text-white">
-                    Mode de Paiement
+                    {t('choice.title')}
                   </h2>
                   <p className="text-white/80 text-sm">
-                    Sélectionnez comment recevoir le paiement
+                    {t('choice.subtitle')}
                   </p>
                 </div>
               </div>
@@ -103,12 +105,12 @@ export function ModalChoixPaiement({
           {/* Montant et client compact */}
           <div className="p-4 bg-gradient-to-r from-blue-50 to-purple-50 border-b">
             <div className="text-center">
-              <p className="text-sm text-gray-600 mb-1">Montant de l&apos;acompte</p>
+              <p className="text-sm text-gray-600 mb-1">{t('choice.amountLabel')}</p>
               <p className="text-xl font-bold text-gray-900">
                 {formatAmount(montantAcompte)}
               </p>
               <p className="text-sm text-gray-600 mt-1">
-                Client: <span className="font-medium">{nomClient}</span>
+                {t('choice.clientLabel', { name: nomClient })}
               </p>
             </div>
           </div>
@@ -130,10 +132,10 @@ export function ModalChoixPaiement({
                 </div>
                 <div className="flex-1 text-left">
                   <h3 className="font-semibold text-gray-900">
-                    Espèces
+                    {t('choice.cashName')}
                   </h3>
                   <p className="text-sm text-gray-600">
-                    Paiement en liquide
+                    {t('choice.cashDesc')}
                   </p>
                 </div>
                 <div className="text-gray-400 group-hover:text-green-600 transition-colors">
@@ -184,8 +186,7 @@ export function ModalChoixPaiement({
           <div className="px-4 pb-4">
             <div className="p-2.5 bg-amber-50 rounded-lg border border-amber-200">
               <p className="text-xs text-amber-800">
-                <span className="font-semibold">Note:</span> Pour les paiements mobiles,
-                le client devra scanner un QR code ou utiliser un lien de paiement.
+                <span className="font-semibold">{t('choice.noteTitle')}</span> {t('choice.noteText')}
               </p>
             </div>
           </div>
