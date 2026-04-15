@@ -28,6 +28,7 @@ import {
   StatCard
 } from '@/types/client';
 import { clientsService } from '@/services/clients.service';
+import { useTranslations } from '@/hooks/useTranslations';
 
 interface OngletHistoriqueProduitsProps {
   clientDetail: ClientDetailComplet;
@@ -127,6 +128,7 @@ function LigneProduit({
   produit: HistoriqueProduitClient;
   tousLesProduits: HistoriqueProduitClient[];
 }) {
+  const t = useTranslations('clients');
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
@@ -139,7 +141,7 @@ function LigneProduit({
             <span className="font-medium text-white truncate text-sm sm:text-base">{produit.nom_produit}</span>
             {produit.quantite_totale >= 10 && (
               <span className="px-2 py-1 bg-yellow-500/20 text-yellow-200 rounded-lg text-xs font-medium border border-yellow-400/30 flex-shrink-0">
-                Client fidèle
+                {t('history.loyalBadge')}
               </span>
             )}
           </div>
@@ -148,31 +150,31 @@ function LigneProduit({
             <div>
               <span className="text-white/60 flex items-center gap-1">
                 <Hash className="w-3 h-3" />
-                <span className="hidden sm:inline">Quantité:</span>
-                <span className="sm:hidden">Qte:</span>
+                <span className="hidden sm:inline">{t('history.labelQuantity')}</span>
+                <span className="sm:hidden">{t('history.labelQuantityShort')}</span>
               </span>
               <p className="text-white font-medium">{produit.quantite_totale}</p>
             </div>
             <div>
               <span className="text-white/60 flex items-center gap-1">
                 <DollarSign className="w-3 h-3" />
-                Total:
+                {t('history.labelTotal')}
               </span>
               <p className="text-white font-medium truncate">{clientsService.formatMontant(produit.montant_total)}</p>
             </div>
             <div className="hidden lg:block">
-              <span className="text-white/60">Prix moyen:</span>
+              <span className="text-white/60">{t('history.labelAvgPrice')}</span>
               <p className="text-white truncate">{clientsService.formatMontant(produit.prix_unitaire_moyen)}</p>
             </div>
             <div className="hidden lg:block">
-              <span className="text-white/60">Commandes:</span>
+              <span className="text-white/60">{t('history.labelOrders')}</span>
               <p className="text-white">{produit.nombre_commandes}</p>
             </div>
             <div className="col-span-2 lg:col-span-1">
               <span className="text-white/60 flex items-center gap-1">
                 <Calendar className="w-3 h-3" />
-                <span className="hidden sm:inline">Dernière:</span>
-                <span className="sm:hidden">Date:</span>
+                <span className="hidden sm:inline">{t('history.labelLast')}</span>
+                <span className="sm:hidden">{t('history.labelDateShort')}</span>
               </span>
               <p className="text-white truncate">{clientsService.formatDate(produit.date_derniere_commande)}</p>
             </div>
@@ -186,7 +188,7 @@ function LigneProduit({
               {Math.round((produit.montant_total / Math.max(...tousLesProduits.map(p => p.montant_total))) * 100)}%
             </span>
           </div>
-          <span className="text-white/50 text-xs mt-1 hidden sm:block">Popularité</span>
+          <span className="text-white/50 text-xs mt-1 hidden sm:block">{t('history.popularity')}</span>
         </div>
       </div>
     </motion.div>
@@ -201,6 +203,7 @@ export function OngletHistoriqueProduits({
   setFiltre,
   isLoading
 }: OngletHistoriqueProduitsProps) {
+  const t = useTranslations('clients');
   const [showFilters, setShowFilters] = useState(false);
 
   const handleSearch = (recherche: string) => {
@@ -213,10 +216,10 @@ export function OngletHistoriqueProduits({
   };
 
   const sortOptions = [
-    { value: 'quantite', label: 'Quantité', icon: Hash },
-    { value: 'montant', label: 'Montant', icon: DollarSign },
-    { value: 'date', label: 'Date', icon: Calendar },
-    { value: 'nom', label: 'Nom', icon: Package }
+    { value: 'quantite', label: t('history.sort.quantity'), icon: Hash },
+    { value: 'montant', label: t('history.sort.amount'), icon: DollarSign },
+    { value: 'date', label: t('history.sort.date'), icon: Calendar },
+    { value: 'nom', label: t('history.sort.name'), icon: Package }
   ];
 
   return (
@@ -225,10 +228,10 @@ export function OngletHistoriqueProduits({
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0">
         <div>
           <h3 className="text-base sm:text-lg font-semibold text-white mb-1">
-            Historique des Achats
+            {t('history.title')}
           </h3>
           <p className="text-white/60 text-xs sm:text-sm">
-            Analyse des produits achetés et habitudes de consommation
+            {t('history.subtitle')}
           </p>
         </div>
 
@@ -237,7 +240,7 @@ export function OngletHistoriqueProduits({
           className="flex items-center gap-2 px-3 py-2 bg-purple-500/20 hover:bg-purple-500/30 text-purple-200 rounded-lg sm:rounded-xl transition-colors border border-purple-400/30 text-sm w-full sm:w-auto justify-center sm:justify-start"
         >
           <Filter className="w-3 h-3 sm:w-4 sm:h-4" />
-          <span>Filtres</span>
+          <span>{t('history.filters')}</span>
         </button>
       </div>
 
@@ -245,7 +248,7 @@ export function OngletHistoriqueProduits({
       <div>
         <h4 className="text-white font-medium mb-3 sm:mb-4 flex items-center gap-2 text-sm sm:text-base">
           <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5" />
-          Statistiques d'Achat
+          {t('history.statsTitle')}
         </h4>
         
         <div className="grid grid-cols-2 gap-3 sm:gap-4">
@@ -278,7 +281,7 @@ export function OngletHistoriqueProduits({
                 type="text"
                 value={filtre.recherche}
                 onChange={(e) => handleSearch(e.target.value)}
-                placeholder="Rechercher un produit..."
+                placeholder={t('history.searchPlaceholder')}
                 className="w-full pl-9 sm:pl-10 pr-3 sm:pr-4 py-2 sm:py-2.5 bg-white/10 border border-white/20 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-purple-400 focus:border-transparent text-white placeholder-white/50 backdrop-blur-sm text-sm sm:text-base"
               />
             </div>
@@ -318,7 +321,7 @@ export function OngletHistoriqueProduits({
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0 mb-3 sm:mb-4">
           <h4 className="text-white font-medium flex items-center gap-2 text-sm sm:text-base">
             <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5" />
-            Produits Achetés ({produits.length})
+            {t('history.listTitle', { count: produits.length })}
           </h4>
           
           {filtre.recherche && (
@@ -326,7 +329,7 @@ export function OngletHistoriqueProduits({
               onClick={() => handleSearch('')}
               className="text-white/60 hover:text-white text-xs sm:text-sm underline"
             >
-              Effacer recherche
+              {t('history.clearSearch')}
             </button>
           )}
         </div>
@@ -363,9 +366,9 @@ export function OngletHistoriqueProduits({
             <div className="text-center py-12 bg-white/5 rounded-2xl border border-white/20">
               <ShoppingBag className="w-12 h-12 text-white/40 mx-auto mb-3" />
               <p className="text-white/60 mb-2">
-                {filtre.recherche 
-                  ? `Aucun produit trouvé pour "${filtre.recherche}"`
-                  : 'Aucun produit acheté'
+                {filtre.recherche
+                  ? t('history.emptySearch', { term: filtre.recherche })
+                  : t('history.emptyAll')
                 }
               </p>
               {filtre.recherche && (
@@ -373,7 +376,7 @@ export function OngletHistoriqueProduits({
                   onClick={() => handleSearch('')}
                   className="text-purple-300 hover:text-purple-200 text-sm underline"
                 >
-                  Voir tous les produits
+                  {t('history.seeAll')}
                 </button>
               )}
             </div>
@@ -386,12 +389,12 @@ export function OngletHistoriqueProduits({
         <div className="bg-gradient-to-r from-purple-500/10 to-blue-500/10 backdrop-blur-sm rounded-2xl p-6 border border-purple-400/20">
           <h5 className="text-white font-medium mb-3 sm:mb-4 flex items-center gap-2 text-sm sm:text-base">
             <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5" />
-            Insights Client
+            {t('history.insightsTitle')}
           </h5>
           
           <div className="grid lg:grid-cols-2 gap-4 sm:gap-6">
             <div>
-              <h6 className="text-white/80 text-xs sm:text-sm font-medium mb-2">Top 3 Produits</h6>
+              <h6 className="text-white/80 text-xs sm:text-sm font-medium mb-2">{t('history.topProducts')}</h6>
               <div className="space-y-2">
                 {produits.slice(0, 3).map((produit, index) => (
                   <div key={produit.id_produit} className="flex items-center gap-2 sm:gap-3 text-xs sm:text-sm">
@@ -409,10 +412,10 @@ export function OngletHistoriqueProduits({
             </div>
             
             <div>
-              <h6 className="text-white/80 text-xs sm:text-sm font-medium mb-2">Résumé</h6>
+              <h6 className="text-white/80 text-xs sm:text-sm font-medium mb-2">{t('history.summary')}</h6>
               <div className="space-y-2 text-xs sm:text-sm">
                 <div className="flex justify-between">
-                  <span className="text-white/60">Total dépensé:</span>
+                  <span className="text-white/60">{t('history.totalSpent')}</span>
                   <span className="text-white font-medium">
                     {clientsService.formatMontant(
                       produits.reduce((sum, p) => sum + p.montant_total, 0)
@@ -420,7 +423,7 @@ export function OngletHistoriqueProduits({
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-white/60">Panier moyen:</span>
+                  <span className="text-white/60">{t('history.avgBasket')}</span>
                   <span className="text-white font-medium">
                     {clientsService.formatMontant(
                       produits.reduce((sum, p) => sum + p.montant_total, 0) / 
@@ -429,7 +432,7 @@ export function OngletHistoriqueProduits({
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-white/60">Dernière commande:</span>
+                  <span className="text-white/60">{t('history.lastOrder')}</span>
                   <span className="text-white font-medium">
                     {clientsService.formatDate(
                       produits.reduce((latest, p) => 

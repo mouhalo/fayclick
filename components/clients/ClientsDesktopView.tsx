@@ -24,6 +24,9 @@ import { User } from '@/types/auth';
 import { ClientWithStats, StatistiquesFactures } from '@/types/client';
 import { ClientAdvancedFilters } from '@/components/clients';
 import { clientsService } from '@/services/clients.service';
+import { useTranslations } from '@/hooks/useTranslations';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { toBcp47 } from '@/lib/format-locale';
 
 type FilterOperator = '=' | '<' | '>';
 
@@ -81,6 +84,8 @@ export default function ClientsDesktopView({
   isTablet,
 }: ClientsDesktopViewProps) {
   const router = useRouter();
+  const t = useTranslations('clients');
+  const { locale } = useLanguage();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(isTablet);
   const [searchLocal, setSearchLocal] = useState(searchInput);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
@@ -110,12 +115,18 @@ export default function ClientsDesktopView({
   // Export CSV (reutilise la logique de FilterHeaderClientsGlass)
   const handleExportCSV = useCallback(() => {
     if (clientsWithAdvancedFilters.length === 0) {
-      alert('Aucun client a exporter');
+      alert(t('alerts.exportEmpty'));
       return;
     }
     setIsExporting(true);
     try {
-      const headers = ['Nom Client', 'Telephone', 'Nbre Factures', 'Total Paye', 'Impaye'];
+      const headers = [
+        t('export_.headers.name'),
+        t('export_.headers.phone'),
+        t('export_.headers.nbInvoices'),
+        t('export_.headers.totalPaid'),
+        t('export_.headers.unpaid')
+      ];
       const rows = clientsWithAdvancedFilters.map(({ client, statistiques_factures }) => [
         (client?.nom_client || '').replace(/[;,]/g, ' '),
         client?.tel_client || '',
@@ -129,15 +140,15 @@ export default function ClientsDesktopView({
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      const dateStr = new Date().toLocaleDateString('fr-FR').replace(/\//g, '-');
-      link.download = `clients_${(user.nom_structure || 'Structure').replace(/\s+/g, '_')}_${dateStr}.csv`;
+      const dateStr = new Date().toLocaleDateString(toBcp47(locale)).replace(/\//g, '-');
+      link.download = `${t('export_.filePrefix')}_${(user.nom_structure || 'Structure').replace(/\s+/g, '_')}_${dateStr}.csv`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
     } catch (error) {
       console.error('Erreur export CSV:', error);
-      alert('Erreur lors de l\'export CSV');
+      alert(t('alerts.exportError'));
     } finally {
       setIsExporting(false);
     }
@@ -146,7 +157,7 @@ export default function ClientsDesktopView({
   // Impression (reutilise la logique de FilterHeaderClientsGlass)
   const handlePrint = useCallback(() => {
     if (clientsWithAdvancedFilters.length === 0) {
-      alert('Aucun client a imprimer');
+      alert(t('alerts.printEmpty'));
       return;
     }
     const formatM = (m: number | undefined | null) => (m ?? 0).toLocaleString('fr-FR') + ' F';
@@ -155,10 +166,11 @@ export default function ClientsDesktopView({
       paye: acc.paye + (statistiques_factures?.montant_paye ?? 0),
       impaye: acc.impaye + (statistiques_factures?.montant_impaye ?? 0)
     }), { factures: 0, paye: 0, impaye: 0 });
-    const dateStr = new Date().toLocaleDateString('fr-FR');
+    const dateStr = new Date().toLocaleDateString(toBcp47(locale));
     const nomStructure = user.nom_structure || 'Structure';
+    const langAttr = locale === 'en' ? 'en' : 'fr';
 
-    const printHTML = `<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><title>Liste des Clients - ${nomStructure}</title><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Segoe UI',Tahoma,sans-serif;padding:20px;color:#333}.header{text-align:center;margin-bottom:25px;padding-bottom:15px;border-bottom:2px solid #16a34a}.header h1{color:#16a34a;font-size:22px;margin-bottom:5px}.header p{color:#666;font-size:14px}.meta{display:flex;justify-content:space-between;margin-bottom:20px;font-size:12px;color:#666}table{width:100%;border-collapse:collapse;font-size:12px}th{background:linear-gradient(135deg,#16a34a,#22c55e);color:white;padding:10px 8px;text-align:left;font-weight:600}th:nth-child(3),th:nth-child(4),th:nth-child(5){text-align:right}td{padding:8px;border-bottom:1px solid #e5e7eb}td:nth-child(3),td:nth-child(4),td:nth-child(5){text-align:right;font-family:'Consolas',monospace}tr:nth-child(even){background-color:#f9fafb}tr:hover{background-color:#f0fdf4}.impaye{color:#dc2626;font-weight:600}.paye{color:#16a34a}.footer{margin-top:20px;padding-top:15px;border-top:2px solid #16a34a}.totaux{display:flex;justify-content:flex-end;gap:30px;font-size:13px;font-weight:600}.totaux span{color:#666}.totaux .value{color:#16a34a}.totaux .impaye-total{color:#dc2626}@media print{body{padding:10px}}</style></head><body><div class="header"><h1>Liste des Clients</h1><p>${nomStructure}</p></div><div class="meta"><span>Total: ${clientsWithAdvancedFilters.length} client(s)</span><span>Imprime le ${dateStr}</span></div><table><thead><tr><th>Nom Client</th><th>Telephone</th><th>Nbre Factures</th><th>Total Paye</th><th>Impaye</th></tr></thead><tbody>${clientsWithAdvancedFilters.map(({ client, statistiques_factures }) => `<tr><td>${client?.nom_client || '-'}</td><td>${client?.tel_client || '-'}</td><td>${statistiques_factures?.nombre_factures ?? 0}</td><td class="paye">${formatM(statistiques_factures?.montant_paye)}</td><td class="${(statistiques_factures?.montant_impaye ?? 0) > 0 ? 'impaye' : ''}">${formatM(statistiques_factures?.montant_impaye)}</td></tr>`).join('')}</tbody></table><div class="footer"><div class="totaux"><div><span>Total Factures:</span> <span class="value">${totaux.factures}</span></div><div><span>Total Paye:</span> <span class="value">${formatM(totaux.paye)}</span></div><div><span>Total Impaye:</span> <span class="impaye-total">${formatM(totaux.impaye)}</span></div></div></div></body></html>`;
+    const printHTML = `<!DOCTYPE html><html lang="${langAttr}"><head><meta charset="UTF-8"><title>${t('export_.printTitle')} - ${nomStructure}</title><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Segoe UI',Tahoma,sans-serif;padding:20px;color:#333}.header{text-align:center;margin-bottom:25px;padding-bottom:15px;border-bottom:2px solid #16a34a}.header h1{color:#16a34a;font-size:22px;margin-bottom:5px}.header p{color:#666;font-size:14px}.meta{display:flex;justify-content:space-between;margin-bottom:20px;font-size:12px;color:#666}table{width:100%;border-collapse:collapse;font-size:12px}th{background:linear-gradient(135deg,#16a34a,#22c55e);color:white;padding:10px 8px;text-align:left;font-weight:600}th:nth-child(3),th:nth-child(4),th:nth-child(5){text-align:right}td{padding:8px;border-bottom:1px solid #e5e7eb}td:nth-child(3),td:nth-child(4),td:nth-child(5){text-align:right;font-family:'Consolas',monospace}tr:nth-child(even){background-color:#f9fafb}tr:hover{background-color:#f0fdf4}.impaye{color:#dc2626;font-weight:600}.paye{color:#16a34a}.footer{margin-top:20px;padding-top:15px;border-top:2px solid #16a34a}.totaux{display:flex;justify-content:flex-end;gap:30px;font-size:13px;font-weight:600}.totaux span{color:#666}.totaux .value{color:#16a34a}.totaux .impaye-total{color:#dc2626}@media print{body{padding:10px}}</style></head><body><div class="header"><h1>${t('export_.printTitle')}</h1><p>${nomStructure}</p></div><div class="meta"><span>${t('export_.printTotal', { count: clientsWithAdvancedFilters.length })}</span><span>${t('export_.printDate', { date: dateStr })}</span></div><table><thead><tr><th>${t('export_.headers.name')}</th><th>${t('export_.headers.phone')}</th><th>${t('export_.headers.nbInvoices')}</th><th>${t('export_.headers.totalPaid')}</th><th>${t('export_.headers.unpaid')}</th></tr></thead><tbody>${clientsWithAdvancedFilters.map(({ client, statistiques_factures }) => `<tr><td>${client?.nom_client || '-'}</td><td>${client?.tel_client || '-'}</td><td>${statistiques_factures?.nombre_factures ?? 0}</td><td class="paye">${formatM(statistiques_factures?.montant_paye)}</td><td class="${(statistiques_factures?.montant_impaye ?? 0) > 0 ? 'impaye' : ''}">${formatM(statistiques_factures?.montant_impaye)}</td></tr>`).join('')}</tbody></table><div class="footer"><div class="totaux"><div><span>${t('export_.printTotalInvoices')}</span> <span class="value">${totaux.factures}</span></div><div><span>${t('export_.printTotalPaid')}</span> <span class="value">${formatM(totaux.paye)}</span></div><div><span>${t('export_.printTotalUnpaid')}</span> <span class="impaye-total">${formatM(totaux.impaye)}</span></div></div></div></body></html>`;
 
     const printFrame = document.createElement('iframe');
     printFrame.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:none;visibility:hidden';
@@ -209,7 +221,7 @@ export default function ClientsDesktopView({
               <ChevronLeft className="w-5 h-5 text-gray-600" />
             </button>
             <div>
-              <h1 className="text-lg font-bold text-gray-800">Gestion des Clients</h1>
+              <h1 className="text-lg font-bold text-gray-800">{t('pageTitleDesktop')}</h1>
               <p className="text-xs text-gray-500">{user.nom_structure}</p>
             </div>
           </div>
@@ -219,26 +231,26 @@ export default function ClientsDesktopView({
               onClick={handleExportCSV}
               disabled={isExporting || clientsWithAdvancedFilters.length === 0}
               className="flex items-center gap-2 px-3 py-2.5 bg-emerald-100 hover:bg-emerald-200 text-emerald-700 rounded-xl font-semibold text-sm transition-all disabled:opacity-50"
-              title="Exporter CSV"
+              title={t('export')}
             >
               <FileDown className={`w-4 h-4 ${isExporting ? 'animate-pulse' : ''}`} />
-              {!isTablet && <span>Export CSV</span>}
+              {!isTablet && <span>{t('exportCsv')}</span>}
             </button>
             <button
               onClick={handlePrint}
               disabled={clientsWithAdvancedFilters.length === 0}
               className="flex items-center gap-2 px-3 py-2.5 bg-purple-100 hover:bg-purple-200 text-purple-700 rounded-xl font-semibold text-sm transition-all disabled:opacity-50"
-              title="Imprimer"
+              title={t('print')}
             >
               <Printer className="w-4 h-4" />
-              {!isTablet && <span>Imprimer</span>}
+              {!isTablet && <span>{t('print')}</span>}
             </button>
             <button
               onClick={onAddClient}
               className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-xl font-semibold text-sm shadow-md hover:shadow-lg transition-all"
             >
               <Plus className="w-4 h-4" />
-              <span>Nouveau Client</span>
+              <span>{t('newClient')}</span>
             </button>
           </div>
         </header>
@@ -254,7 +266,7 @@ export default function ClientsDesktopView({
                   <Users className="w-5 h-5 text-emerald-600" />
                 </div>
                 <div>
-                  <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">Total Clients</p>
+                  <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">{t('stats.totalClients')}</p>
                   <p className="text-2xl font-bold text-gray-800">{statistiquesGlobales?.nombre_total_clients ?? 0}</p>
                 </div>
               </div>
@@ -267,7 +279,7 @@ export default function ClientsDesktopView({
                   <AlertCircle className="w-5 h-5 text-red-600" />
                 </div>
                 <div>
-                  <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">Total Impayes</p>
+                  <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">{t('stats.totalUnpaid')}</p>
                   <p className="text-xl font-bold text-red-600">{formatMontant(statistiquesGlobales?.montant_impaye_structure ?? 0)}</p>
                 </div>
               </div>
@@ -280,9 +292,9 @@ export default function ClientsDesktopView({
                   <Filter className="w-5 h-5 text-blue-600" />
                 </div>
                 <div>
-                  <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">Resultats Filtres</p>
+                  <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">{t('stats.filterResults')}</p>
                   <p className="text-2xl font-bold text-gray-800">{clientsWithAdvancedFilters.length}</p>
-                  <p className="text-xs text-gray-400">client(s) affiches</p>
+                  <p className="text-xs text-gray-400">{t('stats.filterResultsDesc')}</p>
                 </div>
               </div>
             </div>
@@ -297,7 +309,7 @@ export default function ClientsDesktopView({
                   type="text"
                   value={searchLocal}
                   onChange={(e) => setSearchLocal(e.target.value)}
-                  placeholder="Rechercher par nom, telephone, adresse..."
+                  placeholder={t('searchPlaceholderDesktop')}
                   className="w-full pl-9 pr-8 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500"
                 />
                 {searchLocal && (
@@ -318,17 +330,17 @@ export default function ClientsDesktopView({
                 }`}
               >
                 <Filter className="w-4 h-4" />
-                {!isTablet && <span>Filtres</span>}
+                {!isTablet && <span>{t('filters')}</span>}
                 <ChevronDown className={`w-3.5 h-3.5 transition-transform ${showAdvancedFilters ? 'rotate-180' : ''}`} />
               </button>
               <button
                 onClick={onRefresh}
                 disabled={refreshing}
                 className="flex items-center gap-1.5 px-3 py-2 text-sm text-gray-600 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors border border-gray-200"
-                title="Actualiser"
+                title={t('refresh')}
               >
                 <RotateCcw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
-                {!isTablet && <span>Actualiser</span>}
+                {!isTablet && <span>{t('refresh')}</span>}
               </button>
             </div>
 
@@ -337,7 +349,7 @@ export default function ClientsDesktopView({
               <div className={`grid gap-3 pt-2 border-t border-gray-100 ${isTablet ? 'grid-cols-2' : 'grid-cols-3'}`}>
                 {/* Nb factures */}
                 <div>
-                  <label className="text-xs text-gray-500 font-medium mb-1 block">Nombre de factures</label>
+                  <label className="text-xs text-gray-500 font-medium mb-1 block">{t('advanced.invoiceCount')}</label>
                   <div className="flex items-center gap-2">
                     <select
                       value={advancedFilters.facturesOp}
@@ -361,7 +373,7 @@ export default function ClientsDesktopView({
 
                 {/* Montant achete */}
                 <div>
-                  <label className="text-xs text-gray-500 font-medium mb-1 block">Montant achete (FCFA)</label>
+                  <label className="text-xs text-gray-500 font-medium mb-1 block">{t('advanced.amountPurchased')}</label>
                   <div className="flex items-center gap-2">
                     <select
                       value={advancedFilters.payeOp}
@@ -385,7 +397,7 @@ export default function ClientsDesktopView({
 
                 {/* Montant impayes */}
                 <div className={isTablet ? 'col-span-2' : ''}>
-                  <label className="text-xs text-gray-500 font-medium mb-1 block">Montant impayes (FCFA)</label>
+                  <label className="text-xs text-gray-500 font-medium mb-1 block">{t('advanced.amountUnpaid')}</label>
                   <div className="flex items-center gap-2">
                     <select
                       value={advancedFilters.impayeOp}
@@ -418,7 +430,7 @@ export default function ClientsDesktopView({
                       })}
                       className="w-full py-2 text-sm text-red-500 hover:bg-red-50 rounded-lg transition-colors border border-red-200"
                     >
-                      Reinitialiser les filtres
+                      {t('filtersReset')}
                     </button>
                   </div>
                 )}
@@ -432,15 +444,15 @@ export default function ClientsDesktopView({
               <table className="w-full text-sm">
                 <thead>
                   <tr className="bg-gradient-to-r from-green-700 to-emerald-700 text-white">
-                    <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider">Nom Client</th>
-                    <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider">Telephone</th>
+                    <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider">{t('table.name')}</th>
+                    <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider">{t('table.phone')}</th>
                     {!isTablet && (
-                      <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider">Adresse</th>
+                      <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider">{t('table.address')}</th>
                     )}
-                    <th className="text-center px-4 py-3 font-semibold text-xs uppercase tracking-wider">Nb Factures</th>
-                    <th className="text-right px-4 py-3 font-semibold text-xs uppercase tracking-wider">Total Paye</th>
-                    <th className="text-right px-4 py-3 font-semibold text-xs uppercase tracking-wider">Impaye</th>
-                    <th className="text-center px-4 py-3 font-semibold text-xs uppercase tracking-wider">Actions</th>
+                    <th className="text-center px-4 py-3 font-semibold text-xs uppercase tracking-wider">{t('table.nbInvoices')}</th>
+                    <th className="text-right px-4 py-3 font-semibold text-xs uppercase tracking-wider">{t('table.totalPaid')}</th>
+                    <th className="text-right px-4 py-3 font-semibold text-xs uppercase tracking-wider">{t('table.unpaid')}</th>
+                    <th className="text-center px-4 py-3 font-semibold text-xs uppercase tracking-wider">{t('table.actions')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -448,7 +460,7 @@ export default function ClientsDesktopView({
                     <tr>
                       <td colSpan={isTablet ? 6 : 7} className="text-center py-12">
                         <Loader className="w-8 h-8 text-emerald-600 animate-spin mx-auto mb-3" />
-                        <p className="text-gray-500">Chargement des clients...</p>
+                        <p className="text-gray-500">{t('loadingClients')}</p>
                       </td>
                     </tr>
                   ) : errorClients ? (
@@ -457,7 +469,7 @@ export default function ClientsDesktopView({
                         <AlertCircle className="w-10 h-10 text-red-400 mx-auto mb-3" />
                         <p className="text-red-500 font-medium mb-2">{errorClients}</p>
                         <button onClick={onRefresh} className="px-4 py-2 bg-emerald-100 text-emerald-700 rounded-lg text-sm hover:bg-emerald-200 transition-colors">
-                          Reessayer
+                          {t('retry')}
                         </button>
                       </td>
                     </tr>
@@ -465,8 +477,8 @@ export default function ClientsDesktopView({
                     <tr>
                       <td colSpan={isTablet ? 6 : 7} className="text-center py-12 text-gray-400">
                         <Users className="w-10 h-10 mx-auto mb-3 text-gray-300" />
-                        <p className="font-medium">Aucun client trouve</p>
-                        <p className="text-xs mt-1">Modifiez vos filtres ou ajoutez un nouveau client</p>
+                        <p className="font-medium">{t('empty.noneFound')}</p>
+                        <p className="text-xs mt-1">{t('empty.noneHint')}</p>
                       </td>
                     </tr>
                   ) : (
@@ -515,14 +527,14 @@ export default function ClientsDesktopView({
                               <button
                                 onClick={(e) => { e.stopPropagation(); onViewDetails(cws); }}
                                 className="w-8 h-8 rounded-lg bg-blue-50 hover:bg-blue-100 flex items-center justify-center text-blue-600 transition-colors"
-                                title="Voir details"
+                                title={t('table.viewDetails')}
                               >
                                 <Eye className="w-4 h-4" />
                               </button>
                               <button
                                 onClick={(e) => { e.stopPropagation(); onEditClient(cws); }}
                                 className="w-8 h-8 rounded-lg bg-emerald-50 hover:bg-emerald-100 flex items-center justify-center text-emerald-600 transition-colors"
-                                title="Modifier"
+                                title={t('table.edit')}
                               >
                                 <Edit className="w-4 h-4" />
                               </button>
@@ -540,9 +552,7 @@ export default function ClientsDesktopView({
             {totalPages > 1 && (
               <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100 bg-gray-50/50">
                 <p className="text-xs text-gray-500">
-                  Affichage de <span className="font-semibold">{startIndex + 1}</span> a{' '}
-                  <span className="font-semibold">{endIndex}</span> sur{' '}
-                  <span className="font-semibold">{clientsWithAdvancedFilters.length}</span> clients
+                  {t('pagination.rangeInfo', { start: startIndex + 1, end: endIndex, total: clientsWithAdvancedFilters.length })}
                 </p>
 
                 <div className="flex items-center gap-1">

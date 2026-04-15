@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { useClientDetailFromData } from '@/hooks/useClientDetailFromData';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTranslations } from '@/hooks/useTranslations';
 import { OngletInfosGenerales } from './OngletInfosGenerales';
 import { OngletFactures } from './OngletFactures';  
 import { OngletHistoriqueProduits } from './OngletHistoriqueProduits';
@@ -35,29 +36,11 @@ interface ModalClientMultiOngletsProps {
   onClientUpdated?: (clientId: number) => void; // Callback pour mise à jour de la liste
 }
 
-// Configuration des onglets
+// Configuration des onglets (labels/description traduits via useTranslations côté composant)
 const TABS_CONFIG = [
-  { 
-    id: 'general' as TabClient, 
-    label: 'Infos Générales', 
-    icon: User, 
-    color: 'emerald',
-    description: 'Informations client et statistiques'
-  },
-  { 
-    id: 'factures' as TabClient, 
-    label: 'Factures', 
-    icon: FileText, 
-    color: 'blue',
-    description: 'Historique des factures et paiements'
-  },
-  { 
-    id: 'historique' as TabClient, 
-    label: 'Historique', 
-    icon: ShoppingBag, 
-    color: 'purple',
-    description: 'Historique des achats de produits'
-  }
+  { id: 'general' as TabClient, icon: User, color: 'emerald' },
+  { id: 'factures' as TabClient, icon: FileText, color: 'blue' },
+  { id: 'historique' as TabClient, icon: ShoppingBag, color: 'purple' }
 ];
 
 export function ModalClientMultiOnglets({
@@ -71,6 +54,12 @@ export function ModalClientMultiOnglets({
 }: ModalClientMultiOngletsProps) {
   const initializationRef = useRef<boolean>(false);
   const { user } = useAuth();
+  const t = useTranslations('clients');
+
+  const getTabLabel = (id: TabClient): string => {
+    const key = id === 'general' ? 'modal.tabs.general' : id === 'factures' ? 'modal.tabs.invoices' : 'modal.tabs.history';
+    return t(key);
+  };
   
   // État pour le modal de paiement
   const [modalPaiement, setModalPaiement] = useState<{
@@ -248,7 +237,7 @@ export function ModalClientMultiOnglets({
   // Fermeture avec confirmation si en cours d'édition
   const handleClose = () => {
     if (isEditing && (formData.nom_client || formData.tel_client || formData.adresse)) {
-      if (window.confirm('Vous avez des modifications non sauvegardées. Voulez-vous vraiment fermer ?')) {
+      if (window.confirm(t('modal.unsavedConfirm'))) {
         onClose();
       }
     } else {
@@ -356,7 +345,7 @@ export function ModalClientMultiOnglets({
                       </div>
                       <div>
                         <h2 className="text-base sm:text-lg lg:text-xl font-bold text-white">
-                          {clientToEdit ? 'Détails Client' : 'Nouveau Client'}
+                          {clientToEdit ? t('modal.titleDetails') : t('modal.titleNew')}
                         </h2>
                         {clientDetail && (
                           <p className="text-white/80 text-xs sm:text-sm">
@@ -370,7 +359,7 @@ export function ModalClientMultiOnglets({
                     {isLoading && (
                       <div className="flex items-center gap-1 sm:gap-2 text-white/80">
                         <Loader2 className="w-3 h-3 sm:w-4 sm:h-4 animate-spin" />
-                        <span className="text-xs sm:text-sm">Chargement...</span>
+                        <span className="text-xs sm:text-sm">{t('modal.loading')}</span>
                       </div>
                     )}
                   </div>
@@ -409,8 +398,8 @@ export function ModalClientMultiOnglets({
                       >
                         <Icon className="w-3 h-3 sm:w-4 sm:h-4" />
                         <span className="text-xs sm:text-sm font-medium">
-                          <span className="sm:hidden">{tab.label.split(' ')[0]}</span>
-                          <span className="hidden sm:inline">{tab.label}</span>
+                          <span className="sm:hidden">{getTabLabel(tab.id).split(' ')[0]}</span>
+                          <span className="hidden sm:inline">{getTabLabel(tab.id)}</span>
                         </span>
                       </button>
                     );
@@ -484,13 +473,13 @@ export function ModalClientMultiOnglets({
                 {/* Informations contextuelles */}
                 <div className="text-white/60 text-xs sm:text-sm">
                   {activeTab === 'general' && isEditing && (
-                    "Modifiez les informations puis sauvegardez"
+                    t('modal.footer.editing')
                   )}
                   {activeTab === 'factures' && clientDetail && (
-                    `${clientDetail.factures.length} facture${clientDetail.factures.length > 1 ? 's' : ''} au total`
+                    t(clientDetail.factures.length > 1 ? 'modal.footer.invoicesCountPlural' : 'modal.footer.invoicesCountSingular', { count: clientDetail.factures.length })
                   )}
                   {activeTab === 'historique' && clientDetail && (
-                    `${clientDetail.historique_produits.length} produit${clientDetail.historique_produits.length > 1 ? 's' : ''} différent${clientDetail.historique_produits.length > 1 ? 's' : ''}`
+                    t(clientDetail.historique_produits.length > 1 ? 'modal.footer.productsCountPlural' : 'modal.footer.productsCountSingular', { count: clientDetail.historique_produits.length })
                   )}
                 </div>
 
@@ -500,7 +489,7 @@ export function ModalClientMultiOnglets({
                     onClick={handleClose}
                     className="flex-1 sm:flex-none px-3 sm:px-4 py-2 text-xs sm:text-sm text-white/80 hover:text-white border border-white/20 hover:border-white/40 rounded-lg sm:rounded-xl transition-colors"
                   >
-                    Fermer
+                    {t('modal.close')}
                   </button>
 
                   {/* Bouton édition/sauvegarde pour l'onglet général */}
@@ -512,7 +501,7 @@ export function ModalClientMultiOnglets({
                           className={`flex-1 sm:flex-none flex items-center justify-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 bg-gradient-to-r ${themeColors.accent} hover:${themeColors.accentHover} text-white rounded-lg sm:rounded-xl transition-all shadow-lg text-xs sm:text-sm`}
                         >
                           <Edit3 className="w-3 h-3 sm:w-4 sm:h-4" />
-                          Modifier
+                          {t('modal.edit')}
                         </button>
                       ) : (
                         <button
@@ -525,7 +514,7 @@ export function ModalClientMultiOnglets({
                           ) : (
                             <Save className="w-3 h-3 sm:w-4 sm:h-4" />
                           )}
-                          Sauvegarder
+                          {t('modal.save')}
                         </button>
                       )}
                     </>

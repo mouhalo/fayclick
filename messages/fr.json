@@ -765,5 +765,192 @@
         "12": "Décembre"
       }
     }
+  },
+  "clients": {
+    "pageTitle": "👥 Gestion Clients",
+    "pageTitleDesktop": "Gestion des Clients",
+    "loading": "Chargement...",
+    "loadingClients": "Chargement des clients...",
+    "loadError": "Impossible de charger les clients",
+    "retry": "Réessayer",
+    "newClient": "Nouveau Client",
+    "addFirstClient": "Ajouter le premier client",
+    "fabAdd": "Ajouter un client",
+    "searchPlaceholder": "Rechercher client...",
+    "searchPlaceholderDesktop": "Rechercher par nom, téléphone, adresse...",
+    "refresh": "Actualiser",
+    "export": "Exporter CSV",
+    "exportCsv": "Export CSV",
+    "print": "Imprimer",
+    "filters": "Filtres",
+    "filtersNoneConfigured": "Filtres avancés non configurés",
+    "filtersReset": "Réinitialiser les filtres",
+    "alerts": {
+      "exportEmpty": "Aucun client à exporter",
+      "exportError": "Erreur lors de l'export CSV",
+      "printEmpty": "Aucun client à imprimer"
+    },
+    "stats": {
+      "totalClients": "Total Clients",
+      "totalUnpaid": "Total Impayés",
+      "unpaid": "Impayés",
+      "filterResults": "Résultats Filtres",
+      "filterResultsDesc": "client(s) affichés",
+      "invoicesCount": "Factures",
+      "totalAmount": "Total",
+      "unpaidAmount": "Impayé",
+      "itemLabel": "clients"
+    },
+    "advanced": {
+      "invoiceCount": "Nombre de factures",
+      "amountPurchased": "Montant acheté (FCFA)",
+      "amountUnpaid": "Montant impayés (FCFA)"
+    },
+    "empty": {
+      "none": "Aucun client enregistré",
+      "search": "Aucun client trouvé pour « {term} »",
+      "seeAll": "Voir tous les clients",
+      "noneFound": "Aucun client trouvé",
+      "noneHint": "Modifiez vos filtres ou ajoutez un nouveau client"
+    },
+    "table": {
+      "name": "Nom Client",
+      "phone": "Téléphone",
+      "address": "Adresse",
+      "nbInvoices": "Nb Factures",
+      "totalPaid": "Total Payé",
+      "unpaid": "Impayé",
+      "actions": "Actions",
+      "viewDetails": "Voir détails",
+      "edit": "Modifier"
+    },
+    "badges": {
+      "unpaid": "Impayés"
+    },
+    "pagination": {
+      "rangeInfo": "Affichage de {start} à {end} sur {total} clients"
+    },
+    "export_": {
+      "headers": {
+        "name": "Nom Client",
+        "phone": "Téléphone",
+        "nbInvoices": "Nbre Factures",
+        "totalPaid": "Total Payé",
+        "unpaid": "Impayé"
+      },
+      "filePrefix": "clients",
+      "printTitle": "Liste des Clients",
+      "printIcon": "📋 Liste des Clients",
+      "printTotal": "Total : {count} client(s)",
+      "printDate": "Imprimé le {date}",
+      "printTotalInvoices": "Total Factures :",
+      "printTotalPaid": "Total Payé :",
+      "printTotalUnpaid": "Total Impayé :"
+    },
+    "modal": {
+      "titleNew": "Nouveau Client",
+      "titleDetails": "Détails Client",
+      "loading": "Chargement...",
+      "close": "Fermer",
+      "edit": "Modifier",
+      "save": "Sauvegarder",
+      "unsavedConfirm": "Vous avez des modifications non sauvegardées. Voulez-vous vraiment fermer ?",
+      "tabs": {
+        "general": "Infos Générales",
+        "invoices": "Factures",
+        "history": "Historique"
+      },
+      "tabsDesc": {
+        "general": "Informations client et statistiques",
+        "invoices": "Historique des factures et paiements",
+        "history": "Historique des achats de produits"
+      },
+      "footer": {
+        "editing": "Modifiez les informations puis sauvegardez",
+        "invoicesCountSingular": "{count} facture au total",
+        "invoicesCountPlural": "{count} factures au total",
+        "productsCountSingular": "{count} produit différent",
+        "productsCountPlural": "{count} produits différents"
+      }
+    },
+    "general": {
+      "title": "Informations Générales",
+      "subtitleEdit": "Modifiez les informations du client",
+      "subtitleView": "Consultez les informations et statistiques du client",
+      "seniority": "Ancienneté",
+      "infoClient": "Informations Client",
+      "edit": "Modifier",
+      "fieldName": "Nom du client *",
+      "fieldNamePlaceholder": "Nom complet du client",
+      "fieldPhone": "Téléphone *",
+      "fieldPhonePlaceholder": "+221 XX XXX XX XX",
+      "fieldAddress": "Adresse",
+      "fieldAddressPlaceholder": "Adresse complète du client",
+      "undefined": "Non défini",
+      "undefinedF": "Non définie",
+      "cancel": "Annuler",
+      "statsTitle": "Statistiques Client",
+      "loadingInfo": "Chargement des informations...",
+      "noInfo": "Aucune information disponible",
+      "addInfo": "Ajouter les informations"
+    },
+    "invoices": {
+      "title": "Gestion des Factures",
+      "subtitle": "Historique des factures et gestion des paiements",
+      "filters": "Filtres",
+      "statsTitle": "Statistiques de Paiement",
+      "listTitle": "Liste des Factures ({count})",
+      "showAll": "Afficher toutes",
+      "statusAll": "Toutes",
+      "statusPaid": "Payées",
+      "statusUnpaid": "Impayées",
+      "statusPartial": "Partielles",
+      "labelDate": "Date :",
+      "labelAmount": "Montant :",
+      "labelPaidOn": "Payé le :",
+      "labelRemaining": "Restant :",
+      "emptyAll": "Aucune facture trouvée",
+      "emptyFiltered": "Aucune facture {status}",
+      "seeAll": "Voir toutes les factures",
+      "summary": {
+        "totalInvoices": "Total Factures",
+        "totalAmount": "Montant Total",
+        "paidAmount": "Montant Payé",
+        "paymentRate": "Taux Paiement"
+      }
+    },
+    "history": {
+      "title": "Historique des Achats",
+      "subtitle": "Analyse des produits achetés et habitudes de consommation",
+      "filters": "Filtres",
+      "statsTitle": "Statistiques d'Achat",
+      "loyalBadge": "Client fidèle",
+      "searchPlaceholder": "Rechercher un produit...",
+      "sort": {
+        "quantity": "Quantité",
+        "amount": "Montant",
+        "date": "Date",
+        "name": "Nom"
+      },
+      "listTitle": "Produits Achetés ({count})",
+      "clearSearch": "Effacer recherche",
+      "labelQuantity": "Quantité :",
+      "labelQuantityShort": "Qte :",
+      "labelTotal": "Total :",
+      "labelAvgPrice": "Prix moyen :",
+      "labelOrders": "Commandes :",
+      "labelLast": "Dernière :",
+      "labelDateShort": "Date :",
+      "popularity": "Popularité",
+      "emptyAll": "Aucun produit acheté",
+      "emptySearch": "Aucun produit trouvé pour « {term} »",
+      "seeAll": "Voir tous les produits",
+      "insightsTitle": "Insights Client",
+      "topProducts": "Top 3 Produits",
+      "summary": "Résumé",
+      "totalSpent": "Total dépensé :",
+      "avgBasket": "Panier moyen :",
+      "lastOrder": "Dernière commande :"
+    }
   }
 }
