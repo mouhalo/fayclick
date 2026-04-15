@@ -10,6 +10,7 @@ import { motion } from 'framer-motion';
 import { Package, Store, TrendingUp, DollarSign } from 'lucide-react';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { Produit } from '@/types/produit';
+import { useTranslations } from '@/hooks/useTranslations';
 
 interface StatsCardsNouveauxProps {
   articles: Produit[];
@@ -20,6 +21,7 @@ interface StatsCardsNouveauxProps {
 
 export function StatsCardsNouveaux({ articles, ventes = [], canViewMontants = true }: StatsCardsNouveauxProps) {
   const { isMobile, isMobileLarge } = useBreakpoint();
+  const t = useTranslations('produits');
 
   // Calculs dynamiques des statistiques
   const stats = useMemo(() => {
@@ -112,9 +114,9 @@ export function StatsCardsNouveaux({ articles, ventes = [], canViewMontants = tr
   const statsCards = [
     {
       id: 'marchandise-pa',
-      title: 'Valeur Marchandise (PA)',
+      title: t('statsCards.marchandisePA'),
       value: canViewMontants ? `${stats.valeurMarchandisePA.toLocaleString('fr-FR')} FCFA` : '******',
-      subtitle: `Total Articles: ${stats.totalArticles}`,
+      subtitle: t('statsCards.totalArticles', { count: stats.totalArticles }),
       icon: Package,
       gradient: 'from-blue-400 to-blue-500',
       bgGradient: 'from-blue-50 to-blue-100',
@@ -122,7 +124,7 @@ export function StatsCardsNouveaux({ articles, ventes = [], canViewMontants = tr
     },
     {
       id: 'stock-pv',
-      title: 'Valeur Stock (PV)',
+      title: t('statsCards.stockPV'),
       value: canViewMontants ? `${stats.valeurStockPV.toLocaleString('fr-FR')} FCFA` : '******',
       subtitle: '',
       icon: Store,
@@ -132,7 +134,7 @@ export function StatsCardsNouveaux({ articles, ventes = [], canViewMontants = tr
     },
     {
       id: 'ventes-realisees',
-      title: 'Valeur Ventes réalisées',
+      title: t('statsCards.ventesRealisees'),
       value: canViewMontants ? `${stats.valeurVentesRealisees.toLocaleString('fr-FR')} FCFA` : '******',
       subtitle: '',
       icon: TrendingUp,
@@ -142,7 +144,7 @@ export function StatsCardsNouveaux({ articles, ventes = [], canViewMontants = tr
     },
     {
       id: 'benefice-potentiel',
-      title: 'Bénéfice Potentiel',
+      title: t('statsCards.beneficePotentiel'),
       value: canViewMontants ? `${stats.beneficePotentiel.toLocaleString('fr-FR')} FCFA` : '******',
       subtitle: canViewMontants ? `(${stats.beneficePotentielPct.toFixed(2)}%)` : '',
       icon: DollarSign,

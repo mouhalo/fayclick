@@ -1383,6 +1383,13 @@
       "collapse": "Click to collapse",
       "expand": "Click to see details"
     },
+    "statsCards": {
+      "marchandisePA": "Merchandise value (cost)",
+      "stockPV": "Stock value (retail)",
+      "ventesRealisees": "Realized sales value",
+      "beneficePotentiel": "Potential profit",
+      "totalArticles": "Total items: {count}"
+    },
     "error": {
       "loadingTitle": "Loading error"
     },
@@ -1589,5 +1596,33 @@
       "countSingular": "{count} expense",
       "countPlural": "{count} expenses"
     }
+  },
+  "pagination": {
+    "showing": "Showing {total} {label}",
+    "showingRange": "Showing {start} to {end} of {total} {label}",
+    "previous": "Previous",
+    "next": "Next"
+  },
+  "panier": {
+    "title": "My cart",
+    "dragHint": "Drag to move",
+    "empty": "Cart empty",
+    "emptyHint": "Add products from the grid",
+    "loyalizeClient": "Add client",
+    "unitPrice": "Unit price",
+    "subtotal": "Subtotal",
+    "quantity": "Quantity",
+    "calculations": "Summary",
+    "discount": "Discount",
+    "discountWithPct": "Discount ({pct}%)",
+    "total": "Total",
+    "subtotalColon": "Subtotal:",
+    "discountColon": "Discount:",
+    "totalColon": "Total:",
+    "validate": "Confirm sale",
+    "clear": "Clear cart",
+    "clientSearch": "Search client",
+    "itemSingular": "{count} item",
+    "itemPlural": "{count} items"
   }
 }

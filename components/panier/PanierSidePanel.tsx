@@ -23,6 +23,7 @@ import { ModalRechercheClient } from './ModalRechercheClient';
 import { ModalImpressionProforma } from '@/components/proformas/ModalImpressionProforma';
 import { Client } from '@/types/client';
 import { Proforma, ProformaDetail } from '@/types/proforma';
+import { useTranslations } from '@/hooks/useTranslations';
 
 interface PanierSidePanelProps {
   onSuccess?: () => void;
@@ -40,6 +41,7 @@ export function PanierSidePanel({ onSuccess, onClose }: PanierSidePanelProps) {
   const { structure } = useAuth();
   const comptePrive = structure?.compte_prive === true;
   const { showToast } = useToast();
+  const t = useTranslations('panier');
   const [isLoading, setIsLoading] = useState(false);
   const { openModal: openFactureSuccess } = useFactureSuccessStore();
   const [isModalRechercheOpen, setIsModalRechercheOpen] = useState(false);
@@ -242,10 +244,10 @@ export function PanierSidePanel({ onSuccess, onClose }: PanierSidePanelProps) {
               <ShoppingCart className="w-4 h-4 text-blue-600" />
             </div>
             <div className="flex-1">
-              <h2 className="text-sm font-bold text-gray-900">Mon Panier</h2>
+              <h2 className="text-sm font-bold text-gray-900">{t('title')}</h2>
               <p className="text-xs text-gray-500">{articles.length} article{articles.length > 1 ? 's' : ''}</p>
             </div>
-            <span className="text-[10px] text-gray-400">Glisser pour déplacer</span>
+            <span className="text-[10px] text-gray-400">{t('dragHint')}</span>
             {/* Bouton fermer */}
             {onClose && (
               <button
@@ -263,8 +265,8 @@ export function PanierSidePanel({ onSuccess, onClose }: PanierSidePanelProps) {
             {articles.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full text-gray-400 px-4">
                 <ShoppingCart className="w-12 h-12 mb-3 opacity-30" />
-                <p className="text-sm font-medium">Panier vide</p>
-                <p className="text-xs mt-1">Ajoutez des produits depuis la grille</p>
+                <p className="text-sm font-medium">{t('empty')}</p>
+                <p className="text-xs mt-1">{t('emptyHint')}</p>
               </div>
             ) : (
               <>
@@ -403,7 +405,7 @@ export function PanierSidePanel({ onSuccess, onClose }: PanierSidePanelProps) {
                         {/* Remise par article */}
                         <div className="flex items-center justify-between mt-1.5">
                           <div className="flex items-center gap-1">
-                            <span className="text-[10px] text-gray-500">Remise:</span>
+                            <span className="text-[10px] text-gray-500">{t('discountColon')}</span>
                             <input
                               type="number"
                               min={0}
@@ -434,12 +436,12 @@ export function PanierSidePanel({ onSuccess, onClose }: PanierSidePanelProps) {
                   <div className="bg-gray-50 rounded-xl p-3 space-y-3">
                     <div className="flex items-center gap-2">
                       <Calculator className="w-4 h-4 text-gray-600" />
-                      <span className="font-semibold text-gray-900 text-sm">Calculs</span>
+                      <span className="font-semibold text-gray-900 text-sm">{t('calculations')}</span>
                     </div>
 
                     <div>
                       <div className="flex items-center justify-between mb-1">
-                        <label className="text-xs font-medium text-gray-700">Remise</label>
+                        <label className="text-xs font-medium text-gray-700">{t('discount')}</label>
                         <div className="flex rounded-lg overflow-hidden border border-gray-300">
                           <button
                             onClick={() => handleRemiseModeChange('%')}
@@ -485,17 +487,17 @@ export function PanierSidePanel({ onSuccess, onClose }: PanierSidePanelProps) {
               {/* Récapitulatif des montants */}
               <div className="px-4 pt-3 pb-2 space-y-1">
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Sous-total:</span>
+                  <span className="text-gray-600">{t('subtotalColon')}</span>
                   <span className="font-medium">{montants.sous_total.toLocaleString('fr-FR')} F</span>
                 </div>
                 {montants.remise > 0 && (
                   <div className="flex justify-between text-sm text-green-600">
-                    <span>Remise{remiseMode === '%' ? ` (${remiseInput}%)` : ''}:</span>
+                    <span>{remiseMode === '%' ? t('discountWithPct', { pct: remiseInput }) : t('discountColon')}</span>
                     <span>-{montants.remise.toLocaleString('fr-FR')} F</span>
                   </div>
                 )}
                 <div className="flex justify-between font-bold text-base border-t border-gray-100 pt-1.5">
-                  <span>Total:</span>
+                  <span>{t('totalColon')}</span>
                   <span className="text-blue-600">{montants.montant_net.toLocaleString('fr-FR')} FCFA</span>
                 </div>
               </div>

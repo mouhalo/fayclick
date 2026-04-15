@@ -19,6 +19,7 @@ import { useToast } from '@/components/ui/Toast';
 import { useFactureSuccessStore } from '@/hooks/useFactureSuccess';
 import { ModalRechercheClient } from './ModalRechercheClient';
 import { Client } from '@/types/client';
+import { useTranslations } from '@/hooks/useTranslations';
 
 export function ModalPanier() {
   const {
@@ -29,6 +30,7 @@ export function ModalPanier() {
     getMontantsFacture
   } = usePanierStore();
 
+  const t = useTranslations('panier');
   const { showToast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const { openModal: openFactureSuccess } = useFactureSuccessStore();
@@ -184,8 +186,10 @@ export function ModalPanier() {
                     <ShoppingCart className="w-5 h-5 text-blue-600" />
                   </div>
                   <div>
-                    <h2 className="text-xl font-bold text-gray-900">Mon Panier</h2>
-                    <p className="text-sm text-gray-500">{articles.length} article{articles.length > 1 ? 's' : ''}</p>
+                    <h2 className="text-xl font-bold text-gray-900">{t('title')}</h2>
+                    <p className="text-sm text-gray-500">
+                      {articles.length > 1 ? t('itemPlural', { count: articles.length }) : t('itemSingular', { count: articles.length })}
+                    </p>
                   </div>
                 </div>
                 <button 
@@ -219,7 +223,7 @@ export function ModalPanier() {
                           <span className="text-xs text-gray-500">{infosClient.tel_client}</span>
                         </>
                       ) : (
-                        <span className="font-bold text-gray-900 text-base">Fidéliser le client</span>
+                        <span className="font-bold text-gray-900 text-base">{t('loyalizeClient')}</span>
                       )}
                     </div>
                   </button>
@@ -248,7 +252,7 @@ export function ModalPanier() {
 
                       <div className="grid grid-cols-2 gap-2 mb-1.5">
                         <div>
-                          <div className="text-[10px] text-gray-500">Prix unitaire</div>
+                          <div className="text-[10px] text-gray-500">{t('unitPrice')}</div>
                           <div className="font-bold text-blue-600 text-xs">
                             {(article.prix_applique ?? article.prix_vente).toLocaleString('fr-FR')} FCFA
                             {article.prix_applique && article.prix_applique !== article.prix_vente && (
@@ -257,7 +261,7 @@ export function ModalPanier() {
                           </div>
                         </div>
                         <div>
-                          <div className="text-[10px] text-gray-500">Sous-total</div>
+                          <div className="text-[10px] text-gray-500">{t('subtotal')}</div>
                           <div className="font-bold text-gray-900 text-xs">
                             {((article.prix_applique ?? article.prix_vente) * article.quantity).toLocaleString('fr-FR')} FCFA
                           </div>
@@ -266,7 +270,7 @@ export function ModalPanier() {
 
                       {/* Contrôles quantité - Compact */}
                       <div className="flex items-center justify-between">
-                        <span className="text-[10px] text-gray-500">Quantité</span>
+                        <span className="text-[10px] text-gray-500">{t('quantity')}</span>
                         <div className="flex items-center gap-2">
                           <button
                             onClick={() => handleUpdateQuantity(article.id_produit, article.quantity - 1)}
@@ -313,13 +317,13 @@ export function ModalPanier() {
                   <div className="bg-gray-50 rounded-xl p-4 space-y-4">
                     <div className="flex items-center gap-2 mb-3">
                       <Calculator className="w-5 h-5 text-gray-600" />
-                      <span className="font-semibold text-gray-900">Calculs</span>
+                      <span className="font-semibold text-gray-900">{t('calculations')}</span>
                     </div>
 
                     <div>
                       <div className="flex items-center justify-between mb-1">
                         <label className="text-sm font-medium text-gray-700">
-                          Remise
+                          {t('discount')}
                         </label>
                         {/* Toggle % / F */}
                         <div className="flex rounded-lg overflow-hidden border border-gray-300">
@@ -363,17 +367,17 @@ export function ModalPanier() {
                     {/* Récapitulatif des montants */}
                     <div className="border-t border-gray-200 pt-4 space-y-2">
                       <div className="flex justify-between text-sm">
-                        <span>Sous-total:</span>
+                        <span>{t('subtotalColon')}</span>
                         <span>{montants.sous_total.toLocaleString('fr-FR')} FCFA</span>
                       </div>
                       {montants.remise > 0 && (
                         <div className="flex justify-between text-sm text-green-600">
-                          <span>Remise{remiseMode === '%' ? ` (${remiseInput}%)` : ''}:</span>
+                          <span>{remiseMode === '%' ? t('discountWithPct', { pct: remiseInput }) : t('discountColon')}</span>
                           <span>-{montants.remise.toLocaleString('fr-FR')} FCFA</span>
                         </div>
                       )}
                       <div className="flex justify-between font-bold text-lg border-t border-gray-200 pt-2">
-                        <span>Total:</span>
+                        <span>{t('totalColon')}</span>
                         <span>{montants.montant_net.toLocaleString('fr-FR')} FCFA</span>
                       </div>
                     </div>

@@ -10,6 +10,7 @@ import { motion } from 'framer-motion';
 import { ChevronLeft, ChevronRight, MoreHorizontal } from 'lucide-react';
 import { GlassCard } from './GlassCard';
 import { cn } from '@/lib/utils';
+import { useTranslations } from '@/hooks/useTranslations';
 
 interface GlassPaginationProps {
   currentPage: number;
@@ -64,6 +65,8 @@ export function GlassPagination({
     return pages;
   }, [currentPage, totalPages]);
 
+  const t = useTranslations('pagination');
+
   // Calcul des infos d'affichage
   const startItem = (currentPage - 1) * itemsPerPage + 1;
   const endItem = Math.min(currentPage * itemsPerPage, totalItems);
@@ -98,7 +101,7 @@ export function GlassPagination({
         <div className="p-3 backdrop-blur-sm bg-green-600/90 border border-green-500/50 rounded-xl shadow-lg">
           <div className="text-center">
             <p className="text-white text-sm font-medium">
-              Affichage de {totalItems} {itemLabel}
+              {t('showing', { total: totalItems, label: itemLabel })}
             </p>
           </div>
         </div>
@@ -118,7 +121,7 @@ export function GlassPagination({
         {/* Informations de pagination */}
         <div className="text-center">
           <p className="text-white text-xs font-medium">
-            Affichage de {startItem} à {endItem} sur {totalItems} {itemLabel}
+            {t('showingRange', { start: startItem, end: endItem, total: totalItems, label: itemLabel })}
           </p>
         </div>
         
@@ -138,7 +141,7 @@ export function GlassPagination({
             )}
           >
             <ChevronLeft className="w-4 h-4 text-white" />
-            <span className="hidden sm:inline text-white">Précédent</span>
+            <span className="hidden sm:inline text-white">{t('previous')}</span>
           </motion.button>
 
           {/* Numéros de page */}
@@ -185,7 +188,7 @@ export function GlassPagination({
                 : 'hover:bg-white/20 hover:scale-105 active:scale-95'
             )}
           >
-            <span className="hidden sm:inline text-white">Suivant</span>
+            <span className="hidden sm:inline text-white">{t('next')}</span>
             <ChevronRight className="w-4 h-4 text-white" />
           </motion.button>
         </div>
