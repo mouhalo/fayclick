@@ -20,8 +20,8 @@
 | Sprint 6 — Services, Validations, Exports | ⏸️ À démarrer | — | — |
 | Sprint 7 — Paramètres, Structure, KALPE | ⏸️ À démarrer | — | — |
 
-**Couverture actuelle** : 317 clés FR = 317 clés EN (parité parfaite)
-**Commits totaux** : 10 commits atomiques
+**Couverture actuelle** : 387 clés FR = 387 clés EN (parité parfaite)
+**Commits totaux** : 14 commits atomiques
 
 ---
 
@@ -111,11 +111,26 @@ Blockers résolus (commit `c9b21c7`) :
 - ✅ Pluralisation simple (articleCountSingular/Plural via count)
 - ⏸️ `ModalPaiementWalletNew` (335L) — flow authentifié, reporté au **Sprint 5 (Modals)**
 
-### Lot 3 — Catalogue public — ⏸️ À faire
-- `CataloguePublicClient` (447L), `CarteProduit` (176L), `ModalCarrouselProduit` (452L), `PanierPublic` (438L)
+### Lot 3 — Catalogue public — ✅ Terminé
+- ✅ `CataloguePublicClient` (447L) — namespace `catalogue` (commit `5df5679`)
+- ✅ `CarteProduit` (176L) — card avec formatPrix localisé
+- ✅ `PanierPublic` (438L) — drawer complet avec paiement OM/Wave
+- ✅ `ModalCarrouselProduit` (452L) — "Aucune photo disponible" traduit (commit `66c1bd7`)
 
-### Lot 4 — Marketplace — ⏸️ À faire
-- `CataloguesGlobalClient` (361L) + 22 composants marketplace (~1646L)
+### Lot 4 — Marketplace — 🟡 Partiel (composants partagés avec Lot 3 OK)
+Traduits (commit `66c1bd7`) :
+- ✅ `SortDropdown` — 4 options tri
+- ✅ `BottomNavMarketplace` — 3 tabs
+- ✅ `BoutiqueHeader` — back/contact/live/follow/stats labels
+- ✅ `DesktopMiniCart` — panier desktop complet + pluriels
+- ✅ `ToastPanier` — "Ajouté au panier !"
+- ✅ `MarketplaceFAB` — aria scroll top
+
+À traiter (session dédiée) :
+- `CataloguesGlobalClient` (361L) — page /catalogues
+- Composants marketplace spécifiques /catalogues : `MarketplaceHero`, `MarketplaceSearchBar` (188L), `StickySearchNav`, `MarketplaceNavbar`, `BoutiqueSearchFilter`, `CarteBoutique*`, `CarteStructure`, `TypeStructureChips`, `BoutiquesCarousel`, `Breadcrumb`, `SkeletonCards`
+
+**Note** : Un bug critique `useTranslations` a été fixé (commit `74194cb`) — `t` n'était pas mémoïsé, causant boucles infinies dans `useEffect`/`useCallback` avec `t` en deps.
 
 ### Prochaine session Sprint 2
 Lot 3 + Lot 4 à traiter ensemble (catalogue dépend de ~10 sous-composants marketplace). ~3000 lignes. Possible découpage en 2-3 sessions.
