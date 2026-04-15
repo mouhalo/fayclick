@@ -65,6 +65,7 @@ export function ModalAjoutProduitNew({
   // Hook pour vérifier si l'utilisateur est ADMIN
   const { isAdmin, user } = useUserProfile();
   const salesRules = useSalesRules();
+  const t = useTranslations('produits');
   const isEditMode = !!produitToEdit;
   const canEdit = isAdmin || !isEditMode; // ADMIN peut tout faire, les autres uniquement créer
 
@@ -442,8 +443,6 @@ export function ModalAjoutProduitNew({
 
   // Formatage des montants
   const formatMontant = (montant: number) => `${montant.toLocaleString('fr-FR')} FCFA`;
-
-  const t = useTranslations('produits');
 
   if (!isOpen) return null;
 
