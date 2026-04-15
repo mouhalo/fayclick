@@ -533,6 +533,41 @@
     "copyLink": "Copier le lien du reçu",
     "whatsappMessage": "Salut *{structure}*, je viens de vous acheter pour *{amount}* un de vos articles en ligne.\n\nCeci est mon Reçu N° : *{receipt}*\nce {date} avec *{wallet}*\n\nVoir le reçu : {url}"
   },
+  "dashboardCommerce": {
+    "sessionChecking": "Vérification de la session...",
+    "loading": "Chargement...",
+    "welcome": "Bon retour,",
+    "logoutTitle": "Déconnexion",
+    "online": "En ligne",
+    "stats": {
+      "products": "Produits",
+      "productsGrowth": "+{count} cette semaine",
+      "stockValue": "Valeur Stock",
+      "hideAmount": "Masquer le montant",
+      "showAmount": "Afficher le montant",
+      "viewInventories": "Voir Inventaires"
+    },
+    "venteFlashTitle": "Vente Flash (Scan code-barres)",
+    "cards": {
+      "productsTitle": "Liste Produits",
+      "productsSubtitle": "Gérer votre stock",
+      "invoicesTitle": "Mes Factures",
+      "invoicesSubtitle": "Gestion des factures",
+      "clientsTitle": "Liste Clients",
+      "clientsSubtitle": "Carnet d'adresses",
+      "expensesTitle": "Liste Dépenses",
+      "expensesSubtitle": "Gérer les dépenses"
+    },
+    "safe": {
+      "title": "Coffre-Fort",
+      "subtitle": "CA réel, ventes, charges & solde"
+    },
+    "features": {
+      "inventories": "Inventaires",
+      "inventoriesLong": "Gestion des inventaires",
+      "venteFlash": "Vente Flash"
+    }
+  },
   "offline": {
     "title": "Vous êtes hors ligne",
     "messageOffline": "Vérifiez votre connexion internet pour continuer à utiliser FayClick",
