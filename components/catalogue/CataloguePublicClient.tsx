@@ -27,6 +27,7 @@ import CategoryChips from '@/components/marketplace/CategoryChips';
 import DesktopMiniCart from '@/components/marketplace/DesktopMiniCart';
 import Breadcrumb from '@/components/marketplace/Breadcrumb';
 import MarketplaceNavbar from '@/components/marketplace/MarketplaceNavbar';
+import { useTranslations } from '@/hooks/useTranslations';
 
 interface CataloguePublicClientProps {
   nomStructure?: string;
@@ -35,6 +36,7 @@ interface CataloguePublicClientProps {
 
 export default function CataloguePublicClient({ nomStructure, idStructure }: CataloguePublicClientProps) {
   const { isMobile, isMobileLarge } = useBreakpoint();
+  const t = useTranslations('catalogue');
 
   // Etats principaux
   const [catalogue, setCatalogue] = useState<CatalogueResponse | null>(null);
@@ -69,17 +71,17 @@ export default function CataloguePublicClient({ nomStructure, idStructure }: Cat
         : await cataloguePublicService.getProduitsPublics(nomStructure!);
 
       if (!catalogueData) {
-        throw new Error('Catalogue introuvable');
+        throw new Error(t('errorNotFound'));
       }
 
       setCatalogue(catalogueData as CatalogueResponse);
     } catch (err: unknown) {
       console.error('Erreur chargement catalogue:', err);
-      setError(err instanceof Error ? err.message : 'Impossible de charger le catalogue');
+      setError(err instanceof Error ? err.message : t('errorGeneric'));
     } finally {
       setLoading(false);
     }
-  }, [nomStructure, idStructure]);
+  }, [nomStructure, idStructure, t]);
 
   useEffect(() => {
     loadCatalogue();
@@ -224,7 +226,7 @@ export default function CataloguePublicClient({ nomStructure, idStructure }: Cat
           className="text-center max-w-md mx-auto px-4"
         >
           <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-3" />
-          <h1 className="text-xl font-bold text-red-800 mb-2">Erreur</h1>
+          <h1 className="text-xl font-bold text-red-800 mb-2">{t('errorTitle')}</h1>
           <p className="text-red-600 mb-4 text-sm">{error}</p>
         </motion.div>
       </div>
@@ -278,7 +280,7 @@ export default function CataloguePublicClient({ nomStructure, idStructure }: Cat
               <div className="relative flex-1">
                 <input
                   type="text"
-                  placeholder="Rechercher dans cette boutique..."
+                  placeholder={t('searchPlaceholder')}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="w-full pl-4 pr-3 py-2.5 text-sm bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl focus:ring-2 focus:ring-emerald-400/50 focus:border-emerald-400/50 transition-all text-white placeholder-white/40"
@@ -298,9 +300,9 @@ export default function CataloguePublicClient({ nomStructure, idStructure }: Cat
 
         {/* 3. Titre "Nouveautes" + Trier par — Stitch */}
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-white font-bold text-base">Nouveautes</h2>
+          <h2 className="text-white font-bold text-base">{t('newest')}</h2>
           <div className="flex items-center gap-2">
-            <span className="text-white/40 text-xs hidden sm:inline">Trier par:</span>
+            <span className="text-white/40 text-xs hidden sm:inline">{t('sortBy')}</span>
             <SortDropdown value={sortOption} onChange={setSortOption} />
           </div>
         </div>
@@ -320,7 +322,7 @@ export default function CataloguePublicClient({ nomStructure, idStructure }: Cat
                 <div className="flex items-center gap-2 mb-3">
                   <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-orange-500/20 backdrop-blur-sm border border-orange-400/30">
                     <Flame className="w-4 h-4 text-orange-400 animate-pulse" />
-                    <span className="text-sm font-bold text-orange-300">Promotions</span>
+                    <span className="text-sm font-bold text-orange-300">{t('promotions')}</span>
                     <span className="ml-1 px-1.5 py-0.5 rounded-full bg-orange-500/30 text-[10px] font-bold text-orange-200">
                       {produitsPromo.length}
                     </span>
@@ -349,12 +351,9 @@ export default function CataloguePublicClient({ nomStructure, idStructure }: Cat
                 className="text-center py-16 bg-white/10 backdrop-blur-2xl rounded-2xl shadow-xl border border-white/20"
               >
                 <Package className="w-16 h-16 text-emerald-300 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-white mb-2">Aucun produit trouve</h3>
+                <h3 className="text-lg font-semibold text-white mb-2">{t('noProductsFound')}</h3>
                 <p className="text-emerald-200 text-sm">
-                  {searchTerm || categorie
-                    ? 'Essayez de modifier vos criteres de recherche'
-                    : "Cette boutique n'a pas encore de produits"
-                  }
+                  {searchTerm || categorie ? t('adjustCriteria') : t('emptyShop')}
                 </p>
               </motion.div>
             ) : produitsVisibles.length > 0 ? (

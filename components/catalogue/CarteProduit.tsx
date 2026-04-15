@@ -14,6 +14,9 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import ModalCarrouselProduit from './ModalCarrouselProduit';
 import { formatNomCategorie } from '@/lib/format-categorie';
+import { useTranslations } from '@/hooks/useTranslations';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { formatNumber } from '@/lib/format-locale';
 
 interface CarteProduitProps {
   produit: ProduitPublic | ProduitPublicGlobal;
@@ -25,6 +28,8 @@ interface CarteProduitProps {
 export default function CarteProduit({ produit, index, showStructureName = false, onAcheter }: CarteProduitProps) {
   const [showModal, setShowModal] = useState(false);
   const router = useRouter();
+  const t = useTranslations('catalogue');
+  const { locale } = useLanguage();
 
   const produitGlobal = produit as ProduitPublicGlobal;
   const hasStructureInfo = 'nom_structure' in produit && showStructureName;
@@ -33,7 +38,7 @@ export default function CarteProduit({ produit, index, showStructureName = false
     : null;
 
   const formatPrix = (prix: number): string => {
-    return new Intl.NumberFormat('fr-SN').format(prix);
+    return formatNumber(prix, locale, { maximumFractionDigits: 0 });
   };
 
   const enStock = produit.stock_disponible > 0;
@@ -79,7 +84,7 @@ export default function CarteProduit({ produit, index, showStructureName = false
               <div className="absolute top-2 left-2 z-10">
                 <span className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-bold uppercase bg-orange-500 text-white shadow-lg">
                   <Flame className="w-3 h-3" />
-                  Promo
+                  {t('card.promo')}
                 </span>
               </div>
             )}
@@ -98,7 +103,7 @@ export default function CarteProduit({ produit, index, showStructureName = false
             {!enStock && (
               <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-10">
                 <span className="px-3 py-1.5 rounded-lg text-xs font-bold bg-red-500/90 text-white uppercase">
-                  Rupture de stock
+                  {t('card.outOfStock')}
                 </span>
               </div>
             )}
@@ -159,7 +164,7 @@ export default function CarteProduit({ produit, index, showStructureName = false
                 className="w-full flex items-center justify-center gap-1.5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white text-xs font-bold transition-all active:scale-95"
               >
                 <ShoppingCart className="w-3.5 h-3.5" />
-                Acheter
+                {t('card.buy')}
               </button>
             )}
           </div>
