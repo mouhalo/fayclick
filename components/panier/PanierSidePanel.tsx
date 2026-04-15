@@ -297,7 +297,7 @@ export function PanierSidePanel({ onSuccess, onClose }: PanierSidePanelProps) {
                         </>
                       ) : (
                         <span className={`font-bold text-sm ${isProforma ? 'text-red-600' : 'text-gray-900'}`}>
-                          Fidéliser le client{isProforma ? ' *' : ''}
+                          {t('loyalizeClient')}{isProforma ? ' *' : ''}
                         </span>
                       )}
                     </div>
