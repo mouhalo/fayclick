@@ -5,6 +5,9 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import inventaireService from '@/services/inventaire.service';
 import type { InventaireData, PeriodeType } from '@/types/inventaire.types';
+import { useTranslations } from '@/hooks/useTranslations';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { formatNumber, toBcp47 } from '@/lib/format-locale';
 
 // Composants
 import InventaireHeader from '@/components/inventaire/InventaireHeader';
@@ -34,6 +37,9 @@ function getWeekNumber(date: Date): number {
 export default function InventairePage() {
   const router = useRouter();
   const { user } = useAuth();
+  const t = useTranslations('inventory');
+  const { locale } = useLanguage();
+  const bcp47 = toBcp47(locale);
   const currentDate = new Date();
 
   // États pour la période (valeurs définies par l'utilisateur dans le modal)
@@ -109,7 +115,7 @@ export default function InventairePage() {
       setData(result);
     } catch (err) {
       console.error('❌ [InventairePage] Erreur chargement statistiques:', err);
-      setError(err instanceof Error ? err.message : 'Impossible de charger les statistiques');
+      setError(err instanceof Error ? err.message : t('errorLoadDefault'));
     } finally {
       setLoading(false);
     }
@@ -119,7 +125,7 @@ export default function InventairePage() {
   const handleExport = () => {
     console.log('📥 Export des données inventaire');
     // TODO: Implémenter export PDF/Excel
-    alert('Fonctionnalité d\'export en cours de développement');
+    alert(t('exportWip'));
   };
 
   // Retour au dashboard
@@ -160,7 +166,7 @@ export default function InventairePage() {
           <div className="flex items-center justify-center h-64">
             <div className="text-center">
               <div className="w-16 h-16 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-              <p className="text-gray-600">Chargement des statistiques...</p>
+              <p className="text-gray-600">{t('loading')}</p>
             </div>
           </div>
         </div>
@@ -185,13 +191,13 @@ export default function InventairePage() {
         <InventaireHeader onExport={handleExport} onBack={handleBack} onCalendar={handleOpenCalendar} />
         <div className="max-w-7xl mx-auto px-4 py-8">
           <div className="bg-red-50 border-2 border-red-200 rounded-2xl p-8 text-center">
-            <p className="text-red-600 font-semibold mb-2">Erreur de chargement</p>
+            <p className="text-red-600 font-semibold mb-2">{t('errorLoadTitle')}</p>
             <p className="text-red-500 text-sm mb-4">{error}</p>
             <button
               onClick={() => chargerStatistiques(periode)}
               className="px-6 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition"
             >
-              Réessayer
+              {t('retry')}
             </button>
           </div>
         </div>
@@ -209,8 +215,11 @@ export default function InventairePage() {
     );
   }
 
-  // Obtenir le label de variation selon la période
-  const variationLabel = inventaireService.getVariationContext(periode);
+  // Obtenir le label de variation selon la période (i18n)
+  const variationLabel = t(
+    periode === 'semaine' ? 'variation.vsWeek' : periode === 'annee' ? 'variation.vsYear' : 'variation.vsMonth'
+  );
+  const periodeLabel = t(periode === 'semaine' ? 'tabs.week' : periode === 'annee' ? 'tabs.year' : 'tabs.month');
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -228,7 +237,7 @@ export default function InventairePage() {
                 : 'bg-transparent text-gray-500 hover:text-gray-700'
             }`}
           >
-            Semaine
+            {t('tabs.week')}
           </button>
           <button
             onClick={() => handleOngletClick('mois')}
@@ -238,7 +247,7 @@ export default function InventairePage() {
                 : 'bg-transparent text-gray-500 hover:text-gray-700'
             }`}
           >
-            Mois
+            {t('tabs.month')}
           </button>
           <button
             onClick={() => handleOngletClick('annee')}
@@ -248,7 +257,7 @@ export default function InventairePage() {
                 : 'bg-transparent text-gray-500 hover:text-gray-700'
             }`}
           >
-            Année
+            {t('tabs.year')}
           </button>
         </div>
 
@@ -257,7 +266,7 @@ export default function InventairePage() {
           {/* Titre de la section */}
           <h2 className="text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">
             <span>🔥</span>
-            <span>Résumé des ventes</span>
+            <span>{t('summary.title')}</span>
           </h2>
 
           {/* Grille 2x2 des statistiques */}
@@ -265,10 +274,10 @@ export default function InventairePage() {
             {/* CA Total */}
             <div>
               <div className="text-xl font-bold text-emerald-600">
-                {data.resume_ventes.ca_total.toLocaleString('fr-FR')}
+                {formatNumber(data.resume_ventes.ca_total, locale)}
               </div>
               <div className="text-xs text-gray-600 font-medium">
-                CA Total (FCFA)
+                {t('summary.caTotal')}
               </div>
               <div className={`text-xs font-semibold ${data.resume_ventes.ca_variation >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
                 {data.resume_ventes.ca_variation >= 0 ? '+' : ''}{data.resume_ventes.ca_variation.toFixed(1)}% {variationLabel}
@@ -278,10 +287,10 @@ export default function InventairePage() {
             {/* Ventes Total */}
             <div>
               <div className="text-xl font-bold text-emerald-600">
-                {data.resume_ventes.ventes_total.toLocaleString('fr-FR')}
+                {formatNumber(data.resume_ventes.ventes_total, locale)}
               </div>
               <div className="text-xs text-gray-600 font-medium">
-                Ventes Total
+                {t('summary.salesTotal')}
               </div>
               <div className={`text-xs font-semibold ${data.resume_ventes.ventes_variation >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
                 {data.resume_ventes.ventes_variation >= 0 ? '+' : ''}{data.resume_ventes.ventes_variation.toFixed(1)}% {variationLabel}
@@ -291,10 +300,10 @@ export default function InventairePage() {
             {/* Panier Moyen */}
             <div>
               <div className="text-xl font-bold text-emerald-600">
-                {data.resume_ventes.panier_moyen.toLocaleString('fr-FR')}
+                {formatNumber(data.resume_ventes.panier_moyen, locale)}
               </div>
               <div className="text-xs text-gray-600 font-medium">
-                Panier Moyen (FCFA)
+                {t('summary.avgBasket')}
               </div>
               <div className={`text-xs font-semibold ${data.resume_ventes.panier_variation >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
                 {data.resume_ventes.panier_variation >= 0 ? '+' : ''}{data.resume_ventes.panier_variation.toFixed(1)}% {variationLabel}
@@ -304,10 +313,10 @@ export default function InventairePage() {
             {/* Clients Actifs */}
             <div>
               <div className="text-xl font-bold text-emerald-600">
-                {data.resume_ventes.clients_actifs.toLocaleString('fr-FR')}
+                {formatNumber(data.resume_ventes.clients_actifs, locale)}
               </div>
               <div className="text-xs text-gray-600 font-medium">
-                Clients Actifs
+                {t('summary.activeClients')}
               </div>
               <div className={`text-xs font-semibold ${data.resume_ventes.clients_variation >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
                 {data.resume_ventes.clients_variation >= 0 ? '+' : ''}{data.resume_ventes.clients_variation.toFixed(1)}% {variationLabel}
@@ -326,17 +335,17 @@ export default function InventairePage() {
         <div className="mb-8">
           <EvolutionChart
             data={data.evolution_ventes}
-            titre={`Évolution des Ventes - ${inventaireService.getPeriodeLabel(periode)}`}
+            titre={t('chart.titleWithPeriod', { period: periodeLabel })}
           />
         </div>
 
         {/* Footer avec infos de génération */}
         <div className="mt-8 text-center text-sm text-gray-500">
           <p>
-            Statistiques générées le {new Date(data.timestamp_generation).toLocaleString('fr-FR')}
+            {t('period.generatedAt', { date: new Date(data.timestamp_generation).toLocaleString(bcp47) })}
           </p>
           <p className="mt-1">
-            Période du {new Date(data.date_debut).toLocaleDateString('fr-FR')} au {new Date(data.date_fin).toLocaleDateString('fr-FR')}
+            {t('period.rangeInfo', { start: new Date(data.date_debut).toLocaleDateString(bcp47), end: new Date(data.date_fin).toLocaleDateString(bcp47) })}
           </p>
         </div>
       </div>

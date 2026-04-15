@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Calendar, Check } from 'lucide-react';
+import { useTranslations } from '@/hooks/useTranslations';
 
 interface ModalSelectionPeriodeProps {
   isOpen: boolean;
@@ -51,6 +52,7 @@ export default function ModalSelectionPeriode({
   initialSemaine,
   initialJour
 }: ModalSelectionPeriodeProps) {
+  const t = useTranslations('inventory');
   const currentDate = new Date();
 
   // États locaux
@@ -97,20 +99,10 @@ export default function ModalSelectionPeriode({
   const annees = Array.from({ length: 7 }, (_, i) => 2024 + i);
 
   // Générer les options de mois (1 à 12) avec noms
-  const moisOptions = [
-    { value: 1, label: 'Janvier' },
-    { value: 2, label: 'Février' },
-    { value: 3, label: 'Mars' },
-    { value: 4, label: 'Avril' },
-    { value: 5, label: 'Mai' },
-    { value: 6, label: 'Juin' },
-    { value: 7, label: 'Juillet' },
-    { value: 8, label: 'Août' },
-    { value: 9, label: 'Septembre' },
-    { value: 10, label: 'Octobre' },
-    { value: 11, label: 'Novembre' },
-    { value: 12, label: 'Décembre' }
-  ];
+  const moisOptions = Array.from({ length: 12 }, (_, i) => ({
+    value: i + 1,
+    label: t(`periodModal.months.${i + 1}` as any)
+  }));
 
   // Générer les options de semaines (liées au mois sélectionné)
   const semainesOptions = useMemo(() => {
@@ -164,10 +156,10 @@ export default function ModalSelectionPeriode({
                     </div>
                     <div>
                       <h2 className="text-lg font-bold text-white">
-                        Sélection Période
+                        {t('periodModal.title')}
                       </h2>
                       <p className="text-sm text-emerald-100">
-                        Choisissez la période à afficher
+                        {t('periodModal.subtitle')}
                       </p>
                     </div>
                   </div>
@@ -185,7 +177,7 @@ export default function ModalSelectionPeriode({
                 {/* Sélection Année */}
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Année
+                    {t('periodModal.year')}
                   </label>
                   <select
                     value={annee}
@@ -206,7 +198,7 @@ export default function ModalSelectionPeriode({
                 {/* Sélection Mois */}
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Mois
+                    {t('periodModal.month')}
                   </label>
                   <select
                     value={mois}
@@ -227,7 +219,7 @@ export default function ModalSelectionPeriode({
                 {/* Sélection Semaine (liée au mois) */}
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Semaine <span className="text-xs text-gray-500">(liée au mois)</span>
+                    {t('periodModal.week')} <span className="text-xs text-gray-500">{t('periodModal.weekHint')}</span>
                   </label>
                   <select
                     value={semaine}
@@ -239,7 +231,7 @@ export default function ModalSelectionPeriode({
                   >
                     {semainesOptions.map((s) => (
                       <option key={s} value={s}>
-                        Semaine {s}
+                        {t('periodModal.weekOption', { num: s })}
                       </option>
                     ))}
                   </select>
@@ -248,7 +240,7 @@ export default function ModalSelectionPeriode({
                 {/* Sélection Jour */}
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Jour <span className="text-xs text-gray-500">({nombreJoursDansMois} jours en {moisOptions.find(m => m.value === mois)?.label})</span>
+                    {t('periodModal.day')} <span className="text-xs text-gray-500">{t('periodModal.dayHint', { count: nombreJoursDansMois, month: moisOptions.find(m => m.value === mois)?.label ?? '' })}</span>
                   </label>
                   <select
                     value={jour}
@@ -269,10 +261,10 @@ export default function ModalSelectionPeriode({
                 {/* Résumé de la sélection */}
                 <div className="bg-emerald-50 rounded-xl p-4 border border-emerald-200">
                   <p className="text-sm text-emerald-700 font-medium">
-                    Période sélectionnée :
+                    {t('periodModal.selected')}
                   </p>
                   <p className="text-emerald-800 font-semibold mt-1">
-                    {jour} {moisOptions.find(m => m.value === mois)?.label} {annee} - Semaine {semaine}
+                    {t('periodModal.selectedSummary', { day: jour, month: moisOptions.find(m => m.value === mois)?.label ?? '', year: annee, week: semaine })}
                   </p>
                 </div>
               </div>
@@ -285,7 +277,7 @@ export default function ModalSelectionPeriode({
                            text-gray-600 font-semibold hover:bg-gray-50
                            transition-all duration-200"
                 >
-                  Annuler
+                  {t('periodModal.cancel')}
                 </button>
                 <button
                   onClick={handleValidate}
@@ -295,7 +287,7 @@ export default function ModalSelectionPeriode({
                            shadow-lg shadow-emerald-200"
                 >
                   <Check className="w-5 h-5" />
-                  Valider
+                  {t('periodModal.validate')}
                 </button>
               </div>
             </div>

@@ -4,6 +4,9 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Package, Trophy, ChevronDown } from 'lucide-react';
 import type { TopArticle } from '@/types/inventaire.types';
+import { useTranslations } from '@/hooks/useTranslations';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { formatNumber } from '@/lib/format-locale';
 
 interface TopArticlesCardProps {
   articles: TopArticle[];
@@ -15,6 +18,8 @@ interface TopArticlesCardProps {
  * Design compact en zone répétée pour une meilleure lisibilité
  */
 export default function TopArticlesCard({ articles, defaultExpanded = true }: TopArticlesCardProps) {
+  const t = useTranslations('inventory');
+  const { locale } = useLanguage();
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
 
   // Couleurs des badges de rang
@@ -48,7 +53,7 @@ export default function TopArticlesCard({ articles, defaultExpanded = true }: To
       >
         <div className="flex items-center gap-2">
           <Trophy className="w-5 h-5 text-emerald-600" />
-          <h3 className="text-base font-bold text-gray-800">Meilleurs articles</h3>
+          <h3 className="text-base font-bold text-gray-800">{t('topArticles.title')}</h3>
           <span className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
             {articles?.length || 0}
           </span>
@@ -56,7 +61,7 @@ export default function TopArticlesCard({ articles, defaultExpanded = true }: To
         <div className="flex items-center gap-2">
           {!isExpanded && (
             <span className="text-xs text-emerald-600 font-semibold">
-              {totalMontant.toLocaleString('fr-FR')} F
+              {formatNumber(totalMontant, locale)} F
             </span>
           )}
           <motion.div
@@ -105,7 +110,7 @@ export default function TopArticlesCard({ articles, defaultExpanded = true }: To
                       {/* Montant */}
                       <div className="flex-shrink-0">
                         <p className="font-bold text-emerald-600 text-sm whitespace-nowrap">
-                          {article.montant_total.toLocaleString('fr-FR')} F
+                          {formatNumber(article.montant_total, locale)} F
                         </p>
                       </div>
                     </div>
@@ -113,7 +118,7 @@ export default function TopArticlesCard({ articles, defaultExpanded = true }: To
                     {/* Ligne secondaire - détails */}
                     <div className="flex items-center justify-between mt-1 ml-8">
                       <span className="text-xs text-gray-500">
-                        {article.nombre_ventes} vente{article.nombre_ventes > 1 ? 's' : ''} • {article.quantite_totale} unité{article.quantite_totale > 1 ? 's' : ''}
+                        {t(article.nombre_ventes > 1 ? 'topArticles.salePlural' : 'topArticles.saleSingular', { count: article.nombre_ventes })} • {t(article.quantite_totale > 1 ? 'topArticles.unitPlural' : 'topArticles.unitSingular', { count: article.quantite_totale })}
                       </span>
                       {article.nom_categorie && (
                         <span className="text-xs text-gray-400 bg-gray-50 px-1.5 py-0.5 rounded">
@@ -127,7 +132,7 @@ export default function TopArticlesCard({ articles, defaultExpanded = true }: To
             ) : (
               <div className="flex flex-col items-center justify-center py-8 text-gray-500">
                 <Package className="w-10 h-10 mb-2 opacity-30" />
-                <p className="text-xs">Aucun article vendu</p>
+                <p className="text-xs">{t('topArticles.empty')}</p>
               </div>
             )}
           </motion.div>
