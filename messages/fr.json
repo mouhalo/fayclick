@@ -1743,5 +1743,17 @@
       "confirm": "Confirmer",
       "add": "Ajouter"
     }
+  },
+  "sidebar": {
+    "dashboard": "Tableau de Bord",
+    "profile": "Mon Profil",
+    "products": "Mes Produits",
+    "invoices": "Mes Factures",
+    "clients": "Mes Clients",
+    "expenses": "Mes Dépenses",
+    "vault": "Mon Coffre",
+    "insights": "Insights",
+    "settings": "Paramètres",
+    "logout": "Déconnexion"
   }
 }

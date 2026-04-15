@@ -1,6 +1,7 @@
 'use client';
 
 import { usePathname } from 'next/navigation';
+import { useTranslations } from '@/hooks/useTranslations';
 import {
   LayoutDashboard,
   User,
@@ -44,17 +45,18 @@ export default function DashboardSidebar({
   onToggleCollapse,
 }: DashboardSidebarProps) {
   const pathname = usePathname();
+  const t = useTranslations('sidebar');
 
   const navItems: NavItem[] = [
-    { icon: <LayoutDashboard className="w-5 h-5" />, label: 'Tableau de Bord', path: '/dashboard/commerce' },
-    { icon: <User className="w-5 h-5" />, label: 'Mon Profil', path: '#profil', onClick: onProfilClick },
-    { icon: <Package className="w-5 h-5" />, label: 'Mes Produits', path: '/dashboard/commerce/produits' },
-    { icon: <FileText className="w-5 h-5" />, label: 'Mes Factures', path: '/dashboard/commerce/factures' },
-    { icon: <Users className="w-5 h-5" />, label: 'Mes Clients', path: '/dashboard/commerce/clients' },
-    { icon: <Wallet className="w-5 h-5" />, label: 'Mes Depenses', path: '/dashboard/commerce/depenses' },
-    { icon: <Vault className="w-5 h-5" />, label: 'Mon Coffre', path: '#coffre', onClick: onCoffreClick },
-    { icon: <BarChart3 className="w-5 h-5" />, label: 'Insights', path: '/dashboard/commerce/inventaire' },
-    { icon: <Settings className="w-5 h-5" />, label: 'Parametres', path: '/settings' },
+    { icon: <LayoutDashboard className="w-5 h-5" />, label: t('dashboard'), path: '/dashboard/commerce' },
+    { icon: <User className="w-5 h-5" />, label: t('profile'), path: '#profil', onClick: onProfilClick },
+    { icon: <Package className="w-5 h-5" />, label: t('products'), path: '/dashboard/commerce/produits' },
+    { icon: <FileText className="w-5 h-5" />, label: t('invoices'), path: '/dashboard/commerce/factures' },
+    { icon: <Users className="w-5 h-5" />, label: t('clients'), path: '/dashboard/commerce/clients' },
+    { icon: <Wallet className="w-5 h-5" />, label: t('expenses'), path: '/dashboard/commerce/depenses' },
+    { icon: <Vault className="w-5 h-5" />, label: t('vault'), path: '#coffre', onClick: onCoffreClick },
+    { icon: <BarChart3 className="w-5 h-5" />, label: t('insights'), path: '/dashboard/commerce/inventaire' },
+    { icon: <Settings className="w-5 h-5" />, label: t('settings'), path: '/settings' },
   ];
 
   const isActive = (path: string) => {
@@ -161,7 +163,7 @@ export default function DashboardSidebar({
         </div>
         <button
           onClick={onLogout}
-          title={collapsed ? 'Deconnexion' : undefined}
+          title={collapsed ? t('logout') : undefined}
           className={`
             w-full flex items-center gap-2 rounded-lg px-3 py-2
             bg-red-500/20 hover:bg-red-500/30 text-red-200 hover:text-white
@@ -170,7 +172,7 @@ export default function DashboardSidebar({
           `}
         >
           <LogOut className="w-4 h-4 flex-shrink-0" />
-          {!collapsed && <span className="text-sm font-medium">Deconnexion</span>}
+          {!collapsed && <span className="text-sm font-medium">{t('logout')}</span>}
         </button>
       </div>
     </aside>
