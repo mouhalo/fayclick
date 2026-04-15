@@ -232,21 +232,15 @@ export interface ApiError {
 }
 
 // Routes de redirection selon le groupe utilisateur
+// Seuls Commerce, Services et Admin sont supportés par cette app.
 export const USER_ROUTES = {
-  SCOLAIRE: '/dashboard/scolaire',
   COMMERCE: '/dashboard/commerce',
-  COMMERCIALE: '/dashboard/commerce', // Alias pour COMMERCIALE
-  IMMOBILIER: '/dashboard/immobilier',
+  COMMERCIALE: '/dashboard/commerce',
   'PRESTATAIRE DE SERVICES': '/dashboard/services',
-  'FORMATION PRO': '/dashboard/formation',
-  CLIENT: '/dashboard/client',
   ADMIN: '/dashboard/admin',
   SYSTEM: '/dashboard/admin',
-  // Alias pour admin système
   'ADMIN SYSTEM': '/dashboard/admin',
-  'SYSTEME': '/dashboard/admin',
-  // 🆕 Partenaires (id_groupe = 4)
-  PARTENAIRE: '/dashboard/partenaire'
+  'SYSTEME': '/dashboard/admin'
 } as const;
 
 // Fonction pour obtenir la route de redirection
@@ -259,12 +253,6 @@ export function getUserRedirectRoute(user: User): string {
     id_structure: user.id_structure,
     id_groupe: user.id_groupe
   });
-
-  // 🆕 PRIORITÉ 0: Détecter les partenaires (id_structure=0 ET id_groupe=4)
-  if (user.id_structure === 0 && user.id_groupe === 4) {
-    console.log('Redirecting to partenaire dashboard (id_groupe=4)');
-    return USER_ROUTES.PARTENAIRE;
-  }
 
   // PRIORITÉ 1: Toujours vérifier d'abord le type_structure pour la redirection
   if (user.type_structure) {

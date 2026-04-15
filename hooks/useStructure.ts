@@ -112,35 +112,17 @@ export function useStructure() {
     const type = structure.type_structure;
     
     const configs = {
-      'SCOLAIRE': {
-        icon: '🏫',
-        color: 'blue',
-        primaryLabel: 'École',
-        dashboardRoute: '/dashboard/scolaire'
-      },
       'COMMERCIALE': {
         icon: '🏪',
         color: 'green',
         primaryLabel: 'Commerce',
         dashboardRoute: '/dashboard/commerce'
       },
-      'IMMOBILIER': {
-        icon: '🏠',
-        color: 'purple',
-        primaryLabel: 'Agence',
-        dashboardRoute: '/dashboard/immobilier'
-      },
       'PRESTATAIRE DE SERVICES': {
         icon: '🔧',
         color: 'indigo',
         primaryLabel: 'Services',
         dashboardRoute: '/dashboard/services'
-      },
-      'FORMATION PRO': {
-        icon: '📚',
-        color: 'orange',
-        primaryLabel: 'Formation',
-        dashboardRoute: '/dashboard/formation'
       }
     };
 
