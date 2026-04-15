@@ -13,15 +13,15 @@
 |--------|--------|----|-------------|
 | EPIC-001 — Infrastructure | ✅ Terminé | ✅ GO | ⏳ En attente validation utilisateur |
 | Sprint 1 — Auth & Landing | ✅ Terminé | ✅ GO (92/100) | ⏳ En attente validation utilisateur |
-| Sprint 2 — Pages publiques | 🟡 En cours (2/4 lots) | — | — |
-| Sprint 3 — Dashboards & Navigation | ⏸️ À démarrer | — | — |
+| Sprint 2 — Pages publiques | ✅ Terminé (4/4 lots) | — | — |
+| Sprint 3 — Dashboards & Navigation | 🟡 En cours (mobile commerce OK) | — | — |
 | Sprint 4 — Modules Commerce | ⏸️ À démarrer | — | — |
 | Sprint 5 — Modals & Impression | ⏸️ À démarrer | — | — |
 | Sprint 6 — Services, Validations, Exports | ⏸️ À démarrer | — | — |
 | Sprint 7 — Paramètres, Structure, KALPE | ⏸️ À démarrer | — | — |
 
-**Couverture actuelle** : 387 clés FR = 387 clés EN (parité parfaite)
-**Commits totaux** : 14 commits atomiques
+**Couverture actuelle** : 449 clés FR = 449 clés EN (parité parfaite)
+**Commits totaux** : 17 commits atomiques
 
 ---
 
