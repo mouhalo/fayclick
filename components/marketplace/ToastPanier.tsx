@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Check } from 'lucide-react';
 import Image from 'next/image';
+import { useTranslations } from '@/hooks/useTranslations';
 
 interface ToastPanierProps {
   visible: boolean;
@@ -13,6 +14,7 @@ interface ToastPanierProps {
 }
 
 export default function ToastPanier({ visible, nomProduit, photoUrl, onHide }: ToastPanierProps) {
+  const t = useTranslations('marketplace');
   useEffect(() => {
     if (visible) {
       const timer = setTimeout(onHide, 2000);
@@ -43,7 +45,7 @@ export default function ToastPanier({ visible, nomProduit, photoUrl, onHide }: T
 
           <div className="min-w-0">
             <p className="text-white text-sm font-semibold truncate max-w-[200px]">{nomProduit}</p>
-            <p className="text-emerald-400 text-xs font-medium">Ajoute au panier !</p>
+            <p className="text-emerald-400 text-xs font-medium">{t('toastAdded')}</p>
           </div>
 
           <div className="w-6 h-6 rounded-full bg-emerald-500 flex items-center justify-center flex-shrink-0">
