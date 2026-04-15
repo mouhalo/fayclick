@@ -579,5 +579,108 @@
     "statusOnline": "Connection restored",
     "statusOffline": "No connection",
     "tip": "Tip: The FayClick app works best when installed"
+  },
+  "expenses": {
+    "title": "Expense Management",
+    "subtitle": "Track and control expenses",
+    "subtitleDesktop": "Track and manage your expenses",
+    "loading": "Loading expenses...",
+    "errorLoadTitle": "Loading error",
+    "errorLoadDefault": "Unable to load expenses",
+    "retry": "Retry",
+    "backAria": "Back",
+    "newExpense": "New expense",
+    "newExpenseDesktop": "New Expense",
+    "manageTypes": "Manage types",
+    "manageTypesShort": "Manage Types",
+    "refresh": "Refresh",
+    "searchPlaceholder": "Search for an expense...",
+    "searchPlaceholderDesktop": "Search by type, description, amount...",
+    "stats": {
+      "expenses": "Expenses",
+      "count": "Expense count",
+      "total": "Total spent",
+      "mostCostlyShort": "Top category",
+      "mostCostlyLong": "Most costly category",
+      "none": "No expense",
+      "noData": "No data",
+      "avgExpense": "Average Expense",
+      "vsPrevious": "vs previous period",
+      "countSingular": "{count} expense",
+      "countPlural": "{count} expenses"
+    },
+    "pagination": {
+      "previous": "Previous",
+      "next": "Next",
+      "pageInfo": "Page {current} of {total}",
+      "resultSingular": "{count} result",
+      "resultPlural": "{count} results",
+      "rangeInfo": "Showing {start} to {end} of {total} expenses"
+    },
+    "list": {
+      "empty": "No expense found",
+      "emptyHint": "Edit your search or add an expense"
+    },
+    "table": {
+      "date": "Date",
+      "type": "Type",
+      "description": "Description",
+      "amount": "Amount",
+      "actions": "Actions"
+    },
+    "actions": {
+      "edit": "Edit",
+      "delete": "Delete"
+    },
+    "addEdit": {
+      "titleAdd": "New expense",
+      "titleEdit": "Edit expense",
+      "fieldDate": "Expense date *",
+      "fieldType": "Expense type *",
+      "typePlaceholder": "Select a type",
+      "fieldAmount": "Amount (FCFA) *",
+      "amountPlaceholder": "0",
+      "fieldDescription": "Description",
+      "descriptionPlaceholder": "Expense details...",
+      "cancel": "Cancel",
+      "submitAdd": "Add",
+      "submitEdit": "Save",
+      "submitting": "Saving...",
+      "errorDateRequired": "Date is required",
+      "errorTypeRequired": "Please select an expense type",
+      "errorAmountInvalid": "Amount must be greater than 0",
+      "errorSave": "Error while saving"
+    },
+    "delete": {
+      "title": "Confirm deletion",
+      "question": "Are you sure you want to delete this expense?",
+      "labelType": "Type:",
+      "labelAmount": "Amount:",
+      "labelDate": "Date:",
+      "irreversible": "This action cannot be undone.",
+      "cancel": "Cancel",
+      "confirm": "Delete",
+      "errorDelete": "Error while deleting"
+    },
+    "types": {
+      "title": "Manage expense types",
+      "errorNameRequired": "Type name is required",
+      "errorSave": "Error while saving",
+      "errorDelete": "Error while deleting",
+      "confirmDelete": "Are you sure you want to delete this expense type?",
+      "labelAdd": "Add a new type",
+      "labelEdit": "Edit type",
+      "namePlaceholder": "E.g.: SALARY, EQUIPMENT, etc.",
+      "cancel": "Cancel",
+      "submitAdd": "Add",
+      "submitEdit": "Save",
+      "submitting": "...",
+      "existing": "Existing types ({count})",
+      "countSingular": "{count} expense",
+      "countPlural": "{count} expenses",
+      "editBtn": "Edit",
+      "deleteBtn": "Delete",
+      "deleteBlocked": "Cannot delete: linked expenses"
+    }
   }
 }

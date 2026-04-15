@@ -2,6 +2,9 @@
 
 import { Calendar, Edit, Trash2, Tag, Clock } from 'lucide-react';
 import type { Depense } from '@/types/depense.types';
+import { useTranslations } from '@/hooks/useTranslations';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { formatNumber, toBcp47 } from '@/lib/format-locale';
 
 interface DepenseCardProps {
   depense: Depense;
@@ -10,8 +13,12 @@ interface DepenseCardProps {
 }
 
 export default function DepenseCard({ depense, onEdit, onDelete }: DepenseCardProps) {
+  const t = useTranslations('expenses');
+  const { locale } = useLanguage();
+  const bcp47 = toBcp47(locale);
+
   const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString('fr-FR', {
+    return new Date(dateStr).toLocaleDateString(bcp47, {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric'
@@ -19,7 +26,7 @@ export default function DepenseCard({ depense, onEdit, onDelete }: DepenseCardPr
   };
 
   const formatDateTime = (dateStr: string) => {
-    return new Date(dateStr).toLocaleString('fr-FR', {
+    return new Date(dateStr).toLocaleString(bcp47, {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',
@@ -51,14 +58,14 @@ export default function DepenseCard({ depense, onEdit, onDelete }: DepenseCardPr
           <button
             onClick={() => onEdit(depense)}
             className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition"
-            title="Modifier"
+            title={t('actions.edit')}
           >
             <Edit size={18} />
           </button>
           <button
             onClick={() => onDelete(depense)}
             className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"
-            title="Supprimer"
+            title={t('actions.delete')}
           >
             <Trash2 size={18} />
           </button>
@@ -73,7 +80,7 @@ export default function DepenseCard({ depense, onEdit, onDelete }: DepenseCardPr
       {/* Footer : Montant + Mise à jour */}
       <div className="flex items-center justify-between pt-3 border-t border-gray-100">
         <div className="text-xl font-bold text-green-600">
-          {depense.montant.toLocaleString('fr-FR')} FCFA
+          {formatNumber(depense.montant, locale)} FCFA
         </div>
         <div className="flex items-center gap-1 text-xs text-gray-400">
           <Clock size={12} />
