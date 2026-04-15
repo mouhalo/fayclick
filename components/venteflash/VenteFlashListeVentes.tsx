@@ -9,6 +9,7 @@ import { motion } from 'framer-motion';
 import { Receipt } from 'lucide-react';
 import { VenteFlash } from '@/types/venteflash.types';
 import { VenteCarteVente } from './VenteCarteVente';
+import { useTranslations } from '@/hooks/useTranslations';
 
 interface VenteFlashListeVentesProps {
   ventes: VenteFlash[];
@@ -25,6 +26,8 @@ export function VenteFlashListeVentes({
   onViewReceipt,
   onViewInvoice
 }: VenteFlashListeVentesProps) {
+  const t = useTranslations('venteFlash');
+
   if (isLoading) {
     return (
       <div className="space-y-4">
@@ -50,10 +53,10 @@ export function VenteFlashListeVentes({
       >
         <Receipt className="w-16 h-16 text-gray-400 mx-auto mb-4" />
         <h3 className="text-xl font-bold text-gray-700 mb-2">
-          Aucune vente aujourd'hui
+          {t('salesList.empty')}
         </h3>
         <p className="text-gray-500">
-          Les ventes de la journée apparaîtront ici
+          {t('salesList.emptyHint')}
         </p>
       </motion.div>
     );
@@ -64,7 +67,7 @@ export function VenteFlashListeVentes({
       {/* Header liste */}
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-bold text-gray-900">
-          Ventes du jour ({ventes.length})
+          {t('salesList.titleWithCount', { count: ventes.length })}
         </h2>
       </div>
 

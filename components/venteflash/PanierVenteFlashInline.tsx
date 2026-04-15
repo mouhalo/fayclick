@@ -22,6 +22,7 @@ import { PaymentMethod } from '@/types/payment-wallet';
 import { ArticlePanier } from '@/types/produit';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { useSalesRules } from '@/hooks/useSalesRules';
+import { useTranslations } from '@/hooks/useTranslations';
 
 interface VenteFlashResultData {
   id_facture: number;
@@ -80,6 +81,7 @@ export function PanierVenteFlashInline({
   externalActions
 }: PanierVenteFlashInlineProps) {
   const { showToast } = useToast();
+  const t = useTranslations('venteFlash');
   const { isMobile, isMobileLarge } = useBreakpoint();
   const isCompact = isMobile || isMobileLarge;
   const salesRules = useSalesRules();
@@ -194,7 +196,7 @@ export function PanierVenteFlashInline({
    * Vider le panier
    */
   const handleAnnuler = () => {
-    if (confirm('Vider le panier et annuler la vente ?')) {
+    if (confirm(t('cart.emptyConfirm'))) {
       clearPanier();
     }
   };
@@ -204,7 +206,7 @@ export function PanierVenteFlashInline({
    */
   const handleOpenEncaissement = () => {
     if (articles.length === 0) {
-      showToast('warning', 'Panier vide', 'Ajoutez des produits avant de procéder');
+      showToast('warning', t('cart.cartEmpty'), t('cart.cartEmptyHint'));
       return;
     }
     setShowEncaissementModal(true);
@@ -227,7 +229,7 @@ export function PanierVenteFlashInline({
 
     const user = authService.getUser();
     if (!user) {
-      showToast('error', 'Erreur', 'Utilisateur non connecté');
+      showToast('error', t('toasts.error'), t('cart.userNotConnected'));
       return;
     }
 
@@ -353,7 +355,7 @@ export function PanierVenteFlashInline({
 
     } catch (error) {
       console.error('❌ [PANIER INLINE] Erreur:', error);
-      showToast('error', 'Erreur', error instanceof Error ? error.message : 'Erreur lors de la vente');
+      showToast('error', t('toasts.error'), error instanceof Error ? error.message : t('cart.saleError'));
     } finally {
       setIsProcessing(false);
     }
@@ -374,9 +376,9 @@ export function PanierVenteFlashInline({
       >
         <div className="flex items-center gap-2">
           <ShoppingCart className="w-5 h-5" />
-          <span className="font-bold">Panier</span>
+          <span className="font-bold">{t('cart.title')}</span>
           <span className="bg-white/20 px-2 py-0.5 rounded-full text-sm">
-            {totalItems} article{totalItems > 1 ? 's' : ''}
+            {totalItems > 1 ? t('cart.itemPlural', { count: totalItems }) : t('cart.itemSingular', { count: totalItems })}
           </span>
         </div>
         <div className="flex items-center gap-3">
@@ -431,7 +433,7 @@ export function PanierVenteFlashInline({
                       <span className="text-xs text-gray-500">
                         {(article.prix_applique ?? article.prix_vente).toLocaleString('fr-FR')} F
                         {article.prix_applique && article.prix_applique !== article.prix_vente && (
-                          <span className="ml-1 px-1 py-0.5 bg-purple-100 text-purple-700 text-[9px] font-bold rounded">GROS</span>
+                          <span className="ml-1 px-1 py-0.5 bg-purple-100 text-purple-700 text-[9px] font-bold rounded">{t('cart.grossBadge')}</span>
                         )}
                       </span>
 
@@ -462,7 +464,7 @@ export function PanierVenteFlashInline({
                     {/* Remise par article */}
                     <div className="flex items-center justify-between mt-1">
                       <div className="flex items-center gap-1">
-                        <span className="text-[10px] text-gray-500">Remise:</span>
+                        <span className="text-[10px] text-gray-500">{t('cart.perArticleDiscount')}</span>
                         <input
                           type="number"
                           min={0}
@@ -493,7 +495,7 @@ export function PanierVenteFlashInline({
                 <div className="bg-orange-50 rounded-xl p-2 border border-orange-200">
                   <div className="flex items-center justify-between mb-1">
                     <label className="text-xs font-medium text-gray-600">
-                      Remise
+                      {t('cart.discount')}
                     </label>
                     {/* Toggle % / F */}
                     <div className="flex rounded-lg overflow-hidden border border-orange-300">
@@ -533,17 +535,17 @@ export function PanierVenteFlashInline({
                 {/* Résumé totaux */}
                 <div className="bg-green-50 rounded-xl p-2 border border-green-200">
                   <div className="flex justify-between text-xs text-gray-600">
-                    <span>Sous-total</span>
+                    <span>{t('cart.subtotal')}</span>
                     <span>{sousTotal.toLocaleString('fr-FR')} F</span>
                   </div>
                   {remise > 0 && (
                     <div className="flex justify-between text-xs text-orange-600">
-                      <span>Remise{remiseMode === '%' ? ` (${remiseInput}%)` : ''}</span>
+                      <span>{remiseMode === '%' ? t('cart.discountWithPct', { pct: remiseInput }) : t('cart.discount')}</span>
                       <span>- {remise.toLocaleString('fr-FR')} F</span>
                     </div>
                   )}
                   <div className="flex justify-between font-bold text-sm text-green-700 pt-1 border-t border-green-200 mt-1">
-                    <span>TOTAL</span>
+                    <span>{t('cart.total')}</span>
                     <span>{total.toLocaleString('fr-FR')} F</span>
                   </div>
                 </div>
@@ -566,7 +568,7 @@ export function PanierVenteFlashInline({
                   "
                 >
                   <XCircle className="w-4 h-4" />
-                  Annuler
+                  {t('cart.cancel')}
                 </motion.button>
 
                 {/* Bouton Encaisser */}
@@ -591,12 +593,12 @@ export function PanierVenteFlashInline({
                       >
                         <Receipt className="w-4 h-4" />
                       </motion.div>
-                      Traitement...
+                      {t('cart.processing')}
                     </>
                   ) : (
                     <>
                       <CreditCard className="w-4 h-4" />
-                      Encaisser
+                      {t('cart.checkout')}
                     </>
                   )}
                 </motion.button>

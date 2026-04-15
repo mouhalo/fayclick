@@ -15,6 +15,7 @@ import { usePanierStore } from '@/stores/panierStore';
 import { ScanCodeBarre } from '@/components/shared/ScanCodeBarre';
 import { SearchProductResult } from '@/types/venteflash.types';
 import { Produit } from '@/types/produit';
+import { useTranslations } from '@/hooks/useTranslations';
 
 export interface VenteFlashHeaderRef {
   focusSearch: () => void;
@@ -44,6 +45,7 @@ export const VenteFlashHeader = forwardRef<VenteFlashHeaderRef, VenteFlashHeader
   externalTotalItems
 }, ref) => {
   const router = useRouter();
+  const t = useTranslations('venteFlash');
   const { getTotalItems } = usePanierStore();
   const [searchTerm, setSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState<Produit[]>([]);
@@ -182,7 +184,7 @@ export const VenteFlashHeader = forwardRef<VenteFlashHeaderRef, VenteFlashHeader
       }
     } else {
       console.warn('⚠️ [VENTE FLASH] Aucun produit avec ce code-barre:', code);
-      alert(`Aucun produit trouvé avec le code-barre: ${code}`);
+      alert(t('header.productNotFound', { code }));
     }
   };
 
@@ -199,7 +201,7 @@ export const VenteFlashHeader = forwardRef<VenteFlashHeaderRef, VenteFlashHeader
             w-10 h-10 bg-white/20 backdrop-blur-sm rounded-full
             flex items-center justify-center hover:bg-white/30 transition-colors
           "
-          title="Imprimer le rapport du jour"
+          title={t('header.printTitle')}
         >
           <Printer className="w-5 h-5 text-white" />
         </motion.button>
@@ -207,7 +209,7 @@ export const VenteFlashHeader = forwardRef<VenteFlashHeaderRef, VenteFlashHeader
         {/* Titre centré */}
         <div className="flex items-center gap-2">
           <Zap className="w-6 h-6 text-yellow-300" />
-          <h1 className="text-xl font-bold text-white">Vente Flash</h1>
+          <h1 className="text-xl font-bold text-white">{t('header.title')}</h1>
         </div>
 
         {/* Indicateur Panier (le panier est affiché en inline sous le header) */}
@@ -248,7 +250,7 @@ export const VenteFlashHeader = forwardRef<VenteFlashHeaderRef, VenteFlashHeader
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Nom produit ou code-barres..."
+              placeholder={t('header.searchPlaceholder')}
               className="
                 w-full pl-10 pr-10 py-3 rounded-xl
                 bg-white border-2 border-white/50
@@ -302,7 +304,7 @@ export const VenteFlashHeader = forwardRef<VenteFlashHeaderRef, VenteFlashHeader
                       <div className="flex-1 min-w-0">
                         <div className="font-semibold text-gray-900 truncate">{produit.nom_produit}</div>
                         <div className="text-sm text-gray-500 flex flex-wrap gap-x-2">
-                          <span>Stock: {produit.niveau_stock || 0}</span>
+                          <span>{t('header.stockLabel', { count: produit.niveau_stock || 0 })}</span>
                           <span>•</span>
                           <span>{produit.prix_vente.toLocaleString('fr-FR')} FCFA</span>
                           {produit.code_barre && (
@@ -320,7 +322,7 @@ export const VenteFlashHeader = forwardRef<VenteFlashHeaderRef, VenteFlashHeader
                             ? 'bg-green-100 text-green-800'
                             : 'bg-red-100 text-red-800'}
                         `}>
-                          {(produit.niveau_stock || 0) > 0 ? 'Disponible' : 'Rupture'}
+                          {(produit.niveau_stock || 0) > 0 ? t('header.available') : t('header.outOfStock')}
                         </span>
                       </div>
                     </div>
@@ -342,7 +344,7 @@ export const VenteFlashHeader = forwardRef<VenteFlashHeaderRef, VenteFlashHeader
               flex items-center justify-center hover:bg-white/30 transition-all
               border-2 border-white/50
             "
-            title="Actualiser les données"
+            title={t('header.refreshTitle')}
           >
             <RefreshCw className="w-5 h-5 text-white" />
           </motion.button>

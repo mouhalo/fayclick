@@ -12,6 +12,7 @@ import { CheckCircle, Printer, MessageCircle, X, Share2 } from 'lucide-react';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { authService } from '@/services/auth.service';
 import { generateTicketHTML, printViaIframe } from '@/lib/generate-ticket-html';
+import { useTranslations } from '@/hooks/useTranslations';
 
 interface DetailProduit {
   id_detail?: number;
@@ -46,6 +47,7 @@ export function ModalRecuVenteFlash({
 }: ModalRecuVenteFlashProps) {
   const { isMobile, isMobileLarge } = useBreakpoint();
   const isCompact = isMobile || isMobileLarge;
+  const t = useTranslations('venteFlash');
 
   const [timerPaused, setTimerPaused] = useState(false);
   const [timeLeft, setTimeLeft] = useState(10);
@@ -106,9 +108,9 @@ export function ModalRecuVenteFlash({
   // Label méthode paiement
   const getMethodeLabel = () => {
     switch (methodePaiement) {
-      case 'CASH': return 'Espèces';
-      case 'OM': return 'Orange Money';
-      case 'WAVE': return 'Wave';
+      case 'CASH': return t('receipt.methodCash');
+      case 'OM': return t('receipt.methodOM');
+      case 'WAVE': return t('receipt.methodWave');
       default: return methodePaiement;
     }
   };
@@ -202,7 +204,7 @@ export function ModalRecuVenteFlash({
             >
               <CheckCircle className="w-8 h-8" />
             </motion.div>
-            <h2 className={`font-bold ${isCompact ? 'text-base' : 'text-lg'}`}>Paiement Confirmé</h2>
+            <h2 className={`font-bold ${isCompact ? 'text-base' : 'text-lg'}`}>{t('receipt.paymentConfirmed')}</h2>
           </div>
 
           {/* Ticket content - Compact */}
@@ -210,17 +212,17 @@ export function ModalRecuVenteFlash({
             {/* Header structure */}
             <div className="ticket-header mb-1">
               <p className={`font-bold text-gray-900 ${isCompact ? 'text-xs' : 'text-sm'}`}>{nomStructure}</p>
-              <p className="text-gray-500 text-[10px]">REÇU DE VENTE</p>
+              <p className="text-gray-500 text-[10px]">{t('receipt.receiptTitle')}</p>
             </div>
 
             {/* Infos compactes - Date/Heure sur une ligne */}
             <div className="text-[10px] space-y-0.5">
               <div className="ticket-row">
-                <span className="text-gray-500">N°</span>
+                <span className="text-gray-500">{t('receipt.labelNumber')}</span>
                 <span className="font-semibold text-gray-900 text-[9px]">{numFacture}</span>
               </div>
               <div className="ticket-row">
-                <span className="text-gray-500">Date</span>
+                <span className="text-gray-500">{t('receipt.labelDate')}</span>
                 <span className="text-gray-700">{formatDate(dateVente)} {formatTime(dateVente)}</span>
               </div>
             </div>
@@ -249,11 +251,11 @@ export function ModalRecuVenteFlash({
 
             <div className="text-[10px] space-y-0.5">
               <div className="ticket-row">
-                <span className="text-gray-500">Client</span>
-                <span className="text-gray-700">ANONYME</span>
+                <span className="text-gray-500">{t('receipt.labelClient')}</span>
+                <span className="text-gray-700">{t('receipt.anonymous')}</span>
               </div>
               <div className="ticket-row">
-                <span className="text-gray-500">Paiement</span>
+                <span className="text-gray-500">{t('receipt.labelPayment')}</span>
                 <span className={`font-semibold ${
                   methodePaiement === 'CASH' ? 'text-green-600' :
                   methodePaiement === 'OM' ? 'text-orange-600' : 'text-blue-600'
@@ -263,14 +265,14 @@ export function ModalRecuVenteFlash({
 
             {/* Total - Compact */}
             <div className="ticket-row ticket-total mt-1 pt-1 border-t-2 border-gray-300">
-              <span className="text-xs font-bold">TOTAL</span>
+              <span className="text-xs font-bold">{t('receipt.labelTotal')}</span>
               <span className="text-green-700 font-bold text-sm">{montantTotal.toLocaleString('fr-FR')} F</span>
             </div>
 
             {/* Monnaie - Compact */}
             {methodePaiement === 'CASH' && monnaieARendre > 0 && (
               <div className="mt-1 py-1 px-2 bg-amber-50 rounded border border-amber-200 flex justify-between items-center">
-                <span className="text-[10px] text-gray-600">Monnaie</span>
+                <span className="text-[10px] text-gray-600">{t('receipt.labelChange')}</span>
                 <span className="font-bold text-amber-600 text-xs">
                   {monnaieARendre.toLocaleString('fr-FR')} F
                 </span>
@@ -286,7 +288,7 @@ export function ModalRecuVenteFlash({
               className={`flex flex-col items-center justify-center ${isCompact ? 'py-2' : 'py-3'} bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors`}
             >
               <Printer className={`${isCompact ? 'w-4 h-4' : 'w-5 h-5'} text-gray-700 mb-1`} />
-              <span className="text-[10px] text-gray-600 font-medium">Ticket</span>
+              <span className="text-[10px] text-gray-600 font-medium">{t('receipt.btnTicket')}</span>
             </motion.button>
 
             <motion.button
@@ -295,7 +297,7 @@ export function ModalRecuVenteFlash({
               className={`flex flex-col items-center justify-center ${isCompact ? 'py-2' : 'py-3'} bg-green-50 hover:bg-green-100 rounded-xl transition-colors`}
             >
               <MessageCircle className={`${isCompact ? 'w-4 h-4' : 'w-5 h-5'} text-green-600 mb-1`} />
-              <span className="text-[10px] text-green-600 font-medium">WhatsApp</span>
+              <span className="text-[10px] text-green-600 font-medium">{t('receipt.btnWhatsapp')}</span>
             </motion.button>
 
             <motion.button
@@ -304,14 +306,14 @@ export function ModalRecuVenteFlash({
               className={`flex flex-col items-center justify-center ${isCompact ? 'py-2' : 'py-3'} bg-red-50 hover:bg-red-100 rounded-xl transition-colors`}
             >
               <X className={`${isCompact ? 'w-4 h-4' : 'w-5 h-5'} text-red-600 mb-1`} />
-              <span className="text-[10px] text-red-600 font-medium">Fermer</span>
+              <span className="text-[10px] text-red-600 font-medium">{t('receipt.btnClose')}</span>
             </motion.button>
           </div>
 
           {/* Timer indicator */}
           {!timerPaused && (
             <p className="text-center text-[10px] text-gray-400 pb-2">
-              Fermeture dans {timeLeft}s - Cliquez pour annuler
+              {t('receipt.autoClose', { count: timeLeft })}
             </p>
           )}
         </motion.div>

@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { VenteFlash, DetailVente } from '@/types/venteflash.types';
 import { useUserProfile } from '@/hooks/useUserProfile';
+import { useTranslations } from '@/hooks/useTranslations';
 
 interface VenteCarteVenteProps {
   vente: VenteFlash;
@@ -28,6 +29,7 @@ export function VenteCarteVente({
   onViewInvoice
 }: VenteCarteVenteProps) {
   const { isAdmin } = useUserProfile();
+  const t = useTranslations('venteFlash');
   const [isExpanded, setIsExpanded] = useState(false);
 
   // Utiliser directement les détails passés dans vente (déjà chargés avec la facture)
@@ -91,7 +93,7 @@ export function VenteCarteVente({
           {/* Affichage remise si elle existe */}
           {vente.mt_remise && vente.mt_remise > 0 && (
             <div className="text-xs text-orange-600 font-medium mt-1">
-              (Remise : {vente.mt_remise.toLocaleString('fr-FR')} F)
+              ({t('saleCard.discount', { amount: vente.mt_remise.toLocaleString('fr-FR') })})
             </div>
           )}
         </div>
@@ -119,7 +121,7 @@ export function VenteCarteVente({
           "
         >
           {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-          Détails
+          {t('saleCard.details')}
         </motion.button>
 
         {/* Bouton Supprimer (Admin uniquement) */}
@@ -128,7 +130,7 @@ export function VenteCarteVente({
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => {
-              if (confirm(`Supprimer la facture #${vente.num_facture} ?\nCette action est irréversible.`)) {
+              if (confirm(t('saleCard.confirmDelete', { num: vente.num_facture }))) {
                 onDelete(vente.id_facture);
               }
             }}
@@ -139,7 +141,7 @@ export function VenteCarteVente({
             "
           >
             <Trash2 className="w-4 h-4" />
-            Supprimer
+            {t('saleCard.delete')}
           </motion.button>
         )}
 
@@ -156,7 +158,7 @@ export function VenteCarteVente({
             "
           >
             <Receipt className="w-4 h-4" />
-            Reçu
+            {t('saleCard.receipt')}
           </motion.button>
         )}
 
@@ -173,7 +175,7 @@ export function VenteCarteVente({
             "
           >
             <FileText className="w-4 h-4" />
-            Facture
+            {t('saleCard.invoice')}
           </motion.button>
         )}
       </div>
@@ -191,7 +193,7 @@ export function VenteCarteVente({
             <div className="mt-4 pt-4 border-t border-gray-200">
               {details.length > 0 ? (
                 <div className="space-y-2">
-                  <h4 className="text-sm font-semibold text-gray-700 mb-3">Articles vendus</h4>
+                  <h4 className="text-sm font-semibold text-gray-700 mb-3">{t('saleCard.soldItems')}</h4>
                   {details.map((detail, index) => (
                     <div
                       key={index}
@@ -211,7 +213,7 @@ export function VenteCarteVente({
                 </div>
               ) : (
                 <div className="text-center py-4 text-sm text-gray-500">
-                  Aucun détail disponible
+                  {t('saleCard.noDetails')}
                 </div>
               )}
             </div>

@@ -1217,5 +1217,159 @@
       "paymentFailedShort": "Payment failed",
       "creationError": "Error while creating payment"
     }
+  },
+  "venteFlash": {
+    "loading": "Loading...",
+    "back": "Back",
+    "toasts": {
+      "passwordRequired": "Password required",
+      "passwordRequiredMsg": "Please change your initial password before making sales.",
+      "noStock": "Out of stock",
+      "noStockMsg": "{name} is out of stock",
+      "addedToCart": "Added to cart",
+      "addedToCartMsg": "{qty} x {name}",
+      "deleteSuccess": "Deleted successfully",
+      "deleteSuccessMsg": "The invoice has been deleted",
+      "deleteError": "Cannot delete invoice",
+      "saleNotFound": "Sale not found",
+      "printError": "Cannot open print window",
+      "error": "Error",
+      "deleteForbidden": "Cannot delete"
+    },
+    "header": {
+      "title": "Flash Sale",
+      "printTitle": "Print daily report",
+      "refreshTitle": "Refresh data",
+      "searchPlaceholder": "Product name or barcode...",
+      "productNotFound": "No product found with barcode: {code}",
+      "stockLabel": "Stock: {count}",
+      "available": "Available",
+      "outOfStock": "Out of stock"
+    },
+    "report": {
+      "title": "Flash Sales Report",
+      "cashier": "Cashier",
+      "nbSales": "Number of sales",
+      "uniqueArticles": "Unique items",
+      "totalSales": "Total sales",
+      "discounts": "Discounts",
+      "dayCA": "Daily revenue",
+      "sectionTitle": "Sales detail ({count} unique items)",
+      "colProduct": "Product Name",
+      "colQty": "Quantity",
+      "colUnit": "Unit Price",
+      "colTotal": "Total",
+      "footerGenerated": "Document generated on",
+      "footerBrand": "FayClick - The Merchants Super App"
+    },
+    "quantityModal": {
+      "stockAvailable": "Available stock",
+      "stockUnit": "units",
+      "pricePublic": "Public",
+      "priceGros": "Wholesale",
+      "subtotal": "Subtotal",
+      "cancel": "Cancel",
+      "add": "Add"
+    },
+    "barcodeModal": {
+      "title": "Multiple products found",
+      "subtitle": "{count} products with this barcode",
+      "noCategory": "No category",
+      "outOfStock": "Out of stock",
+      "stockLabel": "Stock: {count}",
+      "cancel": "Cancel"
+    },
+    "stats": {
+      "nbSales": "Number of sales",
+      "totalSales": "Total sales",
+      "discountsLabel": "Discounts: {amount} F",
+      "dayCA": "Daily revenue"
+    },
+    "salesList": {
+      "empty": "No sales today",
+      "emptyHint": "Today's sales will appear here",
+      "titleWithCount": "Today's sales ({count})"
+    },
+    "saleCard": {
+      "details": "Details",
+      "delete": "Delete",
+      "receipt": "Receipt",
+      "invoice": "Invoice",
+      "confirmDelete": "Delete invoice #{num}?\nThis action is irreversible.",
+      "soldItems": "Sold items",
+      "noDetails": "No details available",
+      "discount": "Discount: {amount} F"
+    },
+    "cart": {
+      "title": "Cart",
+      "itemSingular": "{count} item",
+      "itemPlural": "{count} items",
+      "emptyConfirm": "Clear cart and cancel sale?",
+      "cartEmpty": "Cart empty",
+      "cartEmptyHint": "Add products before proceeding",
+      "discount": "Discount",
+      "discountWithPct": "Discount ({pct}%)",
+      "perArticleDiscount": "Discount:",
+      "subtotal": "Subtotal",
+      "total": "TOTAL",
+      "cancel": "Cancel",
+      "checkout": "Checkout",
+      "processing": "Processing...",
+      "grossBadge": "WHOLESALE",
+      "saleError": "Sale error",
+      "userNotConnected": "User not connected"
+    },
+    "tabs": {
+      "itemCount": "{count} items",
+      "closeConfirm": "This cart has {count} item(s). Close anyway?",
+      "closeTitle": "Close this cart",
+      "newCart": "New cart",
+      "maxCarts": "Maximum 3 carts",
+      "maxLabel": "Max 3"
+    },
+    "checkout": {
+      "title": "Checkout",
+      "chooseMethod": "Choose payment method",
+      "cashChange": "Change: {amount}F",
+      "cashMissing": "Short: {amount}F",
+      "cashTotal": "Total: {amount}F",
+      "confirm": "Confirm",
+      "waiting": "Waiting...",
+      "cancel": "Cancel",
+      "success": "Confirmed!",
+      "failed": "Failed",
+      "retry": "Retry",
+      "timeout": "Time expired",
+      "close": "Close",
+      "minAmount": "Minimum {amount} F",
+      "phoneRequired": "9 digits required",
+      "omPhoneError": "Must start with 77 or 78",
+      "wavePhoneError": "Invalid number",
+      "paymentFailed": "Payment failed",
+      "openWave": "Open Wave"
+    },
+    "receipt": {
+      "paymentConfirmed": "Payment Confirmed",
+      "receiptTitle": "SALES RECEIPT",
+      "labelNumber": "No.",
+      "labelDate": "Date",
+      "labelClient": "Customer",
+      "labelPayment": "Payment",
+      "labelTotal": "TOTAL",
+      "labelChange": "Change",
+      "btnTicket": "Ticket",
+      "btnWhatsapp": "WhatsApp",
+      "btnClose": "Close",
+      "autoClose": "Closing in {count}s - Click to cancel",
+      "methodCash": "Cash",
+      "methodOM": "Orange Money",
+      "methodWave": "Wave",
+      "anonymous": "ANONYMOUS"
+    },
+    "refresh": {
+      "title": "Refreshing...",
+      "subtitle": "Updating data",
+      "hint": "Please wait a moment"
+    }
   }
 }

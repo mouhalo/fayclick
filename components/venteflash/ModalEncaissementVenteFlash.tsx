@@ -18,6 +18,7 @@ import { PaymentMethod, WALLET_CONFIG, formatAmount } from '@/types/payment-wall
 import { paymentWalletService } from '@/services/payment-wallet.service';
 import { authService } from '@/services/auth.service';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
+import { useTranslations } from '@/hooks/useTranslations';
 
 interface ModalEncaissementVenteFlashProps {
   isOpen: boolean;
@@ -45,6 +46,7 @@ export function ModalEncaissementVenteFlash({
 }: ModalEncaissementVenteFlashProps) {
   const { isMobile, isMobileLarge } = useBreakpoint();
   const isCompact = isMobile || isMobileLarge;
+  const t = useTranslations('venteFlash');
 
   // États principaux
   const [step, setStep] = useState<PaymentStep>('SELECT_METHOD');
@@ -154,7 +156,7 @@ export function ModalEncaissementVenteFlash({
     const recu = parseFloat(montantRecu) || 0;
 
     if (recu < montantTotal) {
-      setError(`Minimum ${montantTotal.toLocaleString('fr-FR')} F`);
+      setError(t('checkout.minAmount', { amount: montantTotal.toLocaleString('fr-FR') }));
       return;
     }
 
@@ -223,17 +225,17 @@ export function ModalEncaissementVenteFlash({
     const cleanPhone = phone.replace(/\s/g, '');
 
     if (cleanPhone.length !== 9) {
-      setTelephoneError('9 chiffres requis');
+      setTelephoneError(t('checkout.phoneRequired'));
       return false;
     }
 
     if (method === 'OM' && !['77', '78'].includes(cleanPhone.substring(0, 2))) {
-      setTelephoneError('Doit commencer par 77 ou 78');
+      setTelephoneError(t('checkout.omPhoneError'));
       return false;
     }
 
     if (method === 'WAVE' && !['77', '78', '76', '70'].includes(cleanPhone.substring(0, 2))) {
-      setTelephoneError('Numéro invalide');
+      setTelephoneError(t('checkout.wavePhoneError'));
       return false;
     }
 
@@ -333,10 +335,10 @@ export function ModalEncaissementVenteFlash({
 
           case 'FAILED':
             setIsPolling(false);
-            setError('Le paiement a échoué');
+            setError(t('checkout.paymentFailed'));
             setStep('FAILED');
             if (onPaymentFailed) {
-              onPaymentFailed('Paiement échoué');
+              onPaymentFailed(t('checkout.paymentFailed'));
             }
             break;
 
@@ -398,7 +400,7 @@ export function ModalEncaissementVenteFlash({
                   <Calculator className={isCompact ? 'w-5 h-5' : 'w-6 h-6'} />
                 </div>
                 <div>
-                  <h2 className={`font-bold ${isCompact ? 'text-base' : 'text-lg'}`}>Encaissement</h2>
+                  <h2 className={`font-bold ${isCompact ? 'text-base' : 'text-lg'}`}>{t('checkout.title')}</h2>
                   <p className={`text-white/90 ${isCompact ? 'text-xs' : 'text-sm'}`}>
                     {formatAmount(montantTotal)}
                   </p>
@@ -420,7 +422,7 @@ export function ModalEncaissementVenteFlash({
             {step === 'SELECT_METHOD' && (
               <div className="space-y-3">
                 <p className={`text-center text-gray-600 ${textSize} mb-3`}>
-                  Choisissez le mode de paiement
+                  {t('checkout.chooseMethod')}
                 </p>
 
                 {/* Grille 3 colonnes Flip Cards */}
@@ -490,8 +492,10 @@ export function ModalEncaissementVenteFlash({
                             : 'text-gray-400'
                         }`}>
                           {parseFloat(montantRecu) >= montantTotal
-                            ? `Monnaie: ${monnaieARendre.toLocaleString('fr-FR')}F`
-                            : montantRecu ? `Manque: ${(montantTotal - (parseFloat(montantRecu) || 0)).toLocaleString('fr-FR')}F` : `Total: ${montantTotal.toLocaleString('fr-FR')}F`
+                            ? t('checkout.cashChange', { amount: monnaieARendre.toLocaleString('fr-FR') })
+                            : montantRecu
+                              ? t('checkout.cashMissing', { amount: (montantTotal - (parseFloat(montantRecu) || 0)).toLocaleString('fr-FR') })
+                              : t('checkout.cashTotal', { amount: montantTotal.toLocaleString('fr-FR') })
                           }
                         </div>
                         <motion.button
@@ -557,7 +561,7 @@ export function ModalEncaissementVenteFlash({
                               className={`w-full ${isCompact ? 'py-2 text-[10px]' : 'py-2.5 text-sm'} bg-blue-500 text-white font-bold rounded-lg disabled:opacity-50 flex items-center justify-center gap-1`}
                             >
                               {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className={isCompact ? 'w-3 h-3' : 'w-4 h-4'} />}
-                              Confirmer
+                              {t('checkout.confirm')}
                             </motion.button>
                           </>
                         ) : (
@@ -651,7 +655,7 @@ export function ModalEncaissementVenteFlash({
                               className={`w-full ${isCompact ? 'py-2 text-[10px]' : 'py-2.5 text-sm'} bg-orange-500 text-white font-bold rounded-lg disabled:opacity-50 flex items-center justify-center gap-1`}
                             >
                               {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className={isCompact ? 'w-3 h-3' : 'w-4 h-4'} />}
-                              Confirmer
+                              {t('checkout.confirm')}
                             </motion.button>
                           </>
                         ) : (
@@ -765,7 +769,7 @@ export function ModalEncaissementVenteFlash({
                   >
                     <div className="flex items-center justify-center gap-2">
                       <ExternalLink className="w-4 h-4" />
-                      Ouvrir Wave
+                      {t('checkout.openWave')}
                     </div>
                   </a>
                 )}
@@ -774,7 +778,7 @@ export function ModalEncaissementVenteFlash({
                 {isPolling && (
                   <div className="flex items-center justify-center gap-2 text-blue-600">
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    <span className={textSize}>En attente...</span>
+                    <span className={textSize}>{t('checkout.waiting')}</span>
                   </div>
                 )}
 
@@ -783,7 +787,7 @@ export function ModalEncaissementVenteFlash({
                   onClick={onClose}
                   className={`w-full ${isCompact ? 'py-2' : 'py-3'} bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-xl transition-colors ${textSize}`}
                 >
-                  Annuler
+                  {t('checkout.cancel')}
                 </button>
               </div>
             )}
@@ -800,7 +804,7 @@ export function ModalEncaissementVenteFlash({
                   <CheckCircle className={`${isCompact ? 'w-10 h-10' : 'w-12 h-12'} text-green-600`} />
                 </motion.div>
                 <h3 className={`font-bold text-green-800 ${isCompact ? 'text-lg' : 'text-xl'}`}>
-                  Confirmé !
+                  {t('checkout.success')}
                 </h3>
               </div>
             )}
@@ -810,14 +814,14 @@ export function ModalEncaissementVenteFlash({
               <div className="text-center py-6">
                 <AlertCircle className={`${isCompact ? 'w-12 h-12' : 'w-16 h-16'} text-red-500 mx-auto mb-3`} />
                 <h3 className={`font-bold text-red-800 mb-2 ${isCompact ? 'text-base' : 'text-xl'}`}>
-                  Échec
+                  {t('checkout.failed')}
                 </h3>
                 <p className={`text-red-600 mb-3 ${textSize}`}>{error}</p>
                 <button
                   onClick={handleRetry}
                   className={`px-4 ${isCompact ? 'py-2 text-sm' : 'py-3'} bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl`}
                 >
-                  Réessayer
+                  {t('checkout.retry')}
                 </button>
               </div>
             )}
@@ -827,20 +831,20 @@ export function ModalEncaissementVenteFlash({
               <div className="text-center py-6">
                 <Clock className={`${isCompact ? 'w-12 h-12' : 'w-16 h-16'} text-amber-500 mx-auto mb-3`} />
                 <h3 className={`font-bold text-amber-800 mb-2 ${isCompact ? 'text-base' : 'text-xl'}`}>
-                  Temps expiré
+                  {t('checkout.timeout')}
                 </h3>
                 <div className="space-y-2">
                   <button
                     onClick={handleRetry}
                     className={`w-full ${isCompact ? 'py-2 text-sm' : 'py-3'} bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl`}
                   >
-                    Réessayer
+                    {t('checkout.retry')}
                   </button>
                   <button
                     onClick={onClose}
                     className={`w-full ${isCompact ? 'py-2 text-sm' : 'py-3'} bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-xl`}
                   >
-                    Fermer
+                    {t('checkout.close')}
                   </button>
                 </div>
               </div>

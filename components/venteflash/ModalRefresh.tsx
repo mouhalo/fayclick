@@ -7,12 +7,15 @@
 
 import { motion, AnimatePresence } from 'framer-motion';
 import { RefreshCw } from 'lucide-react';
+import { useTranslations } from '@/hooks/useTranslations';
 
 interface ModalRefreshProps {
   isOpen: boolean;
 }
 
 export function ModalRefresh({ isOpen }: ModalRefreshProps) {
+  const t = useTranslations('venteFlash');
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -45,13 +48,13 @@ export function ModalRefresh({ isOpen }: ModalRefreshProps) {
 
               {/* Titre */}
               <h3 className="text-2xl font-bold text-center text-gray-900 mb-3">
-                Rafraîchissement en cours...
+                {t('refresh.title')}
               </h3>
 
               {/* Message */}
               <p className="text-center text-gray-600 mb-6">
-                Mise à jour des données<br />
-                <span className="text-sm text-gray-500">Veuillez patienter quelques instants</span>
+                {t('refresh.subtitle')}<br />
+                <span className="text-sm text-gray-500">{t('refresh.hint')}</span>
               </p>
 
               {/* Barre de progression animée */}
