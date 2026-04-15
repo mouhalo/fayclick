@@ -356,7 +356,15 @@
     "linkCopied": "Lien copié dans le presse-papier !",
     "paymentFailed": "Échec du paiement : {error}",
     "shareTitle": "Facture {num}",
-    "shareText": "Facture de {structure} - {amount}"
+    "shareText": "Facture de {structure} - {amount}",
+    "amountToPay": "Montant à payer",
+    "downPayment": "Acompte :",
+    "remaining": "Restant :",
+    "payNow": "Payer maintenant",
+    "fullyPaid": "Intégralement payée",
+    "choosePaymentMethod": "Choisir un moyen de paiement",
+    "payAmount": "Payer {amount}",
+    "securePayment": "Paiement sécurisé"
   },
   "publicRecu": {
     "loading": "Chargement du reçu...",

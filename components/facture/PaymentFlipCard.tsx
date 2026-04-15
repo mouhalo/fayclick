@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { Shield, Check, CreditCard, RotateCcw, Receipt } from 'lucide-react';
 import Image from 'next/image';
 import { PaymentMethod } from '@/types/payment-wallet';
+import { useTranslations } from '@/hooks/useTranslations';
 
 interface PaymentFlipCardProps {
   montantRestant: number;
@@ -25,6 +26,7 @@ export default function PaymentFlipCard({
   onSelectPaymentMethod,
   formatMontant
 }: PaymentFlipCardProps) {
+  const t = useTranslations('publicFacture');
   const [isFlipped, setIsFlipped] = useState(false);
   const [selectedWallet, setSelectedWallet] = useState<PaymentMethod | null>(null);
 
@@ -145,25 +147,21 @@ export default function PaymentFlipCard({
               {/* Label Montant à payer dans un badge */}
               <div className="inline-block mb-3">
                 <span className={`bg-white/20 backdrop-blur-sm text-white px-4 py-1.5 rounded-full font-medium ${styles.montantLabel}`}>
-                  Montant à payer
+                  {t('amountToPay')}
                 </span>
               </div>
 
               {/* Montant principal */}
               <div className="mb-3">
                 <span className={`${styles.montant} font-bold text-white`}>
-                  {montantRestant > 0
-                    ? formatMontant(montantRestant).replace('XOF', '').replace('FCFA', '').trim()
-                    : formatMontant(montantTotal).replace('XOF', '').replace('FCFA', '').trim()
-                  }
+                  {montantRestant > 0 ? formatMontant(montantRestant) : formatMontant(montantTotal)}
                 </span>
-                <span className={`${screenType === 'mobile' ? 'text-lg' : 'text-xl'} text-white/90 ml-2`}>XOF</span>
               </div>
 
               {/* Détails acompte/restant */}
               <div className={`space-y-0.5 text-white/80 ${styles.detailText}`}>
-                <p>Acompte: <span className="font-medium text-white">{formatMontant(montantAcompte)}</span></p>
-                <p>Restant: <span className="font-medium text-white">{formatMontant(montantRestant)}</span></p>
+                <p>{t('downPayment')} <span className="font-medium text-white">{formatMontant(montantAcompte)}</span></p>
+                <p>{t('remaining')} <span className="font-medium text-white">{formatMontant(montantRestant)}</span></p>
               </div>
 
               {/* Bouton pour flipper - Payer maintenant */}
@@ -178,7 +176,7 @@ export default function PaymentFlipCard({
                     ${screenType === 'mobile' ? 'text-sm' : 'text-base'}`}
                 >
                   <CreditCard className="w-5 h-5" />
-                  Payer maintenant
+                  {t('payNow')}
                 </motion.button>
               )}
 
@@ -186,7 +184,7 @@ export default function PaymentFlipCard({
               {isPaid && (
                 <div className="mt-3 inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm px-4 py-2 rounded-full">
                   <Check className="w-5 h-5 text-white" />
-                  <span className="text-white font-semibold">Intégralement payée</span>
+                  <span className="text-white font-semibold">{t('fullyPaid')}</span>
                 </div>
               )}
             </div>
@@ -218,7 +216,7 @@ export default function PaymentFlipCard({
               {/* Header avec bouton retour */}
               <div className="flex items-center justify-between mb-3">
                 <span className={`text-white/90 font-medium ${styles.montantLabel}`}>
-                  Choisir un moyen de paiement
+                  {t('choosePaymentMethod')}
                 </span>
                 <motion.button
                   whileHover={{ scale: 1.1 }}
@@ -279,13 +277,13 @@ export default function PaymentFlipCard({
                 } ${screenType === 'mobile' ? 'text-sm' : 'text-base'}`}
               >
                 <Receipt className="w-5 h-5" />
-                Payer {formatMontant(montantRestant)}
+                {t('payAmount', { amount: formatMontant(montantRestant) })}
               </motion.button>
 
               {/* Message sécurisé */}
               <div className={`mt-2 flex items-center justify-center gap-2 text-white/60 ${styles.detailText}`}>
                 <Shield className="w-3.5 h-3.5" />
-                Paiement sécurisé
+                {t('securePayment')}
               </div>
             </div>
           </div>

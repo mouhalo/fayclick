@@ -356,7 +356,15 @@
     "linkCopied": "Link copied to clipboard!",
     "paymentFailed": "Payment failed: {error}",
     "shareTitle": "Invoice {num}",
-    "shareText": "Invoice from {structure} - {amount}"
+    "shareText": "Invoice from {structure} - {amount}",
+    "amountToPay": "Amount to pay",
+    "downPayment": "Down payment:",
+    "remaining": "Remaining:",
+    "payNow": "Pay now",
+    "fullyPaid": "Fully paid",
+    "choosePaymentMethod": "Choose a payment method",
+    "payAmount": "Pay {amount}",
+    "securePayment": "Secure payment"
   },
   "publicRecu": {
     "loading": "Loading receipt...",
