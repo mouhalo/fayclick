@@ -1531,5 +1531,63 @@
       "voiceDesc": "Dictate the product information",
       "comingSoon": "Soon"
     }
+  },
+  "commerceDashboard": {
+    "welcome": "Welcome back,",
+    "online": "Online",
+    "retry": "Retry",
+    "venteFlashBtn": "Flash Sale",
+    "kpi": {
+      "salesToday": "Today's sales",
+      "clientsToday": "Today's clients",
+      "caWeek": "Weekly revenue",
+      "avgBasket": "Avg basket"
+    },
+    "chart": {
+      "title": "Weekly sales",
+      "saleSingular": "{count} sale",
+      "salePlural": "{count} sales"
+    },
+    "topProducts": {
+      "title": "Top 5 products sold",
+      "empty": "No sales this period",
+      "soldCount": "{count} sold"
+    },
+    "topClients": {
+      "title": "Top 5 clients",
+      "empty": "No clients this period",
+      "invoiceSingular": "{count} invoice",
+      "invoicePlural": "{count} invoices"
+    },
+    "recentInvoices": {
+      "title": "Recent invoices",
+      "viewAll": "View all",
+      "empty": "No invoices",
+      "colRef": "Ref",
+      "colClient": "Client",
+      "colAmount": "Amount",
+      "colStatus": "Status",
+      "colDate": "Date",
+      "statusPaid": "Paid",
+      "statusPartial": "Partial",
+      "statusPending": "Pending"
+    },
+    "variation": {
+      "vsLastWeek": "vs last week"
+    },
+    "stats": {
+      "title": "Global stats",
+      "products": "Products",
+      "stockValue": "Stock value",
+      "monthlySales": "Monthly sales",
+      "activeClients": "Active clients",
+      "monthlyCA": "Monthly revenue"
+    },
+    "expenses": {
+      "title": "Monthly expenses",
+      "thisMonth": "this month",
+      "countSingular": "{count} expense",
+      "countPlural": "{count} expenses"
+    }
   }
 }
