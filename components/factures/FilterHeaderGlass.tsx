@@ -9,6 +9,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Search, Filter, X, ChevronDown, RefreshCw } from 'lucide-react';
 import { FiltresFactures } from '@/types/facture';
+import { useTranslations } from '@/hooks/useTranslations';
 
 interface FilterHeaderGlassProps {
   onFiltersChange: (filtres: FiltresFactures) => void;
@@ -19,8 +20,9 @@ interface FilterHeaderGlassProps {
 export function FilterHeaderGlass({ 
   onFiltersChange, 
   onRefresh,
-  isRefreshing = false 
+  isRefreshing = false
 }: FilterHeaderGlassProps) {
+  const t = useTranslations('invoices');
   // États des filtres
   const [searchTerm, setSearchTerm] = useState('');
   const [periode, setPeriode] = useState({ debut: '', fin: '' });
@@ -74,7 +76,7 @@ export function FilterHeaderGlass({
           <Search className="absolute left-2.5 sm:left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-3.5 h-3.5 sm:w-4 sm:h-4" />
           <input
             type="text"
-            placeholder="Rechercher facture..."
+            placeholder={t('filters.search')}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="
@@ -159,7 +161,7 @@ export function FilterHeaderGlass({
         <div className="space-y-3 sm:space-y-4 pt-2">
           {/* Période */}
           <div className="space-y-1.5 sm:space-y-2">
-            <label className="block text-xs sm:text-sm font-medium text-emerald-100">Période</label>
+            <label className="block text-xs sm:text-sm font-medium text-emerald-100">{t('filters.period')}</label>
             <div className="flex space-x-1.5 sm:space-x-2">
               <input
                 type="date"
@@ -190,10 +192,10 @@ export function FilterHeaderGlass({
           <div className="grid grid-cols-2 gap-2 sm:gap-4">
             {/* Client */}
             <div className="space-y-1.5 sm:space-y-2">
-              <label className="block text-xs font-medium text-white">Client</label>
+              <label className="block text-xs font-medium text-white">{t('filters.client')}</label>
               <input
                 type="text"
-                placeholder="Nom..."
+                placeholder={t('filters.clientPlaceholder')}
                 value={nomClient}
                 onChange={(e) => setNomClient(e.target.value)}
                 className="
@@ -208,10 +210,10 @@ export function FilterHeaderGlass({
 
             {/* Téléphone */}
             <div className="space-y-1.5 sm:space-y-2">
-              <label className="block text-xs font-medium text-white">Téléphone</label>
+              <label className="block text-xs font-medium text-white">{t('filters.phone')}</label>
               <input
                 type="text"
-                placeholder="77 123..."
+                placeholder={t('filters.phonePlaceholder')}
                 value={telClient}
                 onChange={(e) => setTelClient(e.target.value)}
                 className="
@@ -229,7 +231,7 @@ export function FilterHeaderGlass({
           <div className="grid grid-cols-2 gap-2 sm:gap-4">
             {/* Statut */}
             <div className="space-y-1.5 sm:space-y-2">
-              <label className="block text-xs font-medium text-white">Statut</label>
+              <label className="block text-xs font-medium text-white">{t('filters.status')}</label>
               <select
                 value={statut}
                 onChange={(e) => setStatut(e.target.value as any)}
@@ -240,15 +242,15 @@ export function FilterHeaderGlass({
                   transition-all duration-200
                 "
               >
-                <option value="TOUS">Tous</option>
-                <option value="PAYEE">Payées</option>
-                <option value="IMPAYEE">Impayées</option>
+                <option value="TOUS">{t('filters.statusAll')}</option>
+                <option value="PAYEE">{t('filters.statusPaid')}</option>
+                <option value="IMPAYEE">{t('filters.statusUnpaid')}</option>
               </select>
             </div>
 
             {/* Tri */}
             <div className="space-y-1.5 sm:space-y-2">
-              <label className="block text-xs font-medium text-white">Tri</label>
+              <label className="block text-xs font-medium text-white">{t('filters.sort')}</label>
               <select
                 value={`${sortBy}-${sortOrder}`}
                 onChange={(e) => {
@@ -263,12 +265,12 @@ export function FilterHeaderGlass({
                   transition-all duration-200
                 "
               >
-                <option value="date-desc">Date ↓</option>
-                <option value="date-asc">Date ↑</option>
-                <option value="montant-desc">Montant ↓</option>
-                <option value="montant-asc">Montant ↑</option>
-                <option value="client-asc">Client A-Z</option>
-                <option value="client-desc">Client Z-A</option>
+                <option value="date-desc">{t('filters.sortDateDesc')}</option>
+                <option value="date-asc">{t('filters.sortDateAsc')}</option>
+                <option value="montant-desc">{t('filters.sortAmountDesc')}</option>
+                <option value="montant-asc">{t('filters.sortAmountAsc')}</option>
+                <option value="client-asc">{t('filters.sortClientAsc')}</option>
+                <option value="client-desc">{t('filters.sortClientDesc')}</option>
               </select>
             </div>
           </div>

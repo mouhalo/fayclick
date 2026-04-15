@@ -13,6 +13,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { authService } from '@/services/auth.service';
 import { useHasRight } from '@/hooks/useRights';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
+import { useTranslations } from '@/hooks/useTranslations';
 import { GlassHeader } from '@/components/ui/GlassHeader';
 import ModalCoffreFort from '@/components/coffre-fort/ModalCoffreFort';
 import { ModalDeconnexion } from '@/components/auth/ModalDeconnexion';
@@ -44,6 +45,7 @@ import {
 export default function FacturesGlassPage() {
   const router = useRouter();
   const { user, structure } = useAuth();
+  const t = useTranslations('invoices');
   const canViewMontants = useHasRight("VOIR CHIFFRE D'AFFAIRE");
 
   // Hook responsive pour switch mobile/desktop
@@ -162,7 +164,7 @@ export default function FacturesGlassPage() {
 
     } catch (err: unknown) {
       console.error('Erreur chargement factures:', err);
-      const errorMessage = err instanceof Error ? err.message : 'Impossible de charger les factures';
+      const errorMessage = err instanceof Error ? err.message : t('loadError');
       setError(errorMessage);
     } finally {
       setLoading(false);
@@ -247,7 +249,7 @@ export default function FacturesGlassPage() {
   const handleDeleteFacture = (facture: FactureComplete) => {
     setModalConfirmation({
       isOpen: true,
-      message: `Êtes-vous sûr de vouloir supprimer la facture ${facture.facture.num_facture} ?`,
+      message: t('confirmDelete', { num: facture.facture.num_facture }),
       onConfirm: () => executerSuppression(facture.facture.id_facture)
     });
   };
@@ -259,7 +261,7 @@ export default function FacturesGlassPage() {
       setToast({
         isOpen: true,
         type: 'success',
-        message: 'Facture supprimée avec succès'
+        message: t('toast.deleteSuccess')
       });
 
       // Recharger les factures
@@ -269,7 +271,7 @@ export default function FacturesGlassPage() {
       setToast({
         isOpen: true,
         type: 'error',
-        message: 'Impossible de supprimer la facture'
+        message: t('toast.deleteError')
       });
     }
 
@@ -363,7 +365,7 @@ export default function FacturesGlassPage() {
       setToast({
         isOpen: true,
         type: 'success',
-        message: 'Téléchargement du reçu démarré'
+        message: t('toast.downloadStarted')
       });
     } catch (err) {
       console.error('❌ Erreur téléchargement reçu:', err);
@@ -371,7 +373,7 @@ export default function FacturesGlassPage() {
       setToast({
         isOpen: true,
         type: 'error',
-        message: `Impossible de télécharger le reçu: ${errorMessage}`
+        message: t('toast.downloadError', { error: errorMessage })
       });
     }
   };
@@ -399,8 +401,8 @@ export default function FacturesGlassPage() {
         className="bg-white rounded-2xl shadow-2xl px-8 py-6 flex flex-col items-center gap-3"
       >
         <Loader2 className="w-10 h-10 text-green-600 animate-spin" />
-        <p className="text-gray-700 font-medium text-sm">Chargement des factures...</p>
-        <p className="text-gray-400 text-xs">Veuillez patienter</p>
+        <p className="text-gray-700 font-medium text-sm">{t('loading')}</p>
+        <p className="text-gray-400 text-xs">{t('loadingPlease')}</p>
       </motion.div>
     </motion.div>
   );
@@ -622,8 +624,8 @@ export default function FacturesGlassPage() {
       <div className="max-w-md mx-auto min-h-screen relative">
         {/* Header */}
         <GlassHeader
-          title="Gestion des Factures"
-          subtitle="Gérez vos factures et paiements"
+          title={t('pageTitle')}
+          subtitle={t('pageSubtitle')}
           onBack={() => router.push('/dashboard/commerce')}
           showBackButton={true}
           backgroundGradient="bg-gradient-to-r from-green-400 to-orange-500"

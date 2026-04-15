@@ -10,6 +10,9 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FileText, CreditCard, FileCheck, TrendingUp, Calendar } from 'lucide-react';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
+import { useTranslations } from '@/hooks/useTranslations';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { toBcp47 } from '@/lib/format-locale';
 
 type TabId = 'factures' | 'paiements' | 'proformas';
 
@@ -43,25 +46,27 @@ export function FacturesOnglets({
 }: FacturesOngletsProps) {
   const [activeTab, setActiveTab] = useState<TabId>('factures');
   const { isMobile } = useBreakpoint();
+  const t = useTranslations('invoices');
+  const { locale } = useLanguage();
 
   const tabs: TabData[] = [
     {
       id: 'factures',
-      label: 'Factures',
+      label: t('tabs.invoices'),
       icon: <FileText className="w-4 h-4 sm:w-5 sm:h-5" />,
       count: facturesCount,
       color: 'from-blue-500 to-blue-600'
     },
     {
       id: 'paiements',
-      label: 'Paiements',
+      label: t('tabs.payments'),
       icon: <CreditCard className="w-4 h-4 sm:w-5 sm:h-5" />,
       count: paiementsCount,
       color: 'from-green-500 to-green-600'
     },
     ...(showProformas ? [{
       id: 'proformas' as TabId,
-      label: 'Proformas',
+      label: t('tabs.proformas'),
       icon: <FileCheck className="w-4 h-4 sm:w-5 sm:h-5" />,
       count: proformasCount,
       color: 'from-amber-500 to-amber-600'
@@ -145,11 +150,11 @@ export function FacturesOnglets({
         <div className="flex items-center gap-6 text-sm text-gray-500 dark:text-gray-400">
           <div className="flex items-center gap-2">
             <TrendingUp className="w-4 h-4 text-blue-500" />
-            <span>Dernière mise à jour</span>
+            <span>{t('tabs.lastUpdate')}</span>
           </div>
           <div className="flex items-center gap-2">
             <Calendar className="w-4 h-4 text-gray-400" />
-            <span>{new Date().toLocaleDateString('fr-FR')}</span>
+            <span>{new Date().toLocaleDateString(toBcp47(locale))}</span>
           </div>
         </div>
       </div>

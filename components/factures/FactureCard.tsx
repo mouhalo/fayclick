@@ -11,6 +11,7 @@ import { Eye, Receipt, CreditCard, Trash2, Printer } from 'lucide-react';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { FactureComplete } from '@/types/facture';
 import { formatAmount, formatDate, cn } from '@/lib/utils';
+import { useTranslations } from '@/hooks/useTranslations';
 
 interface FactureCardProps {
   facture: FactureComplete;
@@ -40,6 +41,7 @@ export const FactureCard = ({
   comptePrive = false,
   canViewMontants = true
 }: FactureCardProps) => {
+  const t = useTranslations('invoices');
   const { facture: factureData } = facture;
 
   // Vérifier si l'utilisateur est admin (id_profil = 1)
@@ -118,7 +120,7 @@ export const FactureCard = ({
               {factureData.nom_client}
               {factureData.mt_remise > 0 && (
                 <span className="text-orange-300 ml-1">
-                  (Remise: {canViewMontants ? formatAmount(factureData.mt_remise) : '******'})
+                  ({t('card.remise', { amount: canViewMontants ? formatAmount(factureData.mt_remise) : '******' })})
                 </span>
               )}
             </span>
@@ -136,7 +138,7 @@ export const FactureCard = ({
           </p>
           {factureData.mt_restant > 0 && (
             <p className="text-orange-300 text-xs sm:text-sm font-medium">
-              Reste: {canViewMontants ? formatAmount(factureData.mt_restant) : '******'}
+              {t('card.remaining', { amount: canViewMontants ? formatAmount(factureData.mt_restant) : '******' })}
             </p>
           )}
         </div>
@@ -150,17 +152,17 @@ export const FactureCard = ({
                 className="flex-1 py-1.5 sm:py-2 bg-white/20 rounded-md sm:rounded-lg text-white text-xs sm:text-sm hover:bg-white/30 transition-colors flex items-center justify-center gap-1"
               >
                 <Eye className="w-3 h-3 sm:w-4 sm:h-4" />
-                <span className="hidden xs:inline">Voir</span>
+                <span className="hidden xs:inline">{t('card.view')}</span>
               </button>
 
               {shouldShowDeleteButton && (
                 <button
                   onClick={() => onSupprimer(facture)}
                   className="flex-1 py-1.5 sm:py-2 bg-red-500/20 rounded-md sm:rounded-lg text-red-200 text-xs sm:text-sm hover:bg-red-500/30 transition-colors flex items-center justify-center gap-1"
-                  title="Supprimer la facture"
+                  title={t('card.deleteTitle')}
                 >
                   <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
-                  <span className="hidden xs:inline">Sup.</span>
+                  <span className="hidden xs:inline">{t('card.delete')}</span>
                 </button>
               )}
 
@@ -169,7 +171,7 @@ export const FactureCard = ({
                 className="flex-1 py-1.5 sm:py-2 bg-emerald-500/20 rounded-md sm:rounded-lg text-emerald-200 text-xs sm:text-sm hover:bg-emerald-500/30 transition-colors flex items-center justify-center gap-1"
               >
                 <CreditCard className="w-3 h-3 sm:w-4 sm:h-4" />
-                <span className="hidden xs:inline">Payer</span>
+                <span className="hidden xs:inline">{t('card.pay')}</span>
               </button>
             </>
           ) : (
@@ -179,17 +181,17 @@ export const FactureCard = ({
                 className="flex-1 py-1.5 sm:py-2 bg-white/20 rounded-md sm:rounded-lg text-white text-xs sm:text-sm hover:bg-white/30 transition-colors flex items-center justify-center gap-1"
               >
                 <Eye className="w-3 h-3 sm:w-4 sm:h-4" />
-                <span className="hidden xs:inline">Voir</span>
+                <span className="hidden xs:inline">{t('card.view')}</span>
               </button>
 
               {shouldShowDeleteButton && (
                 <button
                   onClick={() => onSupprimer(facture)}
                   className="flex-1 py-1.5 sm:py-2 bg-red-500/20 rounded-md sm:rounded-lg text-red-200 text-xs sm:text-sm hover:bg-red-500/30 transition-colors flex items-center justify-center gap-1"
-                  title={isAdmin ? "Supprimer la facture (ADMIN)" : "Supprimer la facture"}
+                  title={isAdmin ? t('card.deleteTitleAdmin') : t('card.deleteTitle')}
                 >
                   <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
-                  <span className="hidden xs:inline">Sup.</span>
+                  <span className="hidden xs:inline">{t('card.delete')}</span>
                 </button>
               )}
 
@@ -197,19 +199,19 @@ export const FactureCard = ({
                 <button
                   onClick={() => onImprimer(facture)}
                   className="flex-1 py-1.5 sm:py-2 bg-indigo-500/20 rounded-md sm:rounded-lg text-indigo-200 text-xs sm:text-sm hover:bg-indigo-500/30 transition-colors flex items-center justify-center gap-1"
-                  title="Imprimer un document"
+                  title={t('card.printTitle')}
                 >
                   <Printer className="w-3 h-3 sm:w-4 sm:h-4" />
-                  <span className="hidden xs:inline">Imprimer</span>
+                  <span className="hidden xs:inline">{t('card.print')}</span>
                 </button>
               ) : (
                 <button
                   onClick={() => onVoirRecu?.(facture)}
                   className="flex-1 py-1.5 sm:py-2 bg-emerald-500/20 rounded-md sm:rounded-lg text-emerald-200 text-xs sm:text-sm hover:bg-emerald-500/30 transition-colors flex items-center justify-center gap-1"
-                  title="Voir le reçu de paiement"
+                  title={t('card.receiptTitle')}
                 >
                   <Receipt className="w-3 h-3 sm:w-4 sm:h-4" />
-                  <span className="hidden xs:inline">Reçu</span>
+                  <span className="hidden xs:inline">{t('card.receipt')}</span>
                 </button>
               )}
             </>
@@ -220,7 +222,7 @@ export const FactureCard = ({
         {/* Message informatif pour non-admin */}
         {!isAdmin && (
           <div className="text-center text-xs text-white/50 italic mt-2">
-            🔒 Suppression réservée à l&apos;Administrateur
+            {t('card.adminOnly')}
           </div>
         )}
 

@@ -952,5 +952,125 @@
       "avgBasket": "Panier moyen :",
       "lastOrder": "Dernière commande :"
     }
+  },
+  "invoices": {
+    "pageTitle": "Gestion des Factures",
+    "pageSubtitle": "Gérez vos factures et paiements",
+    "pageSubtitleDesktop": "Gérez vos factures et paiements",
+    "loading": "Chargement des factures...",
+    "loadingPlease": "Veuillez patienter",
+    "loadError": "Impossible de charger les factures",
+    "confirmDelete": "Êtes-vous sûr de vouloir supprimer la facture {num} ?",
+    "toast": {
+      "deleteSuccess": "Facture supprimée avec succès",
+      "deleteError": "Impossible de supprimer la facture",
+      "downloadStarted": "Téléchargement du reçu démarré",
+      "downloadError": "Impossible de télécharger le reçu : {error}"
+    },
+    "tabs": {
+      "invoices": "Factures",
+      "payments": "Paiements",
+      "proformas": "Proformas",
+      "lastUpdate": "Dernière mise à jour"
+    },
+    "stats": {
+      "totalSales": "Total Ventes",
+      "totalAmount": "Montant Total",
+      "paidAmount": "Montant Payé",
+      "unpaid": "Impayés",
+      "clientsSingular": "{count} client",
+      "clientsPlural": "{count} clients",
+      "productsSingular": "{count} produit",
+      "productsPlural": "{count} produits",
+      "unpaidInvoices": "factures impayées",
+      "margin": "{amount} marge"
+    },
+    "filters": {
+      "search": "Rechercher facture...",
+      "searchDesktop": "N° facture, client, tél...",
+      "searchLabel": "Recherche",
+      "period": "Période",
+      "startDate": "Date début",
+      "endDate": "Date fin",
+      "client": "Client",
+      "clientPlaceholder": "Nom...",
+      "clientPlaceholderDesktop": "Nom client",
+      "phone": "Téléphone",
+      "phonePlaceholder": "77 123...",
+      "status": "Statut",
+      "statusAll": "Tous",
+      "statusPaid": "Payées",
+      "statusUnpaid": "Impayées",
+      "statusPaidOne": "Payée",
+      "statusUnpaidOne": "Impayée",
+      "sort": "Tri",
+      "sortBy": "Trier par",
+      "sortByDate": "Date",
+      "sortByAmount": "Montant",
+      "sortByClient": "Client",
+      "sortDateDesc": "Date ↓",
+      "sortDateAsc": "Date ↑",
+      "sortAmountDesc": "Montant ↓",
+      "sortAmountAsc": "Montant ↑",
+      "sortClientAsc": "Client A-Z",
+      "sortClientDesc": "Client Z-A",
+      "reset": "Réinitialiser les filtres"
+    },
+    "list": {
+      "empty": "Aucune facture trouvée",
+      "emptyHint": "Aucune facture ne correspond à vos critères de recherche.",
+      "emptyHintDesktop": "Modifiez vos filtres pour voir des résultats"
+    },
+    "card": {
+      "remise": "Remise : {amount}",
+      "remaining": "Reste : {amount}",
+      "view": "Voir",
+      "delete": "Sup.",
+      "deleteTitle": "Supprimer la facture",
+      "deleteTitleAdmin": "Supprimer la facture (ADMIN)",
+      "pay": "Payer",
+      "payTitle": "Payer",
+      "print": "Imprimer",
+      "printTitle": "Imprimer un document",
+      "receipt": "Reçu",
+      "receiptTitle": "Voir le reçu de paiement",
+      "adminOnly": "🔒 Suppression réservée à l'Administrateur"
+    },
+    "table": {
+      "invoice": "Facture",
+      "client": "Client",
+      "phone": "Téléphone",
+      "date": "Date",
+      "amount": "Montant",
+      "status": "Statut",
+      "actions": "Actions",
+      "viewDetails": "Voir détails"
+    },
+    "pagination": {
+      "rangeInfo": "Affichage de {start} à {end} sur {total} factures"
+    },
+    "desktop": {
+      "venteFlash": "Vente Flash"
+    },
+    "payments": {
+      "loading": "Chargement des paiements...",
+      "emptyTitle": "Aucun paiement enregistré",
+      "emptyDescription": "Les paiements effectués apparaîtront ici. Commencez par encaisser une facture pour voir l'historique.",
+      "emptyFilteredTitle": "Aucun paiement trouvé",
+      "emptyFilteredDescription": "Aucun paiement ne correspond à vos critères de recherche",
+      "statsTotal": "Total Paiements",
+      "statsTotalSub": "reçus générés",
+      "statsAmount": "Montant Total",
+      "statsAmountSub": "encaissés",
+      "methodLabelCash": "Espèces",
+      "methodLabelOm": "Orange Money",
+      "methodLabelWave": "Wave",
+      "methodLabelFree": "Free Money",
+      "via": "Via {method}",
+      "view": "Voir",
+      "viewTitle": "Voir le reçu",
+      "download": "PDF",
+      "downloadTitle": "Télécharger"
+    }
   }
 }

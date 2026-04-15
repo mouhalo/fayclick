@@ -28,6 +28,7 @@ import DashboardSidebar from '@/components/dashboard/DashboardSidebar';
 import { ListePaiements } from '@/components/factures/ListePaiements';
 import { ProformasTab } from '@/components/proformas/ProformasTab';
 import { User } from '@/types/auth';
+import { useTranslations } from '@/hooks/useTranslations';
 import {
   GetMyFactureResponse,
   FactureComplete,
@@ -102,6 +103,7 @@ export default function FacturesDesktopView({
   isTablet,
 }: FacturesDesktopViewProps) {
   const router = useRouter();
+  const t = useTranslations('invoices');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(isTablet);
   const [activeTab, setActiveTab] = useState<'factures' | 'paiements' | 'proformas'>('factures');
 
@@ -222,8 +224,8 @@ export default function FacturesDesktopView({
               <ChevronLeft className="w-5 h-5 text-gray-600" />
             </button>
             <div>
-              <h1 className="text-lg font-bold text-gray-800">Gestion des Factures</h1>
-              <p className="text-xs text-gray-500">Gerez vos factures et paiements</p>
+              <h1 className="text-lg font-bold text-gray-800">{t('pageTitle')}</h1>
+              <p className="text-xs text-gray-500">{t('pageSubtitleDesktop')}</p>
             </div>
           </div>
 
@@ -236,7 +238,7 @@ export default function FacturesDesktopView({
               className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-xl font-semibold text-sm shadow-md hover:shadow-lg transition-all"
             >
               <Zap className="w-4 h-4" />
-              <span>Vente Flash</span>
+              <span>{t('desktop.venteFlash')}</span>
             </button>
           </div>
         </header>
@@ -261,7 +263,7 @@ export default function FacturesDesktopView({
                   : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'
               }`}
             >
-              Factures {facturesResponse?.total_factures ? `(${facturesResponse.total_factures})` : ''}
+              {t('tabs.invoices')} {facturesResponse?.total_factures ? `(${facturesResponse.total_factures})` : ''}
             </button>
             <button
               onClick={() => setActiveTab('paiements')}
@@ -271,7 +273,7 @@ export default function FacturesDesktopView({
                   : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'
               }`}
             >
-              Paiements {paiementsCount > 0 ? `(${paiementsCount})` : ''}
+              {t('tabs.payments')} {paiementsCount > 0 ? `(${paiementsCount})` : ''}
             </button>
 
             {comptePrive && (
@@ -283,7 +285,7 @@ export default function FacturesDesktopView({
                     : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'
                 }`}
               >
-                Proformas
+                {t('tabs.proformas')}
               </button>
             )}
 
@@ -303,7 +305,7 @@ export default function FacturesDesktopView({
                       <Receipt className="w-5 h-5 text-orange-600" />
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">Total Ventes</p>
+                      <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">{t('stats.totalSales')}</p>
                       <p className="text-2xl font-bold text-gray-800">{kpiData.totalVentes}</p>
                     </div>
                   </div>
@@ -316,7 +318,7 @@ export default function FacturesDesktopView({
                       <DollarSign className="w-5 h-5 text-green-600" />
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">Montant Total</p>
+                      <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">{t('stats.totalAmount')}</p>
                       <p className="text-xl font-bold text-gray-800">{formatMontant(kpiData.montantTotal)}</p>
                     </div>
                   </div>
@@ -329,7 +331,7 @@ export default function FacturesDesktopView({
                       <CreditCard className="w-5 h-5 text-emerald-600" />
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">Montant Paye</p>
+                      <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">{t('stats.paidAmount')}</p>
                       <div className="flex items-center gap-2">
                         <p className="text-xl font-bold text-gray-800">{formatMontant(kpiData.montantPaye)}</p>
                         {canViewMontants && kpiData.pctPaye > 0 && (
@@ -349,7 +351,7 @@ export default function FacturesDesktopView({
                       <TrendingUp className="w-5 h-5 text-red-600" />
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">Impayes</p>
+                      <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">{t('stats.unpaid')}</p>
                       <p className="text-xl font-bold text-red-600">{formatMontant(kpiData.montantImpaye)}</p>
                     </div>
                   </div>
@@ -361,14 +363,14 @@ export default function FacturesDesktopView({
                 <div className={`flex items-end gap-3 flex-wrap ${isTablet ? '' : ''}`}>
                   {/* Recherche */}
                   <div className="flex-1 min-w-[180px]">
-                    <label className="text-xs text-gray-500 font-medium mb-1 block">Recherche</label>
+                    <label className="text-xs text-gray-500 font-medium mb-1 block">{t('filters.searchLabel')}</label>
                     <div className="relative">
                       <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
                       <input
                         type="text"
                         value={searchLocal}
                         onChange={(e) => setSearchLocal(e.target.value)}
-                        placeholder="N facture, client, tel..."
+                        placeholder={t('filters.searchDesktop')}
                         className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-500"
                       />
                     </div>
@@ -376,7 +378,7 @@ export default function FacturesDesktopView({
 
                   {/* Date debut */}
                   <div className="min-w-[140px]">
-                    <label className="text-xs text-gray-500 font-medium mb-1 block">Date debut</label>
+                    <label className="text-xs text-gray-500 font-medium mb-1 block">{t('filters.startDate')}</label>
                     <div className="relative">
                       <Calendar className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
                       <input
@@ -393,7 +395,7 @@ export default function FacturesDesktopView({
 
                   {/* Date fin */}
                   <div className="min-w-[140px]">
-                    <label className="text-xs text-gray-500 font-medium mb-1 block">Date fin</label>
+                    <label className="text-xs text-gray-500 font-medium mb-1 block">{t('filters.endDate')}</label>
                     <div className="relative">
                       <Calendar className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
                       <input
@@ -411,7 +413,7 @@ export default function FacturesDesktopView({
                   {/* Nom client */}
                   {!isTablet && (
                     <div className="min-w-[140px]">
-                      <label className="text-xs text-gray-500 font-medium mb-1 block">Client</label>
+                      <label className="text-xs text-gray-500 font-medium mb-1 block">{t('filters.client')}</label>
                       <div className="relative">
                         <UserIcon className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
                         <input
@@ -421,7 +423,7 @@ export default function FacturesDesktopView({
                             setNomClient(e.target.value);
                             setTimeout(() => applyFilters({ nom_client: e.target.value || undefined }), 300);
                           }}
-                          placeholder="Nom client"
+                          placeholder={t('filters.clientPlaceholderDesktop')}
                           className="w-full pl-9 pr-2 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-500"
                         />
                       </div>
@@ -431,7 +433,7 @@ export default function FacturesDesktopView({
                   {/* Telephone */}
                   {!isTablet && (
                     <div className="min-w-[130px]">
-                      <label className="text-xs text-gray-500 font-medium mb-1 block">Telephone</label>
+                      <label className="text-xs text-gray-500 font-medium mb-1 block">{t('filters.phone')}</label>
                       <div className="relative">
                         <Phone className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
                         <input
@@ -450,7 +452,7 @@ export default function FacturesDesktopView({
 
                   {/* Statut */}
                   <div className="min-w-[120px]">
-                    <label className="text-xs text-gray-500 font-medium mb-1 block">Statut</label>
+                    <label className="text-xs text-gray-500 font-medium mb-1 block">{t('filters.status')}</label>
                     <select
                       value={statut}
                       onChange={(e) => {
@@ -459,15 +461,15 @@ export default function FacturesDesktopView({
                       }}
                       className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-500"
                     >
-                      <option value="TOUS">Tous</option>
-                      <option value="PAYEE">Payee</option>
-                      <option value="IMPAYEE">Impayee</option>
+                      <option value="TOUS">{t('filters.statusAll')}</option>
+                      <option value="PAYEE">{t('filters.statusPaidOne')}</option>
+                      <option value="IMPAYEE">{t('filters.statusUnpaidOne')}</option>
                     </select>
                   </div>
 
                   {/* Tri */}
                   <div className="min-w-[120px]">
-                    <label className="text-xs text-gray-500 font-medium mb-1 block">Trier par</label>
+                    <label className="text-xs text-gray-500 font-medium mb-1 block">{t('filters.sortBy')}</label>
                     <select
                       value={sortBy}
                       onChange={(e) => {
@@ -476,9 +478,9 @@ export default function FacturesDesktopView({
                       }}
                       className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-500"
                     >
-                      <option value="date">Date</option>
-                      <option value="montant">Montant</option>
-                      <option value="client">Client</option>
+                      <option value="date">{t('filters.sortByDate')}</option>
+                      <option value="montant">{t('filters.sortByAmount')}</option>
+                      <option value="client">{t('filters.sortByClient')}</option>
                     </select>
                   </div>
 
@@ -486,7 +488,7 @@ export default function FacturesDesktopView({
                   <button
                     onClick={handleResetFilters}
                     className="flex items-center gap-1.5 px-3 py-2 text-sm text-gray-500 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors border border-gray-200"
-                    title="Reinitialiser les filtres"
+                    title={t('filters.reset')}
                   >
                     <RotateCcw className="w-4 h-4" />
                   </button>
@@ -500,14 +502,14 @@ export default function FacturesDesktopView({
                     <thead>
                       <tr className="bg-[#18542e] text-white">
                         <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider">N Facture</th>
-                        <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider">Client</th>
+                        <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider">{t('table.client')}</th>
                         {!isTablet && (
-                          <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider">Telephone</th>
+                          <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider">{t('table.phone')}</th>
                         )}
-                        <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider">Date</th>
-                        <th className="text-right px-4 py-3 font-semibold text-xs uppercase tracking-wider">Montant</th>
-                        <th className="text-center px-4 py-3 font-semibold text-xs uppercase tracking-wider">Statut</th>
-                        <th className="text-center px-4 py-3 font-semibold text-xs uppercase tracking-wider">Actions</th>
+                        <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider">{t('table.date')}</th>
+                        <th className="text-right px-4 py-3 font-semibold text-xs uppercase tracking-wider">{t('table.amount')}</th>
+                        <th className="text-center px-4 py-3 font-semibold text-xs uppercase tracking-wider">{t('table.status')}</th>
+                        <th className="text-center px-4 py-3 font-semibold text-xs uppercase tracking-wider">{t('table.actions')}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -515,8 +517,8 @@ export default function FacturesDesktopView({
                         <tr>
                           <td colSpan={isTablet ? 6 : 7} className="text-center py-12 text-gray-400">
                             <Receipt className="w-10 h-10 mx-auto mb-3 text-gray-300" />
-                            <p className="font-medium">Aucune facture trouvee</p>
-                            <p className="text-xs mt-1">Modifiez vos filtres pour voir des resultats</p>
+                            <p className="font-medium">{t('list.empty')}</p>
+                            <p className="text-xs mt-1">{t('list.emptyHintDesktop')}</p>
                           </td>
                         </tr>
                       ) : (
@@ -576,7 +578,7 @@ export default function FacturesDesktopView({
                                   <button
                                     onClick={(e) => { e.stopPropagation(); onViewFacture(fc); }}
                                     className="w-8 h-8 rounded-lg bg-blue-50 hover:bg-blue-100 flex items-center justify-center text-blue-600 transition-colors"
-                                    title="Voir details"
+                                    title={t('table.viewDetails')}
                                   >
                                     <Eye className="w-4 h-4" />
                                   </button>
@@ -587,7 +589,7 @@ export default function FacturesDesktopView({
                                       <button
                                         onClick={(e) => { e.stopPropagation(); onImprimer(fc); }}
                                         className="w-8 h-8 rounded-lg bg-indigo-50 hover:bg-indigo-100 flex items-center justify-center text-indigo-600 transition-colors"
-                                        title="Imprimer"
+                                        title={t('card.print')}
                                       >
                                         <Printer className="w-4 h-4" />
                                       </button>
@@ -595,7 +597,7 @@ export default function FacturesDesktopView({
                                       <button
                                         onClick={(e) => { e.stopPropagation(); onVoirRecu(fc); }}
                                         className="w-8 h-8 rounded-lg bg-green-50 hover:bg-green-100 flex items-center justify-center text-green-600 transition-colors"
-                                        title="Voir recu"
+                                        title={t('card.receipt')}
                                       >
                                         <Receipt className="w-4 h-4" />
                                       </button>
@@ -607,7 +609,7 @@ export default function FacturesDesktopView({
                                     <button
                                       onClick={(e) => { e.stopPropagation(); onPayFacture(fc); }}
                                       className="w-8 h-8 rounded-lg bg-amber-50 hover:bg-amber-100 flex items-center justify-center text-amber-600 transition-colors"
-                                      title="Payer"
+                                      title={t('card.pay')}
                                     >
                                       <CreditCard className="w-4 h-4" />
                                     </button>
@@ -618,7 +620,7 @@ export default function FacturesDesktopView({
                                     <button
                                       onClick={(e) => { e.stopPropagation(); onDeleteFacture(fc); }}
                                       className="w-8 h-8 rounded-lg bg-red-50 hover:bg-red-100 flex items-center justify-center text-red-500 transition-colors"
-                                      title="Supprimer"
+                                      title={t('card.deleteTitle')}
                                     >
                                       <Trash2 className="w-4 h-4" />
                                     </button>
@@ -637,9 +639,7 @@ export default function FacturesDesktopView({
                 {totalPages > 1 && (
                   <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100 bg-gray-50/50">
                     <p className="text-xs text-gray-500">
-                      Affichage de <span className="font-semibold">{startIndex + 1}</span> a{' '}
-                      <span className="font-semibold">{endIndex}</span> sur{' '}
-                      <span className="font-semibold">{facturesFiltreesEtTriees.length}</span> factures
+                      {t('pagination.rangeInfo', { start: startIndex + 1, end: endIndex, total: facturesFiltreesEtTriees.length })}
                     </p>
 
                     <div className="flex items-center gap-1">

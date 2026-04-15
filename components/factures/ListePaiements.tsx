@@ -24,7 +24,10 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { FilterHeaderPaiementsGlass } from './FilterHeaderPaiementsGlass';
 import { GlassPagination } from '@/components/ui/GlassPagination';
 import { format } from 'date-fns';
-import { fr } from 'date-fns/locale';
+import { fr, enUS } from 'date-fns/locale';
+import { useTranslations } from '@/hooks/useTranslations';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { formatNumber } from '@/lib/format-locale';
 
 interface Paiement {
   id_recu?: number;
@@ -63,6 +66,9 @@ export function ListePaiements({
   canViewMontants = true
 }: ListePaiementsProps) {
   const { user } = useAuth();
+  const t = useTranslations('invoices');
+  const { locale } = useLanguage();
+  const dateLocale = locale === 'en' ? enUS : fr;
 
   const [paiements, setPaiements] = useState<Paiement[]>([]);
   const [loading, setLoading] = useState(true);
@@ -198,27 +204,27 @@ export function ListePaiements({
   const getMethodeInfo = (methode: string) => {
     const methodes: Record<string, { label: string; icon: React.ReactNode; color: string }> = {
       'orange-money': {
-        label: 'Orange Money',
+        label: t('payments.methodLabelOm'),
         icon: <Smartphone className="w-4 h-4" />,
         color: 'from-orange-500 to-orange-600'
       },
       'wave': {
-        label: 'Wave',
+        label: t('payments.methodLabelWave'),
         icon: <Smartphone className="w-4 h-4" />,
         color: 'from-blue-500 to-blue-600'
       },
       'free-money': {
-        label: 'Free Money',
+        label: t('payments.methodLabelFree'),
         icon: <Smartphone className="w-4 h-4" />,
         color: 'from-green-500 to-green-600'
       },
       'espèces': {
-        label: 'Espèces',
+        label: t('payments.methodLabelCash'),
         icon: <DollarSign className="w-4 h-4" />,
         color: 'from-gray-500 to-gray-600'
       },
       'CASH': {
-        label: 'Espèces',
+        label: t('payments.methodLabelCash'),
         icon: <DollarSign className="w-4 h-4" />,
         color: 'from-gray-500 to-gray-600'
       }
@@ -231,7 +237,7 @@ export function ListePaiements({
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center space-y-4">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto" />
-          <p className="text-gray-500">Chargement des paiements...</p>
+          <p className="text-gray-500">{t('payments.loading')}</p>
         </div>
       </div>
     );
@@ -254,8 +260,8 @@ export function ListePaiements({
       <div className="w-full">
         <EmptyState
           icon={<CreditCard className="w-16 h-16" />}
-          title="Aucun paiement enregistré"
-          description="Les paiements effectués apparaîtront ici. Commencez par encaisser une facture pour voir l'historique."
+          title={t('payments.emptyTitle')}
+          description={t('payments.emptyDescription')}
         />
       </div>
     );
@@ -282,7 +288,7 @@ export function ListePaiements({
               <div className="space-y-1">
                 {/* Titre */}
                 <p className="text-white text-[10px] font-medium leading-tight">
-                  Total Paiements
+                  {t('payments.statsTotal')}
                 </p>
 
                 {/* Valeur principale */}
@@ -292,7 +298,7 @@ export function ListePaiements({
 
                 {/* Sous-titre */}
                 <p className="text-white/70 text-[9px] leading-tight">
-                  reçus générés
+                  {t('payments.statsTotalSub')}
                 </p>
               </div>
             </div>
@@ -316,17 +322,17 @@ export function ListePaiements({
               <div className="space-y-1">
                 {/* Titre */}
                 <p className="text-white text-[10px] font-medium leading-tight">
-                  Montant Total
+                  {t('payments.statsAmount')}
                 </p>
 
                 {/* Valeur principale */}
                 <p className="text-white text-sm font-bold leading-tight break-words">
-                  {canViewMontants ? `${stats.montantTotal.toLocaleString('fr-FR')} FCFA` : '******'}
+                  {canViewMontants ? `${formatNumber(stats.montantTotal, locale)} FCFA` : '******'}
                 </p>
 
                 {/* Sous-titre */}
                 <p className="text-white/70 text-[9px] leading-tight">
-                  {canViewMontants ? 'encaissés' : ''}
+                  {canViewMontants ? t('payments.statsAmountSub') : ''}
                 </p>
               </div>
             </div>
@@ -360,8 +366,8 @@ export function ListePaiements({
       {paiementsFiltres.length === 0 ? (
         <EmptyState
           icon={<CreditCard className="w-12 h-12" />}
-          title="Aucun paiement trouvé"
-          description="Aucun paiement ne correspond à vos critères de recherche"
+          title={t('payments.emptyFilteredTitle')}
+          description={t('payments.emptyFilteredDescription')}
         />
       ) : (
         <div className="space-y-4 pb-20 w-full overflow-x-hidden">
@@ -408,7 +414,7 @@ export function ListePaiements({
                     <div className="flex items-center gap-2">
                       <span className="w-3 h-3 sm:w-4 sm:h-4">📅</span>
                       <span className="truncate">
-                        {format(new Date(paiement.date_paiement), 'dd MMM yyyy', { locale: fr })}
+                        {format(new Date(paiement.date_paiement), 'dd MMM yyyy', { locale: dateLocale })}
                       </span>
                     </div>
                   </div>
@@ -416,10 +422,10 @@ export function ListePaiements({
                   {/* Montant principal - EXACTEMENT comme FactureCard */}
                   <div className="text-center mb-3 sm:mb-4 overflow-hidden">
                     <p className="text-white text-base sm:text-lg lg:text-xl font-bold break-words">
-                      {canViewMontants ? <>{paiement.montant_paye.toLocaleString('fr-FR')} <span className="text-sm">FCFA</span></> : '******'}
+                      {canViewMontants ? <>{formatNumber(paiement.montant_paye, locale)} <span className="text-sm">FCFA</span></> : '******'}
                     </p>
                     <p className="text-emerald-300 text-xs sm:text-sm font-medium">
-                      Via {methodeInfo.label}
+                      {t('payments.via', { method: methodeInfo.label })}
                     </p>
                   </div>
 
@@ -428,18 +434,18 @@ export function ListePaiements({
                     <button
                       onClick={() => onViewRecu?.(paiement)}
                       className="flex-1 py-1.5 sm:py-2 bg-white/20 rounded-md sm:rounded-lg text-white text-xs sm:text-sm hover:bg-white/30 transition-colors flex items-center justify-center gap-1"
-                      title="Voir le reçu"
+                      title={t('payments.viewTitle')}
                     >
                       <FileText className="w-3 h-3 sm:w-4 sm:h-4" />
-                      <span className="hidden xs:inline">Voir</span>
+                      <span className="hidden xs:inline">{t('payments.view')}</span>
                     </button>
                     <button
                       onClick={() => onDownloadRecu?.(paiement)}
                       className="flex-1 py-1.5 sm:py-2 bg-emerald-500/20 rounded-md sm:rounded-lg text-emerald-200 text-xs sm:text-sm hover:bg-emerald-500/30 transition-colors flex items-center justify-center gap-1"
-                      title="Télécharger"
+                      title={t('payments.downloadTitle')}
                     >
                       <Download className="w-3 h-3 sm:w-4 sm:h-4" />
-                      <span className="hidden xs:inline">PDF</span>
+                      <span className="hidden xs:inline">{t('payments.download')}</span>
                     </button>
                   </div>
 
