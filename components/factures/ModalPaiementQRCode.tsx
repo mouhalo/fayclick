@@ -25,6 +25,7 @@ import {
   formatAmount
 } from '@/types/payment-wallet';
 import { paymentWalletService } from '@/services/payment-wallet.service';
+import { useTranslations } from '@/hooks/useTranslations';
 
 interface ModalPaiementQRCodeProps {
   isOpen: boolean;
@@ -45,6 +46,7 @@ export function ModalPaiementQRCode({
   onPaymentComplete,
   onPaymentFailed
 }: ModalPaiementQRCodeProps) {
+  const t = useTranslations('invoicesModals');
 
   const [modalState, setModalState] = useState<ModalState>('LOADING');
   const [qrCode, setQrCode] = useState<string>('');
@@ -92,9 +94,9 @@ export function ModalPaiementQRCode({
             break;
           case 'FAILED':
             setModalState('FAILED');
-            setError('Le paiement a échoué');
+            setError(t('qrcode.paymentFailed'));
             setTimeout(() => {
-              onPaymentFailed('Paiement échoué');
+              onPaymentFailed(t('qrcode.paymentFailedShort'));
             }, 3000);
             break;
           case 'TIMEOUT':
@@ -149,7 +151,7 @@ export function ModalPaiementQRCode({
 
     } catch (error: unknown) {
       console.error('❌ Erreur initialisation:', error);
-      setError(error instanceof Error ? error.message : 'Erreur lors de la création du paiement');
+      setError(error instanceof Error ? error.message : t('qrcode.creationError'));
       setModalState('FAILED');
     }
   }, [paymentMethod, paymentContext, startPolling]);
@@ -291,10 +293,10 @@ export function ModalPaiementQRCode({
               <div className="text-center py-6">
                 <Loader2 className="w-10 h-10 text-blue-600 animate-spin mx-auto mb-3" />
                 <h3 className="text-base font-semibold text-gray-900 mb-1">
-                  Génération du QR Code...
+                  {t('qrcode.loadingTitle')}
                 </h3>
                 <p className="text-gray-600 text-sm">
-                  Création de votre lien de paiement sécurisé
+                  {t('qrcode.loadingSubtitle')}
                 </p>
               </div>
             )}
@@ -306,7 +308,7 @@ export function ModalPaiementQRCode({
                 <div className="flex items-center justify-center gap-2 mb-4 p-2 bg-amber-50 rounded-lg border border-amber-200">
                   <Clock className="w-4 h-4 text-amber-600" />
                   <span className="font-semibold text-amber-800 text-sm">
-                    Temps restant: {formatTime(timeRemaining)}
+                    {t('qrcode.timeRemaining', { time: formatTime(timeRemaining) })}
                   </span>
                 </div>
 
@@ -316,7 +318,7 @@ export function ModalPaiementQRCode({
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={qrCode}
-                      alt="QR Code de paiement"
+                      alt={t('qrcode.qrAlt')}
                       className="w-40 h-40 mx-auto"
                     />
                   ) : (
@@ -339,7 +341,7 @@ export function ModalPaiementQRCode({
                       >
                         <div className="flex items-center justify-center gap-2">
                           <Smartphone className="w-5 h-5" />
-                          <span>📱 Ouvrir Orange Money</span>
+                          <span>{t('qrcode.openOrangeMoney')}</span>
                         </div>
                       </motion.a>
                     )}
@@ -356,12 +358,12 @@ export function ModalPaiementQRCode({
                       >
                         <div className="flex items-center justify-center gap-2">
                           <ExternalLink className="w-5 h-5" />
-                          <span>🌐 Payer via MaxIt Web</span>
+                          <span>{t('qrcode.openMaxit')}</span>
                         </div>
                       </motion.a>
                     )}
                     <p className="text-xs text-gray-500 mt-1">
-                      Alternative si le QR code ne fonctionne pas
+                      {t('qrcode.alternativeHint')}
                     </p>
                   </div>
                 )}
@@ -377,11 +379,11 @@ export function ModalPaiementQRCode({
                     >
                       <div className="flex items-center justify-center gap-2">
                         <ExternalLink className="w-5 h-5" />
-                        <span>Ouvrir le lien de paiement</span>
+                        <span>{t('qrcode.openPaymentLink')}</span>
                       </div>
                     </motion.button>
                     <p className="text-xs text-gray-500 mt-1">
-                      Alternative si le QR code ne fonctionne pas
+                      {t('qrcode.alternativeHint')}
                     </p>
                   </div>
                 )}
@@ -389,20 +391,20 @@ export function ModalPaiementQRCode({
                 {/* Instructions compactes */}
                 <div className="space-y-3">
                   <h3 className="font-semibold text-gray-900 text-sm">
-                    Comment payer ?
+                    {t('qrcode.howToPay')}
                   </h3>
                   <div className="text-left space-y-1.5 text-sm text-gray-600">
                     <div className="flex items-center gap-2">
                       <Smartphone className="w-4 h-4 text-blue-600 flex-shrink-0" />
-                      <p className="text-xs">Ouvrez votre application {walletConfig.name}</p>
+                      <p className="text-xs">{t('qrcode.step1', { wallet: walletConfig.name })}</p>
                     </div>
                     <div className="flex items-center gap-2">
                       <QrCode className="w-4 h-4 text-blue-600 flex-shrink-0" />
-                      <p className="text-xs">Scannez le QR code ou utilisez le lien</p>
+                      <p className="text-xs">{t('qrcode.step2')}</p>
                     </div>
                     <div className="flex items-center gap-2">
                       <CheckCircle className="w-4 h-4 text-blue-600 flex-shrink-0" />
-                      <p className="text-xs">Confirmez le paiement dans l&apos;application</p>
+                      <p className="text-xs">{t('qrcode.step3')}</p>
                     </div>
                   </div>
                 </div>
@@ -412,7 +414,7 @@ export function ModalPaiementQRCode({
                   <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
                     <div className="flex items-center gap-2 text-blue-800">
                       <Loader2 className="w-4 h-4 animate-spin" />
-                      <span className="font-medium text-sm">Paiement en cours de traitement...</span>
+                      <span className="font-medium text-sm">{t('qrcode.processing')}</span>
                     </div>
                   </div>
                 )}
@@ -431,20 +433,20 @@ export function ModalPaiementQRCode({
                   <CheckCircle className="w-10 h-10 text-green-600" />
                 </motion.div>
                 <h3 className="text-lg font-bold text-green-800 mb-1">
-                  Paiement confirmé !
+                  {t('qrcode.successTitle')}
                 </h3>
                 <p className="text-green-600 text-sm">
-                  L&apos;acompte a été enregistré avec succès
+                  {t('qrcode.successSubtitle')}
                 </p>
                 
                 {/* Affichage des détails de paiement en mode succès */}
                 {paymentStatusResponse?.data && (
                   <div className="mt-3 p-2 bg-green-50 rounded-lg">
                     <p className="text-xs text-green-700">
-                      Transaction: {paymentStatusResponse.data.reference_externe || 'N/A'}
+                      {t('qrcode.successTransaction', { ref: paymentStatusResponse.data.reference_externe || 'N/A' })}
                     </p>
                     <p className="text-xs text-green-600">
-                      UUID: {paymentStatusResponse.data.uuid || 'N/A'}
+                      {t('qrcode.successUuid', { uuid: paymentStatusResponse.data.uuid || 'N/A' })}
                     </p>
                   </div>
                 )}
@@ -456,16 +458,16 @@ export function ModalPaiementQRCode({
               <div className="text-center py-6">
                 <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-3" />
                 <h3 className="text-lg font-bold text-red-800 mb-1">
-                  Paiement échoué
+                  {t('qrcode.failedTitle')}
                 </h3>
                 <p className="text-red-600 mb-4 text-sm">
-                  {error || 'Une erreur est survenue'}
+                  {error || t('qrcode.failedDefault')}
                 </p>
                 <button
                   onClick={handleRetry}
                   className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm"
                 >
-                  Réessayer
+                  {t('qrcode.retry')}
                 </button>
               </div>
             )}
@@ -475,23 +477,23 @@ export function ModalPaiementQRCode({
               <div className="text-center py-6">
                 <Clock className="w-12 h-12 text-amber-500 mx-auto mb-3" />
                 <h3 className="text-lg font-bold text-amber-800 mb-1">
-                  Temps expiré
+                  {t('qrcode.timeoutTitle')}
                 </h3>
                 <p className="text-amber-600 mb-4 text-sm">
-                  Le délai de paiement a été dépassé. Veuillez réessayer.
+                  {t('qrcode.timeoutSubtitle')}
                 </p>
                 <div className="space-y-2">
                   <button
                     onClick={handleRetry}
                     className="w-full px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm font-medium"
                   >
-                    Réessayer le paiement
+                    {t('qrcode.retryPayment')}
                   </button>
                   <button
                     onClick={handleClose}
                     className="w-full px-6 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors text-sm"
                   >
-                    Fermer
+                    {t('qrcode.close')}
                   </button>
                 </div>
               </div>
@@ -505,7 +507,7 @@ export function ModalPaiementQRCode({
                 onClick={handleClose}
                 className="w-full py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium transition-colors text-sm"
               >
-                Annuler
+                {t('qrcode.cancel')}
               </button>
             </div>
           )}

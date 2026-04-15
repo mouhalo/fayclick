@@ -26,6 +26,9 @@ import { ModalChoixPaiement } from './ModalChoixPaiement';
 import { ModalPaiementQRCode } from './ModalPaiementQRCode';
 import { ModalRecuGenere } from '@/components/recu';
 import { PaymentMethodSelector } from './PaymentMethodSelector';
+import { useTranslations } from '@/hooks/useTranslations';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { formatNumber } from '@/lib/format-locale';
 import { ModalConfirmationPaiement } from './ModalConfirmationPaiement';
 import { PaymentMethod, PaymentContext } from '@/types/payment-wallet';
 
@@ -46,6 +49,8 @@ export function ModalPaiement({
 }: ModalPaiementProps) {
   const { isMobile, isMobileLarge } = useBreakpoint();
   const salesRules = useSalesRules();
+  const t = useTranslations('invoicesModals');
+  const { locale } = useLanguage();
 
   // États principaux
   const [montantAcompte, setMontantAcompte] = useState<string>('');
@@ -123,16 +128,16 @@ export function ModalPaiement({
     const errors: string[] = [];
 
     if (montants.montantSaisi <= 0) {
-      errors.push('Le montant doit être supérieur à 0');
+      errors.push(t('payment.errors.amountPositive'));
     }
 
     if (montants.montantSaisi > montants.montantRestant) {
-      errors.push('Le montant ne peut pas dépasser le restant à payer');
+      errors.push(t('payment.errors.amountMax'));
     }
 
     // Pour l'ancien flow, vérifier la sélection de mode de paiement
     if (!useIntegratedPaymentSelection && !selectedPaymentMethod) {
-      errors.push('Veuillez sélectionner un mode de paiement');
+      errors.push(t('payment.errors.methodRequired'));
     }
 
     return {
@@ -214,12 +219,12 @@ export function ModalPaiement({
 
     // Vérifier que le montant est valide
     if (montants.montantSaisi <= 0) {
-      setError('Le montant doit être supérieur à 0');
+      setError(t('payment.errors.amountPositive'));
       return;
     }
 
     if (montants.montantSaisi > montants.montantRestant) {
-      setError('Le montant ne peut pas dépasser le restant à payer');
+      setError(t('payment.errors.amountMax'));
       return;
     }
 
@@ -346,7 +351,7 @@ export function ModalPaiement({
         }, 2000);
       }
     } catch (error: unknown) {
-      setError(error instanceof Error ? error.message : 'Erreur lors du paiement');
+      setError(error instanceof Error ? error.message : t('payment.errors.genericPayment'));
     } finally {
       setLoading(false);
     }
@@ -409,7 +414,7 @@ export function ModalPaiement({
         }, 2000);
       }
     } catch (error: unknown) {
-      setError(error instanceof Error ? error.message : 'Erreur lors du paiement');
+      setError(error instanceof Error ? error.message : t('payment.errors.genericPayment'));
     } finally {
       setLoading(false);
     }
@@ -443,7 +448,7 @@ export function ModalPaiement({
       // Vérifier que nous avons les données nécessaires
       if (!uuid || !transaction_id) {
         console.error('❌ [WALLET] Données manquantes:', { uuid, transaction_id });
-        throw new Error('Données de paiement incomplètes (UUID ou transaction_id manquant)');
+        throw new Error(t('payment.errors.dataIncomplete'));
       }
 
       // Ajouter l'acompte avec les données de paiement wallet
@@ -502,7 +507,7 @@ export function ModalPaiement({
     } catch (error: unknown) {
       console.error('❌ [WALLET] Erreur enregistrement acompte:', error);
       setShowQRCode(false);
-      setError(error instanceof Error ? error.message : 'Erreur lors de l\'enregistrement du paiement wallet');
+      setError(error instanceof Error ? error.message : t('payment.errors.walletSave'));
     }
   };
 
@@ -567,29 +572,29 @@ export function ModalPaiement({
 
     // Mobile (1) : Juste "Tout"
     if (count === 1) {
-      return [{ label: 'Tout', value: restant }];
+      return [{ label: t('payment.shortcutAll'), value: restant }];
     }
 
     // Tablette (2) : 50% + Tout
     if (count === 2) {
       return restant > 1000
         ? [
-            { label: '50%', value: Math.round(restant * 0.5) },
-            { label: 'Tout', value: restant }
+            { label: t('payment.shortcut50'), value: Math.round(restant * 0.5) },
+            { label: t('payment.shortcutAll'), value: restant }
           ]
-        : [{ label: 'Tout', value: restant }];
+        : [{ label: t('payment.shortcutAll'), value: restant }];
     }
 
     // Desktop (4) : Tous
     const raccourcis = [];
     if (restant > 1000) {
       raccourcis.push(
-        { label: '25%', value: Math.round(restant * 0.25) },
-        { label: '50%', value: Math.round(restant * 0.5) },
-        { label: '75%', value: Math.round(restant * 0.75) }
+        { label: t('payment.shortcut25'), value: Math.round(restant * 0.25) },
+        { label: t('payment.shortcut50'), value: Math.round(restant * 0.5) },
+        { label: t('payment.shortcut75'), value: Math.round(restant * 0.75) }
       );
     }
-    raccourcis.push({ label: 'Tout', value: restant });
+    raccourcis.push({ label: t('payment.shortcutAll'), value: restant });
 
     return raccourcis;
   };
@@ -598,25 +603,25 @@ export function ModalPaiement({
   const getButtonText = () => {
     if (!useIntegratedPaymentSelection) {
       // Ancien flow : texte générique
-      return montants?.estSoldee ? 'Solder la facture' : 'Ajouter l\'acompte';
+      return montants?.estSoldee ? t('payment.buttonSettle') : t('payment.buttonAdd');
     }
 
-    if (!selectedPaymentMethod || !montants) return 'Sélectionner un mode de paiement';
+    if (!selectedPaymentMethod || !montants) return t('payment.buttonSelectMethod');
 
-    const action = montants.estSoldee ? 'Solder' : 'Payer';
-    const montant = montants.montantSaisi.toLocaleString('fr-FR');
+    const action = montants.estSoldee ? t('payment.actionSettle') : t('payment.actionPay');
+    const montant = formatNumber(montants.montantSaisi, locale);
 
     switch (selectedPaymentMethod) {
       case 'CASH':
-        return `${action} ${montant} FCFA en espèces`;
+        return t('payment.buttonCashWithAmount', { action, amount: montant });
       case 'OM':
-        return `${action} ${montant} FCFA avec Orange Money`;
+        return t('payment.buttonOmWithAmount', { action, amount: montant });
       case 'WAVE':
-        return `${action} ${montant} FCFA avec Wave`;
+        return t('payment.buttonWaveWithAmount', { action, amount: montant });
       case 'FREE':
-        return `${action} ${montant} FCFA avec Free Money`;
+        return t('payment.buttonFreeWithAmount', { action, amount: montant });
       default:
-        return `${action} ${montant} FCFA`;
+        return t('payment.buttonDefaultWithAmount', { action, amount: montant });
     }
   };
 
@@ -673,13 +678,13 @@ export function ModalPaiement({
               </motion.div>
 
               <h2 className={`text-emerald-900 font-bold mb-1 ${styles.title}`}>
-                {isCompact ? 'Paiement OK !' : 'Paiement enregistré !'}
+                {isCompact ? t('payment.successCompact') : t('payment.success')}
               </h2>
 
               <p className={`text-emerald-700 ${styles.subtitle}`}>
                 {montants?.estSoldee
-                  ? (isCompact ? 'Facture soldée' : 'La facture a été entièrement payée')
-                  : `${montants?.montantSaisi.toLocaleString('fr-FR')} F ajoutés`
+                  ? (isCompact ? t('payment.balancedCompact') : t('payment.balanced'))
+                  : t('payment.addedSuffix', { amount: formatNumber(montants?.montantSaisi ?? 0, locale) })
                 }
               </p>
 
@@ -687,7 +692,7 @@ export function ModalPaiement({
               {selectedPaymentMethod && !isCompact && (
                 <div className="mt-3 p-2 bg-emerald-50 rounded-lg">
                   <p className={`text-emerald-700 ${styles.subtitle}`}>
-                    {selectedPaymentMethod === 'CASH' ? 'Espèces' : selectedPaymentMethod}
+                    {selectedPaymentMethod === 'CASH' ? t('payment.cashLabel') : selectedPaymentMethod}
                   </p>
                 </div>
               )}
@@ -704,7 +709,7 @@ export function ModalPaiement({
                   )}
                   <div>
                     <h2 className={`text-gray-900 font-bold ${styles.title}`}>
-                      {isCompact ? 'Acompte' : 'Ajouter un acompte'}
+                      {isCompact ? t('payment.titleCompact') : t('payment.title')}
                     </h2>
                     {!isCompact && (
                       <p className={`text-gray-500 ${styles.subtitle}`}>
@@ -728,25 +733,25 @@ export function ModalPaiement({
                   /* Desktop : Grille 2x2 complète */
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <p className={`text-gray-500 ${styles.subtitle}`}>Client</p>
+                      <p className={`text-gray-500 ${styles.subtitle}`}>{t('payment.fieldClient')}</p>
                       <p className={`text-gray-900 font-medium ${styles.subtitle}`}>{facture.facture.nom_client}</p>
                     </div>
                     <div>
-                      <p className={`text-gray-500 ${styles.subtitle}`}>Total</p>
+                      <p className={`text-gray-500 ${styles.subtitle}`}>{t('payment.fieldTotal')}</p>
                       <p className={`text-gray-900 font-bold ${styles.subtitle}`}>
-                        {facture.facture.montant.toLocaleString('fr-FR')} F
+                        {formatNumber(facture.facture.montant, locale)} F
                       </p>
                     </div>
                     <div>
-                      <p className={`text-gray-500 ${styles.subtitle}`}>Payé</p>
+                      <p className={`text-gray-500 ${styles.subtitle}`}>{t('payment.fieldPaid')}</p>
                       <p className={`text-emerald-600 font-bold ${styles.subtitle}`}>
-                        {facture.facture.mt_acompte.toLocaleString('fr-FR')} F
+                        {formatNumber(facture.facture.mt_acompte, locale)} F
                       </p>
                     </div>
                     <div>
-                      <p className={`text-gray-500 ${styles.subtitle}`}>Reste</p>
+                      <p className={`text-gray-500 ${styles.subtitle}`}>{t('payment.fieldRemaining')}</p>
                       <p className={`text-amber-600 font-bold ${styles.subtitle}`}>
-                        {facture.facture.mt_restant.toLocaleString('fr-FR')} F
+                        {formatNumber(facture.facture.mt_restant, locale)} F
                       </p>
                     </div>
                   </div>
@@ -765,9 +770,9 @@ export function ModalPaiement({
                     </div>
                     <div className="text-right flex-shrink-0">
                       <p className={`text-amber-600 font-bold ${isCompact ? 'text-sm' : 'text-base'}`}>
-                        {facture.facture.mt_restant.toLocaleString('fr-FR')} F
+                        {formatNumber(facture.facture.mt_restant, locale)} F
                       </p>
-                      <p className={`text-gray-400 ${styles.subtitle}`}>à payer</p>
+                      <p className={`text-gray-400 ${styles.subtitle}`}>{t('payment.toPay')}</p>
                     </div>
                   </div>
                 )}
@@ -780,7 +785,7 @@ export function ModalPaiement({
                   <div className={isCompact ? 'flex-1' : ''}>
                     {!isCompact && (
                       <label className={`block text-gray-700 font-medium mb-1.5 ${styles.subtitle}`}>
-                        Montant
+                        {t('payment.amountLabel')}
                       </label>
                     )}
                     <div className="relative">
@@ -788,7 +793,7 @@ export function ModalPaiement({
                         type="number"
                         value={montantAcompte}
                         onChange={(e) => setMontantAcompte(e.target.value)}
-                        placeholder="Montant"
+                        placeholder={t('payment.amountPlaceholder')}
                         className={`
                           w-full pr-12 border border-gray-200 rounded-lg
                           focus:ring-2 focus:ring-blue-500 focus:border-transparent
@@ -811,7 +816,7 @@ export function ModalPaiement({
                       className="px-3 py-2 text-sm bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors font-medium whitespace-nowrap"
                       disabled={loading}
                     >
-                      Tout
+                      {t('payment.shortcutAll')}
                     </button>
                   ) : (
                     <div className="flex flex-wrap gap-2 mt-2">
@@ -852,13 +857,13 @@ export function ModalPaiement({
                       <div className="flex items-center">
                         <Calculator className={`${isCompact ? 'w-3 h-3' : 'w-4 h-4'} text-emerald-600 mr-1.5`} />
                         <span className={`text-emerald-700 ${styles.subtitle}`}>
-                          Reste après: <span className="font-bold text-amber-600">{montants.nouveauRestant.toLocaleString('fr-FR')} F</span>
+                          {t('payment.afterPayment')} <span className="font-bold text-amber-600">{formatNumber(montants.nouveauRestant, locale)} F</span>
                         </span>
                       </div>
                       {montants.estSoldee && (
                         <span className="inline-flex items-center px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded-full text-xs font-medium">
                           <CheckCircle className="w-3 h-3 mr-1" />
-                          Soldée
+                          {t('payment.balancedBadge')}
                         </span>
                       )}
                     </div>
@@ -870,7 +875,7 @@ export function ModalPaiement({
                   <div className="text-center">
                     <span className="inline-flex items-center px-2 py-1 bg-emerald-100 text-emerald-800 rounded-full text-xs font-medium">
                       <CheckCircle className="w-3 h-3 mr-1" />
-                      Facture soldée
+                      {t('payment.balancedInvoice')}
                     </span>
                   </div>
                 )}
@@ -905,7 +910,7 @@ export function ModalPaiement({
                     `}
                     disabled={loading}
                   >
-                    Annuler
+                    {t('payment.cancel')}
                   </button>
 
                   <button
@@ -922,7 +927,7 @@ export function ModalPaiement({
                     {loading ? (
                       <>
                         <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                        <span>Traitement...</span>
+                        <span>{t('payment.processing')}</span>
                       </>
                     ) : (
                       <>
@@ -938,7 +943,7 @@ export function ModalPaiement({
               {useIntegratedPaymentSelection && (!montants || montants.montantSaisi <= 0) && (
                 <div className={`text-center ${isCompact ? 'py-2' : 'py-3'}`}>
                   <p className={`text-gray-500 ${isCompact ? 'text-xs' : 'text-sm'}`}>
-                    {isCompact ? 'Saisissez un montant' : 'Saisissez un montant pour voir les options de paiement'}
+                    {isCompact ? t('payment.helpHintCompact') : t('payment.helpHint')}
                   </p>
                 </div>
               )}

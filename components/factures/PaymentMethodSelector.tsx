@@ -10,6 +10,7 @@ import { motion } from 'framer-motion';
 import { Banknote } from 'lucide-react';
 import { PaymentMethod } from '@/types/payment-wallet';
 import Image from 'next/image';
+import { useTranslations } from '@/hooks/useTranslations';
 
 interface PaymentMethodSelectorProps {
   onMethodAction: (method: PaymentMethod) => void;
@@ -38,6 +39,7 @@ export function PaymentMethodSelector({
   disabled = false,
   montant = 0
 }: PaymentMethodSelectorProps) {
+  const t = useTranslations('invoicesModals');
 
   // Configuration des 3 méthodes de paiement (sans FREE)
   const paymentMethods: PaymentMethodConfig[] = [
@@ -107,7 +109,7 @@ export function PaymentMethodSelector({
     <div className="space-y-4">
       {/* Titre */}
       <p className={`text-center text-gray-600 ${sizeStyles.text} mb-3`}>
-        Choisissez votre mode de paiement
+        {t('selector.choose')}
       </p>
 
       {/* Grille 3 colonnes - Style VenteFlash */}
@@ -133,7 +135,7 @@ export function PaymentMethodSelector({
               ${disabled ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-xl'}
               focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2
             `}
-            aria-label={`Payer avec ${method.name}`}
+            aria-label={t('selector.payAria', { name: method.name })}
           >
             {/* Icône ou Logo */}
             <div className={`${sizeStyles.iconContainer} bg-white/30 rounded-full flex items-center justify-center mb-2 ${method.logo ? 'p-1' : ''}`}>
@@ -179,9 +181,9 @@ export function PaymentMethodSelector({
           flex items-center justify-center
           text-gray-700 font-medium
         `}
-        aria-label="Annuler le paiement"
+        aria-label={t('selector.cancelAria')}
       >
-        Annuler
+        {t('selector.cancel')}
       </motion.button>
     </div>
   );

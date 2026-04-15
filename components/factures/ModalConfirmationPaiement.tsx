@@ -18,6 +18,9 @@ import { PaymentMethod } from '@/types/payment-wallet';
 import { FactureComplete } from '@/types/facture';
 import Image from 'next/image';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
+import { useTranslations } from '@/hooks/useTranslations';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { formatNumber } from '@/lib/format-locale';
 
 interface ModalConfirmationPaiementProps {
   isOpen: boolean;
@@ -39,40 +42,42 @@ export function ModalConfirmationPaiement({
   disabled = false
 }: ModalConfirmationPaiementProps) {
   const { isMobile } = useBreakpoint();
+  const t = useTranslations('invoicesModals');
+  const { locale } = useLanguage();
 
   // Configuration simplifiée des méthodes de paiement
   const getPaymentMethodInfo = (method: PaymentMethod) => {
     const configs = {
       'CASH': {
-        name: 'Espèces',
-        description: 'Paiement en liquide',
+        name: t('confirm.cash.name'),
+        description: t('confirm.cash.description'),
         icon: <DollarSign className="w-5 h-5" />,
         bgColor: 'bg-green-500',
-        processingTime: 'Immédiat',
+        processingTime: t('confirm.cash.processingTime'),
         logo: null
       },
       'OM': {
-        name: 'Orange Money',
-        description: 'Paiement mobile sécurisé',
+        name: t('confirm.om.name'),
+        description: t('confirm.om.description'),
         icon: <Smartphone className="w-5 h-5" />,
         bgColor: 'bg-orange-500',
-        processingTime: '1-2 minutes',
+        processingTime: t('confirm.om.processingTime'),
         logo: '/images/om.png'
       },
       'WAVE': {
-        name: 'Wave',
-        description: 'Transfert d\'argent mobile',
+        name: t('confirm.wave.name'),
+        description: t('confirm.wave.description'),
         icon: <Smartphone className="w-5 h-5" />,
         bgColor: 'bg-blue-500',
-        processingTime: '1-2 minutes',
+        processingTime: t('confirm.wave.processingTime'),
         logo: '/images/wave.png'
       },
       'FREE': {
-        name: 'Free Money',
-        description: 'Service de paiement mobile',
+        name: t('confirm.free.name'),
+        description: t('confirm.free.description'),
         icon: <Smartphone className="w-5 h-5" />,
         bgColor: 'bg-green-600',
-        processingTime: '1-2 minutes',
+        processingTime: t('confirm.free.processingTime'),
         logo: '/images/free.png'
       }
     };
@@ -112,10 +117,10 @@ export function ModalConfirmationPaiement({
                   <h2 className={`font-bold text-white ${
                     isMobile ? 'text-base' : 'text-lg'
                   }`}>
-                    Confirmer le paiement
+                    {t('confirm.title')}
                   </h2>
                   <p className="text-white/90 text-xs">
-                    Vérifiez les détails avant de procéder
+                    {t('confirm.subtitle')}
                   </p>
                 </div>
               </div>
@@ -134,16 +139,16 @@ export function ModalConfirmationPaiement({
 
             {/* Détails minimaux de la facture */}
             <div>
-              <h3 className="text-sm font-medium text-gray-700 mb-2">Détails de la facture</h3>
+              <h3 className="text-sm font-medium text-gray-700 mb-2">{t('confirm.detailsTitle')}</h3>
               <div className="flex justify-between items-center">
-                <span className="text-gray-600 text-sm">N° Facture:</span>
+                <span className="text-gray-600 text-sm">{t('confirm.labelInvoice')}</span>
                 <span className="font-medium text-sm">{facture.facture.num_facture}</span>
               </div>
             </div>
 
             {/* Section paiement compact */}
             <div>
-              <h3 className="text-sm font-medium text-gray-700 mb-3">Paiement à effectuer</h3>
+              <h3 className="text-sm font-medium text-gray-700 mb-3">{t('confirm.payTitle')}</h3>
 
               {/* Mode de paiement compact */}
               <div className="flex items-center space-x-3 mb-3">
@@ -172,15 +177,15 @@ export function ModalConfirmationPaiement({
 
               {/* Montant en valeur */}
               <div className="flex justify-between items-center mb-2">
-                <span className="text-gray-600 text-sm">Montant:</span>
+                <span className="text-gray-600 text-sm">{t('confirm.labelAmount')}</span>
                 <span className="font-bold text-lg text-blue-600">
-                  {montantAcompte.toLocaleString('fr-FR')} FCFA
+                  {formatNumber(montantAcompte, locale)} FCFA
                 </span>
               </div>
 
               {/* Timing compact */}
               <div className="flex justify-between items-center">
-                <span className="text-gray-600 text-sm">Temps de traitement:</span>
+                <span className="text-gray-600 text-sm">{t('confirm.labelProcessingTime')}</span>
                 <span className="font-medium flex items-center text-sm">
                   <Clock className="w-3 h-3 mr-1" />
                   {methodInfo.processingTime}
@@ -201,7 +206,7 @@ export function ModalConfirmationPaiement({
                   hover:bg-gray-50 transition-colors font-medium disabled:opacity-50
                 `}
               >
-                Annuler
+                {t('confirm.cancel')}
               </button>
 
               <button
@@ -217,12 +222,12 @@ export function ModalConfirmationPaiement({
                 {disabled ? (
                   <>
                     <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                    <span>Traitement...</span>
+                    <span>{t('confirm.processing')}</span>
                   </>
                 ) : (
                   <>
                     <DollarSign className="w-4 h-4" />
-                    <span>Confirmer le paiement</span>
+                    <span>{t('confirm.confirm')}</span>
                   </>
                 )}
               </button>
