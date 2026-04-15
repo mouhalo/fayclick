@@ -7,6 +7,7 @@ import DashboardSidebar from './DashboardSidebar';
 import { User } from '@/types/auth';
 import { formatAmount } from '@/utils/formatAmount';
 import { useDashboardCommerceComplet } from '@/hooks/useDashboardCommerceComplet';
+import { useTranslations } from '@/hooks/useTranslations';
 import type {
   DashboardCommerceGraphiqueJour,
   DashboardCommerceTopArticle,
@@ -58,12 +59,13 @@ function SkeletonBlock({ className }: { className?: string }) {
 
 // Composant graphique barres CSS
 function WeeklyBarChart({ data, canViewCA }: { data: DashboardCommerceGraphiqueJour[]; canViewCA: boolean }) {
+  const t = useTranslations('commerceDashboard');
   const maxMontant = Math.max(...data.map(d => d.montant), 1);
 
   return (
     <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-md p-6 border border-white/50">
       <h3 className="text-sm font-semibold text-gray-700 mb-4 uppercase tracking-wide">
-        Ventes de la semaine
+        {t('chart.title')}
       </h3>
       <div className="flex items-end justify-between gap-3 h-48">
         {data.map((d) => {
@@ -84,7 +86,11 @@ function WeeklyBarChart({ data, canViewCA }: { data: DashboardCommerceGraphiqueJ
               </div>
               <span className="text-xs font-semibold text-gray-600">{d.jour}</span>
               {d.nb_ventes > 0 && (
-                <span className="text-[10px] text-gray-400">{d.nb_ventes} vte{d.nb_ventes > 1 ? 's' : ''}</span>
+                <span className="text-[10px] text-gray-400">
+                  {d.nb_ventes > 1
+                    ? t('chart.salePlural', { count: d.nb_ventes })
+                    : t('chart.saleSingular', { count: d.nb_ventes })}
+                </span>
               )}
             </div>
           );
@@ -96,13 +102,14 @@ function WeeklyBarChart({ data, canViewCA }: { data: DashboardCommerceGraphiqueJ
 
 // Composant Top 5 Produits
 function TopProducts({ data, canViewCA }: { data: DashboardCommerceTopArticle[]; canViewCA: boolean }) {
+  const t = useTranslations('commerceDashboard');
   return (
     <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-md p-6 border border-white/50">
       <h3 className="text-sm font-semibold text-gray-700 mb-4 uppercase tracking-wide">
-        Top 5 Produits vendus
+        {t('topProducts.title')}
       </h3>
       {data.length === 0 ? (
-        <p className="text-sm text-gray-400 text-center py-4">Aucune vente sur la periode</p>
+        <p className="text-sm text-gray-400 text-center py-4">{t('topProducts.empty')}</p>
       ) : (
         <div className="space-y-3">
           {data.map((p) => (
@@ -118,7 +125,7 @@ function TopProducts({ data, canViewCA }: { data: DashboardCommerceTopArticle[];
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-gray-800 truncate">{p.nom_produit}</p>
-                <p className="text-xs text-gray-500">{p.quantite} vendus</p>
+                <p className="text-xs text-gray-500">{t('topProducts.soldCount', { count: p.quantite })}</p>
               </div>
               <span className="text-sm font-semibold text-gray-700 flex-shrink-0">
                 {canViewCA ? `${p.montant.toLocaleString('fr-FR')} F` : '***'}
@@ -133,13 +140,14 @@ function TopProducts({ data, canViewCA }: { data: DashboardCommerceTopArticle[];
 
 // Composant Top 5 Clients
 function TopClients({ data, canViewCA }: { data: DashboardCommerceTopClient[]; canViewCA: boolean }) {
+  const t = useTranslations('commerceDashboard');
   return (
     <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-md p-6 border border-white/50">
       <h3 className="text-sm font-semibold text-gray-700 mb-4 uppercase tracking-wide">
-        Top 5 Clients
+        {t('topClients.title')}
       </h3>
       {data.length === 0 ? (
-        <p className="text-sm text-gray-400 text-center py-4">Aucun client sur la periode</p>
+        <p className="text-sm text-gray-400 text-center py-4">{t('topClients.empty')}</p>
       ) : (
         <div className="space-y-3">
           {data.map((c) => (
@@ -155,7 +163,11 @@ function TopClients({ data, canViewCA }: { data: DashboardCommerceTopClient[]; c
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-gray-800 truncate">{c.nom_client}</p>
-                <p className="text-xs text-gray-500">{c.nb_factures} facture{c.nb_factures > 1 ? 's' : ''}</p>
+                <p className="text-xs text-gray-500">
+                  {c.nb_factures > 1
+                    ? t('topClients.invoicePlural', { count: c.nb_factures })
+                    : t('topClients.invoiceSingular', { count: c.nb_factures })}
+                </p>
               </div>
               <span className="text-sm font-semibold text-gray-700 flex-shrink-0">
                 {canViewCA ? `${c.montant.toLocaleString('fr-FR')} F` : '***'}
@@ -178,31 +190,32 @@ function RecentInvoices({
   onNavigate: (path: string) => void;
   canViewCA: boolean;
 }) {
+  const t = useTranslations('commerceDashboard');
   return (
     <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-md p-6 border border-white/50">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
-          Dernieres Factures
+          {t('recentInvoices.title')}
         </h3>
         <button
           onClick={() => onNavigate('/dashboard/commerce/factures')}
           className="text-xs text-green-600 hover:text-green-700 font-medium hover:underline"
         >
-          Voir tout
+          {t('recentInvoices.viewAll')}
         </button>
       </div>
       {data.length === 0 ? (
-        <p className="text-sm text-gray-400 text-center py-4">Aucune facture</p>
+        <p className="text-sm text-gray-400 text-center py-4">{t('recentInvoices.empty')}</p>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="text-xs text-gray-500 uppercase border-b border-gray-100">
-                <th className="text-left pb-2 font-medium">Ref</th>
-                <th className="text-left pb-2 font-medium">Client</th>
-                <th className="text-right pb-2 font-medium">Montant</th>
-                <th className="text-center pb-2 font-medium">Statut</th>
-                <th className="text-right pb-2 font-medium">Date</th>
+                <th className="text-left pb-2 font-medium">{t('recentInvoices.colRef')}</th>
+                <th className="text-left pb-2 font-medium">{t('recentInvoices.colClient')}</th>
+                <th className="text-right pb-2 font-medium">{t('recentInvoices.colAmount')}</th>
+                <th className="text-center pb-2 font-medium">{t('recentInvoices.colStatus')}</th>
+                <th className="text-right pb-2 font-medium">{t('recentInvoices.colDate')}</th>
               </tr>
             </thead>
             <tbody>
@@ -223,7 +236,11 @@ function RecentInvoices({
                         : 'bg-red-100 text-red-700'
                       }
                     `}>
-                      {inv.statut === 'PAYEE' ? 'Payee' : inv.statut === 'PARTIELLE' ? 'Partielle' : 'En attente'}
+                      {inv.statut === 'PAYEE'
+                        ? t('recentInvoices.statusPaid')
+                        : inv.statut === 'PARTIELLE'
+                        ? t('recentInvoices.statusPartial')
+                        : t('recentInvoices.statusPending')}
                     </span>
                   </td>
                   <td className="py-2.5 text-right text-gray-500">
@@ -241,13 +258,14 @@ function RecentInvoices({
 
 // Variation badge
 function VariationBadge({ value }: { value: number }) {
+  const t = useTranslations('commerceDashboard');
   if (value === 0) return <span className="text-xs text-gray-400">--</span>;
   const isPositive = value >= 0;
   return (
     <div className={`flex items-center gap-1 text-xs font-semibold ${isPositive ? 'text-green-600' : 'text-red-500'}`}>
       {isPositive ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />}
       <span>{isPositive ? '+' : ''}{value.toFixed(1)}%</span>
-      <span className="text-gray-400 font-normal ml-1">vs sem. dern.</span>
+      <span className="text-gray-400 font-normal ml-1">{t('variation.vsLastWeek')}</span>
     </div>
   );
 }
@@ -265,6 +283,7 @@ export default function CommerceDashboardDesktop({
   isTablet,
 }: CommerceDashboardDesktopProps) {
   const router = useRouter();
+  const t = useTranslations('commerceDashboard');
   const [showValeurStock, setShowValeurStock] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(isTablet);
 
@@ -283,7 +302,7 @@ export default function CommerceDashboardDesktop({
   // KPI config
   const kpiCards = data ? [
     {
-      label: 'Ventes du jour',
+      label: t('kpi.salesToday'),
       value: data.kpis.nb_ventes_jour,
       variation: data.kpis.variation_ventes,
       isMoney: false,
@@ -291,7 +310,7 @@ export default function CommerceDashboardDesktop({
       bg: 'bg-orange-50',
     },
     {
-      label: 'Clients du jour',
+      label: t('kpi.clientsToday'),
       value: data.kpis.nb_clients_jour,
       variation: data.kpis.variation_clients,
       isMoney: false,
@@ -299,7 +318,7 @@ export default function CommerceDashboardDesktop({
       bg: 'bg-green-50',
     },
     {
-      label: 'CA Semaine',
+      label: t('kpi.caWeek'),
       value: data.kpis.ca_semaine,
       variation: data.kpis.variation_ca,
       isMoney: true,
@@ -308,7 +327,7 @@ export default function CommerceDashboardDesktop({
       hidden: !canViewCA,
     },
     {
-      label: 'Panier Moyen',
+      label: t('kpi.avgBasket'),
       value: data.kpis.panier_moyen_semaine,
       variation: data.kpis.variation_panier,
       isMoney: true,
@@ -338,11 +357,11 @@ export default function CommerceDashboardDesktop({
           <div className="flex items-center gap-3">
             <div>
               <h1 className="text-lg font-bold text-gray-800">
-                Bon retour, <span className="text-green-700">{user.nom_structure}</span>
+                {t('welcome')} <span className="text-green-700">{user.nom_structure}</span>
               </h1>
               <div className="flex items-center gap-1.5 mt-0.5">
                 <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                <span className="text-xs text-gray-500 font-medium">En ligne</span>
+                <span className="text-xs text-gray-500 font-medium">{t('online')}</span>
               </div>
             </div>
           </div>
@@ -373,7 +392,7 @@ export default function CommerceDashboardDesktop({
               className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-xl font-semibold text-sm shadow-md hover:shadow-lg transition-all"
             >
               <Zap className="w-4 h-4" />
-              <span>Vente Flash</span>
+              <span>{t('venteFlashBtn')}</span>
             </button>
           </div>
         </header>
@@ -391,7 +410,7 @@ export default function CommerceDashboardDesktop({
                 className="flex items-center gap-1.5 px-3 py-1.5 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg text-sm font-medium transition-colors"
               >
                 <RefreshCw className="w-3.5 h-3.5" />
-                Reessayer
+                {t('retry')}
               </button>
             </div>
           )}
@@ -465,7 +484,7 @@ export default function CommerceDashboardDesktop({
             ) : data ? (
               <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-md p-6 border border-white/50">
                 <h3 className="text-sm font-semibold text-gray-700 mb-4 uppercase tracking-wide">
-                  Stats Globales
+                  {t('stats.title')}
                 </h3>
                 <div className="grid grid-cols-2 gap-4">
                   {/* Produits */}
@@ -474,7 +493,7 @@ export default function CommerceDashboardDesktop({
                     <p className="text-2xl font-bold text-gray-800">
                       <AnimatedCounter value={data.stats_globales.total_produits} />
                     </p>
-                    <p className="text-xs text-gray-600 font-semibold uppercase mt-1">Produits</p>
+                    <p className="text-xs text-gray-600 font-semibold uppercase mt-1">{t('stats.products')}</p>
                   </div>
 
                   {/* Valeur Stock */}
@@ -499,7 +518,7 @@ export default function CommerceDashboardDesktop({
                         : <span className="tracking-wider">••••••</span>
                       }
                     </p>
-                    <p className="text-xs text-gray-600 font-semibold uppercase mt-1">Valeur Stock</p>
+                    <p className="text-xs text-gray-600 font-semibold uppercase mt-1">{t('stats.stockValue')}</p>
                   </div>
 
                   {/* Ventes du mois */}
@@ -508,7 +527,7 @@ export default function CommerceDashboardDesktop({
                     <p className="text-2xl font-bold text-gray-800">
                       <AnimatedCounter value={data.stats_globales.nb_ventes_mois} />
                     </p>
-                    <p className="text-xs text-gray-600 font-semibold uppercase mt-1">Ventes du mois</p>
+                    <p className="text-xs text-gray-600 font-semibold uppercase mt-1">{t('stats.monthlySales')}</p>
                   </div>
 
                   {/* Clients actifs */}
@@ -517,7 +536,7 @@ export default function CommerceDashboardDesktop({
                     <p className="text-2xl font-bold text-gray-800">
                       <AnimatedCounter value={data.stats_globales.nb_clients_mois} />
                     </p>
-                    <p className="text-xs text-gray-600 font-semibold uppercase mt-1">Clients actifs</p>
+                    <p className="text-xs text-gray-600 font-semibold uppercase mt-1">{t('stats.activeClients')}</p>
                   </div>
 
                   {/* CA du mois (colonne pleine largeur) */}
@@ -527,7 +546,7 @@ export default function CommerceDashboardDesktop({
                       <p className="text-xl font-bold text-gray-800">
                         {data.stats_globales.ca_mois.toLocaleString('fr-FR')} F
                       </p>
-                      <p className="text-xs text-gray-600 font-semibold uppercase mt-1">CA du mois</p>
+                      <p className="text-xs text-gray-600 font-semibold uppercase mt-1">{t('stats.monthlyCA')}</p>
                     </div>
                   )}
                 </div>
@@ -569,7 +588,7 @@ export default function CommerceDashboardDesktop({
                 {/* Depenses du Mois */}
                 <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-md p-6 border border-white/50">
                   <h3 className="text-sm font-semibold text-gray-700 mb-4 uppercase tracking-wide">
-                    Depenses du Mois
+                    {t('expenses.title')}
                   </h3>
                   <div className="space-y-4">
                     <div>
@@ -580,9 +599,11 @@ export default function CommerceDashboardDesktop({
                     </div>
                     <div className="flex items-center gap-2 text-sm text-gray-500">
                       <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-gray-100 rounded-full text-xs font-medium">
-                        {data.depenses_mois.nb_depenses} depense{data.depenses_mois.nb_depenses > 1 ? 's' : ''}
+                        {data.depenses_mois.nb_depenses > 1
+                          ? t('expenses.countPlural', { count: data.depenses_mois.nb_depenses })
+                          : t('expenses.countSingular', { count: data.depenses_mois.nb_depenses })}
                       </span>
-                      <span>ce mois</span>
+                      <span>{t('expenses.thisMonth')}</span>
                     </div>
                   </div>
                 </div>

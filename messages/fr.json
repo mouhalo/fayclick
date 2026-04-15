@@ -1531,5 +1531,63 @@
       "voiceDesc": "Dictez les informations du produit",
       "comingSoon": "Bientôt"
     }
+  },
+  "commerceDashboard": {
+    "welcome": "Bon retour,",
+    "online": "En ligne",
+    "retry": "Réessayer",
+    "venteFlashBtn": "Vente Flash",
+    "kpi": {
+      "salesToday": "Ventes du jour",
+      "clientsToday": "Clients du jour",
+      "caWeek": "CA Semaine",
+      "avgBasket": "Panier Moyen"
+    },
+    "chart": {
+      "title": "Ventes de la semaine",
+      "saleSingular": "{count} vte",
+      "salePlural": "{count} vtes"
+    },
+    "topProducts": {
+      "title": "Top 5 Produits vendus",
+      "empty": "Aucune vente sur la période",
+      "soldCount": "{count} vendus"
+    },
+    "topClients": {
+      "title": "Top 5 Clients",
+      "empty": "Aucun client sur la période",
+      "invoiceSingular": "{count} facture",
+      "invoicePlural": "{count} factures"
+    },
+    "recentInvoices": {
+      "title": "Dernières Factures",
+      "viewAll": "Voir tout",
+      "empty": "Aucune facture",
+      "colRef": "Ref",
+      "colClient": "Client",
+      "colAmount": "Montant",
+      "colStatus": "Statut",
+      "colDate": "Date",
+      "statusPaid": "Payée",
+      "statusPartial": "Partielle",
+      "statusPending": "En attente"
+    },
+    "variation": {
+      "vsLastWeek": "vs sem. dern."
+    },
+    "stats": {
+      "title": "Stats Globales",
+      "products": "Produits",
+      "stockValue": "Valeur Stock",
+      "monthlySales": "Ventes du mois",
+      "activeClients": "Clients actifs",
+      "monthlyCA": "CA du mois"
+    },
+    "expenses": {
+      "title": "Dépenses du Mois",
+      "thisMonth": "ce mois",
+      "countSingular": "{count} dépense",
+      "countPlural": "{count} dépenses"
+    }
   }
 }
