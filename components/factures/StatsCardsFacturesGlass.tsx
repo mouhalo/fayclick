@@ -10,6 +10,9 @@ import { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Receipt, DollarSign, CreditCard, TrendingUp } from 'lucide-react';
 import { FactureComplete, ResumeGlobal } from '@/types/facture';
+import { useTranslations } from '@/hooks/useTranslations';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { formatNumber } from '@/lib/format-locale';
 
 interface StatsCardsFacturesGlassProps {
   factures?: FactureComplete[];
@@ -91,6 +94,8 @@ export function StatsCardsFacturesGlass({
   loading = false,
   canViewMontants = true
 }: StatsCardsFacturesGlassProps) {
+  const t = useTranslations('invoices');
+  const { locale } = useLanguage();
   // Utiliser directement les données du resume_global avec fallback sur calcul dynamique
   const stats = useMemo(() => {
     if (resumeGlobal) {
@@ -134,12 +139,15 @@ export function StatsCardsFacturesGlass({
     return factures.filter(f => (f.facture?.mt_restant || 0) > 0).length;
   }, [factures]);
 
-  const statsCards = useMemo(() => [
+  const statsCards = useMemo(() => {
+    const clientsCount = stats?.clientsUniques ?? 0;
+    const productsCount = stats?.totalProduitsDifferents ?? 0;
+    return [
     {
       id: 'total-ventes',
-      title: 'Total Ventes',
+      title: t('stats.totalSales'),
       value: stats ? `${stats.totalVentes}` : '0',
-      subtitle: stats ? `${stats.clientsUniques} clients` : '0 clients',
+      subtitle: t(clientsCount > 1 ? 'stats.clientsPlural' : 'stats.clientsSingular', { count: clientsCount }),
       icon: Receipt,
       iconColor: 'text-white',
       iconBg: 'bg-blue-500',
@@ -147,9 +155,9 @@ export function StatsCardsFacturesGlass({
     },
     {
       id: 'montant-total',
-      title: 'Montant Total',
-      value: canViewMontants ? (stats ? `${stats.montantTotal.toLocaleString('fr-FR')}` : '0') : '******',
-      subtitle: canViewMontants ? (stats ? `${stats.totalProduitsDifferents} produits` : '0 produits') : '',
+      title: t('stats.totalAmount'),
+      value: canViewMontants ? (stats ? formatNumber(stats.montantTotal, locale) : '0') : '******',
+      subtitle: canViewMontants ? t(productsCount > 1 ? 'stats.productsPlural' : 'stats.productsSingular', { count: productsCount }) : '',
       icon: DollarSign,
       iconColor: 'text-white',
       iconBg: 'bg-emerald-500',
@@ -157,8 +165,8 @@ export function StatsCardsFacturesGlass({
     },
     {
       id: 'montant-paye',
-      title: 'Montant Payé',
-      value: canViewMontants ? (stats ? `${stats.montantPaye.toLocaleString('fr-FR')}` : '0') : '******',
+      title: t('stats.paidAmount'),
+      value: canViewMontants ? (stats ? formatNumber(stats.montantPaye, locale) : '0') : '******',
       subtitle: canViewMontants ? (stats ? `${((stats.montantPaye / (stats.montantTotal || 1)) * 100).toFixed(0)}%` : '0%') : '',
       icon: CreditCard,
       iconColor: 'text-white',
@@ -167,15 +175,18 @@ export function StatsCardsFacturesGlass({
     },
     {
       id: 'restant-payer',
-      title: 'Impayés',
-      value: canViewMontants ? (stats ? `${stats.restantPayer.toLocaleString('fr-FR')}` : '0') : `${nombreImpayes}`,
-      subtitle: canViewMontants ? (stats ? `${stats.margeTotale.toLocaleString('fr-FR')} marge` : '0 marge') : 'factures impayées',
+      title: t('stats.unpaid'),
+      value: canViewMontants ? (stats ? formatNumber(stats.restantPayer, locale) : '0') : `${nombreImpayes}`,
+      subtitle: canViewMontants
+        ? t('stats.margin', { amount: stats ? formatNumber(stats.margeTotale, locale) : '0' })
+        : t('stats.unpaidInvoices'),
       icon: TrendingUp,
       iconColor: 'text-white',
       iconBg: 'bg-orange-500',
       delay: 0.3
     }
-  ], [stats, canViewMontants, nombreImpayes]);
+  ];
+  }, [stats, canViewMontants, nombreImpayes, t, locale]);
 
   if (loading) {
     return <StatsCardsFacturesGlassLoading />;

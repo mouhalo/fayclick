@@ -952,5 +952,125 @@
       "avgBasket": "Avg basket:",
       "lastOrder": "Last order:"
     }
+  },
+  "invoices": {
+    "pageTitle": "Invoice Management",
+    "pageSubtitle": "Manage your invoices and payments",
+    "pageSubtitleDesktop": "Manage your invoices and payments",
+    "loading": "Loading invoices...",
+    "loadingPlease": "Please wait",
+    "loadError": "Unable to load invoices",
+    "confirmDelete": "Are you sure you want to delete invoice {num}?",
+    "toast": {
+      "deleteSuccess": "Invoice deleted successfully",
+      "deleteError": "Unable to delete invoice",
+      "downloadStarted": "Receipt download started",
+      "downloadError": "Unable to download receipt: {error}"
+    },
+    "tabs": {
+      "invoices": "Invoices",
+      "payments": "Payments",
+      "proformas": "Proformas",
+      "lastUpdate": "Last update"
+    },
+    "stats": {
+      "totalSales": "Total Sales",
+      "totalAmount": "Total Amount",
+      "paidAmount": "Paid Amount",
+      "unpaid": "Unpaid",
+      "clientsSingular": "{count} client",
+      "clientsPlural": "{count} clients",
+      "productsSingular": "{count} product",
+      "productsPlural": "{count} products",
+      "unpaidInvoices": "unpaid invoices",
+      "margin": "{amount} margin"
+    },
+    "filters": {
+      "search": "Search invoice...",
+      "searchDesktop": "Invoice #, client, phone...",
+      "searchLabel": "Search",
+      "period": "Period",
+      "startDate": "Start date",
+      "endDate": "End date",
+      "client": "Client",
+      "clientPlaceholder": "Name...",
+      "clientPlaceholderDesktop": "Client name",
+      "phone": "Phone",
+      "phonePlaceholder": "77 123...",
+      "status": "Status",
+      "statusAll": "All",
+      "statusPaid": "Paid",
+      "statusUnpaid": "Unpaid",
+      "statusPaidOne": "Paid",
+      "statusUnpaidOne": "Unpaid",
+      "sort": "Sort",
+      "sortBy": "Sort by",
+      "sortByDate": "Date",
+      "sortByAmount": "Amount",
+      "sortByClient": "Client",
+      "sortDateDesc": "Date ↓",
+      "sortDateAsc": "Date ↑",
+      "sortAmountDesc": "Amount ↓",
+      "sortAmountAsc": "Amount ↑",
+      "sortClientAsc": "Client A-Z",
+      "sortClientDesc": "Client Z-A",
+      "reset": "Reset filters"
+    },
+    "list": {
+      "empty": "No invoice found",
+      "emptyHint": "No invoice matches your search criteria.",
+      "emptyHintDesktop": "Edit your filters to see results"
+    },
+    "card": {
+      "remise": "Discount: {amount}",
+      "remaining": "Left: {amount}",
+      "view": "View",
+      "delete": "Del.",
+      "deleteTitle": "Delete invoice",
+      "deleteTitleAdmin": "Delete invoice (ADMIN)",
+      "pay": "Pay",
+      "payTitle": "Pay",
+      "print": "Print",
+      "printTitle": "Print a document",
+      "receipt": "Receipt",
+      "receiptTitle": "View payment receipt",
+      "adminOnly": "🔒 Deletion reserved to Administrator"
+    },
+    "table": {
+      "invoice": "Invoice",
+      "client": "Client",
+      "phone": "Phone",
+      "date": "Date",
+      "amount": "Amount",
+      "status": "Status",
+      "actions": "Actions",
+      "viewDetails": "View details"
+    },
+    "pagination": {
+      "rangeInfo": "Showing {start} to {end} of {total} invoices"
+    },
+    "desktop": {
+      "venteFlash": "Quick Sale"
+    },
+    "payments": {
+      "loading": "Loading payments...",
+      "emptyTitle": "No payment recorded",
+      "emptyDescription": "Completed payments will appear here. Start by collecting an invoice to see the history.",
+      "emptyFilteredTitle": "No payment found",
+      "emptyFilteredDescription": "No payment matches your search criteria",
+      "statsTotal": "Total Payments",
+      "statsTotalSub": "receipts generated",
+      "statsAmount": "Total Amount",
+      "statsAmountSub": "collected",
+      "methodLabelCash": "Cash",
+      "methodLabelOm": "Orange Money",
+      "methodLabelWave": "Wave",
+      "methodLabelFree": "Free Money",
+      "via": "Via {method}",
+      "view": "View",
+      "viewTitle": "View receipt",
+      "download": "PDF",
+      "downloadTitle": "Download"
+    }
   }
 }

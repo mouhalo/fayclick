@@ -9,6 +9,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Receipt } from 'lucide-react';
 import { FactureCard, FactureCardSkeleton } from './FactureCard';
 import { FactureComplete } from '@/types/facture';
+import { useTranslations } from '@/hooks/useTranslations';
 
 interface FacturesListProps {
   factures: FactureComplete[];
@@ -77,6 +78,7 @@ export const FacturesList = ({
   comptePrive = false,
   canViewMontants = true
 }: FacturesListProps) => {
+  const t = useTranslations('invoices');
 
   // État de loading
   if (loading) {
@@ -120,7 +122,7 @@ export const FacturesList = ({
           transition={{ delay: 0.3 }}
           className="text-xl font-semibold text-white/80 mb-2"
         >
-          Aucune facture trouvée
+          {t('list.empty')}
         </motion.h3>
         
         <motion.p
@@ -129,7 +131,7 @@ export const FacturesList = ({
           transition={{ delay: 0.4 }}
           className="text-emerald-100/70 text-sm"
         >
-          Aucune facture ne correspond à vos critères de recherche.
+          {t('list.emptyHint')}
         </motion.p>
       </motion.div>
     );
