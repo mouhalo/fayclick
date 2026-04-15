@@ -27,6 +27,9 @@ import { FactureComplete } from '@/types/facture';
 import { ModalPaiementQRCode } from '@/components/factures/ModalPaiementQRCode';
 import { PaymentMethod, PaymentContext } from '@/types/payment-wallet';
 import PaymentFlipCard from './PaymentFlipCard';
+import { useTranslations } from '@/hooks/useTranslations';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { formatCurrency, formatDate as formatDateLocale, toBcp47 } from '@/lib/format-locale';
 
 interface FacturePubliqueClientProps {
   token: string;
@@ -34,6 +37,8 @@ interface FacturePubliqueClientProps {
 
 export default function FacturePubliqueClient({ token }: FacturePubliqueClientProps) {
   const { isMobile, isMobileLarge, isTablet, isDesktop, isDesktopLarge } = useBreakpoint();
+  const t = useTranslations('publicFacture');
+  const { locale } = useLanguage();
 
   // Déterminer le type d'écran pour les 3 breakpoints principaux
   const screenType = (isMobile || isMobileLarge) ? 'mobile' : isTablet ? 'tablet' : 'desktop';
@@ -62,7 +67,7 @@ export default function FacturePubliqueClient({ token }: FacturePubliqueClientPr
       const result = decodeFactureParams(token);
 
       if (!result || !result.id_structure || !result.id_facture) {
-        throw new Error('Token de facture invalide');
+        throw new Error(t('errorInvalidToken'));
       }
 
       const { id_structure: idStructure, id_facture: idFacture } = result;
@@ -71,7 +76,7 @@ export default function FacturePubliqueClient({ token }: FacturePubliqueClientPr
       const factureData = await facturePubliqueService.getFacturePublique(idStructure, idFacture);
 
       if (!factureData) {
-        throw new Error('Facture introuvable');
+        throw new Error(t('errorNotFound'));
       }
 
       // Assertion de type pour unknown vers FactureComplete
@@ -89,22 +94,18 @@ export default function FacturePubliqueClient({ token }: FacturePubliqueClientPr
 
     } catch (err: unknown) {
       console.error('Erreur lors du chargement de la facture:', err);
-      setError(err instanceof Error ? err.message : 'Impossible de charger la facture');
+      setError(err instanceof Error ? err.message : t('errorGeneric'));
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  }, [token, t]);
 
   useEffect(() => {
     loadFacture();
   }, [loadFacture]);
 
   const formatMontant = (montant: number): string => {
-    return new Intl.NumberFormat('fr-SN', {
-      style: 'currency',
-      currency: 'XOF',
-      minimumFractionDigits: 0
-    }).format(montant);
+    return formatCurrency(montant, locale, { devise: 'FCFA' });
   };
 
   // Fonction pour copier le numéro de facture
@@ -123,8 +124,8 @@ export default function FacturePubliqueClient({ token }: FacturePubliqueClientPr
   const handleShare = async () => {
     if (!facture) return;
     const shareData = {
-      title: `Facture ${facture.facture.num_facture}`,
-      text: `Facture de ${facture.facture.nom_structure} - ${formatMontant(facture.facture.montant)}`,
+      title: t('shareTitle', { num: facture.facture.num_facture }),
+      text: t('shareText', { structure: facture.facture.nom_structure, amount: formatMontant(facture.facture.montant) }),
       url: window.location.href
     };
     try {
@@ -132,7 +133,7 @@ export default function FacturePubliqueClient({ token }: FacturePubliqueClientPr
         await navigator.share(shareData);
       } else {
         await navigator.clipboard.writeText(window.location.href);
-        alert('Lien copié dans le presse-papier !');
+        alert(t('linkCopied'));
       }
     } catch (err) {
       console.error('Erreur partage:', err);
@@ -140,7 +141,7 @@ export default function FacturePubliqueClient({ token }: FacturePubliqueClientPr
   };
 
   const formatDate = (dateString: string): string => {
-    return new Date(dateString).toLocaleDateString('fr-SN', {
+    return new Date(dateString).toLocaleDateString(toBcp47(locale), {
       weekday: 'long',
       year: 'numeric',
       month: 'long',
@@ -256,7 +257,7 @@ export default function FacturePubliqueClient({ token }: FacturePubliqueClientPr
 
   const handleWalletPaymentFailed = (error: string) => {
     setShowQRCode(false);
-    alert(`Échec du paiement: ${error}`);
+    alert(t('paymentFailed', { error }));
   };
 
   // Styles responsifs pour les 3 breakpoints : Mobile, Tablette, PC
@@ -309,7 +310,7 @@ export default function FacturePubliqueClient({ token }: FacturePubliqueClientPr
           className="text-center"
         >
           <Loader className="w-10 h-10 text-green-600 animate-spin mx-auto mb-4" />
-          <p className="text-green-700 font-medium">Chargement de la facture...</p>
+          <p className="text-green-700 font-medium">{t('loading')}</p>
         </motion.div>
       </div>
     );
@@ -324,7 +325,7 @@ export default function FacturePubliqueClient({ token }: FacturePubliqueClientPr
           className="text-center max-w-md mx-auto px-4"
         >
           <AlertCircle className="w-14 h-14 text-red-500 mx-auto mb-4" />
-          <h1 className="text-xl font-bold text-red-800 mb-2">Erreur</h1>
+          <h1 className="text-xl font-bold text-red-800 mb-2">{t('errorTitle')}</h1>
           <p className="text-red-600 mb-4">{error}</p>
         </motion.div>
       </div>
@@ -357,7 +358,7 @@ export default function FacturePubliqueClient({ token }: FacturePubliqueClientPr
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={facture.facture.logo}
-                        alt={`Logo ${facture.facture.nom_structure}`}
+                        alt={t('logoAlt', { name: facture.facture.nom_structure })}
                         className={`${screenType === 'mobile' ? 'h-8' : 'h-10'} w-auto object-contain`}
                         onError={(e) => { e.currentTarget.style.display = 'none'; }}
                       />
@@ -373,7 +374,7 @@ export default function FacturePubliqueClient({ token }: FacturePubliqueClientPr
                     </h1>
                     <p className={`${styles.subtitle} text-white/80 flex items-center gap-1`}>
                       <Calendar className={`${screenType === 'mobile' ? 'w-3 h-3' : 'w-4 h-4'}`} />
-                      Facture émise le {formatDate(facture.facture.date_facture)}
+                      {t('issuedOn', { date: formatDate(facture.facture.date_facture) })}
                     </p>
                   </div>
                 </div>
@@ -390,7 +391,7 @@ export default function FacturePubliqueClient({ token }: FacturePubliqueClientPr
                       : 'bg-amber-100 text-amber-800 border border-amber-300'
                   } ${screenType === 'mobile' ? 'text-xs' : 'text-sm'}`}>
                     <span className={`w-2 h-2 rounded-full ${isPaid ? 'bg-green-500' : 'bg-amber-500'} animate-pulse`}></span>
-                    {isPaid ? 'Payée' : 'En attente'}
+                    {isPaid ? t('statusPaid') : t('statusPending')}
                   </span>
                 </motion.div>
               </div>
@@ -414,14 +415,14 @@ export default function FacturePubliqueClient({ token }: FacturePubliqueClientPr
                 >
                   <div className="text-green-700 font-semibold flex items-center justify-center gap-2 text-sm">
                     <Check className="w-4 h-4" />
-                    Paiement confirmé !
+                    {t('paymentConfirmed')}
                   </div>
                 </motion.div>
               )}
 
               <h3 className={`font-bold text-gray-800 mb-3 flex items-center gap-2 ${screenType === 'mobile' ? 'text-sm' : 'text-base'}`}>
                 <FileText className={`${screenType === 'mobile' ? 'w-4 h-4' : 'w-5 h-5'} text-green-600`} />
-                Infos facture
+                {t('infoTitle')}
               </h3>
 
               {/* N° Facture avec bouton Copier */}
@@ -429,7 +430,7 @@ export default function FacturePubliqueClient({ token }: FacturePubliqueClientPr
                 <div className="flex items-center gap-2">
                   <Receipt className={`${screenType === 'mobile' ? 'w-3.5 h-3.5' : 'w-4 h-4'} text-gray-500`} />
                   <span className={`font-mono font-bold text-gray-800 ${screenType === 'mobile' ? 'text-xs' : 'text-sm'}`}>
-                    N° #{facture.facture.num_facture}
+                    {t('invoiceNumber', { num: facture.facture.num_facture })}
                   </span>
                 </div>
                 <motion.button
@@ -443,7 +444,7 @@ export default function FacturePubliqueClient({ token }: FacturePubliqueClientPr
                   } ${screenType === 'mobile' ? 'text-xs' : 'text-sm'}`}
                 >
                   {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                  {copied ? 'Copié' : 'Copier'}
+                  {copied ? t('copied') : t('copy')}
                 </motion.button>
               </div>
 
@@ -451,7 +452,7 @@ export default function FacturePubliqueClient({ token }: FacturePubliqueClientPr
               <div className="flex items-center gap-2 mb-3">
                 <User className={`${screenType === 'mobile' ? 'w-3.5 h-3.5' : 'w-4 h-4'} text-gray-500`} />
                 <span className={`text-gray-700 ${screenType === 'mobile' ? 'text-xs' : 'text-sm'}`}>
-                  Client: <span className="font-medium text-gray-900">{facture.facture.nom_client}</span> · {facture.facture.tel_client}
+                  {t('clientLabel')} <span className="font-medium text-gray-900">{facture.facture.nom_client}</span> · {facture.facture.tel_client}
                 </span>
               </div>
 
@@ -464,7 +465,7 @@ export default function FacturePubliqueClient({ token }: FacturePubliqueClientPr
                   className={`flex items-center gap-1.5 py-2 px-4 bg-white border-2 border-green-500 text-green-600 hover:bg-green-50 rounded-full font-medium shadow-sm transition-all ${screenType === 'mobile' ? 'text-xs' : 'text-sm'}`}
                 >
                   <Share2 className="w-4 h-4" />
-                  Partager
+                  {t('share')}
                 </motion.button>
                 <motion.button
                   whileHover={{ scale: 1.02 }}
@@ -472,7 +473,7 @@ export default function FacturePubliqueClient({ token }: FacturePubliqueClientPr
                   className={`flex items-center gap-1.5 py-2 px-4 bg-white border-2 border-teal-500 text-teal-600 hover:bg-teal-50 rounded-full font-medium shadow-sm transition-all ${screenType === 'mobile' ? 'text-xs' : 'text-sm'}`}
                 >
                   <Download className="w-4 h-4" />
-                  Télécharger PDF
+                  {t('downloadPdf')}
                 </motion.button>
               </div>
             </div>
@@ -501,7 +502,7 @@ export default function FacturePubliqueClient({ token }: FacturePubliqueClientPr
             >
               <Package className={`${screenType === 'mobile' ? 'w-4 h-4' : 'w-5 h-5'} text-gray-600`} />
               <span className="font-medium text-gray-700">
-                {showDetails ? 'Masquer' : 'Voir'} les détails
+                {showDetails ? t('hideDetails') : t('showDetails')}
               </span>
               <motion.div
                 animate={{ rotate: showDetails ? 180 : 0 }}
@@ -517,11 +518,11 @@ export default function FacturePubliqueClient({ token }: FacturePubliqueClientPr
             <div className={`flex items-center justify-center gap-4 text-gray-500 ${screenType === 'mobile' ? 'text-xs' : 'text-sm'}`}>
               <button className="hover:text-green-600 transition-colors flex items-center gap-1">
                 <HelpCircle className="w-3.5 h-3.5" />
-                Besoin d&apos;aide ?
+                {t('help')}
               </button>
               <span>·</span>
               <button className="hover:text-green-600 transition-colors">
-                Mentions légales
+                {t('legal')}
               </button>
             </div>
             <p className={`mt-2 font-semibold text-green-600 ${screenType === 'mobile' ? 'text-xs' : 'text-sm'}`}>
@@ -550,7 +551,7 @@ export default function FacturePubliqueClient({ token }: FacturePubliqueClientPr
                 <div className="flex items-center justify-between mb-4">
                   <h3 className={`font-bold text-gray-900 flex items-center gap-2 ${screenType === 'mobile' ? 'text-sm' : 'text-base'}`}>
                     <Package className={`${screenType === 'mobile' ? 'w-4 h-4' : 'w-5 h-5'} text-green-600`} />
-                    Détails de la Commande
+                    {t('orderDetails')}
                   </h3>
 
                   <motion.button
@@ -561,7 +562,7 @@ export default function FacturePubliqueClient({ token }: FacturePubliqueClientPr
                   >
                     {showPrices ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     <span className="font-medium">
-                      {showPrices ? 'Masquer' : 'Afficher'} les prix
+                      {showPrices ? t('hidePrices') : t('showPrices')}
                     </span>
                   </motion.button>
                 </div>
@@ -571,12 +572,12 @@ export default function FacturePubliqueClient({ token }: FacturePubliqueClientPr
                   <table className="w-full">
                     <thead>
                       <tr className="border-b border-gray-200 bg-green-50/50">
-                        <th className={`text-left py-2 px-3 font-medium text-gray-900 ${screenType === 'mobile' ? 'text-xs' : 'text-sm'}`}>Produit</th>
-                        <th className={`text-center py-2 px-3 font-medium text-gray-900 ${screenType === 'mobile' ? 'text-xs' : 'text-sm'}`}>Qté</th>
+                        <th className={`text-left py-2 px-3 font-medium text-gray-900 ${screenType === 'mobile' ? 'text-xs' : 'text-sm'}`}>{t('tableProduct')}</th>
+                        <th className={`text-center py-2 px-3 font-medium text-gray-900 ${screenType === 'mobile' ? 'text-xs' : 'text-sm'}`}>{t('tableQty')}</th>
                         {showPrices && (
                           <>
-                            <th className={`text-right py-2 px-3 font-medium text-gray-900 ${screenType === 'mobile' ? 'text-xs' : 'text-sm'}`}>Prix Unit.</th>
-                            <th className={`text-right py-2 px-3 font-medium text-gray-900 ${screenType === 'mobile' ? 'text-xs' : 'text-sm'}`}>Total</th>
+                            <th className={`text-right py-2 px-3 font-medium text-gray-900 ${screenType === 'mobile' ? 'text-xs' : 'text-sm'}`}>{t('tableUnitPrice')}</th>
+                            <th className={`text-right py-2 px-3 font-medium text-gray-900 ${screenType === 'mobile' ? 'text-xs' : 'text-sm'}`}>{t('tableTotal')}</th>
                           </>
                         )}
                       </tr>
@@ -593,7 +594,7 @@ export default function FacturePubliqueClient({ token }: FacturePubliqueClientPr
                           <td className="py-3 px-3">
                             <div>
                               <p className={`font-medium text-gray-900 ${screenType === 'mobile' ? 'text-xs' : 'text-sm'}`}>{item.nom_produit}</p>
-                              <p className={`text-gray-500 ${screenType === 'mobile' ? 'text-[10px]' : 'text-xs'}`}>Code: {item.id_produit}</p>
+                              <p className={`text-gray-500 ${screenType === 'mobile' ? 'text-[10px]' : 'text-xs'}`}>{t('productCode', { id: item.id_produit })}</p>
                             </div>
                           </td>
                           <td className="text-center py-3 px-3 font-medium">
@@ -618,7 +619,7 @@ export default function FacturePubliqueClient({ token }: FacturePubliqueClientPr
                       <tfoot>
                         <tr className="border-t-2 border-gray-300 bg-gradient-to-r from-green-50 to-emerald-50">
                           <td colSpan={3} className={`text-right py-3 px-3 font-bold text-gray-900 ${screenType === 'mobile' ? 'text-sm' : 'text-base'}`}>
-                            Total Général:
+                            {t('grandTotal')}
                           </td>
                           <td className={`text-right py-3 px-3 font-bold text-green-600 ${screenType === 'mobile' ? 'text-base' : 'text-lg'}`}>
                             {formatMontant(facture.facture.montant)}
@@ -633,7 +634,7 @@ export default function FacturePubliqueClient({ token }: FacturePubliqueClientPr
                   <div className="mt-4 text-center p-3 bg-amber-50 rounded-lg border border-amber-200">
                     <p className={`text-amber-800 ${screenType === 'mobile' ? 'text-xs' : 'text-sm'}`}>
                       <Eye className="w-3 h-3 inline mr-2" />
-                      Les prix sont masqués. Cliquez sur &ldquo;Afficher les prix&rdquo; pour les consulter.
+                      {t('pricesHidden')}
                     </p>
                   </div>
                 )}
