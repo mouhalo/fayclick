@@ -1383,6 +1383,13 @@
       "collapse": "Cliquez pour replier",
       "expand": "Cliquez pour voir les détails"
     },
+    "statsCards": {
+      "marchandisePA": "Valeur Marchandise (PA)",
+      "stockPV": "Valeur Stock (PV)",
+      "ventesRealisees": "Valeur Ventes réalisées",
+      "beneficePotentiel": "Bénéfice Potentiel",
+      "totalArticles": "Total Articles: {count}"
+    },
     "error": {
       "loadingTitle": "Erreur de chargement"
     },
@@ -1589,5 +1596,33 @@
       "countSingular": "{count} dépense",
       "countPlural": "{count} dépenses"
     }
+  },
+  "pagination": {
+    "showing": "Affichage de {total} {label}",
+    "showingRange": "Affichage de {start} à {end} sur {total} {label}",
+    "previous": "Précédent",
+    "next": "Suivant"
+  },
+  "panier": {
+    "title": "Mon Panier",
+    "dragHint": "Glisser pour déplacer",
+    "empty": "Panier vide",
+    "emptyHint": "Ajoutez des produits depuis la grille",
+    "loyalizeClient": "Fidéliser le client",
+    "unitPrice": "Prix unitaire",
+    "subtotal": "Sous-total",
+    "quantity": "Quantité",
+    "calculations": "Calculs",
+    "discount": "Remise",
+    "discountWithPct": "Remise ({pct}%)",
+    "total": "Total",
+    "subtotalColon": "Sous-total :",
+    "discountColon": "Remise :",
+    "totalColon": "Total :",
+    "validate": "Valider la vente",
+    "clear": "Vider le panier",
+    "clientSearch": "Rechercher client",
+    "itemSingular": "{count} article",
+    "itemPlural": "{count} articles"
   }
 }
