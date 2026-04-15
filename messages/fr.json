@@ -682,5 +682,88 @@
       "deleteBtn": "Supprimer",
       "deleteBlocked": "Impossible : dépenses associées"
     }
+  },
+  "inventory": {
+    "title": "Statistiques Inventaires",
+    "subtitle": "Analyse des performances",
+    "loading": "Chargement des statistiques...",
+    "errorLoadTitle": "Erreur de chargement",
+    "errorLoadDefault": "Impossible de charger les statistiques",
+    "retry": "Réessayer",
+    "backAria": "Retour",
+    "exportAria": "Exporter",
+    "calendarAria": "Sélectionner période",
+    "exportWip": "Fonctionnalité d'export en cours de développement",
+    "tabs": {
+      "week": "Semaine",
+      "month": "Mois",
+      "year": "Année"
+    },
+    "variation": {
+      "vsWeek": "vs semaine dernière",
+      "vsMonth": "vs mois dernier",
+      "vsYear": "vs année dernière"
+    },
+    "summary": {
+      "title": "Résumé des ventes",
+      "caTotal": "CA Total (FCFA)",
+      "salesTotal": "Ventes Total",
+      "avgBasket": "Panier Moyen (FCFA)",
+      "activeClients": "Clients Actifs"
+    },
+    "topArticles": {
+      "title": "Meilleurs articles",
+      "empty": "Aucun article vendu",
+      "saleSingular": "{count} vente",
+      "salePlural": "{count} ventes",
+      "unitSingular": "{count} unité",
+      "unitPlural": "{count} unités"
+    },
+    "topClients": {
+      "title": "Meilleurs clients",
+      "empty": "Aucun client sur cette période",
+      "orderSingular": "{count} cmd",
+      "orderPlural": "{count} cmds"
+    },
+    "chart": {
+      "title": "Évolution des Ventes",
+      "titleWithPeriod": "Évolution des Ventes - {period}",
+      "empty": "Aucune donnée disponible pour cette période",
+      "tooltipSaleSingular": "{count} vente",
+      "tooltipSalePlural": "{count} ventes"
+    },
+    "period": {
+      "generatedAt": "Statistiques générées le {date}",
+      "rangeInfo": "Période du {start} au {end}"
+    },
+    "periodModal": {
+      "title": "Sélection Période",
+      "subtitle": "Choisissez la période à afficher",
+      "year": "Année",
+      "month": "Mois",
+      "week": "Semaine",
+      "weekHint": "(liée au mois)",
+      "day": "Jour",
+      "dayHint": "({count} jours en {month})",
+      "weekOption": "Semaine {num}",
+      "selected": "Période sélectionnée :",
+      "selectedSummary": "{day} {month} {year} - Semaine {week}",
+      "cancel": "Annuler",
+      "validate": "Valider",
+      "months": {
+        "1": "Janvier",
+        "2": "Février",
+        "3": "Mars",
+        "4": "Avril",
+        "5": "Mai",
+        "6": "Juin",
+        "7": "Juillet",
+        "8": "Août",
+        "9": "Septembre",
+        "10": "Octobre",
+        "11": "Novembre",
+        "12": "Décembre"
+      }
+    }
   }
 }

@@ -2,6 +2,7 @@
 
 import { ArrowLeft, Download, BarChart3, Calendar } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useTranslations } from '@/hooks/useTranslations';
 
 interface InventaireHeaderProps {
   onExport: () => void;
@@ -14,6 +15,7 @@ interface InventaireHeaderProps {
  * Design vert glassmorphism avec boutons d'action
  */
 export default function InventaireHeader({ onExport, onBack, onCalendar }: InventaireHeaderProps) {
+  const t = useTranslations('inventory');
   return (
     <div className="relative bg-gradient-to-br from-emerald-500 via-emerald-600 to-teal-600 pb-4 pt-3 px-4">
       {/* Motif de fond */}
@@ -28,7 +30,7 @@ export default function InventaireHeader({ onExport, onBack, onCalendar }: Inven
           onClick={onBack}
           className="flex items-center justify-center w-9 h-9 rounded-xl bg-white/20 backdrop-blur-md
                      hover:bg-white/30 transition-all duration-200 shadow-lg"
-          aria-label="Retour"
+          aria-label={t('backAria')}
         >
           <ArrowLeft className="w-4 h-4 text-white" />
         </motion.button>
@@ -54,7 +56,7 @@ export default function InventaireHeader({ onExport, onBack, onCalendar }: Inven
               transition={{ delay: 0.1 }}
               className="text-base font-bold text-white leading-tight drop-shadow-lg"
             >
-              Statistiques Inventaires
+              {t('title')}
             </motion.h1>
             <motion.p
               initial={{ opacity: 0, x: -10 }}
@@ -62,7 +64,7 @@ export default function InventaireHeader({ onExport, onBack, onCalendar }: Inven
               transition={{ delay: 0.2 }}
               className="text-xs text-emerald-100 font-medium drop-shadow"
             >
-              Analyse des performances
+              {t('subtitle')}
             </motion.p>
           </div>
         </div>
@@ -75,7 +77,7 @@ export default function InventaireHeader({ onExport, onBack, onCalendar }: Inven
             onClick={onExport}
             className="flex items-center justify-center w-9 h-9 rounded-xl bg-white/20 backdrop-blur-md
                        hover:bg-white/30 transition-all duration-200 shadow-lg"
-            aria-label="Exporter"
+            aria-label={t('exportAria')}
           >
             <Download className="w-4 h-4 text-white" />
           </motion.button>
@@ -86,7 +88,7 @@ export default function InventaireHeader({ onExport, onBack, onCalendar }: Inven
             onClick={onCalendar}
             className="flex items-center justify-center w-9 h-9 rounded-xl bg-white/20 backdrop-blur-md
                        hover:bg-white/30 transition-all duration-200 shadow-lg"
-            aria-label="Sélectionner période"
+            aria-label={t('calendarAria')}
           >
             <Calendar className="w-4 h-4 text-white" />
           </motion.button>

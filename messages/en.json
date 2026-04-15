@@ -682,5 +682,88 @@
       "deleteBtn": "Delete",
       "deleteBlocked": "Cannot delete: linked expenses"
     }
+  },
+  "inventory": {
+    "title": "Inventory Statistics",
+    "subtitle": "Performance analysis",
+    "loading": "Loading statistics...",
+    "errorLoadTitle": "Loading error",
+    "errorLoadDefault": "Unable to load statistics",
+    "retry": "Retry",
+    "backAria": "Back",
+    "exportAria": "Export",
+    "calendarAria": "Select period",
+    "exportWip": "Export feature under development",
+    "tabs": {
+      "week": "Week",
+      "month": "Month",
+      "year": "Year"
+    },
+    "variation": {
+      "vsWeek": "vs last week",
+      "vsMonth": "vs last month",
+      "vsYear": "vs last year"
+    },
+    "summary": {
+      "title": "Sales summary",
+      "caTotal": "Total Revenue (FCFA)",
+      "salesTotal": "Total Sales",
+      "avgBasket": "Avg Basket (FCFA)",
+      "activeClients": "Active Clients"
+    },
+    "topArticles": {
+      "title": "Top articles",
+      "empty": "No article sold",
+      "saleSingular": "{count} sale",
+      "salePlural": "{count} sales",
+      "unitSingular": "{count} unit",
+      "unitPlural": "{count} units"
+    },
+    "topClients": {
+      "title": "Top clients",
+      "empty": "No client in this period",
+      "orderSingular": "{count} order",
+      "orderPlural": "{count} orders"
+    },
+    "chart": {
+      "title": "Sales Trend",
+      "titleWithPeriod": "Sales Trend - {period}",
+      "empty": "No data available for this period",
+      "tooltipSaleSingular": "{count} sale",
+      "tooltipSalePlural": "{count} sales"
+    },
+    "period": {
+      "generatedAt": "Statistics generated on {date}",
+      "rangeInfo": "Period from {start} to {end}"
+    },
+    "periodModal": {
+      "title": "Period Selection",
+      "subtitle": "Choose the period to display",
+      "year": "Year",
+      "month": "Month",
+      "week": "Week",
+      "weekHint": "(linked to month)",
+      "day": "Day",
+      "dayHint": "({count} days in {month})",
+      "weekOption": "Week {num}",
+      "selected": "Selected period:",
+      "selectedSummary": "{day} {month} {year} - Week {week}",
+      "cancel": "Cancel",
+      "validate": "Confirm",
+      "months": {
+        "1": "January",
+        "2": "February",
+        "3": "March",
+        "4": "April",
+        "5": "May",
+        "6": "June",
+        "7": "July",
+        "8": "August",
+        "9": "September",
+        "10": "October",
+        "11": "November",
+        "12": "December"
+      }
+    }
   }
 }

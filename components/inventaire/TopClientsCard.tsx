@@ -4,6 +4,9 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Users, Phone, Crown, Star, User, ChevronDown } from 'lucide-react';
 import type { TopClient } from '@/types/inventaire.types';
+import { useTranslations } from '@/hooks/useTranslations';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { formatNumber } from '@/lib/format-locale';
 
 interface TopClientsCardProps {
   clients: TopClient[];
@@ -15,6 +18,8 @@ interface TopClientsCardProps {
  * Design compact en zone répétée pour une meilleure lisibilité
  */
 export default function TopClientsCard({ clients, defaultExpanded = true }: TopClientsCardProps) {
+  const t = useTranslations('inventory');
+  const { locale } = useLanguage();
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
 
   // Calcul du total pour l'aperçu replié
@@ -82,7 +87,7 @@ export default function TopClientsCard({ clients, defaultExpanded = true }: TopC
       >
         <div className="flex items-center gap-2">
           <Users className="w-5 h-5 text-emerald-600" />
-          <h3 className="text-base font-bold text-gray-800">Meilleurs clients</h3>
+          <h3 className="text-base font-bold text-gray-800">{t('topClients.title')}</h3>
           <span className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
             {clients?.length || 0}
           </span>
@@ -90,7 +95,7 @@ export default function TopClientsCard({ clients, defaultExpanded = true }: TopC
         <div className="flex items-center gap-2">
           {!isExpanded && (
             <span className="text-xs text-emerald-600 font-semibold">
-              {totalMontant.toLocaleString('fr-FR')} F
+              {formatNumber(totalMontant, locale)} F
             </span>
           )}
           <motion.div
@@ -147,7 +152,7 @@ export default function TopClientsCard({ clients, defaultExpanded = true }: TopC
                         {/* Montant */}
                         <div className="flex-shrink-0 text-right">
                           <p className="font-bold text-emerald-600 text-sm whitespace-nowrap">
-                            {client.montant_total.toLocaleString('fr-FR')} F
+                            {formatNumber(client.montant_total, locale)} F
                           </p>
                         </div>
                       </div>
@@ -168,7 +173,7 @@ export default function TopClientsCard({ clients, defaultExpanded = true }: TopC
                         </div>
                         {/* Commandes */}
                         <span className="text-xs text-gray-400">
-                          {client.nombre_factures} cmd{client.nombre_factures > 1 ? 's' : ''}
+                          {t(client.nombre_factures > 1 ? 'topClients.orderPlural' : 'topClients.orderSingular', { count: client.nombre_factures })}
                         </span>
                       </div>
                     </motion.div>
@@ -178,7 +183,7 @@ export default function TopClientsCard({ clients, defaultExpanded = true }: TopC
             ) : (
               <div className="flex flex-col items-center justify-center py-8 text-gray-500">
                 <Users className="w-10 h-10 mb-2 opacity-30" />
-                <p className="text-xs">Aucun client sur cette période</p>
+                <p className="text-xs">{t('topClients.empty')}</p>
               </div>
             )}
           </motion.div>

@@ -3,6 +3,9 @@
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { motion } from 'framer-motion';
 import type { EvolutionVente } from '@/types/inventaire.types';
+import { useTranslations } from '@/hooks/useTranslations';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { formatNumber } from '@/lib/format-locale';
 
 interface EvolutionChartProps {
   data: EvolutionVente[];
@@ -13,19 +16,23 @@ interface EvolutionChartProps {
  * Graphique d'évolution des ventes avec barres vertes
  * Affiche le montant des ventes sur une période donnée
  */
-export default function EvolutionChart({ data, titre = 'Évolution des Ventes' }: EvolutionChartProps) {
+export default function EvolutionChart({ data, titre }: EvolutionChartProps) {
+  const t = useTranslations('inventory');
+  const { locale } = useLanguage();
+  const displayTitle = titre ?? t('chart.title');
+
   // Tooltip personnalisé
   const CustomTooltip = ({ active, payload }: {active?: boolean; payload?: unknown[]}) => {
     if (active && payload && payload.length) {
-      const data = payload[0].payload as EvolutionVente;
+      const data = (payload[0] as { payload: EvolutionVente }).payload;
       return (
         <div className="bg-white p-4 rounded-lg shadow-xl border-2 border-emerald-500">
           <p className="font-semibold text-gray-800 mb-2">{data.label}</p>
           <p className="text-emerald-600 font-bold text-lg">
-            {data.montant.toLocaleString('fr-FR')} FCFA
+            {formatNumber(data.montant, locale)} FCFA
           </p>
           <p className="text-gray-600 text-sm mt-1">
-            {data.nombre_ventes} {data.nombre_ventes > 1 ? 'ventes' : 'vente'}
+            {t(data.nombre_ventes > 1 ? 'chart.tooltipSalePlural' : 'chart.tooltipSaleSingular', { count: data.nombre_ventes })}
           </p>
         </div>
       );
@@ -46,7 +53,7 @@ export default function EvolutionChart({ data, titre = 'Évolution des Ventes' }
       {/* Titre */}
       <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
         <div className="w-1 h-6 bg-emerald-500 rounded-full"></div>
-        {titre}
+        {displayTitle}
       </h3>
 
       {/* Graphique */}
@@ -77,7 +84,7 @@ export default function EvolutionChart({ data, titre = 'Évolution des Ventes' }
         </ResponsiveContainer>
       ) : (
         <div className="h-64 flex items-center justify-center text-gray-500">
-          <p>Aucune donnée disponible pour cette période</p>
+          <p>{t('chart.empty')}</p>
         </div>
       )}
     </motion.div>
