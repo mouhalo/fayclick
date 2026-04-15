@@ -1743,5 +1743,17 @@
       "confirm": "Confirm",
       "add": "Add"
     }
+  },
+  "sidebar": {
+    "dashboard": "Dashboard",
+    "profile": "My Profile",
+    "products": "My Products",
+    "invoices": "My Invoices",
+    "clients": "My Clients",
+    "expenses": "My Expenses",
+    "vault": "My Vault",
+    "insights": "Insights",
+    "settings": "Settings",
+    "logout": "Logout"
   }
 }
