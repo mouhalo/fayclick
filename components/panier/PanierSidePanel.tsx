@@ -512,7 +512,7 @@ export function PanierSidePanel({ onSuccess, onClose }: PanierSidePanelProps) {
                   className="bg-gradient-to-r from-red-500 to-red-600 text-white font-semibold py-3 rounded-xl shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 text-sm"
                 >
                   <XCircle className="w-4 h-4" />
-                  Annuler
+                  {t('cancelBtn')}
                 </motion.button>
 
                 <motion.button
@@ -529,17 +529,17 @@ export function PanierSidePanel({ onSuccess, onClose }: PanierSidePanelProps) {
                   {isLoading ? (
                     <>
                       <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      Traitement...
+                      {t('processingBtn')}
                     </>
                   ) : isProforma ? (
                     <>
                       <FileCheck className="w-4 h-4" />
-                      Proforma
+                      {t('proformaBtn')}
                     </>
                   ) : (
                     <>
                       <CreditCard className="w-4 h-4" />
-                      Commander
+                      {t('orderBtn')}
                     </>
                   )}
                 </motion.button>

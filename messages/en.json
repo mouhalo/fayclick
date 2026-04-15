@@ -1719,6 +1719,10 @@
     "clientSearch": "Search client",
     "itemSingular": "{count} item",
     "itemPlural": "{count} items",
+    "cancelBtn": "Cancel",
+    "orderBtn": "Order",
+    "processingBtn": "Processing...",
+    "proformaBtn": "Proforma",
     "clientSearch": {
       "titleSearch": "Search for a client",
       "titleNew": "New client",
