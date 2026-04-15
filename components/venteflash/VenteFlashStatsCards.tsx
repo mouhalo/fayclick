@@ -8,6 +8,7 @@
 import { motion } from 'framer-motion';
 import { Receipt, TrendingUp, DollarSign } from 'lucide-react';
 import { VenteFlashStats } from '@/types/venteflash.types';
+import { useTranslations } from '@/hooks/useTranslations';
 
 interface VenteFlashStatsCardsProps {
   stats: VenteFlashStats;
@@ -18,10 +19,12 @@ export function VenteFlashStatsCards({
   stats,
   isLoading = false
 }: VenteFlashStatsCardsProps) {
+  const t = useTranslations('venteFlash');
+
   const statsData = [
     {
       id: 'nb_ventes',
-      label: 'Nombre de ventes',
+      label: t('stats.nbSales'),
       value: stats.nb_ventes,
       subValue: null,
       icon: Receipt,
@@ -31,9 +34,9 @@ export function VenteFlashStatsCards({
     },
     {
       id: 'total_ventes',
-      label: 'Total ventes',
+      label: t('stats.totalSales'),
       value: `${stats.total_ventes.toLocaleString('fr-FR')} FCFA`,
-      subValue: stats.total_remises > 0 ? `Remises: ${stats.total_remises.toLocaleString('fr-FR')} F` : null,
+      subValue: stats.total_remises > 0 ? t('stats.discountsLabel', { amount: stats.total_remises.toLocaleString('fr-FR') }) : null,
       icon: TrendingUp,
       color: 'green',
       gradient: 'from-green-500 to-green-600',
@@ -41,7 +44,7 @@ export function VenteFlashStatsCards({
     },
     {
       id: 'ca_jour',
-      label: 'CA du jour',
+      label: t('stats.dayCA'),
       value: `${stats.ca_jour.toLocaleString('fr-FR')} FCFA`,
       subValue: null,
       icon: DollarSign,

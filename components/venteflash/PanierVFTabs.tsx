@@ -9,6 +9,7 @@
 import { motion } from 'framer-motion';
 import { Plus, X } from 'lucide-react';
 import { usePanierVFMultiStore, PanierVF } from '@/stores/panierVFMultiStore';
+import { useTranslations } from '@/hooks/useTranslations';
 
 interface PanierVFTabsProps {
   /** Bloque le changement d'onglet (ex: modal quantité ouvert) */
@@ -25,6 +26,7 @@ export function PanierVFTabs({ switchDisabled = false }: PanierVFTabsProps) {
     getPanierCount
   } = usePanierVFMultiStore();
 
+  const t = useTranslations('venteFlash');
   const count = getPanierCount();
 
   // Ne rien afficher si aucun panier
@@ -66,7 +68,7 @@ export function PanierVFTabs({ switchDisabled = false }: PanierVFTabsProps) {
     if (switchDisabled) return;
     const panier = paniers.find(p => p.id === id);
     if (panier && panier.articles.length > 0) {
-      if (!confirm(`Ce panier contient ${panier.articles.length} article(s). Fermer quand même ?`)) return;
+      if (!confirm(t('tabs.closeConfirm', { count: panier.articles.length }))) return;
     }
     closePanier(id);
   };
@@ -106,7 +108,7 @@ export function PanierVFTabs({ switchDisabled = false }: PanierVFTabsProps) {
                   <span className={`text-xs font-semibold truncate ${
                     isActive ? 'text-green-700' : 'text-gray-600'
                   }`}>
-                    {formatTime(panier.id)} — {itemCount} art.
+                    {formatTime(panier.id)} — {t('tabs.itemCount', { count: itemCount })}
                   </span>
                 </div>
                 <div className={`text-xs mt-0.5 pl-3.5 font-medium ${
@@ -125,7 +127,7 @@ export function PanierVFTabs({ switchDisabled = false }: PanierVFTabsProps) {
                     transition-colors mt-0.5
                     hover:bg-red-100 text-gray-400 hover:text-red-500
                   "
-                  title="Fermer ce panier"
+                  title={t('tabs.closeTitle')}
                 >
                   <X className="w-3 h-3" />
                 </button>
@@ -148,11 +150,11 @@ export function PanierVFTabs({ switchDisabled = false }: PanierVFTabsProps) {
             : 'bg-gray-50 border-gray-200 text-gray-400 cursor-not-allowed'
           }
         `}
-        title={canCreateNew ? 'Nouveau panier' : 'Maximum 3 paniers'}
+        title={canCreateNew ? t('tabs.newCart') : t('tabs.maxCarts')}
       >
         <Plus className="w-4 h-4" />
         {!canCreateNew && (
-          <span className="text-[10px] font-medium whitespace-nowrap">Max 3</span>
+          <span className="text-[10px] font-medium whitespace-nowrap">{t('tabs.maxLabel')}</span>
         )}
       </motion.button>
     </div>

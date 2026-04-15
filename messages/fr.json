@@ -1217,5 +1217,159 @@
       "paymentFailedShort": "Paiement échoué",
       "creationError": "Erreur lors de la création du paiement"
     }
+  },
+  "venteFlash": {
+    "loading": "Chargement...",
+    "back": "Retour",
+    "toasts": {
+      "passwordRequired": "Mot de passe requis",
+      "passwordRequiredMsg": "Veuillez d'abord modifier votre mot de passe initial pour effectuer des ventes.",
+      "noStock": "Stock insuffisant",
+      "noStockMsg": "{name} n'est plus en stock",
+      "addedToCart": "Ajouté au panier",
+      "addedToCartMsg": "{qty} x {name}",
+      "deleteSuccess": "Suppression réussie",
+      "deleteSuccessMsg": "La facture a été supprimée",
+      "deleteError": "Impossible de supprimer la facture",
+      "saleNotFound": "Vente non trouvée",
+      "printError": "Impossible d'ouvrir la fenêtre d'impression",
+      "error": "Erreur",
+      "deleteForbidden": "Suppression impossible"
+    },
+    "header": {
+      "title": "Vente Flash",
+      "printTitle": "Imprimer le rapport du jour",
+      "refreshTitle": "Actualiser les données",
+      "searchPlaceholder": "Nom produit ou code-barres...",
+      "productNotFound": "Aucun produit trouvé avec le code-barre: {code}",
+      "stockLabel": "Stock: {count}",
+      "available": "Disponible",
+      "outOfStock": "Rupture"
+    },
+    "report": {
+      "title": "Rapport Ventes Flash",
+      "cashier": "Caissier",
+      "nbSales": "Nombre de ventes",
+      "uniqueArticles": "Articles uniques",
+      "totalSales": "Total ventes",
+      "discounts": "Remises",
+      "dayCA": "CA du jour",
+      "sectionTitle": "Détail des ventes ({count} articles uniques)",
+      "colProduct": "Nom Produit",
+      "colQty": "Quantité",
+      "colUnit": "Prix Unit.",
+      "colTotal": "Total",
+      "footerGenerated": "Document généré le",
+      "footerBrand": "FayClick - La Super App des Marchands"
+    },
+    "quantityModal": {
+      "stockAvailable": "Stock disponible",
+      "stockUnit": "unités",
+      "pricePublic": "Public",
+      "priceGros": "Gros",
+      "subtotal": "Sous-total",
+      "cancel": "Annuler",
+      "add": "Ajouter"
+    },
+    "barcodeModal": {
+      "title": "Plusieurs produits trouvés",
+      "subtitle": "{count} produits avec ce code-barres",
+      "noCategory": "Sans catégorie",
+      "outOfStock": "Rupture",
+      "stockLabel": "Stock: {count}",
+      "cancel": "Annuler"
+    },
+    "stats": {
+      "nbSales": "Nombre de ventes",
+      "totalSales": "Total ventes",
+      "discountsLabel": "Remises: {amount} F",
+      "dayCA": "CA du jour"
+    },
+    "salesList": {
+      "empty": "Aucune vente aujourd'hui",
+      "emptyHint": "Les ventes de la journée apparaîtront ici",
+      "titleWithCount": "Ventes du jour ({count})"
+    },
+    "saleCard": {
+      "details": "Détails",
+      "delete": "Supprimer",
+      "receipt": "Reçu",
+      "invoice": "Facture",
+      "confirmDelete": "Supprimer la facture #{num} ?\nCette action est irréversible.",
+      "soldItems": "Articles vendus",
+      "noDetails": "Aucun détail disponible",
+      "discount": "Remise : {amount} F"
+    },
+    "cart": {
+      "title": "Panier",
+      "itemSingular": "{count} article",
+      "itemPlural": "{count} articles",
+      "emptyConfirm": "Vider le panier et annuler la vente ?",
+      "cartEmpty": "Panier vide",
+      "cartEmptyHint": "Ajoutez des produits avant de procéder",
+      "discount": "Remise",
+      "discountWithPct": "Remise ({pct}%)",
+      "perArticleDiscount": "Remise:",
+      "subtotal": "Sous-total",
+      "total": "TOTAL",
+      "cancel": "Annuler",
+      "checkout": "Encaisser",
+      "processing": "Traitement...",
+      "grossBadge": "GROS",
+      "saleError": "Erreur lors de la vente",
+      "userNotConnected": "Utilisateur non connecté"
+    },
+    "tabs": {
+      "itemCount": "{count} art.",
+      "closeConfirm": "Ce panier contient {count} article(s). Fermer quand même ?",
+      "closeTitle": "Fermer ce panier",
+      "newCart": "Nouveau panier",
+      "maxCarts": "Maximum 3 paniers",
+      "maxLabel": "Max 3"
+    },
+    "checkout": {
+      "title": "Encaissement",
+      "chooseMethod": "Choisissez le mode de paiement",
+      "cashChange": "Monnaie: {amount}F",
+      "cashMissing": "Manque: {amount}F",
+      "cashTotal": "Total: {amount}F",
+      "confirm": "Confirmer",
+      "waiting": "En attente...",
+      "cancel": "Annuler",
+      "success": "Confirmé !",
+      "failed": "Échec",
+      "retry": "Réessayer",
+      "timeout": "Temps expiré",
+      "close": "Fermer",
+      "minAmount": "Minimum {amount} F",
+      "phoneRequired": "9 chiffres requis",
+      "omPhoneError": "Doit commencer par 77 ou 78",
+      "wavePhoneError": "Numéro invalide",
+      "paymentFailed": "Le paiement a échoué",
+      "openWave": "Ouvrir Wave"
+    },
+    "receipt": {
+      "paymentConfirmed": "Paiement Confirmé",
+      "receiptTitle": "REÇU DE VENTE",
+      "labelNumber": "N°",
+      "labelDate": "Date",
+      "labelClient": "Client",
+      "labelPayment": "Paiement",
+      "labelTotal": "TOTAL",
+      "labelChange": "Monnaie",
+      "btnTicket": "Ticket",
+      "btnWhatsapp": "WhatsApp",
+      "btnClose": "Fermer",
+      "autoClose": "Fermeture dans {count}s - Cliquez pour annuler",
+      "methodCash": "Espèces",
+      "methodOM": "Orange Money",
+      "methodWave": "Wave",
+      "anonymous": "ANONYME"
+    },
+    "refresh": {
+      "title": "Rafraîchissement en cours...",
+      "subtitle": "Mise à jour des données",
+      "hint": "Veuillez patienter quelques instants"
+    }
   }
 }

@@ -28,9 +28,11 @@ import { ModalRecuVenteFlash } from '@/components/venteflash/ModalRecuVenteFlash
 import { ModalRefresh } from '@/components/venteflash/ModalRefresh';
 import MainMenu from '@/components/layout/MainMenu';
 import { useSalesRules } from '@/hooks/useSalesRules';
+import { useTranslations } from '@/hooks/useTranslations';
 
 export default function VenteFlashPage() {
   const router = useRouter();
+  const t = useTranslations('venteFlash');
   const { showToast, ToastComponent } = useToast();
   const { addArticle, getTotalItems, clearPanier } = usePanierStore();
   const salesRules = useSalesRules();
@@ -471,14 +473,14 @@ export default function VenteFlashPage() {
   const handleAddToPanier = useCallback((produit: Produit) => {
     // Vérifier que le mot de passe a été changé
     if (user && user.pwd_changed === false) {
-      showToast('warning', 'Mot de passe requis', 'Veuillez d\'abord modifier votre mot de passe initial pour effectuer des ventes.');
+      showToast('warning', t('toasts.passwordRequired'), t('toasts.passwordRequiredMsg'));
       return;
     }
 
     const stockDisponible = produit.niveau_stock || 0;
 
     if (stockDisponible <= 0) {
-      showToast('warning', 'Stock insuffisant', `${produit.nom_produit} n'est plus en stock`);
+      showToast('warning', t('toasts.noStock'), t('toasts.noStockMsg', { name: produit.nom_produit }));
       return;
     }
 
@@ -512,7 +514,7 @@ export default function VenteFlashPage() {
     } else {
       addArticle(vfProduit, vfQuantity, prixChoisi);
     }
-    showToast('success', 'Ajouté au panier', `${vfQuantity} x ${vfProduit.nom_produit}`);
+    showToast('success', t('toasts.addedToCart'), t('toasts.addedToCartMsg', { qty: vfQuantity, name: vfProduit.nom_produit }));
 
     setShowQuantityModal(false);
     setVfProduit(null);
@@ -553,15 +555,15 @@ export default function VenteFlashPage() {
           : response;
 
         if (parsedResponse.success) {
-          showToast('success', 'Suppression réussie', 'La facture a été supprimée');
+          showToast('success', t('toasts.deleteSuccess'), t('toasts.deleteSuccessMsg'));
           loadVentesJour();
         } else {
-          showToast('error', 'Erreur', parsedResponse.message || 'Suppression impossible');
+          showToast('error', t('toasts.error'), parsedResponse.message || t('toasts.deleteForbidden'));
         }
       }
     } catch (error) {
       console.error('❌ [VF] Erreur suppression:', error);
-      showToast('error', 'Erreur', 'Impossible de supprimer la facture');
+      showToast('error', t('toasts.error'), t('toasts.deleteError'));
     }
   };
 
@@ -574,7 +576,7 @@ export default function VenteFlashPage() {
     // Trouver la vente dans la liste
     const vente = ventesJour.find(v => v.id_facture === id_facture);
     if (!vente) {
-      showToast('error', 'Erreur', 'Vente non trouvée');
+      showToast('error', t('toasts.error'), t('toasts.saleNotFound'));
       return;
     }
 
@@ -719,41 +721,41 @@ export default function VenteFlashPage() {
       <body>
         <div class="header">
           ${structure?.logo ? `<img src="${structure.logo}" alt="Logo" style="max-width: 120px; max-height: 80px; margin: 0 auto 15px; display: block;" />` : ''}
-          <h1>⚡ Rapport Ventes Flash</h1>
+          <h1>⚡ ${t('report.title')}</h1>
           <p style="font-size: 18px; font-weight: bold; color: #059669; margin: 8px 0;">${structure?.nom_structure || 'Structure'}</p>
           <p style="font-size: 16px; color: #666;">${dateJour}</p>
-          <p class="caissier">Caissier: ${user.nom_utilisateur}</p>
+          <p class="caissier">${t('report.cashier')}: ${user.nom_utilisateur}</p>
         </div>
 
         <div class="stats">
           <div class="stat-card">
             <div class="stat-value">${stats.nb_ventes}</div>
-            <div class="stat-label">Nombre de ventes</div>
+            <div class="stat-label">${t('report.nbSales')}</div>
           </div>
           <div class="stat-card">
             <div class="stat-value">${detailsVentes.length}</div>
-            <div class="stat-label">Articles uniques</div>
+            <div class="stat-label">${t('report.uniqueArticles')}</div>
           </div>
           <div class="stat-card">
             <div class="stat-value">${stats.total_ventes.toLocaleString('fr-FR')} FCFA</div>
-            <div class="stat-label">Total ventes</div>
-            ${stats.total_remises > 0 ? `<div style="color: #d97706; font-size: 11px; font-weight: 500; margin-top: 4px;">(Remises: ${stats.total_remises.toLocaleString('fr-FR')} F)</div>` : ''}
+            <div class="stat-label">${t('report.totalSales')}</div>
+            ${stats.total_remises > 0 ? `<div style="color: #d97706; font-size: 11px; font-weight: 500; margin-top: 4px;">(${t('report.discounts')}: ${stats.total_remises.toLocaleString('fr-FR')} F)</div>` : ''}
           </div>
           <div class="stat-card">
             <div class="stat-value">${stats.ca_jour.toLocaleString('fr-FR')} FCFA</div>
-            <div class="stat-label">CA du jour</div>
+            <div class="stat-label">${t('report.dayCA')}</div>
           </div>
         </div>
 
-        <h2 style="color: #059669; margin-top: 30px;">Détail des ventes (${detailsVentes.length} articles uniques)</h2>
+        <h2 style="color: #059669; margin-top: 30px;">${t('report.sectionTitle', { count: detailsVentes.length })}</h2>
         <table>
           <thead>
             <tr>
               <th style="width: 8%;">N°</th>
-              <th style="width: 40%;">Nom Produit</th>
-              <th style="width: 17%; text-align: center;">Quantité</th>
-              <th style="width: 17%; text-align: right;">Prix Unit.</th>
-              <th style="width: 18%; text-align: right;">Total</th>
+              <th style="width: 40%;">${t('report.colProduct')}</th>
+              <th style="width: 17%; text-align: center;">${t('report.colQty')}</th>
+              <th style="width: 17%; text-align: right;">${t('report.colUnit')}</th>
+              <th style="width: 18%; text-align: right;">${t('report.colTotal')}</th>
             </tr>
           </thead>
           <tbody>
@@ -770,8 +772,8 @@ export default function VenteFlashPage() {
         </table>
 
         <div class="footer">
-          <p>Document généré le ${new Date().toLocaleString('fr-FR')}</p>
-          <p>FayClick - La Super App des Marchands</p>
+          <p>${t('report.footerGenerated')} ${new Date().toLocaleString('fr-FR')}</p>
+          <p>${t('report.footerBrand')}</p>
         </div>
       </body>
       </html>
@@ -809,7 +811,7 @@ export default function VenteFlashPage() {
         }, 500);
       };
     } else {
-      showToast('error', 'Erreur', 'Impossible d\'ouvrir la fenêtre d\'impression');
+      showToast('error', t('toasts.error'), t('toasts.printError'));
     }
   };
 
@@ -819,7 +821,7 @@ export default function VenteFlashPage() {
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-green-400 to-emerald-200">
         <div className="text-center">
           <Loader2 className="w-12 h-12 animate-spin text-white mx-auto mb-4" />
-          <p className="text-white font-medium">Chargement...</p>
+          <p className="text-white font-medium">{t('loading')}</p>
         </div>
       </div>
     );
@@ -837,7 +839,7 @@ export default function VenteFlashPage() {
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
           </svg>
-          <span className="font-semibold">Retour</span>
+          <span className="font-semibold">{t('back')}</span>
         </button>
 
         {/* Nom utilisateur */}
@@ -1009,7 +1011,7 @@ export default function VenteFlashPage() {
                   <p className="text-white/80 text-sm">{vfProduit.prix_vente.toLocaleString('fr-FR')} FCFA</p>
                   {salesRules.prixEnGrosActif && (
                     <p className="text-yellow-200 text-xs font-semibold">
-                      Gros: {(vfProduit.prix_grossiste || 0) > 0
+                      {t('quantityModal.priceGros')}: {(vfProduit.prix_grossiste || 0) > 0
                         ? `${(vfProduit.prix_grossiste!).toLocaleString('fr-FR')} FCFA`
                         : `${vfProduit.prix_vente.toLocaleString('fr-FR')} FCFA`}
                     </p>
@@ -1027,7 +1029,7 @@ export default function VenteFlashPage() {
               <div className="p-5 space-y-4">
                 {/* Stock disponible */}
                 <div className="text-center text-sm text-gray-500">
-                  Stock disponible : <span className="font-bold text-gray-900">{vfProduit.niveau_stock || 0}</span> unités
+                  {t('quantityModal.stockAvailable')} : <span className="font-bold text-gray-900">{vfProduit.niveau_stock || 0}</span> {t('quantityModal.stockUnit')}
                 </div>
 
                 {/* Segmented Control Prix Public / Prix en Gros */}
@@ -1041,7 +1043,7 @@ export default function VenteFlashPage() {
                           : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
                       }`}
                     >
-                      Public: {(vfProduit.prix_vente || 0).toLocaleString('fr-FR')} F
+                      {t('quantityModal.pricePublic')}: {(vfProduit.prix_vente || 0).toLocaleString('fr-FR')} F
                     </button>
                     <button
                       onClick={() => { setVfPrixType('gros'); setTimeout(() => { quantityInputRef.current?.focus(); quantityInputRef.current?.select(); }, 50); }}
@@ -1051,7 +1053,7 @@ export default function VenteFlashPage() {
                           : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
                       }`}
                     >
-                      Gros: {(vfProduit.prix_grossiste || 0) > 0
+                      {t('quantityModal.priceGros')}: {(vfProduit.prix_grossiste || 0) > 0
                         ? `${(vfProduit.prix_grossiste!).toLocaleString('fr-FR')} F`
                         : `${(vfProduit.prix_vente || 0).toLocaleString('fr-FR')} F`}
                     </button>
@@ -1108,7 +1110,7 @@ export default function VenteFlashPage() {
                     : vfProduit.prix_vente;
                   return (
                     <div className={`text-center rounded-xl py-3 ${vfPrixType === 'gros' ? 'bg-purple-50' : 'bg-green-50'}`}>
-                      <span className="text-sm text-gray-600">Sous-total : </span>
+                      <span className="text-sm text-gray-600">{t('quantityModal.subtotal')} : </span>
                       <span className={`text-lg font-bold ${vfPrixType === 'gros' ? 'text-purple-700' : 'text-green-700'}`}>
                         {(prixAffiche * vfQuantity).toLocaleString('fr-FR')} FCFA
                       </span>
@@ -1123,14 +1125,14 @@ export default function VenteFlashPage() {
                   onClick={handleCancelQuantity}
                   className="py-3 rounded-xl font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 transition-colors"
                 >
-                  Annuler
+                  {t('quantityModal.cancel')}
                 </button>
                 <motion.button
                   whileTap={{ scale: 0.97 }}
                   onClick={handleConfirmQuantity}
                   className="py-3 rounded-xl font-semibold text-white bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 transition-all shadow-md"
                 >
-                  Ajouter
+                  {t('quantityModal.add')}
                 </motion.button>
               </div>
             </motion.div>
@@ -1156,8 +1158,8 @@ export default function VenteFlashPage() {
                   <Package className="w-5 h-5 text-orange-600" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-slate-900">Plusieurs produits trouvés</h3>
-                  <p className="text-sm text-slate-500">{barcodeMatches.length} produits avec ce code-barres</p>
+                  <h3 className="font-bold text-slate-900">{t('barcodeModal.title')}</h3>
+                  <p className="text-sm text-slate-500">{t('barcodeModal.subtitle', { count: barcodeMatches.length })}</p>
                 </div>
               </div>
 
@@ -1183,12 +1185,12 @@ export default function VenteFlashPage() {
                       <div className="flex justify-between items-start">
                         <div className="flex-1 min-w-0 mr-2">
                           <p className="font-semibold text-slate-900 truncate">{produit.nom_produit}</p>
-                          <p className="text-xs text-slate-500 mt-0.5">{produit.nom_categorie || 'Sans catégorie'}</p>
+                          <p className="text-xs text-slate-500 mt-0.5">{produit.nom_categorie || t('barcodeModal.noCategory')}</p>
                         </div>
                         <div className="text-right shrink-0">
                           <p className="font-bold text-green-700">{(produit.prix_vente || 0).toLocaleString('fr-FR')} F</p>
                           <p className={`text-xs mt-0.5 ${enRupture ? 'text-red-500 font-semibold' : stock <= 5 ? 'text-orange-500' : 'text-slate-500'}`}>
-                            {enRupture ? 'Rupture' : `Stock: ${stock}`}
+                            {enRupture ? t('barcodeModal.outOfStock') : t('barcodeModal.stockLabel', { count: stock })}
                           </p>
                         </div>
                       </div>
@@ -1201,7 +1203,7 @@ export default function VenteFlashPage() {
                 onClick={() => { setShowBarcodeSelectionModal(false); setBarcodeMatches([]); }}
                 className="mt-4 w-full px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-medium transition-colors"
               >
-                Annuler
+                {t('barcodeModal.cancel')}
               </button>
             </motion.div>
           </div>
