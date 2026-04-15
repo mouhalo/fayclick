@@ -63,9 +63,11 @@ import ModalCreerLive from '@/components/live/ModalCreerLive';
 import LiveBadgeHeader from '@/components/live/LiveBadgeHeader';
 import liveService from '@/services/live.service';
 import { Live } from '@/types/live';
+import { useTranslations } from '@/hooks/useTranslations';
 
 export default function ProduitsCommercePage() {
   const router = useRouter();
+  const t = useTranslations('produits');
   
   // États locaux
   const [user, setUser] = useState<User | null>(null);
@@ -347,7 +349,7 @@ export default function ProduitsCommercePage() {
     if (modeVente) {
       const stock = produit.niveau_stock || 0;
       if (stock <= 0) {
-        showToast('error', 'Stock épuisé', `"${produit.nom_produit}" n'est plus en stock`);
+        showToast('error', t('toasts.noStock'), t('toasts.noStockMsg', { name: produit.nom_produit }));
         setSearchTerm('');
         lastModeVenteTrigger.current = '';
         return;
@@ -380,7 +382,7 @@ export default function ProduitsCommercePage() {
       console.log('📊 [PRODUITS] Auto-scan code-barres détecté:', matches.length, 'produit(s) | code:', searchTerm.trim());
 
       if (user && user.pwd_changed === false) {
-        showToast('warning', 'Mot de passe requis', 'Veuillez d\'abord modifier votre mot de passe initial.');
+        showToast('warning', t('toasts.passwordRequired'), t('toasts.passwordRequiredMsg'));
         return;
       }
       if (!canAccessFeature('Vente produit')) {
@@ -426,7 +428,7 @@ export default function ProduitsCommercePage() {
 
     const stock = produit.niveau_stock || 0;
     if (stock <= 0) {
-      showToast('error', 'Stock épuisé', `"${produit.nom_produit}" n'est plus en stock`);
+      showToast('error', t('toasts.noStock'), t('toasts.noStockMsg', { name: produit.nom_produit }));
       return;
     }
 
@@ -473,8 +475,8 @@ export default function ProduitsCommercePage() {
     if (user) {
       localStorage.setItem(`fayclick_mode_vente_${user.id_structure}`, String(newValue));
     }
-    showToast('info', newValue ? 'Mode Vente activé' : 'Mode Vente désactivé',
-      newValue ? 'La recherche ajoutera automatiquement au panier' : 'Recherche en mode filtrage normal');
+    showToast('info', newValue ? t('toasts.modeVenteOn') : t('toasts.modeVenteOff'),
+      newValue ? t('toasts.modeVenteOnMsg') : t('toasts.modeVenteOffMsg'));
   };
 
   // Confirmation ajout panier depuis Mode Vente
@@ -483,7 +485,7 @@ export default function ProduitsCommercePage() {
 
     // Vérifier que le mot de passe a été changé
     if (user && user.pwd_changed === false) {
-      showToast('warning', 'Mot de passe requis', 'Veuillez d\'abord modifier votre mot de passe initial pour effectuer des ventes.');
+      showToast('warning', t('toasts.passwordRequired'), t('toasts.passwordRequiredSaleMsg'));
       setShowQuantityModal(false);
       setModeVenteProduit(null);
       return;
@@ -501,8 +503,10 @@ export default function ProduitsCommercePage() {
       ? modeVenteProduit.prix_grossiste!
       : modeVenteProduit.prix_vente;
     addArticle(modeVenteProduit, modeVenteQuantity, prixChoisi);
-    showToast('success', 'Ajouté au panier',
-      `${modeVenteQuantity}x "${modeVenteProduit.nom_produit}" ajouté${modeVenteQuantity > 1 ? 's' : ''}`);
+    showToast('success', t('toasts.addedToCart'),
+      modeVenteQuantity > 1
+        ? t('toasts.addedToCartMsgPlural', { qty: modeVenteQuantity, name: modeVenteProduit.nom_produit })
+        : t('toasts.addedToCartMsg', { qty: modeVenteQuantity, name: modeVenteProduit.nom_produit }));
     setShowQuantityModal(false);
     setModeVenteProduit(null);
     setModeVentePrixType('public');
@@ -607,7 +611,7 @@ export default function ProduitsCommercePage() {
       setProduitToDelete(null);
     } catch (error) {
       console.error('❌ [PRODUITS COMMERCE] Erreur suppression produit:', error);
-      alert('Impossible de supprimer le produit. Veuillez réessayer.');
+      alert(t('alertErrors.deleteError'));
     }
   };
 
@@ -696,9 +700,9 @@ export default function ProduitsCommercePage() {
     clearSelection();
 
     if (errorCount > 0) {
-      showToast('error', 'Suppression partielle', `${successCount} supprimé(s), ${errorCount} erreur(s)`);
+      showToast('error', t('toasts.deletePartial'), t('toasts.deletePartialMsg', { success: successCount, error: errorCount }));
     } else {
-      showToast('success', 'Suppression réussie', `${successCount} produit(s) supprimé(s)`);
+      showToast('success', t('toasts.deleteSuccess'), t('toasts.deleteSuccessMsg', { count: successCount }));
     }
 
     // Recharger la liste
@@ -744,7 +748,10 @@ export default function ProduitsCommercePage() {
 
   const handleEnrolementSuccess = (nbProduits: number) => {
     console.log(`✅ [PRODUITS COMMERCE] ${nbProduits} produit(s) créé(s) par enrôlement`);
-    showToast('success', 'Produits créés !', `${nbProduits} produit${nbProduits > 1 ? 's' : ''} ajouté${nbProduits > 1 ? 's' : ''} avec succès`);
+    showToast('success', t('toasts.productsCreated'),
+      nbProduits > 1
+        ? t('toasts.productsCreatedMsgPlural', { count: nbProduits })
+        : t('toasts.productsCreatedMsg', { count: nbProduits }));
     // Recharger la liste des produits
     loadProduits();
   };
@@ -773,7 +780,7 @@ export default function ProduitsCommercePage() {
     // Vérifier si l'id_produit est bien défini
     if (!pendingStockProduct.id_produit) {
       console.error('❌ [PRODUITS COMMERCE] ID produit manquant:', pendingStockProduct);
-      alert('Erreur: ID du produit manquant. Impossible d\'ajouter du stock.');
+      alert(t('alertErrors.missingId'));
       setShowStockConfirmation(false);
       setPendingStockProduct(null);
       return;
@@ -816,7 +823,7 @@ export default function ProduitsCommercePage() {
 
     // Vérifier que le mot de passe a été changé
     if (user && user.pwd_changed === false) {
-      showToast('warning', 'Mot de passe requis', 'Veuillez d\'abord modifier votre mot de passe initial pour effectuer des ventes.');
+      showToast('warning', t('toasts.passwordRequired'), t('toasts.passwordRequiredSaleMsg'));
       setShowScanModal(false);
       return;
     }
@@ -846,7 +853,7 @@ export default function ProduitsCommercePage() {
       }
     } else {
       console.log('❌ [PRODUITS COMMERCE] Produit non trouvé pour le code:', code);
-      showToast('error', 'Produit non trouvé', `Aucun produit trouvé avec le code-barres ${code}`);
+      showToast('error', t('toasts.productNotFound'), t('toasts.productNotFoundMsg', { code }));
       setShowScanModal(false);
     }
   };
@@ -862,7 +869,7 @@ export default function ProduitsCommercePage() {
   // Export CSV des produits
   const handleExportCSV = useCallback(() => {
     if (produitsFiltered.length === 0) {
-      showToast('error', 'Aucun produit', 'Aucun produit à exporter');
+      showToast('error', t('toasts.noProducts'), t('toasts.noProductsExport'));
       return;
     }
 
@@ -899,10 +906,10 @@ export default function ProduitsCommercePage() {
       URL.revokeObjectURL(url);
 
       console.log(`✅ Export CSV: ${produitsFiltered.length} produits exportés`);
-      showToast('success', 'Export réussi', `${produitsFiltered.length} produits exportés`);
+      showToast('success', t('toasts.exportSuccess'), t('toasts.exportSuccessMsg', { count: produitsFiltered.length }));
     } catch (error) {
       console.error('❌ Erreur export CSV:', error);
-      showToast('error', 'Erreur', 'Erreur lors de l\'export CSV');
+      showToast('error', t('toasts.exportError'), t('toasts.exportErrorMsg'));
     } finally {
       setIsExporting(false);
     }
@@ -961,7 +968,7 @@ export default function ProduitsCommercePage() {
   const handleVendreClick = (produit: Produit) => {
     // Vérifier que le mot de passe a été changé
     if (user && user.pwd_changed === false) {
-      showToast('warning', 'Mot de passe requis', 'Veuillez d\'abord modifier votre mot de passe initial pour effectuer des ventes.');
+      showToast('warning', t('toasts.passwordRequired'), t('toasts.passwordRequiredSaleMsg'));
       return;
     }
 
@@ -973,7 +980,7 @@ export default function ProduitsCommercePage() {
 
     const stock = produit.niveau_stock || 0;
     if (stock <= 0) {
-      showToast('error', 'Stock épuisé', 'Ce produit n\'est plus disponible');
+      showToast('error', t('toasts.noStock'), t('toasts.noStockAvailable'));
       return;
     }
 
@@ -995,7 +1002,7 @@ export default function ProduitsCommercePage() {
             </div>
           </div>
           <p className="text-white text-lg font-medium animate-pulse">
-            Chargement des produits...
+            {t('loading')}
           </p>
         </div>
       </div>
@@ -1066,7 +1073,7 @@ export default function ProduitsCommercePage() {
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500" />
               </span>
-              Creer un Live — Publier mes produits en ligne
+              {t('live.createBtn')}
             </button>
           )}
         </div>
@@ -1135,9 +1142,9 @@ export default function ProduitsCommercePage() {
                 />
               </div>
               <div className="text-left">
-                <h3 className={`font-semibold text-sm sm:text-base ${isDesktopView || isTablet ? 'text-gray-800' : 'text-white'}`}>Valeur de vos Stocks</h3>
+                <h3 className={`font-semibold text-sm sm:text-base ${isDesktopView || isTablet ? 'text-gray-800' : 'text-white'}`}>{t('stats.title')}</h3>
                 <p className={`text-xs sm:text-sm ${isDesktopView || isTablet ? 'text-gray-500' : 'text-white/70'}`}>
-                  {showStats ? 'Cliquez pour replier' : 'Cliquez pour voir les détails'}
+                  {showStats ? t('stats.collapse') : t('stats.expand')}
                 </p>
               </div>
             </div>
@@ -1184,7 +1191,7 @@ export default function ProduitsCommercePage() {
           >
             <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
             <div>
-              <p className="text-red-800 font-medium">Erreur de chargement</p>
+              <p className="text-red-800 font-medium">{t('error.loadingTitle')}</p>
               <p className="text-red-600 text-sm">{errorProduits}</p>
             </div>
             <motion.button
@@ -1244,8 +1251,8 @@ export default function ProduitsCommercePage() {
         className="bg-white rounded-2xl shadow-2xl px-8 py-6 flex flex-col items-center gap-3"
       >
         <Loader2 className="w-10 h-10 text-green-600 animate-spin" />
-        <p className="text-gray-700 font-medium text-sm">Chargement des produits...</p>
-        <p className="text-gray-400 text-xs">Veuillez patienter</p>
+        <p className="text-gray-700 font-medium text-sm">{t('loading')}</p>
+        <p className="text-gray-400 text-xs">{t('loadingSubtitle')}</p>
       </motion.div>
     </motion.div>
   );
@@ -1278,7 +1285,7 @@ export default function ProduitsCommercePage() {
                   <div className="flex items-center gap-2 text-white">
                     <CheckSquare className="w-5 h-5 text-blue-400" />
                     <span className="font-semibold text-sm">
-                      {selectedIds.size} produit{selectedIds.size > 1 ? 's' : ''}
+                      {selectedIds.size > 1 ? t('selectionBar.countPlural', { count: selectedIds.size }) : t('selectionBar.count', { count: selectedIds.size })}
                     </span>
                   </div>
                   <div className="flex-1" />
@@ -1287,7 +1294,7 @@ export default function ProduitsCommercePage() {
                     onClick={selectAllPage}
                     className="px-3 py-1.5 text-xs font-medium text-blue-300 hover:text-blue-200 hover:bg-white/10 rounded-lg transition-colors"
                   >
-                    {paginatedItems.every(p => selectedIds.has(p.id_produit)) ? 'Tout désélect.' : 'Tout sélect.'}
+                    {paginatedItems.every(p => selectedIds.has(p.id_produit)) ? t('selectionBar.deselectAll') : t('selectionBar.selectAll')}
                   </motion.button>
                   <motion.button
                     whileTap={{ scale: 0.95 }}
@@ -1295,7 +1302,7 @@ export default function ProduitsCommercePage() {
                     className="px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white text-xs font-semibold rounded-lg transition-colors flex items-center gap-1.5"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
-                    Supprimer
+                    {t('selectionBar.delete')}
                   </motion.button>
                   <motion.button
                     whileTap={{ scale: 0.95 }}
@@ -1316,8 +1323,8 @@ export default function ProduitsCommercePage() {
             whileTap={{ scale: 0.95 }}
             onClick={handleOpenOptionsAjout}
             className="fixed bottom-6 right-6 group z-40"
-            aria-label="Ajouter un produit"
-            title="Ajouter un produit"
+            aria-label={t('fab.ariaLabel')}
+            title={t('fab.ariaLabel')}
           >
             {/* Effet de halo pulsant */}
             <motion.div
@@ -1341,7 +1348,7 @@ export default function ProduitsCommercePage() {
             </div>
             {/* Label "Ajouter" */}
             <span className="absolute right-full mr-3 top-1/2 -translate-y-1/2 px-3 py-1.5 bg-emerald-700 rounded-lg text-white text-sm font-semibold whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity shadow-lg">
-              Ajouter
+              {t('fab.label')}
             </span>
           </motion.button>
           )}
@@ -1423,12 +1430,12 @@ export default function ProduitsCommercePage() {
                 <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
                   <Package className="w-8 h-8 text-green-600" />
                 </div>
-                <h3 className="text-xl font-bold text-slate-900 mb-2">Produit créé avec succès !</h3>
+                <h3 className="text-xl font-bold text-slate-900 mb-2">{t('stockConfirmModal.title')}</h3>
                 <p className="text-slate-600 mb-2 font-medium">{pendingStockProduct.nom_produit}</p>
-                <p className="text-slate-600 mb-6">Voulez-vous ajouter des quantités au stock pour ce produit maintenant ?</p>
+                <p className="text-slate-600 mb-6">{t('stockConfirmModal.body')}</p>
                 <div className="flex gap-3">
-                  <button onClick={handleStockConfirmationNo} className="flex-1 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-medium transition-colors">Plus tard</button>
-                  <button onClick={handleStockConfirmationYes} className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors">Oui, ajouter du stock</button>
+                  <button onClick={handleStockConfirmationNo} className="flex-1 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-medium transition-colors">{t('stockConfirmModal.later')}</button>
+                  <button onClick={handleStockConfirmationYes} className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors">{t('stockConfirmModal.confirm')}</button>
                 </div>
               </div>
             </motion.div>
@@ -1448,12 +1455,12 @@ export default function ProduitsCommercePage() {
                 <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
                   <Trash2 className="w-8 h-8 text-red-600" />
                 </div>
-                <h3 className="text-xl font-bold text-slate-900 mb-2">Supprimer le produit ?</h3>
+                <h3 className="text-xl font-bold text-slate-900 mb-2">{t('deleteModal.title')}</h3>
                 <p className="text-slate-600 mb-2 font-medium">{produitToDelete.nom_produit}</p>
-                <p className="text-slate-600 mb-6 text-sm">Cette action est irréversible.</p>
+                <p className="text-slate-600 mb-6 text-sm">{t('deleteModal.irreversible')}</p>
                 <div className="flex gap-3">
-                  <button onClick={handleCancelDelete} className="flex-1 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-medium transition-colors">Annuler</button>
-                  <button onClick={handleConfirmDelete} className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors">Supprimer</button>
+                  <button onClick={handleCancelDelete} className="flex-1 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-medium transition-colors">{t('deleteModal.cancel')}</button>
+                  <button onClick={handleConfirmDelete} className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors">{t('deleteModal.confirm')}</button>
                 </div>
               </div>
             </motion.div>
@@ -1473,18 +1480,18 @@ export default function ProduitsCommercePage() {
                 <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
                   <Trash2 className="w-8 h-8 text-red-600" />
                 </div>
-                <h3 className="text-xl font-bold text-slate-900 mb-2">Supprimer {selectedIds.size} produit{selectedIds.size > 1 ? 's' : ''} ?</h3>
+                <h3 className="text-xl font-bold text-slate-900 mb-2">{selectedIds.size > 1 ? t('batchDeleteModal.titlePlural', { count: selectedIds.size }) : t('batchDeleteModal.title', { count: selectedIds.size })}</h3>
                 <div className="max-h-40 overflow-y-auto mb-4 text-left bg-slate-50 rounded-lg p-3">
                   {selectedProduits.map(p => (
                     <div key={p.id_produit} className="text-sm text-slate-700 py-1 border-b border-slate-100 last:border-0">{p.nom_produit}</div>
                   ))}
                 </div>
-                <p className="text-slate-600 mb-6 text-sm">Cette action est irréversible.</p>
+                <p className="text-slate-600 mb-6 text-sm">{t('batchDeleteModal.irreversible')}</p>
                 {isDeletingBatch && (
                   <div className="mb-4">
                     <div className="flex items-center gap-2 mb-2">
                       <Loader2 className="w-4 h-4 text-red-500 animate-spin" />
-                      <span className="text-sm text-slate-600">Suppression en cours... {batchDeleteProgress}%</span>
+                      <span className="text-sm text-slate-600">{t('batchDeleteModal.deleting', { progress: batchDeleteProgress })}</span>
                     </div>
                     <div className="w-full bg-gray-200 rounded-full h-2">
                       <div className="bg-red-500 h-2 rounded-full transition-all duration-300" style={{ width: `${batchDeleteProgress}%` }} />
@@ -1492,9 +1499,9 @@ export default function ProduitsCommercePage() {
                   </div>
                 )}
                 <div className="flex gap-3">
-                  <button onClick={handleCancelBatchDelete} disabled={isDeletingBatch} className="flex-1 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-medium transition-colors disabled:opacity-50">Annuler</button>
+                  <button onClick={handleCancelBatchDelete} disabled={isDeletingBatch} className="flex-1 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-medium transition-colors disabled:opacity-50">{t('batchDeleteModal.cancel')}</button>
                   <button onClick={handleConfirmBatchDelete} disabled={isDeletingBatch} className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
-                    {isDeletingBatch ? (<><Loader2 className="w-4 h-4 animate-spin" />Suppression...</>) : 'Supprimer tout'}
+                    {isDeletingBatch ? (<><Loader2 className="w-4 h-4 animate-spin" />{t('batchDeleteModal.confirming')}</>) : t('batchDeleteModal.confirm')}
                   </button>
                 </div>
               </div>
@@ -1520,17 +1527,17 @@ export default function ProduitsCommercePage() {
                     <h3 className="font-bold text-slate-900 truncate">{modeVenteProduit.nom_produit}</h3>
                     <p className="text-sm text-slate-500">
                       {(modeVenteProduit.prix_vente || 0).toLocaleString('fr-FR')} FCFA
-                      <span className="ml-2 text-xs">• Stock: {modeVenteProduit.niveau_stock || 0}</span>
+                      <span className="ml-2 text-xs">• {t('stockModal.stockLabel', { count: modeVenteProduit.niveau_stock || 0 })}</span>
                     </p>
                   </div>
                 </div>
                 {salesRules.prixEnGrosActif && (
                   <div className="flex rounded-xl overflow-hidden border-2 border-slate-200 mb-4">
                     <button onClick={() => { setModeVentePrixType('public'); setTimeout(() => { quantityInputRef.current?.focus(); quantityInputRef.current?.select(); }, 50); }} className={`flex-1 py-2.5 text-sm font-semibold transition-all ${modeVentePrixType === 'public' ? 'bg-green-500 text-white shadow-inner' : 'bg-slate-50 text-slate-600 hover:bg-slate-100'}`}>
-                      Public: {(modeVenteProduit.prix_vente || 0).toLocaleString('fr-FR')} F
+                      {t('stockModal.pricePublic', { price: (modeVenteProduit.prix_vente || 0).toLocaleString('fr-FR') })}
                     </button>
                     <button onClick={() => { setModeVentePrixType('gros'); setTimeout(() => { quantityInputRef.current?.focus(); quantityInputRef.current?.select(); }, 50); }} className={`flex-1 py-2.5 text-sm font-semibold transition-all ${modeVentePrixType === 'gros' ? 'bg-purple-500 text-white shadow-inner' : 'bg-slate-50 text-slate-600 hover:bg-slate-100'}`}>
-                      Gros: {(modeVenteProduit.prix_grossiste || 0) > 0 ? `${(modeVenteProduit.prix_grossiste!).toLocaleString('fr-FR')} F` : `${(modeVenteProduit.prix_vente || 0).toLocaleString('fr-FR')} F`}
+                      {t('stockModal.priceGros', { price: (modeVenteProduit.prix_grossiste || 0) > 0 ? (modeVenteProduit.prix_grossiste!).toLocaleString('fr-FR') : (modeVenteProduit.prix_vente || 0).toLocaleString('fr-FR') })}
                     </button>
                   </div>
                 )}
@@ -1547,14 +1554,14 @@ export default function ProduitsCommercePage() {
                   const prixAffiche = modeVentePrixType === 'gros' && (modeVenteProduit.prix_grossiste || 0) > 0 ? modeVenteProduit.prix_grossiste! : modeVenteProduit.prix_vente || 0;
                   return (
                     <div className={`rounded-xl p-3 mb-5 text-center ${modeVentePrixType === 'gros' ? 'bg-purple-50' : 'bg-green-50'}`}>
-                      <span className={`text-sm ${modeVentePrixType === 'gros' ? 'text-purple-700' : 'text-green-700'}`}>Sous-total : </span>
+                      <span className={`text-sm ${modeVentePrixType === 'gros' ? 'text-purple-700' : 'text-green-700'}`}>{t('stockModal.subtotal')}</span>
                       <span className={`text-lg font-bold ${modeVentePrixType === 'gros' ? 'text-purple-800' : 'text-green-800'}`}>{(prixAffiche * modeVenteQuantity).toLocaleString('fr-FR')} FCFA</span>
                     </div>
                   );
                 })()}
                 <div className="flex gap-3">
-                  <button onClick={handleModeVenteCancel} className="flex-1 px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-medium transition-colors">Annuler</button>
-                  <button onClick={handleModeVenteConfirm} className="flex-1 px-4 py-3 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white rounded-xl font-semibold transition-all shadow-md">Ajouter au panier</button>
+                  <button onClick={handleModeVenteCancel} className="flex-1 px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-medium transition-colors">{t('stockModal.cancel')}</button>
+                  <button onClick={handleModeVenteConfirm} className="flex-1 px-4 py-3 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white rounded-xl font-semibold transition-all shadow-md">{t('stockModal.addToCart')}</button>
                 </div>
               </motion.div>
             </div>
@@ -1567,7 +1574,7 @@ export default function ProduitsCommercePage() {
               <motion.div initial={{ scale: 0.9, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 20 }} className="bg-white rounded-2xl p-5 max-w-md w-full shadow-2xl max-h-[80vh] overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
                 <div className="flex items-center gap-3 mb-4">
                   <div className="w-10 h-10 bg-orange-100 rounded-xl flex items-center justify-center"><Package className="w-5 h-5 text-orange-600" /></div>
-                  <div><h3 className="font-bold text-slate-900">Plusieurs produits trouvés</h3><p className="text-sm text-slate-500">{barcodeMatches.length} produits avec ce code-barres</p></div>
+                  <div><h3 className="font-bold text-slate-900">{t('barcodeModal.title')}</h3><p className="text-sm text-slate-500">{t('barcodeModal.subtitle', { count: barcodeMatches.length })}</p></div>
                 </div>
                 <div className="overflow-y-auto flex-1 space-y-2">
                   {barcodeMatches.map((produit) => {
@@ -1576,14 +1583,14 @@ export default function ProduitsCommercePage() {
                     return (
                       <button key={produit.id_produit} onClick={() => { setShowBarcodeSelectionModal(false); setBarcodeMatches([]); handleBarcodeProductSelected(produit); }} disabled={modeVente && enRupture} className={`w-full text-left p-3 rounded-xl border-2 transition-all ${modeVente && enRupture ? 'border-slate-200 bg-slate-50 opacity-50 cursor-not-allowed' : 'border-slate-200 hover:border-green-400 hover:bg-green-50 active:scale-[0.98]'}`}>
                         <div className="flex justify-between items-start">
-                          <div className="flex-1 min-w-0 mr-2"><p className="font-semibold text-slate-900 truncate">{produit.nom_produit}</p><p className="text-xs text-slate-500 mt-0.5">{produit.nom_categorie || 'Sans catégorie'}</p></div>
-                          <div className="text-right shrink-0"><p className="font-bold text-green-700">{(produit.prix_vente || 0).toLocaleString('fr-FR')} F</p><p className={`text-xs mt-0.5 ${enRupture ? 'text-red-500 font-semibold' : stock <= 5 ? 'text-orange-500' : 'text-slate-500'}`}>{enRupture ? 'Rupture' : `Stock: ${stock}`}</p></div>
+                          <div className="flex-1 min-w-0 mr-2"><p className="font-semibold text-slate-900 truncate">{produit.nom_produit}</p><p className="text-xs text-slate-500 mt-0.5">{produit.nom_categorie || t('barcodeModal.noCategory')}</p></div>
+                          <div className="text-right shrink-0"><p className="font-bold text-green-700">{(produit.prix_vente || 0).toLocaleString('fr-FR')} F</p><p className={`text-xs mt-0.5 ${enRupture ? 'text-red-500 font-semibold' : stock <= 5 ? 'text-orange-500' : 'text-slate-500'}`}>{enRupture ? t('barcodeModal.outOfStock') : t('barcodeModal.stockLabel', { count: stock })}</p></div>
                         </div>
                       </button>
                     );
                   })}
                 </div>
-                <button onClick={() => { setShowBarcodeSelectionModal(false); setBarcodeMatches([]); }} className="mt-4 w-full px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-medium transition-colors">Annuler</button>
+                <button onClick={() => { setShowBarcodeSelectionModal(false); setBarcodeMatches([]); }} className="mt-4 w-full px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-medium transition-colors">{t('barcodeModal.cancel')}</button>
               </motion.div>
             </div>
           )}
@@ -1682,9 +1689,9 @@ export default function ProduitsCommercePage() {
                   />
                 </div>
                 <div className="text-left">
-                  <h3 className="text-white font-semibold text-sm sm:text-base">Valeur de vos Stocks</h3>
+                  <h3 className="text-white font-semibold text-sm sm:text-base">{t('stats.title')}</h3>
                   <p className="text-white/70 text-xs sm:text-sm">
-                    {showStats ? 'Cliquez pour replier' : 'Cliquez pour voir les détails'}
+                    {showStats ? t('stats.collapse') : t('stats.expand')}
                   </p>
                 </div>
               </div>
@@ -1742,7 +1749,7 @@ export default function ProduitsCommercePage() {
             >
               <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
               <div>
-                <p className="text-red-800 font-medium">Erreur de chargement</p>
+                <p className="text-red-800 font-medium">{t('error.loadingTitle')}</p>
                 <p className="text-red-600 text-sm">{errorProduits}</p>
               </div>
               <motion.button
@@ -1814,7 +1821,7 @@ export default function ProduitsCommercePage() {
                   onClick={selectAllPage}
                   className="px-3 py-1.5 text-xs font-medium text-blue-300 hover:text-blue-200 hover:bg-white/10 rounded-lg transition-colors"
                 >
-                  {paginatedItems.every(p => selectedIds.has(p.id_produit)) ? 'Tout désélect.' : 'Tout sélect.'}
+                  {paginatedItems.every(p => selectedIds.has(p.id_produit)) ? t('selectionBar.deselectAll') : t('selectionBar.selectAll')}
                 </motion.button>
 
                 {/* Supprimer */}
@@ -1824,7 +1831,7 @@ export default function ProduitsCommercePage() {
                   className="px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white text-xs font-semibold rounded-lg transition-colors flex items-center gap-1.5"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
-                  Supprimer
+                  {t('selectionBar.delete')}
                 </motion.button>
 
                 {/* Annuler */}
@@ -1946,26 +1953,26 @@ export default function ProduitsCommercePage() {
                 <Package className="w-8 h-8 text-green-600" />
               </div>
               <h3 className="text-xl font-bold text-slate-900 mb-2">
-                Produit créé avec succès !
+                {t('stockConfirmModal.title')}
               </h3>
               <p className="text-slate-600 mb-2 font-medium">
                 {pendingStockProduct.nom_produit}
               </p>
               <p className="text-slate-600 mb-6">
-                Voulez-vous ajouter des quantités au stock pour ce produit maintenant ?
+                {t('stockConfirmModal.body')}
               </p>
               <div className="flex gap-3">
                 <button
                   onClick={handleStockConfirmationNo}
                   className="flex-1 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-medium transition-colors"
                 >
-                  Plus tard
+                  {t('stockConfirmModal.later')}
                 </button>
                 <button
                   onClick={handleStockConfirmationYes}
                   className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
                 >
-                  Oui, ajouter du stock
+                  {t('stockConfirmModal.confirm')}
                 </button>
               </div>
             </div>
@@ -1988,26 +1995,26 @@ export default function ProduitsCommercePage() {
                 <Trash2 className="w-8 h-8 text-red-600" />
               </div>
               <h3 className="text-xl font-bold text-slate-900 mb-2">
-                Supprimer le produit ?
+                {t('deleteModal.title')}
               </h3>
               <p className="text-slate-600 mb-2 font-medium">
                 {produitToDelete.nom_produit}
               </p>
               <p className="text-slate-600 mb-6 text-sm">
-                Cette action est irréversible. Le produit et toutes ses données associées seront définitivement supprimés.
+                {t('deleteModal.irreversibleFull')}
               </p>
               <div className="flex gap-3">
                 <button
                   onClick={handleCancelDelete}
                   className="flex-1 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-medium transition-colors"
                 >
-                  Annuler
+                  {t('deleteModal.cancel')}
                 </button>
                 <button
                   onClick={handleConfirmDelete}
                   className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors"
                 >
-                  Supprimer
+                  {t('deleteModal.confirm')}
                 </button>
               </div>
             </div>
@@ -2030,7 +2037,7 @@ export default function ProduitsCommercePage() {
                 <Trash2 className="w-8 h-8 text-red-600" />
               </div>
               <h3 className="text-xl font-bold text-slate-900 mb-2">
-                Supprimer {selectedIds.size} produit{selectedIds.size > 1 ? 's' : ''} ?
+                {selectedIds.size > 1 ? t('batchDeleteModal.titlePlural', { count: selectedIds.size }) : t('batchDeleteModal.title', { count: selectedIds.size })}
               </h3>
 
               {/* Liste des produits à supprimer */}
@@ -2043,7 +2050,7 @@ export default function ProduitsCommercePage() {
               </div>
 
               <p className="text-slate-600 mb-6 text-sm">
-                Cette action est irréversible. Les produits et toutes leurs données associées seront définitivement supprimés.
+                {t('batchDeleteModal.irreversible')}
               </p>
 
               {/* Barre de progression pendant la suppression */}
@@ -2051,7 +2058,7 @@ export default function ProduitsCommercePage() {
                 <div className="mb-4">
                   <div className="flex items-center gap-2 mb-2">
                     <Loader2 className="w-4 h-4 text-red-500 animate-spin" />
-                    <span className="text-sm text-slate-600">Suppression en cours... {batchDeleteProgress}%</span>
+                    <span className="text-sm text-slate-600">{t('batchDeleteModal.deleting', { progress: batchDeleteProgress })}</span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2">
                     <div
@@ -2068,7 +2075,7 @@ export default function ProduitsCommercePage() {
                   disabled={isDeletingBatch}
                   className="flex-1 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-medium transition-colors disabled:opacity-50"
                 >
-                  Annuler
+                  {t('batchDeleteModal.cancel')}
                 </button>
                 <button
                   onClick={handleConfirmBatchDelete}
@@ -2078,10 +2085,10 @@ export default function ProduitsCommercePage() {
                   {isDeletingBatch ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin" />
-                      Suppression...
+                      {t('batchDeleteModal.confirming')}
                     </>
                   ) : (
-                    'Supprimer tout'
+                    t('batchDeleteModal.confirm')
                   )}
                 </button>
               </div>
@@ -2110,7 +2117,7 @@ export default function ProduitsCommercePage() {
                   <h3 className="font-bold text-slate-900 truncate">{modeVenteProduit.nom_produit}</h3>
                   <p className="text-sm text-slate-500">
                     {(modeVenteProduit.prix_vente || 0).toLocaleString('fr-FR')} FCFA
-                    <span className="ml-2 text-xs">• Stock: {modeVenteProduit.niveau_stock || 0}</span>
+                    <span className="ml-2 text-xs">• {t('stockModal.stockLabel', { count: modeVenteProduit.niveau_stock || 0 })}</span>
                   </p>
                 </div>
               </div>
@@ -2126,7 +2133,7 @@ export default function ProduitsCommercePage() {
                         : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
                     }`}
                   >
-                    Public: {(modeVenteProduit.prix_vente || 0).toLocaleString('fr-FR')} F
+                    {t('stockModal.pricePublic', { price: (modeVenteProduit.prix_vente || 0).toLocaleString('fr-FR') })}
                   </button>
                   <button
                     onClick={() => { setModeVentePrixType('gros'); setTimeout(() => { quantityInputRef.current?.focus(); quantityInputRef.current?.select(); }, 50); }}
@@ -2136,9 +2143,7 @@ export default function ProduitsCommercePage() {
                         : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
                     }`}
                   >
-                    Gros: {(modeVenteProduit.prix_grossiste || 0) > 0
-                      ? `${(modeVenteProduit.prix_grossiste!).toLocaleString('fr-FR')} F`
-                      : `${(modeVenteProduit.prix_vente || 0).toLocaleString('fr-FR')} F`}
+                    {t('stockModal.priceGros', { price: (modeVenteProduit.prix_grossiste || 0) > 0 ? (modeVenteProduit.prix_grossiste!).toLocaleString('fr-FR') : (modeVenteProduit.prix_vente || 0).toLocaleString('fr-FR') })}
                   </button>
                 </div>
               )}
@@ -2188,7 +2193,7 @@ export default function ProduitsCommercePage() {
                   : modeVenteProduit.prix_vente || 0;
                 return (
                   <div className={`rounded-xl p-3 mb-5 text-center ${modeVentePrixType === 'gros' ? 'bg-purple-50' : 'bg-green-50'}`}>
-                    <span className={`text-sm ${modeVentePrixType === 'gros' ? 'text-purple-700' : 'text-green-700'}`}>Sous-total : </span>
+                    <span className={`text-sm ${modeVentePrixType === 'gros' ? 'text-purple-700' : 'text-green-700'}`}>{t('stockModal.subtotal')}</span>
                     <span className={`text-lg font-bold ${modeVentePrixType === 'gros' ? 'text-purple-800' : 'text-green-800'}`}>
                       {(prixAffiche * modeVenteQuantity).toLocaleString('fr-FR')} FCFA
                     </span>
@@ -2202,13 +2207,13 @@ export default function ProduitsCommercePage() {
                   onClick={handleModeVenteCancel}
                   className="flex-1 px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-medium transition-colors"
                 >
-                  Annuler
+                  {t('stockModal.cancel')}
                 </button>
                 <button
                   onClick={handleModeVenteConfirm}
                   className="flex-1 px-4 py-3 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white rounded-xl font-semibold transition-all shadow-md"
                 >
-                  Ajouter au panier
+                  {t('stockModal.addToCart')}
                 </button>
               </div>
             </motion.div>
@@ -2234,8 +2239,8 @@ export default function ProduitsCommercePage() {
                   <Package className="w-5 h-5 text-orange-600" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-slate-900">Plusieurs produits trouvés</h3>
-                  <p className="text-sm text-slate-500">{barcodeMatches.length} produits avec ce code-barres</p>
+                  <h3 className="font-bold text-slate-900">{t('barcodeModal.title')}</h3>
+                  <p className="text-sm text-slate-500">{t('barcodeModal.subtitle', { count: barcodeMatches.length })}</p>
                 </div>
               </div>
 
@@ -2261,12 +2266,12 @@ export default function ProduitsCommercePage() {
                       <div className="flex justify-between items-start">
                         <div className="flex-1 min-w-0 mr-2">
                           <p className="font-semibold text-slate-900 truncate">{produit.nom_produit}</p>
-                          <p className="text-xs text-slate-500 mt-0.5">{produit.nom_categorie || 'Sans catégorie'}</p>
+                          <p className="text-xs text-slate-500 mt-0.5">{produit.nom_categorie || t('barcodeModal.noCategory')}</p>
                         </div>
                         <div className="text-right shrink-0">
                           <p className="font-bold text-green-700">{(produit.prix_vente || 0).toLocaleString('fr-FR')} F</p>
                           <p className={`text-xs mt-0.5 ${enRupture ? 'text-red-500 font-semibold' : stock <= 5 ? 'text-orange-500' : 'text-slate-500'}`}>
-                            {enRupture ? 'Rupture' : `Stock: ${stock}`}
+                            {enRupture ? t('barcodeModal.outOfStock') : t('barcodeModal.stockLabel', { count: stock })}
                           </p>
                         </div>
                       </div>
@@ -2279,7 +2284,7 @@ export default function ProduitsCommercePage() {
                 onClick={() => { setShowBarcodeSelectionModal(false); setBarcodeMatches([]); }}
                 className="mt-4 w-full px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-medium transition-colors"
               >
-                Annuler
+                {t('barcodeModal.cancel')}
               </button>
             </motion.div>
           </div>

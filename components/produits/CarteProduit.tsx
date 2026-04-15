@@ -25,6 +25,7 @@ import { usePanierStore } from '@/stores/panierStore';
 import { useToast } from '@/components/ui/Toast';
 import { useSubscriptionStatus } from '@/contexts/AuthContext';
 import { useSalesRules } from '@/hooks/useSalesRules';
+import { useTranslations } from '@/hooks/useTranslations';
 
 interface CarteProduitProps {
   produit: Produit;
@@ -62,13 +63,14 @@ export function CarteProduit({
   const { success: showSuccessToast } = useToast();
   const { canAccessFeature } = useSubscriptionStatus();
   const salesRules = useSalesRules();
+  const t = useTranslations('produits');
 
   // Calculs des données
   const prixVente = produit?.prix_vente || 0;
   const prixGrossiste = produit?.prix_grossiste || 0;
   const niveauStock = produit?.niveau_stock || 0;
-  const nomCategorie = produit?.nom_categorie || 'Non classé';
-  const description = produit?.description || 'Aucune description';
+  const nomCategorie = produit?.nom_categorie || t('card.uncategorized');
+  const description = produit?.description || t('card.noDescription');
   
   // Formatage des montants avec séparateurs de milliers
   const formatMontant = (montant: number) => {
@@ -104,8 +106,10 @@ export function CarteProduit({
       }
 
       showSuccessToast(
-        'Article ajouté !',
-        `${quantity} x ${produit.nom_produit} ajouté${quantity > 1 ? 's' : ''} au panier`
+        t('toasts.articleAdded'),
+        quantity > 1
+          ? t('toasts.articleAddedMsgPlural', { qty: quantity, name: produit.nom_produit })
+          : t('toasts.articleAddedMsg', { qty: quantity, name: produit.nom_produit })
       );
 
       setQuantity(1);
@@ -155,7 +159,7 @@ export function CarteProduit({
         )}
         <div className="flex-1">
           <h3 className="font-semibold text-gray-900 text-lg leading-tight pr-2">
-            {produit?.nom_produit || 'Produit sans nom'}
+            {produit?.nom_produit || t('card.noName')}
           </h3>
         </div>
         {!selectionMode && (
@@ -179,13 +183,13 @@ export function CarteProduit({
             <Tag className="w-5 h-5 text-emerald-600" />
           </div>
           <div>
-            <span className="text-sm text-gray-600 font-medium">Prix</span>
+            <span className="text-sm text-gray-600 font-medium">{t('card.priceLabel')}</span>
             <div className="font-bold text-gray-900 text-base">
               {formatMontant(prixVente)}
             </div>
             {salesRules.prixEnGrosActif && prixGrossiste > 0 && (
               <div className="text-xs text-purple-600 font-semibold mt-0.5">
-                Gros: {formatMontant(prixGrossiste)}
+                {t('card.grossLabel', { price: formatMontant(prixGrossiste) })}
               </div>
             )}
           </div>
@@ -197,9 +201,9 @@ export function CarteProduit({
             <Package className="w-5 h-5 text-green-600" />
           </div>
           <div>
-            <span className="text-sm text-gray-600 font-medium">Stock</span>
+            <span className="text-sm text-gray-600 font-medium">{t('card.stockLabel')}</span>
             <div className="font-bold text-gray-900 text-base">
-              {niveauStock} unités
+              {t('card.stockUnits', { count: niveauStock })}
             </div>
           </div>
         </div>
@@ -211,7 +215,7 @@ export function CarteProduit({
           <Smartphone className="w-5 h-5 text-blue-600" />
         </div>
         <div>
-          <span className="text-sm text-gray-600 font-medium">Catégorie</span>
+          <span className="text-sm text-gray-600 font-medium">{t('card.categoryLabel')}</span>
           <div className="font-bold text-gray-900 text-base">
             {nomCategorie}
           </div>
@@ -224,7 +228,7 @@ export function CarteProduit({
           <Info className="w-5 h-5 text-orange-600" />
         </div>
         <div>
-          <span className="text-sm text-gray-600 font-medium">Description</span>
+          <span className="text-sm text-gray-600 font-medium">{t('card.descriptionLabel')}</span>
           <div className="font-medium text-gray-800 text-base leading-relaxed">
             {description}
           </div>
@@ -318,13 +322,13 @@ export function CarteProduit({
         className="w-full bg-emerald-500 text-white py-4 px-4 rounded-xl font-semibold text-lg hover:bg-emerald-600 transition-all duration-300 flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
       >
         <ShoppingCart className="w-5 h-5" />
-        Vendre ce produit
+        {t('card.btnSell')}
       </motion.button>
 
       {/* Message stock insuffisant */}
       {niveauStock === 0 && (
         <p className="text-sm text-red-600 text-center mt-3 font-medium">
-          Rupture de stock
+          {t('card.outOfStock')}
         </p>
       )}
       

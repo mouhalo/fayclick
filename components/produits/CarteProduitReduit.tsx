@@ -24,6 +24,7 @@ import { useToast } from '@/components/ui/Toast';
 import { useSubscriptionStatus } from '@/contexts/AuthContext';
 import { useSalesRules } from '@/hooks/useSalesRules';
 import { Produit } from '@/types/produit';
+import { useTranslations } from '@/hooks/useTranslations';
 
 interface CarteProduitReduitProps {
   /** Produit à afficher */
@@ -64,6 +65,7 @@ export function CarteProduitReduit({
   const { success: showSuccessToast } = useToast();
   const { canAccessFeature } = useSubscriptionStatus();
   const salesRules = useSalesRules();
+  const t = useTranslations('produits');
   const [quantite, setQuantite] = useState(1);
   const [showMenu, setShowMenu] = useState(false);
 
@@ -108,8 +110,10 @@ export function CarteProduitReduit({
       }
 
       showSuccessToast(
-        'Article ajouté !',
-        `${quantite} x ${produit.nom_produit} ajouté${quantite > 1 ? 's' : ''} au panier`
+        t('toasts.articleAdded'),
+        quantite > 1
+          ? t('toasts.articleAddedMsgPlural', { qty: quantite, name: produit.nom_produit })
+          : t('toasts.articleAddedMsg', { qty: quantite, name: produit.nom_produit })
       );
 
       setQuantite(1);
@@ -145,11 +149,11 @@ export function CarteProduitReduit({
   const getBadgeStock = () => {
     const stock = produit.niveau_stock || 0;
     if (stock === 0) {
-      return { text: 'Rupture', color: 'bg-red-500' };
+      return { text: t('cardReduit.outOfStockBadge'), color: 'bg-red-500' };
     } else if (stock <= 5) {
-      return { text: 'Faible', color: 'bg-orange-500' };
+      return { text: t('cardReduit.lowStockBadge'), color: 'bg-orange-500' };
     } else {
-      return { text: 'Dispo', color: 'bg-green-500' };
+      return { text: t('cardReduit.availableBadge'), color: 'bg-green-500' };
     }
   };
 
@@ -201,7 +205,7 @@ export function CarteProduitReduit({
               {badge.text}
             </span>
             <span className="text-[9px] text-gray-500">
-              Stock: {produit.niveau_stock || 0}
+              {t('cardReduit.stockHeader', { count: produit.niveau_stock || 0 })}
             </span>
           </div>
         </div>
@@ -241,7 +245,7 @@ export function CarteProduitReduit({
                       className="w-full px-4 py-2.5 text-left text-sm text-gray-700 hover:bg-blue-50 flex items-center gap-3 transition-colors"
                     >
                       <QrCode className="w-4 h-4 text-blue-600" />
-                      QR Code
+                      {t('cardReduit.menuQR')}
                     </button>
                   )}
 
@@ -251,7 +255,7 @@ export function CarteProduitReduit({
                     className="w-full px-4 py-2.5 text-left text-sm text-gray-700 hover:bg-cyan-50 flex items-center gap-3 transition-colors"
                   >
                     <Edit className="w-4 h-4 text-cyan-600" />
-                    Modifier
+                    {t('cardReduit.menuEdit')}
                   </button>
 
                   {/* Supprimer */}
@@ -260,7 +264,7 @@ export function CarteProduitReduit({
                     className="w-full px-4 py-2.5 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-3 transition-colors border-t border-gray-100"
                   >
                     <Trash2 className="w-4 h-4" />
-                    Supprimer
+                    {t('cardReduit.menuDelete')}
                   </button>
                 </motion.div>
               </>
@@ -277,14 +281,14 @@ export function CarteProduitReduit({
           <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-1.5">
             <div className="flex items-center gap-1 mb-0.5">
               <TrendingUp className="w-3 h-3 text-green-600" />
-              <span className="text-[9px] font-medium text-gray-600">Prix</span>
+              <span className="text-[9px] font-medium text-gray-600">{t('cardReduit.priceLabel')}</span>
             </div>
             <p className="text-[11px] font-bold text-gray-900 leading-tight">
               {produit.prix_vente.toLocaleString('fr-FR')} FCFA
             </p>
             {salesRules.prixEnGrosActif && (produit.prix_grossiste || 0) > 0 && (
               <p className="text-[9px] font-semibold text-purple-600 leading-tight">
-                Gros: {(produit.prix_grossiste || 0).toLocaleString('fr-FR')}
+                {t('cardReduit.grossLabel', { price: (produit.prix_grossiste || 0).toLocaleString('fr-FR') })}
               </p>
             )}
           </div>
@@ -293,14 +297,14 @@ export function CarteProduitReduit({
           <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-1.5">
             <div className="flex items-center gap-1 mb-0.5">
               <Package className="w-3 h-3 text-blue-600" />
-              <span className="text-[9px] font-medium text-gray-600">Dispo</span>
+              <span className="text-[9px] font-medium text-gray-600">{t('cardReduit.availableLabel')}</span>
             </div>
             <p className={`text-[11px] font-bold leading-tight ${
               stockDisponible <= 0 ? 'text-red-600' :
               stockDisponible <= 5 ? 'text-orange-600' :
               'text-gray-900'
             }`}>
-              {stockDisponible} {stockDisponible > 1 ? 'unités' : 'unité'}
+              {stockDisponible} {stockDisponible > 1 ? t('cardReduit.unitPlural') : t('cardReduit.unitSingular')}
             </p>
           </div>
         </div>
@@ -354,7 +358,7 @@ export function CarteProduitReduit({
           }`}
         >
           <ShoppingCart className="w-3.5 h-3.5" />
-          {stockDisponible <= 0 ? 'Rupture' : 'Vendre'}
+          {stockDisponible <= 0 ? t('cardReduit.btnOutOfStock') : t('cardReduit.btnSell')}
         </motion.button>
       </div>
     </motion.div>
