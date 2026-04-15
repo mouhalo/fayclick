@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { CatalogueResponse } from '@/types/catalogue';
+import { useTranslations } from '@/hooks/useTranslations';
 
 interface BoutiqueHeaderProps {
   catalogue: CatalogueResponse;
@@ -15,6 +16,7 @@ interface BoutiqueHeaderProps {
 export default function BoutiqueHeader({ catalogue, totalCategories }: BoutiqueHeaderProps) {
   const router = useRouter();
   const { isMobile } = useBreakpoint();
+  const t = useTranslations('marketplace');
 
   const whatsappUrl = catalogue.telephone
     ? `https://wa.me/221${catalogue.telephone}`
@@ -36,7 +38,7 @@ export default function BoutiqueHeader({ catalogue, totalCategories }: BoutiqueH
           className="flex items-center gap-1.5 mb-3 px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/10 text-white text-xs font-medium transition-colors"
         >
           <ArrowLeft className="w-3.5 h-3.5" />
-          Marketplace
+          {t('boutiqueHeader.back')}
         </button>
 
         {/* Layout principal */}
@@ -90,7 +92,7 @@ export default function BoutiqueHeader({ catalogue, totalCategories }: BoutiqueH
                   className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-500/20 border border-green-400/30 text-green-300 text-[10px] font-semibold hover:bg-green-500/30 transition-colors"
                 >
                   <MessageCircle className="w-3 h-3" />
-                  Contacter
+                  {t('boutiqueHeader.contact')}
                 </a>
               )}
               {/* Badge Live — cat_badge_live.svg */}
@@ -99,7 +101,7 @@ export default function BoutiqueHeader({ catalogue, totalCategories }: BoutiqueH
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
                   <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-red-500" />
                 </span>
-                En direct
+                {t('boutiqueHeader.live')}
               </span>
             </div>
 
@@ -109,18 +111,18 @@ export default function BoutiqueHeader({ catalogue, totalCategories }: BoutiqueH
                 <div className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/10 rounded-full border border-emerald-400/20">
                   <Package className="w-3.5 h-3.5 text-emerald-300" />
                   <span className="text-emerald-200 text-xs font-bold">{catalogue.total_produits}</span>
-                  <span className="text-emerald-200/50 text-xs">produits</span>
+                  <span className="text-emerald-200/50 text-xs">{t('boutiqueHeader.products')}</span>
                 </div>
                 {totalCategories > 0 && (
                   <div className="flex items-center gap-1.5 px-3 py-1.5 bg-teal-500/10 rounded-full border border-teal-400/20">
                     <Tags className="w-3.5 h-3.5 text-teal-300" />
                     <span className="text-teal-200 text-xs font-bold">{totalCategories}</span>
-                    <span className="text-teal-200/50 text-xs">categories</span>
+                    <span className="text-teal-200/50 text-xs">{t('boutiqueHeader.categories')}</span>
                   </div>
                 )}
                 <button className="flex items-center gap-1.5 px-4 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-white text-xs font-bold rounded-full transition-colors">
                   <Heart className="w-3.5 h-3.5" />
-                  Suivre
+                  {t('boutiqueHeader.follow')}
                 </button>
               </div>
             )}

@@ -366,6 +366,43 @@
     "payAmount": "Pay {amount}",
     "securePayment": "Secure payment"
   },
+  "marketplace": {
+    "sortBy": {
+      "relevance": "Relevance",
+      "priceAsc": "Price: low to high",
+      "priceDesc": "Price: high to low",
+      "nameAz": "Name A-Z"
+    },
+    "nav": {
+      "home": "Home",
+      "shops": "Shops",
+      "search": "Search"
+    },
+    "boutiqueHeader": {
+      "back": "Marketplace",
+      "contact": "Contact",
+      "live": "Live",
+      "products": "products",
+      "categories": "categories",
+      "follow": "Follow"
+    },
+    "miniCart": {
+      "title": "My cart",
+      "empty": "Your cart is empty",
+      "subtotal": "Subtotal",
+      "shippingEstimated": "Estimated shipping",
+      "shippingFree": "Free",
+      "total": "Total",
+      "itemSingular": "{count} item",
+      "itemPlural": "{count} items",
+      "checkout": "Checkout →"
+    },
+    "toastAdded": "Added to cart!",
+    "modalCarrousel": {
+      "noPhoto": "No photo available"
+    },
+    "scrollTop": "Scroll to top"
+  },
   "catalogue": {
     "errorTitle": "Error",
     "errorNotFound": "Catalog not found",

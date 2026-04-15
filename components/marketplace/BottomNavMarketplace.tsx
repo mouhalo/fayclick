@@ -2,19 +2,20 @@
 
 import { Home, Store, Search } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useTranslations } from '@/hooks/useTranslations';
 
 interface BottomNavMarketplaceProps {
   activeTab?: 'home' | 'boutiques' | 'search';
   onTabChange?: (tab: 'home' | 'boutiques' | 'search') => void;
 }
 
-const tabs = [
-  { id: 'home' as const, icon: Home, label: 'Accueil' },
-  { id: 'boutiques' as const, icon: Store, label: 'Boutiques' },
-  { id: 'search' as const, icon: Search, label: 'Recherche' },
-];
-
 export default function BottomNavMarketplace({ activeTab = 'home', onTabChange }: BottomNavMarketplaceProps) {
+  const t = useTranslations('marketplace');
+  const tabs = [
+    { id: 'home' as const, icon: Home, label: t('nav.home') },
+    { id: 'boutiques' as const, icon: Store, label: t('nav.shops') },
+    { id: 'search' as const, icon: Search, label: t('nav.search') },
+  ];
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-40 lg:hidden">
       <div className="bg-slate-900/95 backdrop-blur-xl border-t border-white/10 h-16 flex items-center justify-around px-2 safe-area-bottom">

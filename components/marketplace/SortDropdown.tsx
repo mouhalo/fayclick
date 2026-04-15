@@ -1,6 +1,7 @@
 'use client';
 
 import { ArrowUpDown } from 'lucide-react';
+import { useTranslations } from '@/hooks/useTranslations';
 
 export type SortOption = 'pertinence' | 'prix_asc' | 'prix_desc' | 'nom_az';
 
@@ -9,14 +10,14 @@ interface SortDropdownProps {
   onChange: (sort: SortOption) => void;
 }
 
-const options: { value: SortOption; label: string }[] = [
-  { value: 'pertinence', label: 'Pertinence' },
-  { value: 'prix_asc', label: 'Prix croissant' },
-  { value: 'prix_desc', label: 'Prix decroissant' },
-  { value: 'nom_az', label: 'Nom A-Z' },
-];
-
 export default function SortDropdown({ value, onChange }: SortDropdownProps) {
+  const t = useTranslations('marketplace');
+  const options: { value: SortOption; label: string }[] = [
+    { value: 'pertinence', label: t('sortBy.relevance') },
+    { value: 'prix_asc', label: t('sortBy.priceAsc') },
+    { value: 'prix_desc', label: t('sortBy.priceDesc') },
+    { value: 'nom_az', label: t('sortBy.nameAz') },
+  ];
   return (
     <div className="relative inline-flex items-center">
       <ArrowUpDown className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-emerald-300 pointer-events-none" />

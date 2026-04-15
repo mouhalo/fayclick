@@ -3,6 +3,9 @@
 import { ShoppingCart, Trash2 } from 'lucide-react';
 import Image from 'next/image';
 import { ArticlePanier } from '@/services/online-seller.service';
+import { useTranslations } from '@/hooks/useTranslations';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { formatCurrency, formatNumber } from '@/lib/format-locale';
 
 interface DesktopMiniCartProps {
   articles: ArticlePanier[];
@@ -13,8 +16,12 @@ interface DesktopMiniCartProps {
 }
 
 export default function DesktopMiniCart({ articles, nomStructure, onOpenDrawer, onSupprimer, alwaysShow = false }: DesktopMiniCartProps) {
+  const t = useTranslations('marketplace');
+  const { locale } = useLanguage();
   const total = articles.reduce((sum, a) => sum + a.prix_vente * a.quantite, 0);
   const nbArticles = articles.reduce((sum, a) => sum + a.quantite, 0);
+  const fmtMontant = (m: number) => formatCurrency(m, locale, { devise: 'FCFA' });
+  const fmtNum = (n: number) => formatNumber(n, locale, { maximumFractionDigits: 0 });
 
   if (!alwaysShow && articles.length === 0) return null;
 
@@ -25,17 +32,17 @@ export default function DesktopMiniCart({ articles, nomStructure, onOpenDrawer, 
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <ShoppingCart className="w-4 h-4 text-white/60" />
-            <h3 className="text-white font-bold text-sm">Mon Panier</h3>
+            <h3 className="text-white font-bold text-sm">{t('miniCart.title')}</h3>
           </div>
           <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-400/30 text-emerald-300 text-[10px] font-bold">
-            {nbArticles} article{nbArticles > 1 ? 's' : ''}
+            {nbArticles > 1 ? t('miniCart.itemPlural', { count: nbArticles }) : t('miniCart.itemSingular', { count: nbArticles })}
           </span>
         </div>
 
         {articles.length === 0 ? (
           <div className="py-6 text-center">
             <ShoppingCart className="w-8 h-8 text-white/10 mx-auto mb-2" />
-            <p className="text-white/30 text-xs">Votre panier est vide</p>
+            <p className="text-white/30 text-xs">{t('miniCart.empty')}</p>
           </div>
         ) : (
           <>
@@ -55,8 +62,8 @@ export default function DesktopMiniCart({ articles, nomStructure, onOpenDrawer, 
 
                   <div className="flex-1 min-w-0">
                     <p className="text-xs text-white/80 truncate">{article.nom_produit}</p>
-                    <p className="text-xs text-emerald-400 font-bold">{(article.prix_vente * article.quantite).toLocaleString('fr-FR')} FCFA</p>
-                    <p className="text-[10px] text-white/30">{article.quantite} x {article.prix_vente.toLocaleString('fr-FR')}</p>
+                    <p className="text-xs text-emerald-400 font-bold">{fmtMontant(article.prix_vente * article.quantite)}</p>
+                    <p className="text-[10px] text-white/30">{article.quantite} x {fmtNum(article.prix_vente)}</p>
                   </div>
 
                   <button
@@ -72,22 +79,22 @@ export default function DesktopMiniCart({ articles, nomStructure, onOpenDrawer, 
             {/* Sous-total + Total + CTA */}
             <div className="border-t border-white/10 pt-3 space-y-1.5">
               <div className="flex justify-between items-center text-xs">
-                <span className="text-white/40">Sous-total</span>
-                <span className="text-white/70">{total.toLocaleString('fr-FR')} FCFA</span>
+                <span className="text-white/40">{t('miniCart.subtotal')}</span>
+                <span className="text-white/70">{fmtMontant(total)}</span>
               </div>
               <div className="flex justify-between items-center text-xs">
-                <span className="text-white/40">Livraison estimee</span>
-                <span className="text-white/70">Gratuite</span>
+                <span className="text-white/40">{t('miniCart.shippingEstimated')}</span>
+                <span className="text-white/70">{t('miniCart.shippingFree')}</span>
               </div>
               <div className="flex justify-between items-center pt-1 border-t border-white/5">
-                <span className="text-white font-bold text-sm">Total</span>
-                <span className="text-emerald-400 font-bold text-sm">{total.toLocaleString('fr-FR')} FCFA</span>
+                <span className="text-white font-bold text-sm">{t('miniCart.total')}</span>
+                <span className="text-emerald-400 font-bold text-sm">{fmtMontant(total)}</span>
               </div>
               <button
                 onClick={onOpenDrawer}
                 className="w-full py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white text-sm font-bold transition-all active:scale-95 mt-2"
               >
-                Finaliser la commande →
+                {t('miniCart.checkout')}
               </button>
             </div>
           </>

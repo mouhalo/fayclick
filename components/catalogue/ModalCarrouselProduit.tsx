@@ -19,6 +19,7 @@ import {
 import { ProduitPublic } from '@/types/catalogue';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import Image from 'next/image';
+import { useTranslations } from '@/hooks/useTranslations';
 
 interface ModalCarrouselProduitProps {
   produit: ProduitPublic;
@@ -34,6 +35,7 @@ export default function ModalCarrouselProduit({
   initialPhotoIndex = 0
 }: ModalCarrouselProduitProps) {
   const { isMobile } = useBreakpoint();
+  const tMkt = useTranslations('marketplace');
   const [currentIndex, setCurrentIndex] = useState(initialPhotoIndex);
   const [isZoomed, setIsZoomed] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
