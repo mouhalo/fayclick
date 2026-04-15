@@ -1,6 +1,6 @@
 # Progression Internationalisation FayClick V2 (FR/EN)
 
-**Dernière mise à jour** : 2026-04-15
+**Dernière mise à jour** : 2026-04-15 (fin session)
 **Branche Git** : `gestion_multilangue_fr_et_en`
 **PRD** : [docs/prd-i18n-complete-2026-04-14.md](./prd-i18n-complete-2026-04-14.md)
 **Guide dev** : [docs/i18n-guide.md](./i18n-guide.md)
@@ -14,14 +14,14 @@
 | EPIC-001 — Infrastructure | ✅ Terminé | ✅ GO | ⏳ En attente validation utilisateur |
 | Sprint 1 — Auth & Landing | ✅ Terminé | ✅ GO (92/100) | ⏳ En attente validation utilisateur |
 | Sprint 2 — Pages publiques | ✅ Terminé (4/4 lots) | — | — |
-| Sprint 3 — Dashboards & Navigation | 🟡 En cours (mobile commerce OK) | — | — |
-| Sprint 4 — Modules Commerce | ⏸️ À démarrer | — | — |
+| Sprint 3 — Dashboards & Navigation | 🟡 Partiel (commerce mobile OK) | — | — |
+| Sprint 4 — Modules Commerce | 🟡 En cours (4/6 livrés) | — | — |
 | Sprint 5 — Modals & Impression | ⏸️ À démarrer | — | — |
 | Sprint 6 — Services, Validations, Exports | ⏸️ À démarrer | — | — |
 | Sprint 7 — Paramètres, Structure, KALPE | ⏸️ À démarrer | — | — |
 
-**Couverture actuelle** : 449 clés FR = 449 clés EN (parité parfaite)
-**Commits totaux** : 17 commits atomiques
+**Couverture actuelle** : 965 clés FR = 965 clés EN (parité parfaite)
+**Commits totaux** : 24 commits atomiques sur la branche
 
 ---
 
@@ -36,14 +36,21 @@ Solution **custom** (pas `next-intl` ni `react-i18next`) :
 - `lib/format-locale.ts` — helpers formatDate/Number/Currency
 - `scripts/check-i18n-keys.mjs` — lint parité (`npm run i18n:check`)
 
-### Namespaces actuels
-- `common` — boutons/labels partagés (18 clés)
-- `auth` — login, PIN, modals récup mot de passe/PIN (80+ clés)
-- `register` — inscription 3 steps + célébration (50+ clés)
-- `landing` — landing page mobile/desktop + marketplace CTA (40+ clés)
-- `offline` — page /offline (10 clés)
-- `publicFacture` — facture publique partageable (35 clés)
-- `publicRecu` — reçu public partageable (28 clés)
+### Namespaces actuels (12)
+- `common` — boutons/labels partagés
+- `auth` — login, PIN, modals récup mot de passe/PIN
+- `register` — inscription 3 steps + célébration
+- `landing` — landing page mobile/desktop + marketplace CTA
+- `offline` — page /offline
+- `publicFacture` — facture publique partageable
+- `publicRecu` — reçu public partageable
+- `marketplace` + `catalogue` — pages publiques /catalogues + /catalogue
+- `dashboardCommerce` — dashboard commerce mobile
+- `expenses` — module dépenses (85 clés)
+- `inventory` — module inventaire (63 clés)
+- `clients` — module clients (149 clés)
+- `invoices` — module factures page + composants (98 clés)
+- `invoicesModals` — 6 modals factures (121 clés)
 
 ---
 
@@ -216,9 +223,88 @@ rm -rf .next && npm run deploy:build
 
 ---
 
+## Sprint 3 — Dashboards & Navigation (partiel)
+
+### Livré (commit `f232ccd`)
+- ✅ `/dashboard/commerce` (mobile) — namespace `dashboardCommerce` (25 clés)
+
+### Nettoyage dashboards (commit `1d627a8`)
+Suppression de 3 segments désormais gérés par d'autres applications :
+- 🔥 `app/dashboard/scolaire/` supprimé
+- 🔥 `app/dashboard/immobilier/` supprimé
+- 🔥 `app/dashboard/partenaire/` supprimé
+- Nettoyage `USER_ROUTES` (types/auth.ts) — retrait SCOLAIRE, IMMOBILIER, FORMATION PRO, CLIENT, PARTENAIRE
+- Nettoyage `displayConfig` (useStructure.ts) — 5 configs → 2 (COMMERCIALE + PRESTATAIRE DE SERVICES)
+- L'app conserve uniquement : **Commerce**, **Services**, **Admin**
+
+### À traiter Sprint 3 (sessions futures)
+- Desktop `/dashboard/commerce` (CommerceDashboardDesktop + sous-composants ~1500L)
+- `/dashboard/services` (562L + sous-composants services-factures)
+- `/dashboard/admin` (page.tsx 900L + gestion structures/abonnements/partenaires)
+
+---
+
+## Sprint 4 — Modules Commerce (en cours)
+
+### 4.1 Module Dépenses — ✅ Terminé (commit `4899ef6`)
+Namespace `expenses` (85 clés). Page + 10 composants/modals :
+- `DepensesHeader`, `DepensesStatCards`, `DepensesSearchBar`, `DepensesPagination`
+- `DepenseCard`, `DepensesList`, `DepensesDesktopView`
+- `AddEditDepenseModal`, `DeleteDepenseModal`, `GererTypesModal`
+- Page `/dashboard/commerce/depenses`
+
+### 4.2 Module Inventaire — ✅ Terminé (commit `49cc1b6`)
+Namespace `inventory` (63 clés). Page + 6 composants :
+- `InventaireHeader`, `TopArticlesCard`, `TopClientsCard`, `EvolutionChart`
+- `ModalSelectionPeriode` (12 mois, semaines, jours avec pluriels)
+- Page `/dashboard/commerce/inventaire`
+- Remplace `inventaireService.getPeriodeLabel/getVariationContext()` par i18n direct
+
+### 4.3 Module Clients — ✅ Terminé (commit `7fa8621`)
+Namespace `clients` (149 clés). Page + 7 composants/modals :
+- `ClientsDesktopView`, `FilterHeaderClientsGlass`
+- `ModalClientMultiOnglets` (3 onglets + footer contextuel + pluriels)
+- `OngletInfosGenerales`, `OngletFactures`, `OngletHistoriqueProduits`
+- Export CSV + HTML d'impression entièrement traduits (langue dynamique `lang="fr"/"en"`)
+- Page `/dashboard/commerce/clients`
+
+**Note** : `clientsService.formatMontant/formatDate` restent en fr-FR (refactor plus large hors scope). Montants/dates s'affichent au format FR même en mode EN.
+
+### 4.4 Module Factures — ✅ Terminé (commits `865cc15` + `7cb7cbd`)
+
+**Page + composants principaux** (`865cc15`, namespace `invoices` — 98 clés) :
+- Page `/dashboard/commerce/factures` (loading overlay, toast, confirmations)
+- `FacturesOnglets`, `FacturesList`, `FactureCard`
+- `StatsCardsFacturesGlass` (4 KPIs + pluralisation)
+- `FilterHeaderGlass`, `ListePaiements` (avec date-fns locale FR/EN)
+- `FacturesDesktopView`
+
+**Modals factures** (`7cb7cbd`, namespace `invoicesModals` — 121 clés) :
+- `ModalPartage` (422L) — QR code, WhatsApp, lien, copie
+- `ModalPaiement` (1002L) — ajout acompte, raccourcis %, boutons dynamiques
+- `ModalPaiementQRCode` (515L) — génération QR, timer, états success/failed/timeout, 2 boutons OM (app + MaxIt)
+- `ModalChoixPaiement`, `ModalConfirmationPaiement`, `PaymentMethodSelector`
+- Messages WhatsApp interpolés, logique méthodes paiement i18n
+
+### 4.5 À traiter (prochaine session)
+- **Venteflash** (1260L + composants VenteFlashHeader, Panier, etc.)
+- **Produits** (2354L + ModalAjoutProduitNew, ModalSelectionProduit, barcode scanning modals)
+
+---
+
 ## Prochaines étapes immédiates
 
-1. ⏳ **Test local** par l'utilisateur du Sprint 1 (FR↔EN sur login, register, modaux, landing)
-2. ⏳ **Validation explicite** avant déploiement
-3. ⏳ **Déploiement Sprint 1** en production
-4. ⏳ **Démarrage Sprint 2** — pages publiques
+1. **Nouvelle session** : Sprint 4.5 — VenteFlash (1260L, flow encaissement CASH + création facture)
+2. Puis Sprint 4.6 — Produits (2354L, le plus gros module commerce)
+3. Sprint 3 (fin) — `/dashboard/services` et `/dashboard/admin`
+4. Validation utilisateur Sprint 1-4 + déploiement prod
+
+## État parité i18n
+
+```
+npm run i18n:check
+📊 Stats i18n
+   FR : 965 clés
+   EN : 965 clés
+✅ Parité parfaite entre FR et EN.
+```
