@@ -1,6 +1,7 @@
 'use client';
 
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { useTranslations } from '@/hooks/useTranslations';
 
 interface DepensesPaginationProps {
   currentPage: number;
@@ -15,6 +16,7 @@ export default function DepensesPagination({
   onPageChange,
   totalItems
 }: DepensesPaginationProps) {
+  const t = useTranslations('expenses');
   if (totalPages <= 1) return null;
 
   return (
@@ -27,14 +29,14 @@ export default function DepensesPagination({
           className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
         >
           <ChevronLeft size={16} />
-          Précédent
+          {t('pagination.previous')}
         </button>
 
         {/* Indicateur de page */}
         <div className="text-sm text-gray-600">
-          Page <span className="font-semibold">{currentPage}</span> sur <span className="font-semibold">{totalPages}</span>
+          {t('pagination.pageInfo', { current: currentPage, total: totalPages })}
           <span className="mx-2">•</span>
-          <span className="font-semibold">{totalItems}</span> résultat(s)
+          {t(totalItems > 1 ? 'pagination.resultPlural' : 'pagination.resultSingular', { count: totalItems })}
         </div>
 
         {/* Bouton Suivant */}
@@ -43,7 +45,7 @@ export default function DepensesPagination({
           disabled={currentPage === totalPages}
           className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
         >
-          Suivant
+          {t('pagination.next')}
           <ChevronRight size={16} />
         </button>
       </div>

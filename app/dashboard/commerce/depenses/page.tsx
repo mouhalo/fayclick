@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { authService } from '@/services/auth.service';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
+import { useTranslations } from '@/hooks/useTranslations';
 import depenseService from '@/services/depense.service';
 import type { DepensesData, Depense, DepenseFormData } from '@/types/depense.types';
 
@@ -31,6 +32,7 @@ const ITEMS_PER_PAGE = 10;
 export default function DepensesPage() {
   const router = useRouter();
   const { user } = useAuth();
+  const t = useTranslations('expenses');
 
   // Hook responsive pour switch mobile/desktop
   const { isDesktop, isDesktopLarge, isTablet } = useBreakpoint();
@@ -84,7 +86,7 @@ export default function DepensesPage() {
       setData(result);
     } catch (err: any) {
       console.error('❌ [DepensesPage] Erreur chargement dépenses:', err);
-      setError(err.message || 'Impossible de charger les dépenses');
+      setError(err.message || t('errorLoadDefault'));
     } finally {
       setLoading(false);
     }
@@ -155,7 +157,7 @@ export default function DepensesPage() {
       setIsDeleteModalOpen(false);
       setSelectedDepense(null);
     } catch (error: any) {
-      alert(error.message || 'Erreur lors de la suppression');
+      alert(error.message || t('delete.errorDelete'));
     }
   };
 
@@ -167,7 +169,7 @@ export default function DepensesPage() {
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
             <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-            <p className="text-gray-600">Chargement des dépenses...</p>
+            <p className="text-gray-600">{t('loading')}</p>
           </div>
         </div>
       </div>
@@ -181,13 +183,13 @@ export default function DepensesPage() {
         <DepensesHeader />
         <div className="p-4">
           <div className="bg-red-50 border-2 border-red-200 rounded-2xl p-8 text-center">
-            <p className="text-red-600 font-semibold mb-2">Erreur de chargement</p>
+            <p className="text-red-600 font-semibold mb-2">{t('errorLoadTitle')}</p>
             <p className="text-red-500 text-sm mb-4">{error}</p>
             <button
               onClick={chargerDepenses}
               className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
             >
-              Réessayer
+              {t('retry')}
             </button>
           </div>
         </div>
@@ -308,14 +310,14 @@ export default function DepensesPage() {
         <button
           onClick={() => setIsTypesModalOpen(true)}
           className="bg-gray-600 text-white p-4 rounded-full shadow-lg hover:bg-gray-700 transition"
-          title="Gérer les types"
+          title={t('manageTypes')}
         >
           <Settings size={24} />
         </button>
         <button
           onClick={handleAjouterDepense}
           className="bg-blue-600 text-white p-4 rounded-full shadow-lg hover:bg-blue-700 transition"
-          title="Nouvelle dépense"
+          title={t('newExpense')}
         >
           <Plus size={24} />
         </button>

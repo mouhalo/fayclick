@@ -21,6 +21,9 @@ import {
 import DashboardSidebar from '@/components/dashboard/DashboardSidebar';
 import { User } from '@/types/auth';
 import type { DepensesData, Depense } from '@/types/depense.types';
+import { useTranslations } from '@/hooks/useTranslations';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { formatNumber, toBcp47 } from '@/lib/format-locale';
 
 interface DepensesDesktopViewProps {
   user: User;
@@ -68,6 +71,8 @@ export default function DepensesDesktopView({
   isTablet,
 }: DepensesDesktopViewProps) {
   const router = useRouter();
+  const t = useTranslations('expenses');
+  const { locale } = useLanguage();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(isTablet);
   const [searchLocal, setSearchLocal] = useState(searchQuery);
 
@@ -90,7 +95,7 @@ export default function DepensesDesktopView({
 
   const formatDate = (dateStr: string) => {
     if (!dateStr) return '-';
-    return new Date(dateStr).toLocaleDateString('fr-FR', {
+    return new Date(dateStr).toLocaleDateString(toBcp47(locale), {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',
@@ -98,7 +103,7 @@ export default function DepensesDesktopView({
   };
 
   const formatMontant = (val: number) => {
-    return `${val.toLocaleString('fr-FR')} FCFA`;
+    return `${formatNumber(val, locale)} FCFA`;
   };
 
   // KPI : type le plus couteux
@@ -139,8 +144,8 @@ export default function DepensesDesktopView({
               <ChevronLeft className="w-5 h-5 text-gray-600" />
             </button>
             <div>
-              <h1 className="text-lg font-bold text-gray-800">Gestion des Depenses</h1>
-              <p className="text-xs text-gray-500">Suivez et gerez vos depenses</p>
+              <h1 className="text-lg font-bold text-gray-800">{t('title')}</h1>
+              <p className="text-xs text-gray-500">{t('subtitleDesktop')}</p>
             </div>
           </div>
 
@@ -150,14 +155,14 @@ export default function DepensesDesktopView({
               className="flex items-center gap-2 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-semibold text-sm transition-all"
             >
               <Settings className="w-4 h-4" />
-              {!isTablet && <span>Gerer Types</span>}
+              {!isTablet && <span>{t('manageTypesShort')}</span>}
             </button>
             <button
               onClick={onAjouter}
               className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl font-semibold text-sm shadow-md hover:shadow-lg transition-all"
             >
               <Plus className="w-4 h-4" />
-              <span>Nouvelle Depense</span>
+              <span>{t('newExpenseDesktop')}</span>
             </button>
           </div>
         </header>
@@ -173,7 +178,7 @@ export default function DepensesDesktopView({
                   <Wallet className="w-5 h-5 text-blue-600" />
                 </div>
                 <div>
-                  <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">Depenses</p>
+                  <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">{t('stats.expenses')}</p>
                   <p className="text-2xl font-bold text-gray-800">{data.resume_depenses.nb_depenses}</p>
                   <p className="text-sm font-semibold text-blue-600">{formatMontant(data.resume_depenses.total_depenses)}</p>
                 </div>
@@ -187,7 +192,7 @@ export default function DepensesDesktopView({
                   <BarChart3 className="w-5 h-5 text-orange-600" />
                 </div>
                 <div>
-                  <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">Type le plus couteux</p>
+                  <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">{t('stats.mostCostlyLong')}</p>
                   {topType ? (
                     <>
                       <p className="text-lg font-bold text-gray-800 truncate">{topType.nom_type}</p>
@@ -199,7 +204,7 @@ export default function DepensesDesktopView({
                       </div>
                     </>
                   ) : (
-                    <p className="text-sm text-gray-400">Aucune donnee</p>
+                    <p className="text-sm text-gray-400">{t('stats.noData')}</p>
                   )}
                 </div>
               </div>
@@ -212,7 +217,7 @@ export default function DepensesDesktopView({
                   <TrendingUp className="w-5 h-5 text-green-600" />
                 </div>
                 <div>
-                  <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">Depense Moyenne</p>
+                  <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">{t('stats.avgExpense')}</p>
                   <p className="text-2xl font-bold text-gray-800">{formatMontant(data.resume_depenses.depense_moyenne)}</p>
                   {data.resume_depenses.variation_depenses !== 0 && (
                     <div className="flex items-center gap-1">
@@ -224,7 +229,7 @@ export default function DepensesDesktopView({
                       <span className={`text-xs font-semibold ${data.resume_depenses.variation_depenses > 0 ? 'text-red-500' : 'text-green-500'}`}>
                         {data.resume_depenses.variation_depenses > 0 ? '+' : ''}{data.resume_depenses.variation_depenses.toFixed(1)}%
                       </span>
-                      <span className="text-xs text-gray-400">vs periode precedente</span>
+                      <span className="text-xs text-gray-400">{t('stats.vsPrevious')}</span>
                     </div>
                   )}
                 </div>
@@ -241,7 +246,7 @@ export default function DepensesDesktopView({
                   type="text"
                   value={searchLocal}
                   onChange={(e) => setSearchLocal(e.target.value)}
-                  placeholder="Rechercher par type, description, montant..."
+                  placeholder={t('searchPlaceholderDesktop')}
                   className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
                 />
               </div>
@@ -249,10 +254,10 @@ export default function DepensesDesktopView({
                 onClick={onRefresh}
                 disabled={loading}
                 className="flex items-center gap-1.5 px-4 py-2 text-sm text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors border border-gray-200"
-                title="Actualiser"
+                title={t('refresh')}
               >
                 <RotateCcw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-                {!isTablet && <span>Actualiser</span>}
+                {!isTablet && <span>{t('refresh')}</span>}
               </button>
             </div>
           </div>
@@ -263,13 +268,13 @@ export default function DepensesDesktopView({
               <table className="w-full text-sm">
                 <thead>
                   <tr className="bg-gradient-to-r from-blue-700 to-indigo-700 text-white">
-                    <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider">Date</th>
-                    <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider">Type</th>
+                    <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider">{t('table.date')}</th>
+                    <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider">{t('table.type')}</th>
                     {!isTablet && (
-                      <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider">Description</th>
+                      <th className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wider">{t('table.description')}</th>
                     )}
-                    <th className="text-right px-4 py-3 font-semibold text-xs uppercase tracking-wider">Montant</th>
-                    <th className="text-center px-4 py-3 font-semibold text-xs uppercase tracking-wider">Actions</th>
+                    <th className="text-right px-4 py-3 font-semibold text-xs uppercase tracking-wider">{t('table.amount')}</th>
+                    <th className="text-center px-4 py-3 font-semibold text-xs uppercase tracking-wider">{t('table.actions')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -277,8 +282,8 @@ export default function DepensesDesktopView({
                     <tr>
                       <td colSpan={isTablet ? 4 : 5} className="text-center py-12 text-gray-400">
                         <Wallet className="w-10 h-10 mx-auto mb-3 text-gray-300" />
-                        <p className="font-medium">Aucune depense trouvee</p>
-                        <p className="text-xs mt-1">Modifiez votre recherche ou ajoutez une depense</p>
+                        <p className="font-medium">{t('list.empty')}</p>
+                        <p className="text-xs mt-1">{t('list.emptyHint')}</p>
                       </td>
                     </tr>
                   ) : (
@@ -310,14 +315,14 @@ export default function DepensesDesktopView({
                             <button
                               onClick={(e) => { e.stopPropagation(); onEditer(depense); }}
                               className="w-8 h-8 rounded-lg bg-blue-50 hover:bg-blue-100 flex items-center justify-center text-blue-600 transition-colors"
-                              title="Modifier"
+                              title={t('actions.edit')}
                             >
                               <Edit className="w-4 h-4" />
                             </button>
                             <button
                               onClick={(e) => { e.stopPropagation(); onSupprimer(depense); }}
                               className="w-8 h-8 rounded-lg bg-red-50 hover:bg-red-100 flex items-center justify-center text-red-500 transition-colors"
-                              title="Supprimer"
+                              title={t('actions.delete')}
                             >
                               <Trash2 className="w-4 h-4" />
                             </button>
@@ -334,9 +339,7 @@ export default function DepensesDesktopView({
             {totalPages > 1 && (
               <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100 bg-gray-50/50">
                 <p className="text-xs text-gray-500">
-                  Affichage de <span className="font-semibold">{startIndex + 1}</span> a{' '}
-                  <span className="font-semibold">{endIndex}</span> sur{' '}
-                  <span className="font-semibold">{depensesFiltrees.length}</span> depenses
+                  {t('pagination.rangeInfo', { start: startIndex + 1, end: endIndex, total: depensesFiltrees.length })}
                 </p>
 
                 <div className="flex items-center gap-1">

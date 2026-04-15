@@ -2,6 +2,7 @@
 
 import DepenseCard from './DepenseCard';
 import type { Depense } from '@/types/depense.types';
+import { useTranslations } from '@/hooks/useTranslations';
 
 interface DepensesListProps {
   depenses: Depense[];
@@ -10,10 +11,11 @@ interface DepensesListProps {
 }
 
 export default function DepensesList({ depenses, onEdit, onDelete }: DepensesListProps) {
+  const t = useTranslations('expenses');
   if (depenses.length === 0) {
     return (
       <div className="p-8 text-center">
-        <p className="text-gray-500">Aucune dépense trouvée</p>
+        <p className="text-gray-500">{t('list.empty')}</p>
       </div>
     );
   }

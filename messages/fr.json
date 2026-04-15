@@ -579,5 +579,108 @@
     "statusOnline": "Connexion rétablie",
     "statusOffline": "Pas de connexion",
     "tip": "Astuce : L'application FayClick fonctionne mieux lorsqu'elle est installée"
+  },
+  "expenses": {
+    "title": "Gestion des Dépenses",
+    "subtitle": "Suivi et contrôle des dépenses",
+    "subtitleDesktop": "Suivez et gérez vos dépenses",
+    "loading": "Chargement des dépenses...",
+    "errorLoadTitle": "Erreur de chargement",
+    "errorLoadDefault": "Impossible de charger les dépenses",
+    "retry": "Réessayer",
+    "backAria": "Retour",
+    "newExpense": "Nouvelle dépense",
+    "newExpenseDesktop": "Nouvelle Dépense",
+    "manageTypes": "Gérer les types",
+    "manageTypesShort": "Gérer Types",
+    "refresh": "Actualiser",
+    "searchPlaceholder": "Rechercher une dépense...",
+    "searchPlaceholderDesktop": "Rechercher par type, description, montant...",
+    "stats": {
+      "expenses": "Dépenses",
+      "count": "Nombre de dépenses",
+      "total": "Total dépensé",
+      "mostCostlyShort": "Type + coûteux",
+      "mostCostlyLong": "Type le plus coûteux",
+      "none": "Aucune dépense",
+      "noData": "Aucune donnée",
+      "avgExpense": "Dépense Moyenne",
+      "vsPrevious": "vs période précédente",
+      "countSingular": "{count} dépense",
+      "countPlural": "{count} dépenses"
+    },
+    "pagination": {
+      "previous": "Précédent",
+      "next": "Suivant",
+      "pageInfo": "Page {current} sur {total}",
+      "resultSingular": "{count} résultat",
+      "resultPlural": "{count} résultats",
+      "rangeInfo": "Affichage de {start} à {end} sur {total} dépenses"
+    },
+    "list": {
+      "empty": "Aucune dépense trouvée",
+      "emptyHint": "Modifiez votre recherche ou ajoutez une dépense"
+    },
+    "table": {
+      "date": "Date",
+      "type": "Type",
+      "description": "Description",
+      "amount": "Montant",
+      "actions": "Actions"
+    },
+    "actions": {
+      "edit": "Modifier",
+      "delete": "Supprimer"
+    },
+    "addEdit": {
+      "titleAdd": "Nouvelle dépense",
+      "titleEdit": "Modifier la dépense",
+      "fieldDate": "Date de la dépense *",
+      "fieldType": "Type de dépense *",
+      "typePlaceholder": "Sélectionnez un type",
+      "fieldAmount": "Montant (FCFA) *",
+      "amountPlaceholder": "0",
+      "fieldDescription": "Description",
+      "descriptionPlaceholder": "Détails de la dépense...",
+      "cancel": "Annuler",
+      "submitAdd": "Ajouter",
+      "submitEdit": "Modifier",
+      "submitting": "Enregistrement...",
+      "errorDateRequired": "La date est requise",
+      "errorTypeRequired": "Veuillez sélectionner un type de dépense",
+      "errorAmountInvalid": "Le montant doit être supérieur à 0",
+      "errorSave": "Erreur lors de l'enregistrement"
+    },
+    "delete": {
+      "title": "Confirmer la suppression",
+      "question": "Êtes-vous sûr de vouloir supprimer cette dépense ?",
+      "labelType": "Type :",
+      "labelAmount": "Montant :",
+      "labelDate": "Date :",
+      "irreversible": "Cette action est irréversible.",
+      "cancel": "Annuler",
+      "confirm": "Supprimer",
+      "errorDelete": "Erreur lors de la suppression"
+    },
+    "types": {
+      "title": "Gérer les types de dépenses",
+      "errorNameRequired": "Le nom du type est requis",
+      "errorSave": "Erreur lors de l'enregistrement",
+      "errorDelete": "Erreur lors de la suppression",
+      "confirmDelete": "Êtes-vous sûr de vouloir supprimer ce type de dépense ?",
+      "labelAdd": "Ajouter un nouveau type",
+      "labelEdit": "Modifier le type",
+      "namePlaceholder": "Ex : SALAIRE, EQUIPEMENTS, etc.",
+      "cancel": "Annuler",
+      "submitAdd": "Ajouter",
+      "submitEdit": "Modifier",
+      "submitting": "...",
+      "existing": "Types existants ({count})",
+      "countSingular": "{count} dépense",
+      "countPlural": "{count} dépenses",
+      "editBtn": "Modifier",
+      "deleteBtn": "Supprimer",
+      "deleteBlocked": "Impossible : dépenses associées"
+    }
   }
 }

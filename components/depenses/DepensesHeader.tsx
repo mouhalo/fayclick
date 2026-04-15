@@ -3,6 +3,7 @@
 import { ArrowLeft, Wallet } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
+import { useTranslations } from '@/hooks/useTranslations';
 
 /**
  * Header du module Gestion des Dépenses
@@ -10,6 +11,7 @@ import { motion } from 'framer-motion';
  */
 export default function DepensesHeader() {
   const router = useRouter();
+  const t = useTranslations('expenses');
 
   return (
     <div className="relative bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-700 pb-10 pt-3 px-4">
@@ -24,7 +26,7 @@ export default function DepensesHeader() {
           onClick={() => router.push('/dashboard/commerce')}
           className="flex items-center justify-center w-10 h-10 rounded-xl bg-white/20 backdrop-blur-md
                      hover:bg-white/30 transition-all duration-200 shadow-lg"
-          aria-label="Retour"
+          aria-label={t('backAria')}
         >
           <ArrowLeft className="w-5 h-5 text-white" />
         </motion.button>
@@ -50,7 +52,7 @@ export default function DepensesHeader() {
           transition={{ delay: 0.1 }}
           className="text-xl font-bold text-white mb-1 drop-shadow-lg"
         >
-          Gestion des Dépenses
+          {t('title')}
         </motion.h1>
 
         {/* Sous-titre */}
@@ -60,7 +62,7 @@ export default function DepensesHeader() {
           transition={{ delay: 0.2 }}
           className="text-sm text-blue-100 font-medium drop-shadow"
         >
-          Suivi et contrôle des dépenses
+          {t('subtitle')}
         </motion.p>
       </div>
     </div>

@@ -4,6 +4,9 @@ import { useState, useEffect } from 'react';
 import { X, Plus, Edit2, Trash2 } from 'lucide-react';
 import depenseService from '@/services/depense.service';
 import type { TypeDepense } from '@/types/depense.types';
+import { useTranslations } from '@/hooks/useTranslations';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { formatNumber } from '@/lib/format-locale';
 
 interface GererTypesModalProps {
   isOpen: boolean;
@@ -20,6 +23,8 @@ export default function GererTypesModal({
   onTypesUpdated,
   typesDepenses
 }: GererTypesModalProps) {
+  const t = useTranslations('expenses');
+  const { locale } = useLanguage();
   const [nomType, setNomType] = useState('');
   const [editingType, setEditingType] = useState<TypeDepense | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -37,7 +42,7 @@ export default function GererTypesModal({
     e.preventDefault();
 
     if (!nomType.trim()) {
-      setError('Le nom du type est requis');
+      setError(t('types.errorNameRequired'));
       return;
     }
 
@@ -55,7 +60,7 @@ export default function GererTypesModal({
       setEditingType(null);
       onTypesUpdated();
     } catch (err: any) {
-      setError(err.message || 'Erreur lors de l\'enregistrement');
+      setError(err.message || t('types.errorSave'));
     } finally {
       setIsSubmitting(false);
     }
@@ -74,7 +79,7 @@ export default function GererTypesModal({
   };
 
   const handleDelete = async (typeId: number) => {
-    if (!confirm('Êtes-vous sûr de vouloir supprimer ce type de dépense ?')) {
+    if (!confirm(t('types.confirmDelete'))) {
       return;
     }
 
@@ -85,7 +90,7 @@ export default function GererTypesModal({
       await depenseService.supprimerType(structureId, typeId);
       onTypesUpdated();
     } catch (err: any) {
-      setError(err.message || 'Erreur lors de la suppression');
+      setError(err.message || t('types.errorDelete'));
     } finally {
       setIsSubmitting(false);
     }
@@ -98,7 +103,7 @@ export default function GererTypesModal({
       <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b sticky top-0 bg-white z-10">
-          <h2 className="text-xl font-bold text-gray-800">Gérer les types de dépenses</h2>
+          <h2 className="text-xl font-bold text-gray-800">{t('types.title')}</h2>
           <button
             onClick={onClose}
             className="text-gray-400 hover:text-gray-600 transition"
@@ -119,7 +124,7 @@ export default function GererTypesModal({
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                {editingType ? 'Modifier le type' : 'Ajouter un nouveau type'}
+                {editingType ? t('types.labelEdit') : t('types.labelAdd')}
               </label>
               <div className="flex gap-2">
                 <input
@@ -127,7 +132,7 @@ export default function GererTypesModal({
                   value={nomType}
                   onChange={(e) => setNomType(e.target.value)}
                   className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Ex: SALAIRE, EQUIPEMENTS, etc."
+                  placeholder={t('types.namePlaceholder')}
                   maxLength={120}
                   required
                 />
@@ -137,7 +142,7 @@ export default function GererTypesModal({
                     onClick={handleCancelEdit}
                     className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition"
                   >
-                    Annuler
+                    {t('types.cancel')}
                   </button>
                 )}
                 <button
@@ -146,7 +151,7 @@ export default function GererTypesModal({
                   className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:opacity-50 flex items-center gap-2"
                 >
                   {editingType ? <Edit2 size={18} /> : <Plus size={18} />}
-                  {isSubmitting ? '...' : (editingType ? 'Modifier' : 'Ajouter')}
+                  {isSubmitting ? t('types.submitting') : (editingType ? t('types.submitEdit') : t('types.submitAdd'))}
                 </button>
               </div>
             </div>
@@ -155,7 +160,7 @@ export default function GererTypesModal({
           {/* Liste des types existants */}
           <div>
             <h3 className="text-sm font-semibold text-gray-700 mb-3">
-              Types existants ({typesDepenses.length})
+              {t('types.existing', { count: typesDepenses.length })}
             </h3>
             <div className="space-y-2">
               {typesDepenses.map((type) => (
@@ -170,14 +175,14 @@ export default function GererTypesModal({
                   <div className="flex-1">
                     <div className="font-semibold text-gray-800">{type.nom_type}</div>
                     <div className="text-xs text-gray-500 mt-1">
-                      {type.nb_depenses} dépense(s) • {type.total_depenses.toLocaleString('fr-FR')} FCFA
+                      {t(type.nb_depenses > 1 ? 'types.countPlural' : 'types.countSingular', { count: type.nb_depenses })} • {formatNumber(type.total_depenses, locale)} FCFA
                     </div>
                   </div>
                   <div className="flex gap-2">
                     <button
                       onClick={() => handleEdit(type)}
                       className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition"
-                      title="Modifier"
+                      title={t('types.editBtn')}
                     >
                       <Edit2 size={16} />
                     </button>
@@ -185,7 +190,7 @@ export default function GererTypesModal({
                       onClick={() => handleDelete(type.id_type_depense)}
                       disabled={type.nb_depenses > 0}
                       className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
-                      title={type.nb_depenses > 0 ? 'Impossible : dépenses associées' : 'Supprimer'}
+                      title={type.nb_depenses > 0 ? t('types.deleteBlocked') : t('types.deleteBtn')}
                     >
                       <Trash2 size={16} />
                     </button>

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import type { Depense, TypeDepense, DepenseFormData } from '@/types/depense.types';
+import { useTranslations } from '@/hooks/useTranslations';
 
 interface AddEditDepenseModalProps {
   isOpen: boolean;
@@ -19,6 +20,7 @@ export default function AddEditDepenseModal({
   depense,
   typesDepenses
 }: AddEditDepenseModalProps) {
+  const t = useTranslations('expenses');
   const [formData, setFormData] = useState<DepenseFormData>({
     date_depense: new Date().toISOString().split('T')[0],
     id_type_depense: 0,
@@ -53,15 +55,15 @@ export default function AddEditDepenseModal({
 
     // Validation
     if (!formData.date_depense) {
-      setError('La date est requise');
+      setError(t('addEdit.errorDateRequired'));
       return;
     }
     if (formData.id_type_depense === 0) {
-      setError('Veuillez sélectionner un type de dépense');
+      setError(t('addEdit.errorTypeRequired'));
       return;
     }
     if (formData.montant <= 0) {
-      setError('Le montant doit être supérieur à 0');
+      setError(t('addEdit.errorAmountInvalid'));
       return;
     }
 
@@ -71,7 +73,7 @@ export default function AddEditDepenseModal({
       await onSubmit(formData, depense?.id_depense);
       onClose();
     } catch (err: any) {
-      setError(err.message || 'Erreur lors de l\'enregistrement');
+      setError(err.message || t('addEdit.errorSave'));
     } finally {
       setIsSubmitting(false);
     }
@@ -85,7 +87,7 @@ export default function AddEditDepenseModal({
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b">
           <h2 className="text-xl font-bold text-gray-800">
-            {depense ? 'Modifier la dépense' : 'Nouvelle dépense'}
+            {depense ? t('addEdit.titleEdit') : t('addEdit.titleAdd')}
           </h2>
           <button
             onClick={onClose}
@@ -106,7 +108,7 @@ export default function AddEditDepenseModal({
           {/* Date */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Date de la dépense *
+              {t('addEdit.fieldDate')}
             </label>
             <input
               type="date"
@@ -120,7 +122,7 @@ export default function AddEditDepenseModal({
           {/* Type de dépense */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Type de dépense *
+              {t('addEdit.fieldType')}
             </label>
             <select
               value={formData.id_type_depense}
@@ -128,7 +130,7 @@ export default function AddEditDepenseModal({
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               required
             >
-              <option value={0}>Sélectionnez un type</option>
+              <option value={0}>{t('addEdit.typePlaceholder')}</option>
               {typesDepenses.map((type) => (
                 <option key={type.id_type_depense} value={type.id_type_depense}>
                   {type.nom_type}
@@ -140,7 +142,7 @@ export default function AddEditDepenseModal({
           {/* Montant */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Montant (FCFA) *
+              {t('addEdit.fieldAmount')}
             </label>
             <input
               type="number"
@@ -157,14 +159,14 @@ export default function AddEditDepenseModal({
           {/* Description */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Description
+              {t('addEdit.fieldDescription')}
             </label>
             <textarea
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
               rows={3}
-              placeholder="Détails de la dépense..."
+              placeholder={t('addEdit.descriptionPlaceholder')}
             />
           </div>
 
@@ -175,14 +177,14 @@ export default function AddEditDepenseModal({
               onClick={onClose}
               className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition"
             >
-              Annuler
+              {t('addEdit.cancel')}
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
               className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isSubmitting ? 'Enregistrement...' : (depense ? 'Modifier' : 'Ajouter')}
+              {isSubmitting ? t('addEdit.submitting') : (depense ? t('addEdit.submitEdit') : t('addEdit.submitAdd'))}
             </button>
           </div>
         </form>

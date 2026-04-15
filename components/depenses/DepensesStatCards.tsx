@@ -2,6 +2,9 @@
 
 import { TrendingUp, DollarSign } from 'lucide-react';
 import type { ResumeDepenses, TypeDepense } from '@/types/depense.types';
+import { useTranslations } from '@/hooks/useTranslations';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { formatNumber } from '@/lib/format-locale';
 
 interface DepensesStatCardsProps {
   resume: ResumeDepenses;
@@ -9,6 +12,8 @@ interface DepensesStatCardsProps {
 }
 
 export default function DepensesStatCards({ resume, typesDepenses }: DepensesStatCardsProps) {
+  const t = useTranslations('expenses');
+  const { locale } = useLanguage();
   // Trouver le type le plus coûteux
   const typePlusCouteux = typesDepenses.length > 0
     ? typesDepenses.reduce((max, type) =>
@@ -22,20 +27,20 @@ export default function DepensesStatCards({ resume, typesDepenses }: DepensesSta
       <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
         <div className="flex items-center gap-2 mb-2">
           <DollarSign className="text-blue-600" size={20} />
-          <span className="text-sm text-gray-600 font-medium">Dépenses</span>
+          <span className="text-sm text-gray-600 font-medium">{t('stats.expenses')}</span>
         </div>
         <div className="space-y-1">
           <div>
             <div className="text-2xl font-bold text-gray-800">
               {resume.nb_depenses}
             </div>
-            <div className="text-xs text-gray-500">Nombre de dépenses</div>
+            <div className="text-xs text-gray-500">{t('stats.count')}</div>
           </div>
           <div className="pt-2 border-t">
             <div className="text-xl font-semibold text-blue-600">
-              {resume.total_depenses.toLocaleString('fr-FR')} FCFA
+              {formatNumber(resume.total_depenses, locale)} FCFA
             </div>
-            <div className="text-xs text-gray-500">Total dépensé</div>
+            <div className="text-xs text-gray-500">{t('stats.total')}</div>
           </div>
         </div>
       </div>
@@ -44,7 +49,7 @@ export default function DepensesStatCards({ resume, typesDepenses }: DepensesSta
       <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
         <div className="flex items-center gap-2 mb-2">
           <TrendingUp className="text-orange-600" size={20} />
-          <span className="text-sm text-gray-600 font-medium">Type + coûteux</span>
+          <span className="text-sm text-gray-600 font-medium">{t('stats.mostCostlyShort')}</span>
         </div>
         {typePlusCouteux ? (
           <div className="space-y-1">
@@ -52,14 +57,14 @@ export default function DepensesStatCards({ resume, typesDepenses }: DepensesSta
               {typePlusCouteux.nom_type}
             </div>
             <div className="text-xl font-semibold text-orange-600">
-              {typePlusCouteux.total_depenses.toLocaleString('fr-FR')} FCFA
+              {formatNumber(typePlusCouteux.total_depenses, locale)} FCFA
             </div>
             <div className="text-xs text-gray-500">
-              {typePlusCouteux.nb_depenses} dépense(s) • {typePlusCouteux.pourcentage_total.toFixed(1)}%
+              {t(typePlusCouteux.nb_depenses > 1 ? 'stats.countPlural' : 'stats.countSingular', { count: typePlusCouteux.nb_depenses })} • {typePlusCouteux.pourcentage_total.toFixed(1)}%
             </div>
           </div>
         ) : (
-          <div className="text-sm text-gray-400">Aucune dépense</div>
+          <div className="text-sm text-gray-400">{t('stats.none')}</div>
         )}
       </div>
     </div>
