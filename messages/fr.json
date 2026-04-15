@@ -1719,6 +1719,10 @@
     "clientSearch": "Rechercher client",
     "itemSingular": "{count} article",
     "itemPlural": "{count} articles",
+    "cancelBtn": "Annuler",
+    "orderBtn": "Commander",
+    "processingBtn": "Traitement...",
+    "proformaBtn": "Proforma",
     "clientSearch": {
       "titleSearch": "Rechercher un client",
       "titleNew": "Nouveau client",

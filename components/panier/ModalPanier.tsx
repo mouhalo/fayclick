@@ -401,7 +401,7 @@ export function ModalPanier() {
                   "
                 >
                   <XCircle className="w-5 h-5" />
-                  Annuler
+                  {t('cancelBtn')}
                 </motion.button>
 
                 <motion.button
@@ -420,12 +420,12 @@ export function ModalPanier() {
                   {isLoading ? (
                     <>
                       <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      Traitement...
+                      {t('processingBtn')}
                     </>
                   ) : (
                     <>
                       <CreditCard className="w-5 h-5" />
-                      Commander
+                      {t('orderBtn')}
                     </>
                   )}
                 </motion.button>
