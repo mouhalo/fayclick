@@ -18,6 +18,7 @@ import { authService } from '@/services/auth.service';
 import { clientsService, ClientsApiException } from '@/services/clients.service';
 import { useClients, useClientsUI } from '@/hooks/useClients';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
+import { useTranslations } from '@/hooks/useTranslations';
 import { ModalClientMultiOnglets, FilterHeaderClientsGlass, ClientAdvancedFilters } from '@/components/clients';
 import ClientsDesktopView from '@/components/clients/ClientsDesktopView';
 import MainMenu from '@/components/layout/MainMenu';
@@ -31,6 +32,7 @@ import { User } from '@/types/auth';
 
 export default function ClientsCommercePage() {
   const router = useRouter();
+  const t = useTranslations('clients');
 
   // Hook responsive pour switch mobile/desktop
   const { isDesktop, isDesktopLarge, isTablet } = useBreakpoint();
@@ -184,7 +186,7 @@ export default function ClientsCommercePage() {
       console.error('❌ [CLIENTS COMMERCE] Erreur chargement clients:', error);
       const errorMessage = error instanceof ClientsApiException 
         ? error.message 
-        : 'Impossible de charger les clients';
+        : t('loadError');
       setErrorClients(errorMessage);
     } finally {
       setLoadingClients(false);
@@ -306,7 +308,7 @@ export default function ClientsCommercePage() {
           <h3 className="text-lg font-semibold text-white truncate pr-2">{client.nom_client}</h3>
           {hasImpayees && (
             <span className="px-2 py-1 bg-red-500/20 text-red-200 rounded-lg text-xs font-medium border border-red-400/30">
-              Impayés
+              {t('badges.unpaid')}
             </span>
           )}
         </div>
@@ -327,11 +329,11 @@ export default function ClientsCommercePage() {
         <div className="mt-4 pt-4 border-t border-white/20">
           <div className="grid grid-cols-2 gap-3 text-sm mb-3">
             <div className="bg-white/5 rounded-lg p-2">
-              <p className="text-white/60 text-xs">Factures</p>
+              <p className="text-white/60 text-xs">{t('stats.invoicesCount')}</p>
               <p className="text-white font-semibold">{statistiques_factures.nombre_factures}</p>
             </div>
             <div className="bg-white/5 rounded-lg p-2">
-              <p className="text-white/60 text-xs">Total</p>
+              <p className="text-white/60 text-xs">{t('stats.totalAmount')}</p>
               <p className="text-white font-semibold">
                 {clientsService.formatMontant(statistiques_factures.montant_total_factures)}
               </p>
@@ -341,7 +343,7 @@ export default function ClientsCommercePage() {
           {statistiques_factures.montant_impaye > 0 && (
             <div className="mb-3 p-2 bg-red-500/20 rounded-lg border border-red-400/30">
               <p className="text-red-200 text-xs">
-                Impayé: {clientsService.formatMontant(statistiques_factures.montant_impaye)}
+                {t('stats.unpaidAmount')}: {clientsService.formatMontant(statistiques_factures.montant_impaye)}
               </p>
             </div>
           )}
@@ -356,7 +358,7 @@ export default function ClientsCommercePage() {
             }}
             className="flex-1 py-2 bg-emerald-500/20 rounded-lg text-emerald-200 text-sm hover:bg-emerald-500/30 transition-colors"
           >
-            ✏️ Modifier
+            ✏️ {t('table.edit')}
           </button>
         </div>
       </motion.div>
@@ -367,7 +369,7 @@ export default function ClientsCommercePage() {
   if (isAuthLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-[#9c9125d9] via-[#203e2b] to-[#166534] flex items-center justify-center">
-        <div className="text-white text-lg">Chargement...</div>
+        <div className="text-white text-lg">{t('loading')}</div>
       </div>
     );
   }
@@ -463,7 +465,7 @@ export default function ClientsCommercePage() {
         
         {/* Header glassmorphism */}
         <GlassHeader
-          title="👥 Gestion Clients"
+          title={t('pageTitle')}
           subtitle={user?.nom_structure}
           onBack={() => router.push('/dashboard')}
           showBackButton={true}
@@ -501,7 +503,7 @@ export default function ClientsCommercePage() {
                     <Users className="w-5 h-5 text-emerald-300" />
                   </div>
                   <div>
-                    <p className="text-white/60 text-sm">Total Clients</p>
+                    <p className="text-white/60 text-sm">{t('stats.totalClients')}</p>
                     <p className="text-white font-bold text-lg">{statistiquesGlobales.nombre_total_clients}</p>
                   </div>
                 </div>
@@ -513,7 +515,7 @@ export default function ClientsCommercePage() {
                     <AlertCircle className="w-5 h-5 text-red-300" />
                   </div>
                   <div>
-                    <p className="text-white/60 text-sm">Impayés</p>
+                    <p className="text-white/60 text-sm">{t('stats.unpaid')}</p>
                     <p className="text-red-300 font-bold text-lg">
                       {clientsService.formatMontant(statistiquesGlobales.montant_impaye_structure)}
                     </p>
@@ -530,7 +532,7 @@ export default function ClientsCommercePage() {
             totalItems={clientsWithAdvancedFilters.length}
             itemsPerPage={itemsPerPage}
             onPageChange={setCurrentPage}
-            itemLabel="clients"
+            itemLabel={t('stats.itemLabel')}
             className="mb-6"
           />
 
@@ -564,7 +566,7 @@ export default function ClientsCommercePage() {
                   onClick={handleRefresh}
                   className="px-4 py-2 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-200 rounded-xl transition-colors"
                 >
-                  Réessayer
+                  {t('retry')}
                 </button>
               </div>
             ) : paginatedClients.length > 0 ? (
@@ -580,7 +582,7 @@ export default function ClientsCommercePage() {
               <div className="text-center py-12 bg-white/10 rounded-2xl border border-white/20">
                 <Users className="w-12 h-12 text-white/40 mx-auto mb-3" />
                 <p className="text-white/60 mb-2">
-                  {searchTerm ? `Aucun client trouvé pour "${searchTerm}"` : 'Aucun client enregistré'}
+                  {searchTerm ? t('empty.search', { term: searchTerm }) : t('empty.none')}
                 </p>
                 {searchTerm ? (
                   <button
@@ -590,14 +592,14 @@ export default function ClientsCommercePage() {
                     }}
                     className="text-emerald-300 hover:text-emerald-200 text-sm underline"
                   >
-                    Voir tous les clients
+                    {t('empty.seeAll')}
                   </button>
                 ) : (
                   <button
                     onClick={handleAddClient}
                     className="px-4 py-2 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-200 rounded-xl transition-colors"
                   >
-                    Ajouter le premier client
+                    {t('addFirstClient')}
                   </button>
                 )}
               </div>

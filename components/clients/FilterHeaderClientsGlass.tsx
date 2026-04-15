@@ -11,6 +11,9 @@ import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { Search, Filter, X, ChevronDown, RefreshCw, FileDown, Printer } from 'lucide-react';
 import { ClientWithStats } from '@/types/client';
+import { useTranslations } from '@/hooks/useTranslations';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { toBcp47 } from '@/lib/format-locale';
 
 // Type pour les opérateurs de comparaison
 type FilterOperator = '=' | '<' | '>';
@@ -47,6 +50,8 @@ export function FilterHeaderClientsGlass({
   advancedFilters,
   onAdvancedFiltersChange
 }: FilterHeaderClientsGlassProps) {
+  const t = useTranslations('clients');
+  const { locale } = useLanguage();
   // État local pour l'input (mise à jour immédiate)
   const [localSearchTerm, setLocalSearchTerm] = useState(searchTerm);
   const [isExporting, setIsExporting] = useState(false);
@@ -59,7 +64,7 @@ export function FilterHeaderClientsGlass({
   // ✅ Export CSV des clients
   const handleExportCSV = useCallback(() => {
     if (clients.length === 0) {
-      alert('Aucun client à exporter');
+      alert(t('alerts.exportEmpty'));
       return;
     }
 
@@ -67,7 +72,13 @@ export function FilterHeaderClientsGlass({
 
     try {
       // En-têtes CSV
-      const headers = ['Nom Client', 'Téléphone', 'Nbre Factures', 'Total Payé', 'Impayé'];
+      const headers = [
+        t('export_.headers.name'),
+        t('export_.headers.phone'),
+        t('export_.headers.nbInvoices'),
+        t('export_.headers.totalPaid'),
+        t('export_.headers.unpaid')
+      ];
 
       // Données clients
       const rows = clients.map(({ client, statistiques_factures }) => [
@@ -90,8 +101,8 @@ export function FilterHeaderClientsGlass({
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      const dateStr = new Date().toLocaleDateString('fr-FR').replace(/\//g, '-');
-      link.download = `clients_${nomStructure.replace(/\s+/g, '_')}_${dateStr}.csv`;
+      const dateStr = new Date().toLocaleDateString(toBcp47(locale)).replace(/\//g, '-');
+      link.download = `${t('export_.filePrefix')}_${nomStructure.replace(/\s+/g, '_')}_${dateStr}.csv`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -100,7 +111,7 @@ export function FilterHeaderClientsGlass({
       console.log(`✅ Export CSV: ${clients.length} clients exportés`);
     } catch (error) {
       console.error('❌ Erreur export CSV:', error);
-      alert('Erreur lors de l\'export CSV');
+      alert(t('alerts.exportError'));
     } finally {
       setIsExporting(false);
     }
@@ -109,7 +120,7 @@ export function FilterHeaderClientsGlass({
   // ✅ Impression des clients
   const handlePrint = useCallback(() => {
     if (clients.length === 0) {
-      alert('Aucun client à imprimer');
+      alert(t('alerts.printEmpty'));
       return;
     }
 
@@ -120,14 +131,15 @@ export function FilterHeaderClientsGlass({
       impaye: acc.impaye + (statistiques_factures?.montant_impaye ?? 0)
     }), { factures: 0, paye: 0, impaye: 0 });
 
-    const dateStr = new Date().toLocaleDateString('fr-FR');
+    const dateStr = new Date().toLocaleDateString(toBcp47(locale));
+    const langAttr = locale === 'en' ? 'en' : 'fr';
 
     const printHTML = `
       <!DOCTYPE html>
-      <html lang="fr">
+      <html lang="${langAttr}">
       <head>
         <meta charset="UTF-8">
-        <title>Liste des Clients - ${nomStructure}</title>
+        <title>${t('export_.printTitle')} - ${nomStructure}</title>
         <style>
           * { margin: 0; padding: 0; box-sizing: border-box; }
           body {
@@ -208,23 +220,23 @@ export function FilterHeaderClientsGlass({
       </head>
       <body>
         <div class="header">
-          <h1>📋 Liste des Clients</h1>
+          <h1>${t('export_.printIcon')}</h1>
           <p>${nomStructure}</p>
         </div>
 
         <div class="meta">
-          <span>Total: ${clients.length} client(s)</span>
-          <span>Imprimé le ${dateStr}</span>
+          <span>${t('export_.printTotal', { count: clients.length })}</span>
+          <span>${t('export_.printDate', { date: dateStr })}</span>
         </div>
 
         <table>
           <thead>
             <tr>
-              <th>Nom Client</th>
-              <th>Téléphone</th>
-              <th>Nbre Factures</th>
-              <th>Total Payé</th>
-              <th>Impayé</th>
+              <th>${t('export_.headers.name')}</th>
+              <th>${t('export_.headers.phone')}</th>
+              <th>${t('export_.headers.nbInvoices')}</th>
+              <th>${t('export_.headers.totalPaid')}</th>
+              <th>${t('export_.headers.unpaid')}</th>
             </tr>
           </thead>
           <tbody>
@@ -242,9 +254,9 @@ export function FilterHeaderClientsGlass({
 
         <div class="footer">
           <div class="totaux">
-            <div><span>Total Factures:</span> <span class="value">${totaux.factures}</span></div>
-            <div><span>Total Payé:</span> <span class="value">${formatMontant(totaux.paye)}</span></div>
-            <div><span>Total Impayé:</span> <span class="impaye-total">${formatMontant(totaux.impaye)}</span></div>
+            <div><span>${t('export_.printTotalInvoices')}</span> <span class="value">${totaux.factures}</span></div>
+            <div><span>${t('export_.printTotalPaid')}</span> <span class="value">${formatMontant(totaux.paye)}</span></div>
+            <div><span>${t('export_.printTotalUnpaid')}</span> <span class="impaye-total">${formatMontant(totaux.impaye)}</span></div>
           </div>
         </div>
       </body>
@@ -314,7 +326,7 @@ export function FilterHeaderClientsGlass({
           <Search className="absolute left-2.5 sm:left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-3.5 h-3.5 sm:w-4 sm:h-4" />
           <input
             type="text"
-            placeholder="Rechercher client..."
+            placeholder={t('searchPlaceholder')}
             value={localSearchTerm}
             onChange={(e) => setLocalSearchTerm(e.target.value)}
             className="
@@ -363,7 +375,7 @@ export function FilterHeaderClientsGlass({
             hover:bg-blue-500 transition-all duration-200
             border border-blue-400/50 disabled:opacity-50
           "
-          title="Actualiser"
+          title={t('refresh')}
         >
           <RefreshCw className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
         </motion.button>
@@ -378,7 +390,7 @@ export function FilterHeaderClientsGlass({
             hover:bg-emerald-500 transition-all duration-200
             border border-emerald-400/50 disabled:opacity-50
           "
-          title="Exporter CSV"
+          title={t('export')}
         >
           <FileDown className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${isExporting ? 'animate-pulse' : ''}`} />
         </motion.button>
@@ -393,7 +405,7 @@ export function FilterHeaderClientsGlass({
             hover:bg-purple-500 transition-all duration-200
             border border-purple-400/50 disabled:opacity-50
           "
-          title="Imprimer"
+          title={t('print')}
         >
           <Printer className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
         </motion.button>
@@ -415,7 +427,7 @@ export function FilterHeaderClientsGlass({
               {/* Filtre par nombre de factures */}
               <div className="bg-white/10 rounded-lg p-3 border border-white/20">
                 <label className="block text-white/80 text-xs font-medium mb-2">
-                  Nombre de factures
+                  {t('advanced.invoiceCount')}
                 </label>
                 <div className="flex items-center gap-2">
                   <select
@@ -447,7 +459,7 @@ export function FilterHeaderClientsGlass({
               {/* Filtre par montant acheté (payé) */}
               <div className="bg-white/10 rounded-lg p-3 border border-white/20">
                 <label className="block text-white/80 text-xs font-medium mb-2">
-                  Montant acheté (FCFA)
+                  {t('advanced.amountPurchased')}
                 </label>
                 <div className="flex items-center gap-2">
                   <select
@@ -479,7 +491,7 @@ export function FilterHeaderClientsGlass({
               {/* Filtre par montant impayés */}
               <div className="bg-white/10 rounded-lg p-3 border border-white/20">
                 <label className="block text-white/80 text-xs font-medium mb-2">
-                  Montant impayés (FCFA)
+                  {t('advanced.amountUnpaid')}
                 </label>
                 <div className="flex items-center gap-2">
                   <select
@@ -521,14 +533,14 @@ export function FilterHeaderClientsGlass({
                   })}
                   className="w-full py-2 bg-red-500/20 text-red-200 rounded-lg text-xs hover:bg-red-500/30 transition-colors border border-red-400/30"
                 >
-                  Réinitialiser les filtres
+                  {t('filtersReset')}
                 </button>
               )}
             </>
           ) : (
             <div className="text-center py-4 bg-white/10 rounded-lg border border-white/20">
               <p className="text-white/60 text-xs sm:text-sm">
-                Filtres avancés non configurés
+                {t('filtersNoneConfigured')}
               </p>
             </div>
           )}

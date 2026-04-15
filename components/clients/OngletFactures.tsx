@@ -28,6 +28,7 @@ import {
   getStatutFactureBadgeColor
 } from '@/types/client';
 import { clientsService } from '@/services/clients.service';
+import { useTranslations } from '@/hooks/useTranslations';
 
 interface OngletFacturesProps {
   clientDetail: ClientDetailComplet;
@@ -101,13 +102,14 @@ function StatCardFacture({ stat }: { stat: StatCard }) {
 }
 
 // Composant ligne de facture
-function LigneFacture({ 
-  facture, 
-  onMarquerPayee 
-}: { 
-  facture: FactureClient; 
+function LigneFacture({
+  facture,
+  onMarquerPayee
+}: {
+  facture: FactureClient;
   onMarquerPayee: (facture: FactureClient) => void;
 }) {
+  const t = useTranslations('clients');
   const [showActions, setShowActions] = useState(false);
 
   const handleOuvrirModalPaiement = () => {
@@ -136,22 +138,22 @@ function LigneFacture({
           
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
             <div>
-              <span className="text-white/60">Date:</span>
+              <span className="text-white/60">{t('invoices.labelDate')}</span>
               <p className="text-white">{clientsService.formatDate(facture.date_facture)}</p>
             </div>
             <div>
-              <span className="text-white/60">Montant:</span>
+              <span className="text-white/60">{t('invoices.labelAmount')}</span>
               <p className="text-white font-medium">{clientsService.formatMontant(facture.montant_facture)}</p>
             </div>
             {facture.date_paiement && (
               <div>
-                <span className="text-white/60">Payé le:</span>
+                <span className="text-white/60">{t('invoices.labelPaidOn')}</span>
                 <p className="text-white">{clientsService.formatDate(facture.date_paiement)}</p>
               </div>
             )}
             {facture.montant_restant && facture.montant_restant > 0 && (
               <div>
-                <span className="text-white/60">Restant:</span>
+                <span className="text-white/60">{t('invoices.labelRemaining')}</span>
                 <p className="text-red-300">{clientsService.formatMontant(facture.montant_restant)}</p>
               </div>
             )}
@@ -187,6 +189,7 @@ export function OngletFactures({
   onMarquerPayee,
   isLoading
 }: OngletFacturesProps) {
+  const t = useTranslations('clients');
   const [showFilters, setShowFilters] = useState(false);
 
   const handleFiltreStatut = (statut: FiltreFactures['statut']) => {
@@ -194,10 +197,10 @@ export function OngletFactures({
   };
 
   const statutOptions = [
-    { value: 'TOUTES', label: 'Toutes', count: clientDetail.factures.length },
-    { value: 'PAYEES', label: 'Payées', count: clientDetail.statistiques_factures.nombre_factures_payees },
-    { value: 'IMPAYEES', label: 'Impayées', count: clientDetail.statistiques_factures.nombre_factures_impayees },
-    { value: 'PARTIELLES', label: 'Partielles', count: clientDetail.factures.filter(f => f.statut_paiement === 'PARTIELLE').length }
+    { value: 'TOUTES', label: t('invoices.statusAll'), count: clientDetail.factures.length },
+    { value: 'PAYEES', label: t('invoices.statusPaid'), count: clientDetail.statistiques_factures.nombre_factures_payees },
+    { value: 'IMPAYEES', label: t('invoices.statusUnpaid'), count: clientDetail.statistiques_factures.nombre_factures_impayees },
+    { value: 'PARTIELLES', label: t('invoices.statusPartial'), count: clientDetail.factures.filter(f => f.statut_paiement === 'PARTIELLE').length }
   ];
 
   return (
@@ -206,10 +209,10 @@ export function OngletFactures({
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-lg font-semibold text-white mb-1">
-            Gestion des Factures
+            {t('invoices.title')}
           </h3>
           <p className="text-white/60 text-sm">
-            Historique des factures et gestion des paiements
+            {t('invoices.subtitle')}
           </p>
         </div>
 
@@ -218,7 +221,7 @@ export function OngletFactures({
           className="flex items-center gap-2 px-3 py-2 bg-blue-500/20 hover:bg-blue-500/30 text-blue-200 rounded-xl transition-colors border border-blue-400/30"
         >
           <Filter className="w-4 h-4" />
-          Filtres
+          {t('invoices.filters')}
           <ChevronDown className={`w-4 h-4 transition-transform ${showFilters ? 'rotate-180' : ''}`} />
         </button>
       </div>
@@ -227,7 +230,7 @@ export function OngletFactures({
       <div>
         <h4 className="text-white font-medium mb-4 flex items-center gap-2">
           <DollarSign className="w-5 h-5" />
-          Statistiques de Paiement
+          {t('invoices.statsTitle')}
         </h4>
         
         <div className="grid grid-cols-2 gap-4">
@@ -280,7 +283,7 @@ export function OngletFactures({
         <div className="flex items-center justify-between mb-4">
           <h4 className="text-white font-medium flex items-center gap-2">
             <FileText className="w-5 h-5" />
-            Liste des Factures ({factures.length})
+            {t('invoices.listTitle', { count: factures.length })}
           </h4>
           
           {filtre.statut !== 'TOUTES' && (
@@ -288,7 +291,7 @@ export function OngletFactures({
               onClick={() => handleFiltreStatut('TOUTES')}
               className="text-white/60 hover:text-white text-sm underline"
             >
-              Afficher toutes
+              {t('invoices.showAll')}
             </button>
           )}
         </div>
@@ -327,9 +330,9 @@ export function OngletFactures({
             <div className="text-center py-12 bg-white/5 rounded-2xl border border-white/20">
               <FileText className="w-12 h-12 text-white/40 mx-auto mb-3" />
               <p className="text-white/60 mb-2">
-                {filtre.statut === 'TOUTES' 
-                  ? 'Aucune facture trouvée'
-                  : `Aucune facture ${filtre.statut.toLowerCase()}`
+                {filtre.statut === 'TOUTES'
+                  ? t('invoices.emptyAll')
+                  : t('invoices.emptyFiltered', { status: filtre.statut.toLowerCase() })
                 }
               </p>
               {filtre.statut !== 'TOUTES' && (
@@ -337,7 +340,7 @@ export function OngletFactures({
                   onClick={() => handleFiltreStatut('TOUTES')}
                   className="text-blue-300 hover:text-blue-200 text-sm underline"
                 >
-                  Voir toutes les factures
+                  {t('invoices.seeAll')}
                 </button>
               )}
             </div>
@@ -350,11 +353,11 @@ export function OngletFactures({
         <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-4 border border-white/20">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
             <div>
-              <p className="text-white/60 text-sm">Total Factures</p>
+              <p className="text-white/60 text-sm">{t('invoices.summary.totalInvoices')}</p>
               <p className="text-white font-semibold">{factures.length}</p>
             </div>
             <div>
-              <p className="text-white/60 text-sm">Montant Total</p>
+              <p className="text-white/60 text-sm">{t('invoices.summary.totalAmount')}</p>
               <p className="text-white font-semibold">
                 {clientsService.formatMontant(
                   factures.reduce((sum, f) => sum + f.montant_facture, 0)
@@ -362,7 +365,7 @@ export function OngletFactures({
               </p>
             </div>
             <div>
-              <p className="text-white/60 text-sm">Montant Payé</p>
+              <p className="text-white/60 text-sm">{t('invoices.summary.paidAmount')}</p>
               <p className="text-green-300 font-semibold">
                 {clientsService.formatMontant(
                   factures.filter(f => f.statut_paiement === 'PAYEE').reduce((sum, f) => sum + f.montant_facture, 0)
@@ -370,7 +373,7 @@ export function OngletFactures({
               </p>
             </div>
             <div>
-              <p className="text-white/60 text-sm">Taux Paiement</p>
+              <p className="text-white/60 text-sm">{t('invoices.summary.paymentRate')}</p>
               <p className="text-blue-300 font-semibold">
                 {factures.length > 0 
                   ? Math.round((factures.filter(f => f.statut_paiement === 'PAYEE').length / factures.length) * 100)

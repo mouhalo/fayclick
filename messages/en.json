@@ -765,5 +765,192 @@
         "12": "December"
       }
     }
+  },
+  "clients": {
+    "pageTitle": "👥 Client Management",
+    "pageTitleDesktop": "Client Management",
+    "loading": "Loading...",
+    "loadingClients": "Loading clients...",
+    "loadError": "Unable to load clients",
+    "retry": "Retry",
+    "newClient": "New Client",
+    "addFirstClient": "Add your first client",
+    "fabAdd": "Add a client",
+    "searchPlaceholder": "Search client...",
+    "searchPlaceholderDesktop": "Search by name, phone, address...",
+    "refresh": "Refresh",
+    "export": "Export CSV",
+    "exportCsv": "Export CSV",
+    "print": "Print",
+    "filters": "Filters",
+    "filtersNoneConfigured": "Advanced filters not configured",
+    "filtersReset": "Reset filters",
+    "alerts": {
+      "exportEmpty": "No client to export",
+      "exportError": "Error during CSV export",
+      "printEmpty": "No client to print"
+    },
+    "stats": {
+      "totalClients": "Total Clients",
+      "totalUnpaid": "Total Unpaid",
+      "unpaid": "Unpaid",
+      "filterResults": "Filter Results",
+      "filterResultsDesc": "client(s) shown",
+      "invoicesCount": "Invoices",
+      "totalAmount": "Total",
+      "unpaidAmount": "Unpaid",
+      "itemLabel": "clients"
+    },
+    "advanced": {
+      "invoiceCount": "Number of invoices",
+      "amountPurchased": "Amount purchased (FCFA)",
+      "amountUnpaid": "Unpaid amount (FCFA)"
+    },
+    "empty": {
+      "none": "No client registered",
+      "search": "No client found for \"{term}\"",
+      "seeAll": "See all clients",
+      "noneFound": "No client found",
+      "noneHint": "Edit your filters or add a new client"
+    },
+    "table": {
+      "name": "Client Name",
+      "phone": "Phone",
+      "address": "Address",
+      "nbInvoices": "# Invoices",
+      "totalPaid": "Total Paid",
+      "unpaid": "Unpaid",
+      "actions": "Actions",
+      "viewDetails": "View details",
+      "edit": "Edit"
+    },
+    "badges": {
+      "unpaid": "Unpaid"
+    },
+    "pagination": {
+      "rangeInfo": "Showing {start} to {end} of {total} clients"
+    },
+    "export_": {
+      "headers": {
+        "name": "Client Name",
+        "phone": "Phone",
+        "nbInvoices": "# Invoices",
+        "totalPaid": "Total Paid",
+        "unpaid": "Unpaid"
+      },
+      "filePrefix": "clients",
+      "printTitle": "Client List",
+      "printIcon": "📋 Client List",
+      "printTotal": "Total: {count} client(s)",
+      "printDate": "Printed on {date}",
+      "printTotalInvoices": "Total Invoices:",
+      "printTotalPaid": "Total Paid:",
+      "printTotalUnpaid": "Total Unpaid:"
+    },
+    "modal": {
+      "titleNew": "New Client",
+      "titleDetails": "Client Details",
+      "loading": "Loading...",
+      "close": "Close",
+      "edit": "Edit",
+      "save": "Save",
+      "unsavedConfirm": "You have unsaved changes. Close anyway?",
+      "tabs": {
+        "general": "General Info",
+        "invoices": "Invoices",
+        "history": "History"
+      },
+      "tabsDesc": {
+        "general": "Client information and statistics",
+        "invoices": "Invoice history and payments",
+        "history": "Product purchase history"
+      },
+      "footer": {
+        "editing": "Edit the information then save",
+        "invoicesCountSingular": "{count} invoice in total",
+        "invoicesCountPlural": "{count} invoices in total",
+        "productsCountSingular": "{count} different product",
+        "productsCountPlural": "{count} different products"
+      }
+    },
+    "general": {
+      "title": "General Information",
+      "subtitleEdit": "Edit client information",
+      "subtitleView": "View client information and statistics",
+      "seniority": "Seniority",
+      "infoClient": "Client Information",
+      "edit": "Edit",
+      "fieldName": "Client name *",
+      "fieldNamePlaceholder": "Client full name",
+      "fieldPhone": "Phone *",
+      "fieldPhonePlaceholder": "+221 XX XXX XX XX",
+      "fieldAddress": "Address",
+      "fieldAddressPlaceholder": "Client full address",
+      "undefined": "Not set",
+      "undefinedF": "Not set",
+      "cancel": "Cancel",
+      "statsTitle": "Client Statistics",
+      "loadingInfo": "Loading information...",
+      "noInfo": "No information available",
+      "addInfo": "Add information"
+    },
+    "invoices": {
+      "title": "Invoice Management",
+      "subtitle": "Invoice history and payment management",
+      "filters": "Filters",
+      "statsTitle": "Payment Statistics",
+      "listTitle": "Invoice List ({count})",
+      "showAll": "Show all",
+      "statusAll": "All",
+      "statusPaid": "Paid",
+      "statusUnpaid": "Unpaid",
+      "statusPartial": "Partial",
+      "labelDate": "Date:",
+      "labelAmount": "Amount:",
+      "labelPaidOn": "Paid on:",
+      "labelRemaining": "Remaining:",
+      "emptyAll": "No invoice found",
+      "emptyFiltered": "No {status} invoice",
+      "seeAll": "See all invoices",
+      "summary": {
+        "totalInvoices": "Total Invoices",
+        "totalAmount": "Total Amount",
+        "paidAmount": "Paid Amount",
+        "paymentRate": "Payment Rate"
+      }
+    },
+    "history": {
+      "title": "Purchase History",
+      "subtitle": "Analysis of purchased products and consumption habits",
+      "filters": "Filters",
+      "statsTitle": "Purchase Statistics",
+      "loyalBadge": "Loyal client",
+      "searchPlaceholder": "Search a product...",
+      "sort": {
+        "quantity": "Quantity",
+        "amount": "Amount",
+        "date": "Date",
+        "name": "Name"
+      },
+      "listTitle": "Purchased Products ({count})",
+      "clearSearch": "Clear search",
+      "labelQuantity": "Quantity:",
+      "labelQuantityShort": "Qty:",
+      "labelTotal": "Total:",
+      "labelAvgPrice": "Avg price:",
+      "labelOrders": "Orders:",
+      "labelLast": "Last:",
+      "labelDateShort": "Date:",
+      "popularity": "Popularity",
+      "emptyAll": "No product purchased",
+      "emptySearch": "No product found for \"{term}\"",
+      "seeAll": "See all products",
+      "insightsTitle": "Client Insights",
+      "topProducts": "Top 3 Products",
+      "summary": "Summary",
+      "totalSpent": "Total spent:",
+      "avgBasket": "Avg basket:",
+      "lastOrder": "Last order:"
+    }
   }
 }
