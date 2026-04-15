@@ -14,6 +14,9 @@ import { PaymentContext } from '@/types/payment-wallet';
 import { onlineSellerService } from '@/services/online-seller.service';
 import { recuService } from '@/services/recu.service';
 import { encodeFactureParams } from '@/lib/url-encoder';
+import { useTranslations } from '@/hooks/useTranslations';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { formatCurrency } from '@/lib/format-locale';
 
 interface PanierPublicProps {
   isOpen: boolean;
@@ -38,6 +41,8 @@ export default function PanierPublic({
   nomStructure,
   onPaymentSuccess
 }: PanierPublicProps) {
+  const t = useTranslations('catalogue');
+  const { locale } = useLanguage();
   const [telephone, setTelephone] = useState('');
   const [showQRCode, setShowQRCode] = useState(false);
   const [selectedMethod, setSelectedMethod] = useState<'OM' | 'WAVE' | null>(null);
@@ -51,7 +56,7 @@ export default function PanierPublic({
   const total = articles.reduce((sum, a) => sum + a.prix_vente * a.quantite, 0);
   const nbArticles = articles.reduce((sum, a) => sum + a.quantite, 0);
 
-  const formatMontant = (m: number) => m.toLocaleString('fr-FR') + ' FCFA';
+  const formatMontant = (m: number) => formatCurrency(m, locale, { devise: 'FCFA' });
 
   const isFormValid = () => {
     return telephone.length === 9 && /^7\d{8}$/.test(telephone) && articles.length > 0;
@@ -104,7 +109,7 @@ export default function PanierPublic({
       setShowQRCode(true);
     } catch (err) {
       console.error('❌ [PANIER-PUBLIC] Erreur création facture draft:', err);
-      setError('Erreur lors de la préparation du paiement');
+      setError(t('panier.errors.paymentPrepFailed'));
       setIsSubmitting(false);
       setTimeout(() => setError(''), 5000);
     } finally {
@@ -149,7 +154,7 @@ export default function PanierPublic({
     const payTotal = totalSnapshot || total;
 
     try {
-      if (!payMethod || !draftContext) throw new Error('Methode de paiement ou facture draft manquante');
+      if (!payMethod || !draftContext) throw new Error(t('panier.errors.methodMissing'));
 
       const uuid = statusResponse?.data?.uuid || '';
       const ref = statusResponse?.data?.reference_externe || '';
@@ -177,7 +182,7 @@ export default function PanierPublic({
           window.location.href = recuUrl;
         }, 3000);
       } else {
-        throw new Error('Echec enregistrement paiement');
+        throw new Error(t('panier.errors.registerFailed'));
       }
     } catch (err) {
       console.error('Erreur enregistrement paiement panier:', err);
@@ -190,7 +195,7 @@ export default function PanierPublic({
     console.error('Paiement panier echoue:', errorMsg);
     setShowQRCode(false);
     setIsSubmitting(false);
-    setError('Le paiement a echoue. Veuillez reessayer.');
+    setError(t('panier.errors.paymentFailed'));
     setTimeout(() => setError(''), 5000);
   };
 
@@ -233,7 +238,7 @@ export default function PanierPublic({
             <X className="w-5 h-5 text-white/70" />
           </button>
           <h2 className="text-lg font-bold text-white">
-            {pageState === 'SUCCESS' ? 'Commande confirmee' : `Mon Panier (${nbArticles})`}
+            {pageState === 'SUCCESS' ? t('panier.titleConfirmed') : t('panier.title', { count: nbArticles })}
           </h2>
           <div className="w-8" /> {/* Spacer pour centrer le titre */}
         </div>
@@ -245,12 +250,12 @@ export default function PanierPublic({
               <div className="w-16 h-16 mx-auto bg-emerald-500/20 rounded-full flex items-center justify-center">
                 <CheckCircle className="w-10 h-10 text-emerald-400" />
               </div>
-              <h3 className="text-xl font-bold text-white">Paiement reussi !</h3>
+              <h3 className="text-xl font-bold text-white">{t('panier.paymentSuccess')}</h3>
               <p className="text-white/60 text-sm">
-                Votre commande a ete enregistree avec succes.
+                {t('panier.orderRegistered')}
               </p>
               <div className="bg-white/5 rounded-lg p-3 border border-white/10">
-                <p className="text-xs text-white/40">Numero de facture</p>
+                <p className="text-xs text-white/40">{t('panier.invoiceNumber')}</p>
                 <p className="text-lg font-bold text-emerald-400">{numFacture}</p>
               </div>
 
@@ -258,7 +263,7 @@ export default function PanierPublic({
                 <div className="space-y-2">
                   <div className="flex items-center justify-center gap-2 text-sm text-white/50">
                     <div className="w-4 h-4 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" />
-                    Redirection vers votre recu...
+                    {t('panier.redirectingReceipt')}
                   </div>
                   <button
                     onClick={() => {
@@ -268,7 +273,7 @@ export default function PanierPublic({
                     className="w-full flex items-center justify-center gap-2 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl font-semibold hover:from-blue-600 hover:to-blue-700 transition-all shadow-md"
                   >
                     <ExternalLink className="w-4 h-4" />
-                    Voir mon recu
+                    {t('panier.viewReceipt')}
                   </button>
                 </div>
               )}
@@ -277,13 +282,13 @@ export default function PanierPublic({
                 onClick={handleClose}
                 className="w-full py-3 bg-white/10 text-white/70 rounded-xl font-semibold hover:bg-white/15 transition-colors border border-white/10"
               >
-                Fermer
+                {t('panier.close')}
               </button>
             </div>
           ) : pageState === 'PAYING' ? (
             <div className="p-6 text-center space-y-4">
               <div className="w-12 h-12 mx-auto border-4 border-emerald-400 border-t-transparent rounded-full animate-spin" />
-              <p className="text-white/70 font-medium">Creation de votre facture...</p>
+              <p className="text-white/70 font-medium">{t('panier.creatingInvoice')}</p>
             </div>
           ) : (
             <>
@@ -291,7 +296,7 @@ export default function PanierPublic({
               {articles.length === 0 ? (
                 <div className="p-8 text-center">
                   <ShoppingCart className="w-12 h-12 text-white/20 mx-auto mb-3" />
-                  <p className="text-white/40">Votre panier est vide</p>
+                  <p className="text-white/40">{t('panier.empty')}</p>
                 </div>
               ) : (
                 <div className="space-y-2 p-3">
@@ -350,22 +355,22 @@ export default function PanierPublic({
             {/* Sous-total + Livraison separes (Stitch) */}
             <div className="space-y-2">
               <div className="flex justify-between items-center text-sm">
-                <span className="text-white/50">Sous-total</span>
+                <span className="text-white/50">{t('panier.subtotal')}</span>
                 <span className="text-white font-medium">{formatMontant(total)}</span>
               </div>
               <div className="flex justify-between items-center text-sm">
-                <span className="text-white/50">Livraison</span>
-                <span className="text-emerald-400 font-semibold">Gratuite</span>
+                <span className="text-white/50">{t('panier.shipping')}</span>
+                <span className="text-emerald-400 font-semibold">{t('panier.shippingFree')}</span>
               </div>
               <div className="border-t border-white/10 pt-2 flex justify-between items-center">
-                <span className="text-white font-bold">Total</span>
+                <span className="text-white font-bold">{t('panier.total')}</span>
                 <span className="text-xl font-bold text-emerald-400">{formatMontant(total)}</span>
               </div>
             </div>
 
             {/* Telephone */}
             <div>
-              <label className="text-xs text-white/40 mb-1 block">Numero de telephone</label>
+              <label className="text-xs text-white/40 mb-1 block">{t('panier.phoneLabel')}</label>
               <div className="relative flex items-center">
                 <div className="absolute left-3 flex items-center gap-1 text-white/40 text-xs pointer-events-none">
                   <span>🇸🇳</span>
@@ -375,13 +380,13 @@ export default function PanierPublic({
                   type="tel"
                   value={telephone}
                   onChange={(e) => setTelephone(e.target.value.replace(/\D/g, '').slice(0, 9))}
-                  placeholder="77 123 45 67"
+                  placeholder={t('panier.phonePlaceholder')}
                   className="w-full pl-[4.5rem] pr-3 py-2.5 rounded-xl bg-white/10 border border-white/10 focus:border-emerald-400/50 focus:ring-2 focus:ring-emerald-400/20 outline-none transition-all text-white text-sm placeholder-white/30"
                   maxLength={9}
                 />
               </div>
               {telephone.length > 0 && !/^7/.test(telephone) && (
-                <p className="text-red-400 text-[10px] mt-0.5">Le numero doit commencer par 7</p>
+                <p className="text-red-400 text-[10px] mt-0.5">{t('panier.phoneMustStart7')}</p>
               )}
             </div>
 
@@ -398,7 +403,7 @@ export default function PanierPublic({
                 className="w-full flex items-center justify-center gap-2 bg-orange-500 hover:bg-orange-400 text-white py-3.5 rounded-xl font-bold text-sm disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-lg shadow-orange-500/25"
               >
                 <Image src="/images/om.png" alt="OM" width={22} height={22} className="rounded" />
-                Payer avec OM
+                {t('panier.payWithOm')}
               </button>
               <button
                 onClick={() => handlePayment('WAVE')}
@@ -406,14 +411,14 @@ export default function PanierPublic({
                 className="w-full flex items-center justify-center gap-2 bg-sky-500 hover:bg-sky-400 text-white py-3.5 rounded-xl font-bold text-sm disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-lg shadow-sky-500/25"
               >
                 <Image src="/images/wave.png" alt="Wave" width={22} height={22} className="rounded" />
-                Payer avec Wave
+                {t('panier.payWithWave')}
               </button>
             </div>
 
             {/* Securite (Stitch) */}
             <p className="text-[10px] text-white/30 text-center flex items-center justify-center gap-1">
               <Shield className="w-3 h-3" />
-              Paiement 100% securise
+              {t('panier.secureInfo')}
             </p>
           </div>
         )}

@@ -366,6 +366,51 @@
     "payAmount": "Pay {amount}",
     "securePayment": "Secure payment"
   },
+  "catalogue": {
+    "errorTitle": "Error",
+    "errorNotFound": "Catalog not found",
+    "errorGeneric": "Unable to load the catalog",
+    "searchPlaceholder": "Search in this shop...",
+    "newest": "Newest",
+    "sortBy": "Sort by:",
+    "promotions": "Promotions",
+    "noProductsFound": "No products found",
+    "adjustCriteria": "Try adjusting your search criteria",
+    "emptyShop": "This shop has no products yet",
+    "card": {
+      "promo": "Promo",
+      "outOfStock": "Out of stock",
+      "buy": "Buy"
+    },
+    "panier": {
+      "title": "My cart ({count})",
+      "titleConfirmed": "Order confirmed",
+      "paymentSuccess": "Payment successful!",
+      "orderRegistered": "Your order has been successfully registered.",
+      "invoiceNumber": "Invoice number",
+      "redirectingReceipt": "Redirecting to your receipt...",
+      "viewReceipt": "View my receipt",
+      "close": "Close",
+      "creatingInvoice": "Creating your invoice...",
+      "empty": "Your cart is empty",
+      "subtotal": "Subtotal",
+      "shipping": "Shipping",
+      "shippingFree": "Free",
+      "total": "Total",
+      "phoneLabel": "Phone number",
+      "phonePlaceholder": "77 123 45 67",
+      "phoneMustStart7": "Number must start with 7",
+      "payWithOm": "Pay with OM",
+      "payWithWave": "Pay with Wave",
+      "secureInfo": "100% secure payment",
+      "errors": {
+        "paymentPrepFailed": "Error preparing the payment",
+        "methodMissing": "Payment method or draft invoice missing",
+        "registerFailed": "Failed to register payment",
+        "paymentFailed": "Payment failed. Please try again."
+      }
+    }
+  },
   "publicRecu": {
     "loading": "Loading receipt...",
     "errorTitle": "Receipt not found",

@@ -366,6 +366,51 @@
     "payAmount": "Payer {amount}",
     "securePayment": "Paiement sécurisé"
   },
+  "catalogue": {
+    "errorTitle": "Erreur",
+    "errorNotFound": "Catalogue introuvable",
+    "errorGeneric": "Impossible de charger le catalogue",
+    "searchPlaceholder": "Rechercher dans cette boutique...",
+    "newest": "Nouveautés",
+    "sortBy": "Trier par :",
+    "promotions": "Promotions",
+    "noProductsFound": "Aucun produit trouvé",
+    "adjustCriteria": "Essayez de modifier vos critères de recherche",
+    "emptyShop": "Cette boutique n'a pas encore de produits",
+    "card": {
+      "promo": "Promo",
+      "outOfStock": "Rupture de stock",
+      "buy": "Acheter"
+    },
+    "panier": {
+      "title": "Mon panier ({count})",
+      "titleConfirmed": "Commande confirmée",
+      "paymentSuccess": "Paiement réussi !",
+      "orderRegistered": "Votre commande a été enregistrée avec succès.",
+      "invoiceNumber": "Numéro de facture",
+      "redirectingReceipt": "Redirection vers votre reçu...",
+      "viewReceipt": "Voir mon reçu",
+      "close": "Fermer",
+      "creatingInvoice": "Création de votre facture...",
+      "empty": "Votre panier est vide",
+      "subtotal": "Sous-total",
+      "shipping": "Livraison",
+      "shippingFree": "Gratuite",
+      "total": "Total",
+      "phoneLabel": "Numéro de téléphone",
+      "phonePlaceholder": "77 123 45 67",
+      "phoneMustStart7": "Le numéro doit commencer par 7",
+      "payWithOm": "Payer avec OM",
+      "payWithWave": "Payer avec Wave",
+      "secureInfo": "Paiement 100 % sécurisé",
+      "errors": {
+        "paymentPrepFailed": "Erreur lors de la préparation du paiement",
+        "methodMissing": "Méthode de paiement ou facture brouillon manquante",
+        "registerFailed": "Échec de l'enregistrement du paiement",
+        "paymentFailed": "Le paiement a échoué. Veuillez réessayer."
+      }
+    }
+  },
   "publicRecu": {
     "loading": "Chargement du reçu...",
     "errorTitle": "Reçu introuvable",
