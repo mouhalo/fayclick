@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { MapPin } from 'lucide-react';
 import Image from 'next/image';
 import { StructureListItem } from '@/types/marketplace';
+import { useTranslations } from '@/hooks/useTranslations';
 
 const FALLBACK = '/images/mascotte.png';
 
@@ -24,14 +25,17 @@ function getTypeStyle(type: string | null) {
   return { bg: 'bg-slate-500/10', text: 'text-slate-300', border: 'border-slate-400/20' };
 }
 
-function getTypeLabel(type: string | null): string {
-  if (!type) return 'Autre';
-  const upper = type.toUpperCase();
-  if (upper.includes('COMMERCIALE')) return 'Commerce';
-  if (upper.includes('SCOLAIRE')) return 'Scolaire';
-  if (upper.includes('IMMOBILIER')) return 'Immobilier';
-  if (upper.includes('PRESTATAIRE')) return 'Prestataire';
-  return type;
+function useTypeLabel() {
+  const t = useTranslations('marketplace');
+  return (type: string | null): string => {
+    if (!type) return t('types.other');
+    const upper = type.toUpperCase();
+    if (upper.includes('COMMERCIALE')) return t('types.commerce');
+    if (upper.includes('SCOLAIRE')) return t('types.scolaire');
+    if (upper.includes('IMMOBILIER')) return t('types.immobilier');
+    if (upper.includes('PRESTATAIRE')) return t('types.prestataire');
+    return type;
+  };
 }
 
 interface CarteBoutiqueStandardProps {
@@ -44,6 +48,8 @@ export default function CarteBoutiqueStandard({ structure, index, onClick }: Car
   const logoSrc = structure.logo && structure.logo.startsWith('http') ? structure.logo : FALLBACK;
   const [src, setSrc] = useState(logoSrc);
   const typeStyle = getTypeStyle(structure.type_structure);
+  const t = useTranslations('marketplace');
+  const getTypeLabel = useTypeLabel();
 
   return (
     <motion.button
@@ -96,7 +102,7 @@ export default function CarteBoutiqueStandard({ structure, index, onClick }: Car
 
         {/* Bouton CTA */}
         <div className="py-1 px-2 rounded-lg border border-white/20 text-white/60 text-[11px] font-medium text-center group-hover:border-white/30 group-hover:text-white/80 transition-colors">
-          Voir
+          {t('structure.view')}
         </div>
       </div>
     </motion.button>

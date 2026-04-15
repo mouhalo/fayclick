@@ -3,6 +3,7 @@
 import { motion } from 'framer-motion';
 import { Search, Filter, X } from 'lucide-react';
 import { formatNomCategorie } from '@/lib/format-categorie';
+import { useTranslations } from '@/hooks/useTranslations';
 
 interface BoutiqueSearchFilterProps {
   searchTerm: string;
@@ -25,6 +26,7 @@ export default function BoutiqueSearchFilter({
   onCategorieChange,
   onReset
 }: BoutiqueSearchFilterProps) {
+  const t = useTranslations('marketplace');
   const hasFilters = searchTerm || categorie;
 
   return (
@@ -42,7 +44,7 @@ export default function BoutiqueSearchFilter({
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald-300" />
           <input
             type="text"
-            placeholder="Rechercher un produit..."
+            placeholder={t('searchFilter.placeholder')}
             value={searchTerm}
             onChange={(e) => onSearchChange(e.target.value)}
             className="w-full pl-9 pr-3 py-2 text-sm bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg focus:ring-2 focus:ring-emerald-400/50 focus:border-emerald-400/50 transition-all text-white placeholder-emerald-200/60"
@@ -57,7 +59,7 @@ export default function BoutiqueSearchFilter({
             onChange={(e) => onCategorieChange(e.target.value)}
             className="w-full pl-9 pr-3 py-2 text-sm bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg focus:ring-2 focus:ring-emerald-400/50 text-white appearance-none"
           >
-            <option value="" className="bg-slate-800">Toutes categories</option>
+            <option value="" className="bg-slate-800">{t('searchFilter.allCategories')}</option>
             {categories.map(cat => (
               <option key={cat} value={cat} className="bg-slate-800">{formatNomCategorie(cat)}</option>
             ))}
@@ -73,7 +75,7 @@ export default function BoutiqueSearchFilter({
             <button
               onClick={onReset}
               className="p-2 rounded-lg bg-red-500/20 hover:bg-red-500/30 border border-red-400/30 text-red-200 transition-colors"
-              aria-label="Reinitialiser filtres"
+              aria-label={t('searchFilter.reset')}
             >
               <X className="w-3.5 h-3.5" />
             </button>

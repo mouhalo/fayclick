@@ -401,7 +401,62 @@
     "modalCarrousel": {
       "noPhoto": "No photo available"
     },
-    "scrollTop": "Scroll to top"
+    "scrollTop": "Scroll to top",
+    "hero": {
+      "badge": "Premium Marketplace",
+      "titlePart1": "The best merchants",
+      "titlePart2": "of Senegal",
+      "subtitle": "Discover the premium marketplace for FayClick. Quality and authenticity guaranteed.",
+      "explore": "Explore shops",
+      "statsShops": "SHOPS",
+      "statsWithCatalog": "WITH CATALOG",
+      "liveSingular": "{count} Live",
+      "livePlural": "{count} Lives"
+    },
+    "search": {
+      "placeholderPhone": "Phone number (7xx...)",
+      "placeholderText": "Search a live or a shop..."
+    },
+    "searchFilter": {
+      "placeholder": "Search a product...",
+      "allCategories": "All categories",
+      "reset": "Reset filters"
+    },
+    "types": {
+      "all": "All",
+      "commerce": "Commerce",
+      "scolaire": "Education",
+      "immobilier": "Real estate",
+      "prestataire": "Services",
+      "other": "Other"
+    },
+    "structure": {
+      "view": "View",
+      "productSingular": "{count} product",
+      "productPlural": "{count} products"
+    },
+    "carousel": {
+      "popularShops": "Popular shops"
+    },
+    "featured": {
+      "title": "Shops with online catalog",
+      "badge": "Featured",
+      "subtitleSingular": "{count} merchant sells products online",
+      "subtitlePlural": "{count} merchants sell their products online"
+    },
+    "allShops": {
+      "title": "All shops",
+      "subtitleSingular": "{count} merchant registered on FayClick",
+      "subtitlePlural": "{count} merchants registered on FayClick",
+      "noneFound": "No shops found",
+      "noneSubtitle": "No shops of this type for now",
+      "loadMoreSingular": "Show more ({count} remaining)",
+      "loadMorePlural": "Show more ({count} remaining)"
+    },
+    "cataloguesGlobal": {
+      "errorTitle": "Error",
+      "retry": "Retry"
+    }
   },
   "catalogue": {
     "errorTitle": "Error",

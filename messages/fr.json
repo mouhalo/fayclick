@@ -401,7 +401,62 @@
     "modalCarrousel": {
       "noPhoto": "Aucune photo disponible"
     },
-    "scrollTop": "Remonter en haut"
+    "scrollTop": "Remonter en haut",
+    "hero": {
+      "badge": "Marketplace Premium",
+      "titlePart1": "Les meilleurs commerçants",
+      "titlePart2": "du Sénégal",
+      "subtitle": "Découvrez la marketplace premium pour FayClick. Qualité et authenticité garanties.",
+      "explore": "Explorer les boutiques",
+      "statsShops": "BOUTIQUES",
+      "statsWithCatalog": "AVEC CATALOGUE",
+      "liveSingular": "{count} Live",
+      "livePlural": "{count} Lives"
+    },
+    "search": {
+      "placeholderPhone": "Numéro de téléphone (7xx...)",
+      "placeholderText": "Rechercher un live ou une boutique..."
+    },
+    "searchFilter": {
+      "placeholder": "Rechercher un produit...",
+      "allCategories": "Toutes catégories",
+      "reset": "Réinitialiser filtres"
+    },
+    "types": {
+      "all": "Tous",
+      "commerce": "Commerce",
+      "scolaire": "Scolaire",
+      "immobilier": "Immobilier",
+      "prestataire": "Prestataire",
+      "other": "Autre"
+    },
+    "structure": {
+      "view": "Voir",
+      "productSingular": "{count} produit",
+      "productPlural": "{count} produits"
+    },
+    "carousel": {
+      "popularShops": "Boutiques populaires"
+    },
+    "featured": {
+      "title": "Boutiques avec catalogue en ligne",
+      "badge": "Vedettes",
+      "subtitleSingular": "{count} marchand propose ses produits en ligne",
+      "subtitlePlural": "{count} marchands proposent leurs produits en ligne"
+    },
+    "allShops": {
+      "title": "Toutes les boutiques",
+      "subtitleSingular": "{count} marchand inscrit sur FayClick",
+      "subtitlePlural": "{count} marchands inscrits sur FayClick",
+      "noneFound": "Aucune boutique trouvée",
+      "noneSubtitle": "Aucune boutique de ce type pour le moment",
+      "loadMoreSingular": "Afficher plus ({count} restante)",
+      "loadMorePlural": "Afficher plus ({count} restantes)"
+    },
+    "cataloguesGlobal": {
+      "errorTitle": "Erreur",
+      "retry": "Réessayer"
+    }
   },
   "catalogue": {
     "errorTitle": "Erreur",

@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import { StructurePublique } from '@/types/marketplace';
 import Image from 'next/image';
 import { SkeletonCarteStructure } from './SkeletonCards';
+import { useTranslations } from '@/hooks/useTranslations';
 
 interface BoutiquesCarouselProps {
   structures: StructurePublique[];
@@ -16,6 +17,7 @@ interface BoutiquesCarouselProps {
 export default function BoutiquesCarousel({ structures, loading = false }: BoutiquesCarouselProps) {
   const router = useRouter();
   const scrollRef = useRef<HTMLDivElement>(null);
+  const t = useTranslations('marketplace');
 
   const scroll = (direction: 'left' | 'right') => {
     if (!scrollRef.current) return;
@@ -31,7 +33,7 @@ export default function BoutiquesCarousel({ structures, loading = false }: Bouti
     return (
       <div className="mb-6">
         <div className="flex items-center gap-2 mb-3 px-1">
-          <h2 className="text-white font-semibold text-sm">Boutiques populaires</h2>
+          <h2 className="text-white font-semibold text-sm">{t('carousel.popularShops')}</h2>
         </div>
         <div className="flex gap-3 overflow-hidden">
           {Array.from({ length: 5 }).map((_, i) => (
@@ -53,7 +55,7 @@ export default function BoutiquesCarousel({ structures, loading = false }: Bouti
     >
       {/* Titre + Voir tout */}
       <div className="flex items-center justify-between mb-3 px-1">
-        <h2 className="text-white font-semibold text-sm">Boutiques populaires</h2>
+        <h2 className="text-white font-semibold text-sm">{t('carousel.popularShops')}</h2>
         <div className="hidden md:flex items-center gap-1">
           <button
             onClick={() => scroll('left')}
