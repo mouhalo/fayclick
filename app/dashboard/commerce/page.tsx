@@ -20,10 +20,15 @@ import { useSubscriptionStatus } from '@/contexts/AuthContext';
 import { ModalAbonnementExpire, useModalAbonnementExpire } from '@/components/subscription/ModalAbonnementExpire';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import CommerceDashboardDesktop from '@/components/dashboard/CommerceDashboardDesktop';
+import { useTranslations } from '@/hooks/useTranslations';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { formatCurrency } from '@/lib/format-locale';
 
 
 export default function CommerceDashboard() {
   const router = useRouter();
+  const t = useTranslations('dashboardCommerce');
+  const { locale } = useLanguage();
   const [user, setUser] = useState<User | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [showCoffreModal, setShowCoffreModal] = useState(false);
@@ -144,7 +149,7 @@ export default function CommerceDashboard() {
             </div>
           </div>
           <p className="text-white text-lg font-medium animate-pulse">
-            {isAuthLoading ? 'Vérification de la session...' : 'Chargement...'}
+            {isAuthLoading ? t('sessionChecking') : t('loading')}
           </p>
         </div>
       </div>
@@ -264,7 +269,7 @@ export default function CommerceDashboard() {
                 whileTap={{ scale: 0.9 }}
                 className="w-10 h-10 bg-red-500/80 backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:bg-red-600/80 transition-all"
                 onClick={() => setShowLogoutModal(true)}
-                title="Déconnexion"
+                title={t('logoutTitle')}
               >
                 <LogOut className="w-5 h-5" />
               </motion.button>
@@ -279,7 +284,7 @@ export default function CommerceDashboard() {
               transition={{ delay: 0.3 }}
               className="text-sm opacity-90 mb-1"
             >
-              Bon retour,
+              {t('welcome')}
             </motion.p>
             <motion.h1
               initial={{ scale: 0.8, opacity: 0 }}
@@ -296,7 +301,7 @@ export default function CommerceDashboard() {
               className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm px-4 py-2 rounded-full"
             >
               <div className="w-2 h-2 bg-green-300 rounded-full animate-pulse" />
-              <span className="text-sm font-medium">En ligne</span>
+              <span className="text-sm font-medium">{t('online')}</span>
             </motion.div>
           </div>
         </motion.div>
@@ -326,13 +331,13 @@ export default function CommerceDashboard() {
                   <AnimatedCounter value={statsCardData?.primaryCount || 0} />
                 )}
               </div>
-              <div className="text-xs text-gray-600 font-semibold uppercase tracking-wide">Produits</div>
+              <div className="text-xs text-gray-600 font-semibold uppercase tracking-wide">{t('stats.products')}</div>
               {canViewProducts && (
                 <div className="text-xs text-green-600 mt-1 font-semibold">
                   {loadingStats ? (
                     <div className="w-14 h-3 bg-gray-200 animate-pulse rounded"></div>
                   ) : (
-                    `+${statsCardData?.primaryGrowth || 0} cette semaine`
+                    t('stats.productsGrowth', { count: statsCardData?.primaryGrowth || 0 })
                   )}
                 </div>
               )}
@@ -344,8 +349,8 @@ export default function CommerceDashboard() {
               className="bg-white rounded-xl p-3 shadow-md border-l-4 border-green-500 cursor-pointer relative"
               onClick={() => {
                 if (!canViewInventaire) return;
-                if (!canAccessFeature('Inventaires')) {
-                  showAbonnementModal('Gestion des inventaires');
+                if (!canAccessFeature(t('features.inventories'))) {
+                  showAbonnementModal(t('features.inventoriesLong'));
                   return;
                 }
                 router.push('/dashboard/commerce/inventaire');
@@ -358,7 +363,7 @@ export default function CommerceDashboard() {
                     setShowValeurStock(!showValeurStock);
                   }}
                   className="absolute top-2 right-2 p-1 hover:bg-gray-100 rounded-full transition-colors z-10"
-                  aria-label={showValeurStock ? "Masquer le montant" : "Afficher le montant"}
+                  aria-label={showValeurStock ? t('stats.hideAmount') : t('stats.showAmount')}
                 >
                   {showValeurStock ? (
                     <Eye className="w-4 h-4 text-gray-600" />
@@ -375,15 +380,15 @@ export default function CommerceDashboard() {
                 ) : loadingStats ? (
                   <div className="w-10 h-5 bg-gray-200 animate-pulse rounded"></div>
                 ) : showValeurStock ? (
-                  `${(statsCardData?.totalAmount || 0).toLocaleString('fr-FR')} FCFA`
+                  formatCurrency(statsCardData?.totalAmount || 0, locale, { devise: 'FCFA' })
                 ) : (
                   '••••••'
                 )}
               </div>
-              <div className="text-xs text-gray-600 font-semibold uppercase tracking-wide">Valeur Stock</div>
+              <div className="text-xs text-gray-600 font-semibold uppercase tracking-wide">{t('stats.stockValue')}</div>
               {canViewInventaire && (
                 <div className="text-xs text-emerald-600 mt-1 font-semibold flex items-center justify-center gap-1">
-                  <span>📊</span> Voir Inventaires
+                  <span>📊</span> {t('stats.viewInventories')}
                 </div>
               )}
             </motion.div>
@@ -398,7 +403,7 @@ export default function CommerceDashboard() {
             whileTap={{ scale: 0.98 }}
             onClick={() => {
               if (!canAccessFeature('Vente Flash')) {
-                showAbonnementModal('Vente Flash');
+                showAbonnementModal(t('features.venteFlash'));
                 return;
               }
               router.push('/dashboard/commerce/venteflash');
@@ -426,7 +431,7 @@ export default function CommerceDashboard() {
               >
                 ⚡
               </motion.span>
-              <h3 className="text-sm font-bold text-white">Vente Flash (Scan code barre)</h3>
+              <h3 className="text-sm font-bold text-white">{t('venteFlashTitle')}</h3>
             </div>
           </motion.div>
 
@@ -438,10 +443,10 @@ export default function CommerceDashboard() {
           >
             <div className="grid grid-cols-2 gap-3">
               {[
-                { icon: '📦', title: 'Liste Produits', subtitle: 'Gérer votre stock', color: 'orange', path: '/produits', visible: true },
-                { icon: '🧾', title: 'Mes Factures', subtitle: 'Gestion des factures', color: 'purple', path: '/factures', visible: true },
-                { icon: '👥', title: 'Liste Clients', subtitle: "Carnet d'adresses", color: 'blue', path: '/clients', visible: true },
-                { icon: '💸', title: 'Liste Dépenses', subtitle: 'Gérer les dépenses', color: 'red', path: '/depenses', visible: true }
+                { icon: '📦', title: t('cards.productsTitle'), subtitle: t('cards.productsSubtitle'), color: 'orange', path: '/produits', visible: true },
+                { icon: '🧾', title: t('cards.invoicesTitle'), subtitle: t('cards.invoicesSubtitle'), color: 'purple', path: '/factures', visible: true },
+                { icon: '👥', title: t('cards.clientsTitle'), subtitle: t('cards.clientsSubtitle'), color: 'blue', path: '/clients', visible: true },
+                { icon: '💸', title: t('cards.expensesTitle'), subtitle: t('cards.expensesSubtitle'), color: 'red', path: '/depenses', visible: true }
               ].filter(a => a.visible).map((action, index) => (
                 <motion.div
                   key={index}
@@ -481,8 +486,8 @@ export default function CommerceDashboard() {
               >
                 <div className="text-center">
                   <span className="text-3xl mb-2 block">🏦</span>
-                  <div className="text-sm font-bold text-gray-800 mb-0.5">Coffre-Fort</div>
-                  <div className="text-[10px] text-gray-600">CA réel, ventes, charges & solde</div>
+                  <div className="text-sm font-bold text-gray-800 mb-0.5">{t('safe.title')}</div>
+                  <div className="text-[10px] text-gray-600">{t('safe.subtitle')}</div>
                 </div>
               </motion.div>
             )}

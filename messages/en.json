@@ -533,6 +533,41 @@
     "copyLink": "Copy receipt link",
     "whatsappMessage": "Hi *{structure}*, I just bought one of your items online for *{amount}*.\n\nThis is my Receipt No.: *{receipt}*\non {date} with *{wallet}*\n\nView receipt: {url}"
   },
+  "dashboardCommerce": {
+    "sessionChecking": "Checking session...",
+    "loading": "Loading...",
+    "welcome": "Welcome back,",
+    "logoutTitle": "Sign out",
+    "online": "Online",
+    "stats": {
+      "products": "Products",
+      "productsGrowth": "+{count} this week",
+      "stockValue": "Stock value",
+      "hideAmount": "Hide amount",
+      "showAmount": "Show amount",
+      "viewInventories": "View inventories"
+    },
+    "venteFlashTitle": "Quick Sale (Barcode scan)",
+    "cards": {
+      "productsTitle": "Products",
+      "productsSubtitle": "Manage your stock",
+      "invoicesTitle": "My invoices",
+      "invoicesSubtitle": "Invoice management",
+      "clientsTitle": "Clients",
+      "clientsSubtitle": "Address book",
+      "expensesTitle": "Expenses",
+      "expensesSubtitle": "Manage expenses"
+    },
+    "safe": {
+      "title": "Safe",
+      "subtitle": "Real revenue, sales, costs & balance"
+    },
+    "features": {
+      "inventories": "Inventories",
+      "inventoriesLong": "Inventory management",
+      "venteFlash": "Quick Sale"
+    }
+  },
   "offline": {
     "title": "You are offline",
     "messageOffline": "Check your internet connection to continue using FayClick",
