@@ -33,6 +33,7 @@ import PopMessage from '@/components/ui/PopMessage';
 import { UploadResult, UploadProgress } from '@/types/upload.types';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import { useSalesRules } from '@/hooks/useSalesRules';
+import { useTranslations } from '@/hooks/useTranslations';
 import categorieService from '@/services/categorie.service';
 import { BoutonScanCodeBarre } from '@/components/produits/BoutonScanCodeBarre';
 import { ModalScanCodeBarre } from '@/components/produits/ModalScanCodeBarre';
@@ -158,25 +159,25 @@ export function ModalAjoutProduitNew({
   const onglets = [
     {
       id: 'informations' as OngletType,
-      label: 'Informations',
+      label: t('modal.tabs.informations'),
       icon: Info,
       alwaysVisible: true
     },
     {
       id: 'photos' as OngletType,
-      label: 'Photos',
+      label: t('modal.tabs.photos'),
       icon: Camera,
       alwaysVisible: false // Visible uniquement en édition
     },
     {
       id: 'gestion-stock' as OngletType,
-      label: 'Gestion du stock',
+      label: t('modal.tabs.gestionStock'),
       icon: Warehouse,
       alwaysVisible: false
     },
     {
       id: 'historique' as OngletType,
-      label: 'Historique',
+      label: t('modal.tabs.historique'),
       icon: Activity,
       alwaysVisible: false
     }
@@ -442,6 +443,8 @@ export function ModalAjoutProduitNew({
   // Formatage des montants
   const formatMontant = (montant: number) => `${montant.toLocaleString('fr-FR')} FCFA`;
 
+  const t = useTranslations('produits');
+
   if (!isOpen) return null;
 
   return (
@@ -472,7 +475,7 @@ export function ModalAjoutProduitNew({
             </div>
             <div className="relative z-10 flex justify-between items-center mb-2 sm:mb-3 md:mb-4">
               <h3 className="text-base sm:text-lg md:text-xl font-bold text-white">
-                {produitToEdit ? 'Modifier le produit' : 'Ajouter un produit'}
+                {produitToEdit ? t('modal.titleEdit') : t('modal.titleAdd')}
               </h3>
               <button
                 onClick={onClose}
@@ -486,10 +489,10 @@ export function ModalAjoutProduitNew({
             <div className="relative z-10 flex space-x-0.5 sm:space-x-1 bg-white/10 backdrop-blur-sm rounded-lg sm:rounded-xl p-0.5 sm:p-1">
               {ongletsAffiches.map((onglet) => {
                 const shortLabels: Record<OngletType, string> = {
-                  'informations': 'Infos',
-                  'photos': 'Photos',
-                  'gestion-stock': 'Stocks',
-                  'historique': 'Histo'
+                  'informations': t('modal.tabs.infosShort'),
+                  'photos': t('modal.tabs.photos'),
+                  'gestion-stock': t('modal.tabs.stockShort'),
+                  'historique': t('modal.tabs.histoShort')
                 };
 
                 return (
@@ -524,7 +527,7 @@ export function ModalAjoutProduitNew({
                   <div>
                     <label className="block text-xs sm:text-sm font-medium text-white mb-1 sm:mb-2">
                       <Package className="w-3 h-3 sm:w-4 sm:h-4 inline mr-1" />
-                      Nom du {formData.est_service ? 'service' : 'produit'} *
+                      {formData.est_service ? t('modal.fields.serviceName') : t('modal.fields.productName')}
                     </label>
                     <input
                       type="text"
@@ -552,7 +555,7 @@ export function ModalAjoutProduitNew({
                   {!formData.est_service && (
                     <div>
                       <label className="block text-xs sm:text-sm font-medium text-white mb-1 sm:mb-2">
-                        Code-barres (optionnel)
+                        {t('modal.fields.barcode')}
                       </label>
                       <div className="flex gap-2">
                         <input
@@ -581,7 +584,7 @@ export function ModalAjoutProduitNew({
 
                   {/* Type: Produit ou Service */}
                   <div>
-                    <label className="block text-xs sm:text-sm font-medium text-white mb-1 sm:mb-2">Type</label>
+                    <label className="block text-xs sm:text-sm font-medium text-white mb-1 sm:mb-2">{t('modal.fields.type')}</label>
                     <div className="flex gap-2 sm:gap-4">
                       <label className={`flex items-center bg-white/80 px-2 py-1.5 sm:px-4 sm:py-2 rounded-md sm:rounded-lg transition-all ${
                         canEdit ? 'cursor-pointer hover:bg-white/90' : 'cursor-not-allowed opacity-60'
@@ -593,7 +596,7 @@ export function ModalAjoutProduitNew({
                           disabled={!canEdit}
                           className="mr-1.5 sm:mr-2 text-emerald-600 w-3 h-3 sm:w-4 sm:h-4"
                         />
-                        <span className="text-slate-700 font-medium text-xs sm:text-sm">Produit</span>
+                        <span className="text-slate-700 font-medium text-xs sm:text-sm">{t('modal.fields.typeProduct')}</span>
                       </label>
                       <label className={`flex items-center bg-white/80 px-2 py-1.5 sm:px-4 sm:py-2 rounded-md sm:rounded-lg transition-all ${
                         canEdit ? 'cursor-pointer hover:bg-white/90' : 'cursor-not-allowed opacity-60'
@@ -605,7 +608,7 @@ export function ModalAjoutProduitNew({
                           disabled={!canEdit}
                           className="mr-1.5 sm:mr-2 text-emerald-600 w-3 h-3 sm:w-4 sm:h-4"
                         />
-                        <span className="text-slate-700 font-medium text-xs sm:text-sm">Service</span>
+                        <span className="text-slate-700 font-medium text-xs sm:text-sm">{t('modal.fields.typeService')}</span>
                       </label>
                     </div>
                   </div>
@@ -614,8 +617,8 @@ export function ModalAjoutProduitNew({
                   <div className="grid grid-cols-2 gap-2 sm:gap-4">
                     <div>
                       <label className="block text-xs sm:text-sm font-medium text-white mb-1 sm:mb-2">
-                        <span className="hidden sm:inline">Prix d&apos;achat (FCFA) *</span>
-                        <span className="sm:hidden">P.Achat *</span>
+                        <span className="hidden sm:inline">{t('modal.fields.purchasePrice')}</span>
+                        <span className="sm:hidden">{t('modal.fields.purchasePriceShort')}</span>
                       </label>
                       {!isAdmin && isEditMode ? (
                         // Non-ADMIN en mode édition : masquer avec astérisques
@@ -646,8 +649,8 @@ export function ModalAjoutProduitNew({
 
                     <div>
                       <label className="block text-xs sm:text-sm font-medium text-white mb-1 sm:mb-2">
-                        <span className="hidden sm:inline">Prix de vente (FCFA) *</span>
-                        <span className="sm:hidden">P.Vente *</span>
+                        <span className="hidden sm:inline">{t('modal.fields.salePrice')}</span>
+                        <span className="sm:hidden">{t('modal.fields.salePriceShort')}</span>
                       </label>
                       <input
                         type="number"
@@ -674,7 +677,7 @@ export function ModalAjoutProduitNew({
                   {salesRules.prixEnGrosActif && (
                     <div>
                       <label className="block text-xs sm:text-sm font-medium text-white mb-1 sm:mb-2">
-                        Prix en gros (FCFA)
+                        {t('modal.fields.wholesalePrice')}
                       </label>
                       <input
                         type="number"
@@ -697,7 +700,7 @@ export function ModalAjoutProduitNew({
                   {formData.cout_revient > 0 && formData.prix_vente > 0 && (
                     <div className="bg-gradient-to-r from-emerald-50/60 to-green-50/60 backdrop-blur-sm p-2.5 sm:p-4 rounded-lg sm:rounded-xl border border-emerald-200/50 shadow-sm">
                       <div className="flex items-center justify-between text-xs sm:text-sm">
-                        <span className="text-slate-600">Marge:</span>
+                        <span className="text-slate-600">{t('modal.fields.margin')}</span>
                         {canViewMontants ? (
                           <div className="text-right">
                             <div className="font-semibold text-sky-900 text-xs sm:text-sm">
@@ -718,7 +721,7 @@ export function ModalAjoutProduitNew({
                   <div>
                     <label className="block text-xs sm:text-sm font-medium text-white mb-1 sm:mb-2">
                       <Tag className="w-3 h-3 sm:w-4 sm:h-4 inline mr-1" />
-                      Catégorie
+                      {t('modal.fields.category')}
                     </label>
                     <select
                       value={formData.nom_categorie}
@@ -730,7 +733,7 @@ export function ModalAjoutProduitNew({
                           : 'border-sky-200 bg-white/60 hover:bg-white/70'
                       }`}
                     >
-                      <option value="">{isLoadingCategories ? 'Chargement...' : 'Sélectionner une catégorie'}</option>
+                      <option value="">{isLoadingCategories ? t('modal.fields.loading') : t('modal.fields.categorySelect')}</option>
                       {categories.map(cat => (
                         <option key={cat} value={cat}>{cat}</option>
                       ))}
@@ -741,7 +744,7 @@ export function ModalAjoutProduitNew({
                   <div>
                     <label className="block text-xs sm:text-sm font-medium text-white mb-1 sm:mb-2">
                       <FileText className="w-3 h-3 sm:w-4 sm:h-4 inline mr-1" />
-                      Description
+                      {t('modal.fields.description')}
                     </label>
                     <textarea
                       value={formData.description}
@@ -753,7 +756,7 @@ export function ModalAjoutProduitNew({
                           ? 'bg-gray-100/80 border-gray-300 cursor-not-allowed text-gray-600'
                           : 'border-sky-200 bg-white/60 hover:bg-white/70'
                       }`}
-                      placeholder={`Décrivez votre ${formData.est_service ? 'service' : 'produit'}...`}
+                      placeholder={formData.est_service ? t('modal.fields.descriptionPlaceholderService') : t('modal.fields.descriptionPlaceholderProduct')}
                     />
                   </div>
 
@@ -774,10 +777,10 @@ export function ModalAjoutProduitNew({
                       <div className="flex-1">
                         <span className="text-xs sm:text-sm font-medium text-slate-800 flex items-center gap-1.5 sm:gap-2">
                           <Globe className="w-3 h-3 sm:w-4 sm:h-4 text-amber-600" />
-                          Présenter au public
+                          {t('modal.fields.presentPublic')}
                         </span>
                         <p className="text-[10px] sm:text-xs text-slate-600 mt-0.5 hidden sm:block">
-                          Ce {formData.est_service ? 'service' : 'produit'} sera visible dans votre catalogue public
+                          {formData.est_service ? t('modal.fields.presentPublicDescService') : t('modal.fields.presentPublicDescProduct')}
                         </p>
                       </div>
                     </label>
@@ -800,10 +803,10 @@ export function ModalAjoutProduitNew({
                       <div className="flex-1">
                         <span className="text-xs sm:text-sm font-medium text-slate-800 flex items-center gap-1.5 sm:gap-2">
                           <Flame className="w-3 h-3 sm:w-4 sm:h-4 text-orange-500" />
-                          En promotion
+                          {t('modal.fields.inPromo')}
                         </span>
                         <p className="text-[10px] sm:text-xs text-slate-600 mt-0.5 hidden sm:block">
-                          Ce {formData.est_service ? 'service' : 'produit'} sera mis en avant dans la section Promotions du catalogue
+                          {formData.est_service ? t('modal.fields.inPromoDescService') : t('modal.fields.inPromoDescProduct')}
                         </p>
                       </div>
                     </label>
@@ -816,7 +819,7 @@ export function ModalAjoutProduitNew({
                       onClick={onClose}
                       className="flex-1 px-3 py-2 sm:px-4 sm:py-3 text-xs sm:text-sm bg-red-500/20 backdrop-blur-sm border border-red-400/30 text-red-200 rounded-lg sm:rounded-xl hover:bg-red-500/30 transition-all font-medium"
                     >
-                      {!canEdit ? 'Fermer' : 'Annuler'}
+                      {!canEdit ? t('modal.actions.close') : t('modal.actions.cancel')}
                     </button>
                     {canEdit && (
                       <button
@@ -830,10 +833,10 @@ export function ModalAjoutProduitNew({
                           <Save className="w-3 h-3 sm:w-4 sm:h-4" />
                         )}
                         {isLoading
-                          ? 'Enregistrement...'
+                          ? t('modal.actions.saving')
                           : produitToEdit
-                            ? 'Modifier'
-                            : 'Créer'
+                            ? t('modal.actions.edit')
+                            : t('modal.actions.create')
                         }
                       </button>
                     )}
@@ -844,7 +847,7 @@ export function ModalAjoutProduitNew({
                     <div className="mt-2 sm:mt-3 p-2 sm:p-3 bg-amber-500/20 backdrop-blur-sm border border-amber-400/30 rounded-lg sm:rounded-xl">
                       <p className="text-amber-200 text-[10px] sm:text-sm text-center flex items-center justify-center gap-1.5 sm:gap-2">
                         <AlertCircle className="w-3 h-3 sm:w-4 sm:h-4" />
-                        Seul l&apos;administrateur peut modifier les produits
+                        {t('modal.adminOnly')}
                       </p>
                     </div>
                   )}
@@ -860,14 +863,14 @@ export function ModalAjoutProduitNew({
                 className="space-y-3 sm:space-y-4 md:space-y-6"
               >
                 <div className="bg-gradient-to-r from-sky-50/70 to-blue-50/70 backdrop-blur-sm p-3 sm:p-4 md:p-5 rounded-lg sm:rounded-xl border border-sky-200/50 shadow-sm">
-                  <h4 className="font-semibold text-slate-900 text-sm sm:text-base mb-1 sm:mb-2 truncate">Produit: {produitToEdit?.nom_produit}</h4>
-                  <p className="text-xs sm:text-sm text-slate-600">Stock actuel: <span className="font-medium">{produitToEdit?.niveau_stock || produitToEdit?.stock_actuel || 0} unités</span></p>
+                  <h4 className="font-semibold text-slate-900 text-sm sm:text-base mb-1 sm:mb-2 truncate">{t('modal.stock.productLabel')} {produitToEdit?.nom_produit}</h4>
+                  <p className="text-xs sm:text-sm text-slate-600">{t('modal.stock.currentStock')} <span className="font-medium">{produitToEdit?.niveau_stock || produitToEdit?.stock_actuel || 0} {t('modal.stock.units')}</span></p>
                 </div>
 
                 <form onSubmit={handleStockSubmit} className="space-y-3 sm:space-y-4 md:space-y-5">
                   {/* Type de mouvement */}
                   <div>
-                    <label className="block text-xs sm:text-sm font-medium text-white mb-1 sm:mb-2">Type de mouvement</label>
+                    <label className="block text-xs sm:text-sm font-medium text-white mb-1 sm:mb-2">{t('modal.stock.movementType')}</label>
                     <div className="grid grid-cols-2 gap-2 sm:gap-3">
                       <label className="flex items-center p-2 sm:p-3 bg-white/80 border border-emerald-300/50 rounded-md sm:rounded-lg hover:bg-white/90 cursor-pointer transition-all">
                         <input
@@ -878,7 +881,7 @@ export function ModalAjoutProduitNew({
                         />
                         <div className="flex items-center gap-1 sm:gap-2">
                           <TrendingUp className="w-3 h-3 sm:w-4 sm:h-4 text-green-600" />
-                          <span className="font-medium text-green-700 text-xs sm:text-sm">Entrée</span>
+                          <span className="font-medium text-green-700 text-xs sm:text-sm">{t('modal.stock.entry')}</span>
                         </div>
                       </label>
                       <label className="flex items-center p-2 sm:p-3 bg-white/80 border border-red-300/50 rounded-md sm:rounded-lg hover:bg-white/90 cursor-pointer transition-all">
@@ -890,7 +893,7 @@ export function ModalAjoutProduitNew({
                         />
                         <div className="flex items-center gap-1 sm:gap-2">
                           <TrendingDown className="w-3 h-3 sm:w-4 sm:h-4 text-red-600" />
-                          <span className="font-medium text-red-700 text-xs sm:text-sm">Sortie</span>
+                          <span className="font-medium text-red-700 text-xs sm:text-sm">{t('modal.stock.exit')}</span>
                         </div>
                       </label>
                     </div>
@@ -900,7 +903,7 @@ export function ModalAjoutProduitNew({
                   <div className="grid grid-cols-2 gap-2 sm:gap-4">
                     <div>
                       <label className="block text-xs sm:text-sm font-medium text-white mb-1 sm:mb-2">
-                        Quantité *
+                        {t('modal.stock.quantity')}
                       </label>
                       <input
                         type="number"
@@ -913,8 +916,8 @@ export function ModalAjoutProduitNew({
                     </div>
                     <div>
                       <label className="block text-xs sm:text-sm font-medium text-white mb-1 sm:mb-2">
-                        <span className="hidden sm:inline">Prix unitaire (FCFA) *</span>
-                        <span className="sm:hidden">Prix unit. *</span>
+                        <span className="hidden sm:inline">{t('modal.stock.unitPrice')}</span>
+                        <span className="sm:hidden">{t('modal.stock.unitPriceShort')}</span>
                       </label>
                       <input
                         type="number"
@@ -931,14 +934,14 @@ export function ModalAjoutProduitNew({
                   {/* Description */}
                   <div>
                     <label className="block text-xs sm:text-sm font-medium text-white mb-1 sm:mb-2">
-                      Description (optionnelle)
+                      {t('modal.stock.descriptionOptional')}
                     </label>
                     <textarea
                       value={stockForm.description}
                       onChange={(e) => setStockForm(prev => ({ ...prev, description: e.target.value }))}
                       rows={2}
                       className="w-full px-3 py-2 sm:py-2.5 text-sm sm:text-base border border-sky-300/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent"
-                      placeholder="Motif du mouvement..."
+                      placeholder={t('modal.stock.descriptionPlaceholder')}
                     />
                   </div>
 
@@ -946,7 +949,7 @@ export function ModalAjoutProduitNew({
                   {stockForm.quantite > 0 && stockForm.prix_unitaire > 0 && (
                     <div className="bg-gradient-to-r from-amber-50/60 to-orange-50/60 backdrop-blur-sm p-2.5 sm:p-4 rounded-lg sm:rounded-xl border border-orange-200/50 shadow-sm">
                       <div className="flex items-center justify-between">
-                        <span className="text-xs sm:text-sm text-slate-600">Total {stockForm.type_mouvement.toLowerCase()}:</span>
+                        <span className="text-xs sm:text-sm text-slate-600">{t('modal.stock.totalMovement', { type: stockForm.type_mouvement.toLowerCase() })}</span>
                         <div className="text-sm sm:text-lg font-semibold text-orange-900">
                           {formatMontant(stockForm.quantite * stockForm.prix_unitaire)}
                         </div>
@@ -965,7 +968,7 @@ export function ModalAjoutProduitNew({
                     ) : (
                       <Package className="w-3 h-3 sm:w-4 sm:h-4" />
                     )}
-                    {isLoadingStock ? 'Enregistrement...' : 'Enregistrer'}
+                    {isLoadingStock ? t('modal.actions.saving') : t('modal.actions.save')}
                   </button>
                 </form>
               </motion.div>
@@ -989,17 +992,17 @@ export function ModalAjoutProduitNew({
                       <div className="bg-gradient-to-r from-emerald-50/70 to-green-50/70 backdrop-blur-sm p-2.5 sm:p-4 md:p-5 rounded-lg sm:rounded-xl border border-emerald-200/50 shadow-sm">
                         <div className="flex items-center gap-1 sm:gap-2 mb-1 sm:mb-2">
                           <TrendingUp className="w-3 h-3 sm:w-5 sm:h-5 text-green-600" />
-                          <span className="font-medium text-green-800 text-[10px] sm:text-sm">Total Entrées</span>
+                          <span className="font-medium text-green-800 text-[10px] sm:text-sm">{t('modal.history.totalEntries')}</span>
                         </div>
-                        <div className="text-xs sm:text-lg font-bold text-green-900">{historique.totalEntrees} unités</div>
+                        <div className="text-xs sm:text-lg font-bold text-green-900">{historique.totalEntrees} {t('modal.stock.units')}</div>
                         <div className="text-[10px] sm:text-sm text-green-700">{formatMontant(historique.totalEntriesMontant)}</div>
                       </div>
                       <div className="bg-gradient-to-r from-rose-50/70 to-red-50/70 backdrop-blur-sm p-2.5 sm:p-4 md:p-5 rounded-lg sm:rounded-xl border border-rose-200/50 shadow-sm">
                         <div className="flex items-center gap-1 sm:gap-2 mb-1 sm:mb-2">
                           <TrendingDown className="w-3 h-3 sm:w-5 sm:h-5 text-red-600" />
-                          <span className="font-medium text-red-800 text-[10px] sm:text-sm">Total Sorties</span>
+                          <span className="font-medium text-red-800 text-[10px] sm:text-sm">{t('modal.history.totalExits')}</span>
                         </div>
-                        <div className="text-xs sm:text-lg font-bold text-red-900">{historique.totalSorties} unités</div>
+                        <div className="text-xs sm:text-lg font-bold text-red-900">{historique.totalSorties} {t('modal.stock.units')}</div>
                         <div className="text-[10px] sm:text-sm text-red-700">{formatMontant(historique.totalSortiesMontant)}</div>
                       </div>
                     </div>
@@ -1010,11 +1013,11 @@ export function ModalAjoutProduitNew({
                         <table className="w-full border-collapse min-w-[400px]">
                           <thead>
                             <tr className="bg-gradient-to-r from-sky-600/80 to-blue-600/80 backdrop-blur-sm border-b border-sky-200/50">
-                              <th className="text-left p-2 sm:p-3 text-[10px] sm:text-sm font-medium text-white min-w-[70px] sm:min-w-[100px]">Date</th>
-                              <th className="text-left p-2 sm:p-3 text-[10px] sm:text-sm font-medium text-slate-100 min-w-[60px] sm:min-w-[80px]">Type</th>
-                              <th className="text-left p-2 sm:p-3 text-[10px] sm:text-sm font-medium text-white min-w-[50px] sm:min-w-[80px]">Qté</th>
-                              <th className="text-left p-2 sm:p-3 text-[10px] sm:text-sm font-medium text-slate-100 min-w-[80px] sm:min-w-[120px]">P.Achat</th>
-                              <th className="text-left p-2 sm:p-3 text-[10px] sm:text-sm font-medium text-slate-100 min-w-[80px] sm:min-w-[120px]">Total</th>
+                              <th className="text-left p-2 sm:p-3 text-[10px] sm:text-sm font-medium text-white min-w-[70px] sm:min-w-[100px]">{t('modal.history.colDate')}</th>
+                              <th className="text-left p-2 sm:p-3 text-[10px] sm:text-sm font-medium text-slate-100 min-w-[60px] sm:min-w-[80px]">{t('modal.history.colType')}</th>
+                              <th className="text-left p-2 sm:p-3 text-[10px] sm:text-sm font-medium text-white min-w-[50px] sm:min-w-[80px]">{t('modal.history.colQty')}</th>
+                              <th className="text-left p-2 sm:p-3 text-[10px] sm:text-sm font-medium text-slate-100 min-w-[80px] sm:min-w-[120px]">{t('modal.history.colPurchasePrice')}</th>
+                              <th className="text-left p-2 sm:p-3 text-[10px] sm:text-sm font-medium text-slate-100 min-w-[80px] sm:min-w-[120px]">{t('modal.history.colTotal')}</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -1051,14 +1054,14 @@ export function ModalAjoutProduitNew({
                     ) : (
                       <div className="text-center py-6 sm:py-8">
                         <History className="w-8 h-8 sm:w-12 sm:h-12 text-slate-300 mx-auto mb-2 sm:mb-3" />
-                        <p className="text-slate-500 text-xs sm:text-sm">Aucun mouvement de stock enregistré</p>
+                        <p className="text-slate-500 text-xs sm:text-sm">{t('modal.history.empty')}</p>
                       </div>
                     )}
                   </>
                 ) : (
                   <div className="text-center py-6 sm:py-8">
                     <AlertCircle className="w-8 h-8 sm:w-12 sm:h-12 text-slate-300 mx-auto mb-2 sm:mb-3" />
-                    <p className="text-slate-500 text-xs sm:text-sm">Erreur lors du chargement de l&apos;historique</p>
+                    <p className="text-slate-500 text-xs sm:text-sm">{t('modal.history.error')}</p>
                   </div>
                 )}
               </motion.div>
@@ -1076,7 +1079,7 @@ export function ModalAjoutProduitNew({
                   <div className="flex items-start gap-2 md:gap-3">
                     <Camera className="w-4 h-4 md:w-5 md:h-5 text-purple-600 mt-0.5 flex-shrink-0" />
                     <div>
-                      <h4 className="text-sm md:text-base font-semibold text-slate-900 mb-0.5 md:mb-1">Photos du produit</h4>
+                      <h4 className="text-sm md:text-base font-semibold text-slate-900 mb-0.5 md:mb-1">{t('modal.photos.title')}</h4>
                       <p className="text-xs md:text-sm text-slate-600">
                         Ajoutez jusqu&diapos;à <strong>6 photos</strong> pour présenter votre produit.
                         <span className="hidden sm:inline"> Les photos seront visibles dans votre catalogue public si vous avez activé &diapos;Présenter au public&diapos;.</span>
@@ -1089,7 +1092,7 @@ export function ModalAjoutProduitNew({
                 {isLoadingPhotos ? (
                   <div className="flex items-center justify-center py-8 md:py-12">
                     <Loader2 className="w-6 h-6 md:w-8 md:h-8 animate-spin text-purple-600" />
-                    <span className="ml-2 md:ml-3 text-xs md:text-sm text-slate-600">Chargement...</span>
+                    <span className="ml-2 md:ml-3 text-xs md:text-sm text-slate-600">{t('modal.photos.loading')}</span>
                   </div>
                 ) : (
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-2 md:gap-4">
@@ -1137,7 +1140,7 @@ export function ModalAjoutProduitNew({
                               >
                                 <div className="flex flex-col items-center gap-1 md:gap-2 text-white">
                                   <Trash2 className="w-4 h-4 md:w-6 md:h-6" />
-                                  <span className="text-[10px] md:text-xs font-medium">Supprimer</span>
+                                  <span className="text-[10px] md:text-xs font-medium">{t('modal.photos.delete')}</span>
                                 </div>
                               </button>
                             </div>
@@ -1215,8 +1218,7 @@ export function ModalAjoutProduitNew({
                 <div className="flex items-start gap-1.5 md:gap-2 p-2.5 md:p-4 bg-amber-50/60 backdrop-blur-sm rounded-lg border border-amber-200/50">
                   <Info className="w-4 h-4 md:w-5 md:h-5 text-amber-600 flex-shrink-0 mt-0.5" />
                   <div className="text-xs md:text-sm text-amber-900">
-                    <strong>Astuce :</strong> Utilisez des photos de haute qualité<span className="hidden sm:inline"> pour mettre en valeur votre produit.
-                    Les images seront automatiquement optimisées pour le web</span>.
+                    {t('modal.photos.tip')}
                   </div>
                 </div>
               </motion.div>
@@ -1250,7 +1252,7 @@ export function ModalAjoutProduitNew({
                 )}
               </div>
               <h3 className="text-xl font-bold text-slate-900 mb-2">
-                Stock mis à jour !
+                {t('modal.stockSuccess.title')}
               </h3>
               <div className="text-slate-600 mb-6 space-y-2">
                 <p className="font-medium">{lastStockMovement.produit}</p>
@@ -1259,18 +1261,18 @@ export function ModalAjoutProduitNew({
                     lastStockMovement.type_mouvement === 'ENTREE' ? 'text-green-600' : 'text-red-600'
                   }`}>
                     {lastStockMovement.type_mouvement === 'ENTREE' ? '+' : '-'}
-                    {lastStockMovement.quantite} unités
+                    {lastStockMovement.quantite} {t('modal.stockSuccess.units')}
                   </span>
                 </p>
                 <p className="text-sm">
-                  {lastStockMovement.type_mouvement === 'ENTREE' ? 'ajoutées au' : 'retirées du'} stock
+                  {lastStockMovement.type_mouvement === 'ENTREE' ? t('modal.stockSuccess.added') : t('modal.stockSuccess.removed')} {t('modal.stockSuccess.stock')}
                 </p>
               </div>
               <button
                 onClick={() => setShowStockSuccessModal(false)}
                 className="w-full px-6 py-3 bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-600 hover:to-blue-700 text-white rounded-xl font-medium transition-all shadow-lg hover:shadow-xl"
               >
-                Continuer
+                {t('modal.actions.continue')}
               </button>
             </div>
           </motion.div>

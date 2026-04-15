@@ -1537,6 +1537,93 @@
       "voiceTitle": "Ajout vocal",
       "voiceDesc": "Dictez les informations du produit",
       "comingSoon": "Bientôt"
+    },
+    "modal": {
+      "titleEdit": "Modifier le produit",
+      "titleAdd": "Ajouter un produit",
+      "tabs": {
+        "informations": "Informations",
+        "infosShort": "Infos",
+        "photos": "Photos",
+        "gestionStock": "Gestion du stock",
+        "stockShort": "Stocks",
+        "historique": "Historique",
+        "histoShort": "Histo"
+      },
+      "fields": {
+        "productName": "Nom du produit *",
+        "serviceName": "Nom du service *",
+        "barcode": "Code-barres (optionnel)",
+        "type": "Type",
+        "typeProduct": "Produit",
+        "typeService": "Service",
+        "purchasePrice": "Prix d'achat (FCFA) *",
+        "purchasePriceShort": "P.Achat *",
+        "salePrice": "Prix de vente (FCFA) *",
+        "salePriceShort": "P.Vente *",
+        "wholesalePrice": "Prix en gros (FCFA)",
+        "margin": "Marge :",
+        "category": "Catégorie",
+        "categorySelect": "Sélectionner une catégorie",
+        "loading": "Chargement...",
+        "description": "Description",
+        "descriptionPlaceholderProduct": "Décrivez votre produit...",
+        "descriptionPlaceholderService": "Décrivez votre service...",
+        "presentPublic": "Présenter au public",
+        "presentPublicDescProduct": "Ce produit sera visible dans votre catalogue public",
+        "presentPublicDescService": "Ce service sera visible dans votre catalogue public",
+        "inPromo": "En promotion",
+        "inPromoDescProduct": "Ce produit sera mis en avant dans la section Promotions du catalogue",
+        "inPromoDescService": "Ce service sera mis en avant dans la section Promotions du catalogue"
+      },
+      "actions": {
+        "close": "Fermer",
+        "cancel": "Annuler",
+        "saving": "Enregistrement...",
+        "save": "Enregistrer",
+        "edit": "Modifier",
+        "create": "Créer",
+        "continue": "Continuer"
+      },
+      "adminOnly": "Seul l'administrateur peut modifier les produits",
+      "stock": {
+        "productLabel": "Produit :",
+        "currentStock": "Stock actuel :",
+        "units": "unités",
+        "movementType": "Type de mouvement",
+        "entry": "Entrée",
+        "exit": "Sortie",
+        "quantity": "Quantité *",
+        "unitPrice": "Prix unitaire (FCFA) *",
+        "unitPriceShort": "Prix unit. *",
+        "descriptionOptional": "Description (optionnelle)",
+        "descriptionPlaceholder": "Motif du mouvement...",
+        "totalMovement": "Total {type} :"
+      },
+      "history": {
+        "totalEntries": "Total Entrées",
+        "totalExits": "Total Sorties",
+        "colDate": "Date",
+        "colType": "Type",
+        "colQty": "Qté",
+        "colPurchasePrice": "P.Achat",
+        "colTotal": "Total",
+        "empty": "Aucun mouvement de stock enregistré",
+        "error": "Erreur lors du chargement de l'historique"
+      },
+      "photos": {
+        "title": "Photos du produit",
+        "loading": "Chargement...",
+        "delete": "Supprimer",
+        "tip": "Astuce : Utilisez des photos de haute qualité pour mettre en valeur votre produit."
+      },
+      "stockSuccess": {
+        "title": "Stock mis à jour !",
+        "units": "unités",
+        "added": "ajoutées au",
+        "removed": "retirées du",
+        "stock": "stock"
+      }
     }
   },
   "commerceDashboard": {
@@ -1623,6 +1710,26 @@
     "clear": "Vider le panier",
     "clientSearch": "Rechercher client",
     "itemSingular": "{count} article",
-    "itemPlural": "{count} articles"
+    "itemPlural": "{count} articles",
+    "clientSearch": {
+      "titleSearch": "Rechercher un client",
+      "titleNew": "Nouveau client",
+      "searchPlaceholder": "Tapez un nom ou un n° de téléphone...",
+      "phoneHint": "Recherche par téléphone ({count}/9)",
+      "nameHint": "Recherche par nom ({count} car.)",
+      "clientFound": "Client trouvé dans la base",
+      "unpaid": "Impayé",
+      "sales": "Ventes",
+      "purchases": "Achats",
+      "unpaidInvoices": "Impayées",
+      "invoiceSingular": "facture",
+      "invoicePlural": "factures",
+      "clientName": "Nom du client",
+      "clientNamePlaceholder": "Saisir le nom du client",
+      "phone": "N° de Tél. ({count}/9)",
+      "cancel": "Annuler",
+      "confirm": "Confirmer",
+      "add": "Ajouter"
+    }
   }
 }
