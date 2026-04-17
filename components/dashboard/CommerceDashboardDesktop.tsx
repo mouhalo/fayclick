@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { motion } from 'framer-motion';
 import { Bell, Zap, Eye, EyeOff, TrendingUp, TrendingDown, RefreshCw, AlertCircle } from 'lucide-react';
 import DashboardSidebar from './DashboardSidebar';
 import { User } from '@/types/auth';
@@ -26,6 +27,8 @@ interface CommerceDashboardDesktopProps {
   onShowNotificationsModal: () => void;
   onShowProfilModal: () => void;
   isTablet: boolean;
+  hasNewPayments?: boolean;
+  onBellAlertClick?: () => void;
 }
 
 // Compteur anime interne
@@ -285,6 +288,8 @@ export default function CommerceDashboardDesktop({
   onShowNotificationsModal,
   onShowProfilModal,
   isTablet,
+  hasNewPayments = false,
+  onBellAlertClick,
 }: CommerceDashboardDesktopProps) {
   const router = useRouter();
   const t = useTranslations('commerceDashboard');
@@ -372,17 +377,26 @@ export default function CommerceDashboardDesktop({
 
           <div className="flex items-center gap-3">
             {/* Notifications */}
-            <button
-              onClick={onShowNotificationsModal}
-              className="relative w-10 h-10 rounded-xl bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors"
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={hasNewPayments && onBellAlertClick ? onBellAlertClick : onShowNotificationsModal}
+              className={`relative p-2 rounded-full transition-all ${
+                hasNewPayments
+                  ? 'bg-gradient-to-br from-amber-500 to-orange-500 shadow-[0_0_16px_rgba(245,158,11,0.5)]'
+                  : 'bg-white/10 hover:bg-white/20'
+              }`}
             >
-              <Bell className="w-5 h-5 text-gray-600" />
+              {hasNewPayments && (
+                <span className="absolute inset-0 rounded-full bg-amber-400 opacity-40 animate-ping" />
+              )}
+              <Bell className={`w-5 h-5 relative z-10 ${hasNewPayments ? 'text-white' : 'text-gray-600'}`} />
               {notificationCount > 0 && (
-                <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-xs font-bold text-white">
+                <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-xs font-bold text-white z-10">
                   {notificationCount > 9 ? '9+' : notificationCount}
                 </span>
               )}
-            </button>
+            </motion.button>
 
             {/* Vente Flash */}
             <button
