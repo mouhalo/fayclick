@@ -24,7 +24,9 @@ const POLL_INTERVAL_MS = 15_000;
 
 function playNotificationSound() {
   try {
-    const ctx = new AudioContext();
+    const AudioCtx = (window.AudioContext || (window as any).webkitAudioContext);
+    if (!AudioCtx) return;
+    const ctx = new AudioCtx();
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     osc.connect(gain);
@@ -33,6 +35,7 @@ function playNotificationSound() {
     osc.frequency.exponentialRampToValueAtTime(440, ctx.currentTime + 0.3);
     gain.gain.setValueAtTime(0.3, ctx.currentTime);
     gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
+    osc.onended = () => { ctx.close(); };
     osc.start();
     osc.stop(ctx.currentTime + 0.5);
   } catch {
@@ -104,6 +107,8 @@ export function usePaymentNotifications({
 
   useEffect(() => {
     if (!userId) return;
+    isFirstPoll.current = true;
+    previousIds.current = new Set();
     fetchAndDetect();
     const interval = setInterval(fetchAndDetect, POLL_INTERVAL_MS);
     return () => clearInterval(interval);
