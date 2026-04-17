@@ -1,0 +1,1759 @@
+{
+  "common": {
+    "back": "Retour",
+    "next": "Suivant",
+    "previous": "Précédent",
+    "loading": "Chargement...",
+    "submit": "Soumettre",
+    "cancel": "Annuler",
+    "save": "Enregistrer",
+    "edit": "Modifier",
+    "delete": "Supprimer",
+    "required": "Requis",
+    "optional": "Optionnel",
+    "close": "Fermer",
+    "confirm": "Confirmer",
+    "continue": "Continuer",
+    "retry": "Réessayer",
+    "search": "Rechercher",
+    "yes": "Oui",
+    "no": "Non"
+  },
+  "auth": {
+    "appTagline": "Gestion simplifiée de votre business",
+    "loadingPage": "Chargement...",
+    "login": {
+      "title": "Connexion",
+      "emailLabel": "Email / Login",
+      "emailPlaceholder": "votre@email.com ou login",
+      "passwordLabel": "Mot de passe",
+      "passwordPlaceholder": "••••••••",
+      "submit": "Se connecter",
+      "submitting": "Connexion...",
+      "forgotPassword": "Mot de passe oublié ?",
+      "noAccount": "Pas encore de compte ?",
+      "signup": "Inscrivez-vous",
+      "backHome": "← Retour vers Accueil",
+      "switchToPin": "Connexion par PIN",
+      "switchToClassic": "Connexion classique"
+    },
+    "pin": {
+      "title": "Connexion rapide",
+      "subtitle": "Saisissez votre code à {length} chiffres",
+      "helpText": "Pour créer ou modifier votre PIN, connectez-vous puis allez dans {menuPath}",
+      "helpMenuPath": "Menu → Mon Profil → Code PIN rapide",
+      "codeLost": "Code perdu ?"
+    },
+    "loadingModal": {
+      "title": "Connexion en cours",
+      "initializing": "Initialisation",
+      "checkingCredentials": "Vérification des identifiants",
+      "loadingStructure": "Chargement de votre structure",
+      "preparingDashboard": "Préparation du tableau de bord",
+      "redirecting": "Redirection"
+    },
+    "errors": {
+      "fillAllFields": "Veuillez remplir tous les champs",
+      "noPinConfigured": "Aucun PIN configuré",
+      "wrongPin": "Code PIN incorrect",
+      "connectionError": "Erreur de connexion"
+    },
+    "passwordRecovery": {
+      "title": "Récupération du mot de passe",
+      "stepRequestLabel": "Étape 1: Demande de récupération",
+      "stepVerifyLabel": "Étape 2: Vérification du code",
+      "stepSuccessLabel": "Récupération réussie",
+      "cancel": "Annuler",
+      "close": "Fermer",
+      "back": "Retour",
+      "request": {
+        "structureNameLabel": "Nom de la structure",
+        "structureNamePlaceholder": "Ex: MA BOUTIQUE",
+        "phoneLabel": "Numéro de téléphone",
+        "phonePlaceholder": "Téléphone Orange Money",
+        "phoneHelp": "Le numéro utilisé lors de l'inscription (7 à 10 chiffres)",
+        "submit": "Envoyer le code",
+        "submitting": "Envoi...",
+        "note": "Saisissez le nom exact de votre structure et le numéro de téléphone utilisé lors de l'inscription."
+      },
+      "verify": {
+        "codeSentTo": "Un code de vérification a été envoyé au",
+        "codeLabel": "Code de vérification (6 caractères)",
+        "codePlaceholder": "XXXXXX",
+        "submit": "Vérifier",
+        "submitting": "Vérification...",
+        "resend": "Renvoyer le code"
+      },
+      "success": {
+        "title": "Mot de passe réinitialisé !",
+        "tempPasswordLabel": "Votre nouveau mot de passe temporaire est :",
+        "instruction": "Connectez-vous avec ce mot de passe et changez-le immédiatement",
+        "toastTitle": "Mot de passe réinitialisé !",
+        "toastDescription": "Connectez-vous avec votre nouveau mot de passe"
+      },
+      "toasts": {
+        "codeSentTitle": "Code envoyé par SMS",
+        "codeSentDescription": "Vérifiez votre téléphone"
+      },
+      "errors": {
+        "structureRequired": "Le nom de la structure est requis",
+        "structureTooShort": "Nom de structure trop court (minimum 3 caractères)",
+        "phoneRequired": "Le numéro de téléphone est requis",
+        "phoneInvalid": "Numéro de téléphone invalide (7 à 10 chiffres)",
+        "structureNotFound": "Structure non trouvée ou numéro ne correspond pas",
+        "requestFailed": "Erreur lors de la demande",
+        "codeRequired": "Le code de vérification est requis",
+        "codeLength": "Le code doit contenir 6 caractères",
+        "codeInvalid": "Code invalide ou expiré",
+        "codeExpired": "Le code a expiré. Veuillez recommencer.",
+        "verifyFailed": "Erreur lors de la vérification",
+        "generic": "Une erreur est survenue"
+      }
+    },
+    "recoveryOtp": {
+      "title": "Code perdu ?",
+      "subtitleForm": "Récupérez votre code de connexion",
+      "subtitleSuccess": "Nouveau code généré",
+      "structureNameLabel": "Nom de votre structure",
+      "structureNamePlaceholder": "Ex: MA BOUTIQUE",
+      "phoneLabel": "Téléphone Orange Money",
+      "phonePlaceholder": "77XXXXXXX",
+      "phoneHelp": "Le numéro utilisé lors de l'inscription",
+      "cancel": "Annuler",
+      "submit": "Récupérer",
+      "submitting": "Recherche...",
+      "note": "Le nom et le numéro doivent correspondre à ceux utilisés lors de l'inscription.",
+      "successTitleSms": "Code envoyé par SMS !",
+      "successTitleEmail": "Code envoyé par Email !",
+      "successTitleWhatsapp": "Code envoyé par WhatsApp !",
+      "successMessageSms": "Un nouveau code à 5 chiffres a été envoyé au",
+      "successMessageEmail": "Un nouveau code à 5 chiffres a été envoyé à",
+      "checkSms": "Vérifiez vos SMS et saisissez le code reçu",
+      "checkEmail": "Vérifiez votre boîte Gmail et saisissez le code reçu",
+      "checkWhatsapp": "Vérifiez votre WhatsApp et saisissez le code reçu",
+      "doNotShare": "Ne partagez ce code avec personne",
+      "enterCode": "Saisir mon code",
+      "errors": {
+        "structureRequired": "Le nom de la structure est requis",
+        "structureTooShort": "Nom de structure trop court (minimum 3 caractères)",
+        "phoneInvalid": "Numéro de téléphone invalide (7 à 10 chiffres)",
+        "structureNotFound": "Structure non trouvée ou numéro ne correspond pas",
+        "dailyLimit": "Limite quotidienne atteinte (3 max). Réessayez demain.",
+        "sendFailed": "Impossible d'envoyer le code de récupération",
+        "generic": "Une erreur est survenue"
+      }
+    }
+  },
+  "register": {
+    "title": "Inscription Marchand",
+    "subtitle": "Créez votre structure",
+    "step": "Étape {current}/{total}",
+    "backToHome": "Retour à l'accueil",
+    "step1": {
+      "title": "Bienvenue sur FayClick !",
+      "subtitle": "Commençons par le nom de votre structure. Choisissez un nom unique et mémorable.",
+      "heading": "Votre Commerce",
+      "helperText": "Commencez par donner un nom à votre structure",
+      "businessNameLabelStrong": "Nom de votre commerce",
+      "businessNamePlaceholderExample": "Ex: BOUTIQUE AMINATA",
+      "businessNameLabel": "Nom de votre structure",
+      "businessNamePlaceholder": "NOM DE VOTRE COMMERCE",
+      "available": "Disponible ✓",
+      "checking": "Vérification...",
+      "alreadyTaken": "Ce nom de structure est déjà pris",
+      "tooShort": "Minimum {min} caractères",
+      "tooLong": "Maximum {max} caractères",
+      "characterCount": "Entre {min} et {max} caractères",
+      "benefits": {
+        "free": "Inscription gratuite",
+        "instant": "Paiement instantané",
+        "secure": "Sécurisé et fiable",
+        "qrcode": "QR Code personnel"
+      }
+    },
+    "step2": {
+      "title": "Configuration",
+      "subtitle": "Informations sur votre structure et contact",
+      "structureType": "Type de structure",
+      "structureTypePlaceholder": "Sélectionnez un type de structure",
+      "serviceType": "Type de service",
+      "contact": "Contact",
+      "phoneOM": "Téléphone Orange Money",
+      "phoneOMPlaceholder": "77 123 45 67",
+      "phoneWave": "Téléphone Wave",
+      "phoneWavePlaceholder": "70 XXX XX XX",
+      "address": "Adresse complète",
+      "addressPlaceholder": "Adresse complète de votre structure",
+      "logo": "Logo",
+      "emailGmailLabel": "Email Gmail",
+      "emailGmailPlaceholder": "vous@gmail.com",
+      "emailGmailRequired": "Email Gmail requis (ex: vous@gmail.com)",
+      "emailGmailValid": "Email Gmail valide",
+      "otpInfo": "Votre code OTP sera envoyé par WhatsApp. Un email Gmail est requis comme secours."
+    },
+    "step3Extended": {
+      "heading": "Finalisation",
+      "helperText": "Encore quelques infos et c'est parti !",
+      "addressPlaceholderExample": "Ex: Marché Sandaga, Dakar",
+      "promoCodeLabel": "Code Parrainage",
+      "promoCodePlaceholder": "Ex: ORANGE2026",
+      "promoCodeHelp": "Avez-vous un code partenaire ?",
+      "logoLabel": "Logo"
+    },
+    "submit": {
+      "creating": "Création en cours...",
+      "create": "Créer ma structure"
+    },
+    "loginLink": {
+      "text": "Déjà inscrit ?",
+      "action": "Se connecter"
+    },
+    "celebration": {
+      "title": "Félicitations !",
+      "subtitle": "Votre commerce est créé"
+    },
+    "step3": {
+      "title": "Récapitulatif",
+      "subtitle": "Vérifiez vos informations avant de créer votre structure",
+      "structure": "Structure",
+      "contact": "Contact",
+      "orangeMoney": "Orange Money",
+      "wave": "Wave",
+      "logo": "Logo",
+      "terms": "J'accepte les {termsLink} et les {privacyLink} de FayClick.",
+      "termsLink": "conditions générales d'utilisation",
+      "privacyLink": "politique de confidentialité",
+      "createButton": "Créer ma structure",
+      "creating": "Création..."
+    },
+    "errors": {
+      "uploadFailed": "Erreur : l'upload vers le serveur a échoué. Veuillez réessayer.",
+      "invalidImageUrl": "Erreur : URL de l'image invalide. Veuillez réessayer.",
+      "registrationFailed": "Erreur lors de l'inscription",
+      "businessNameRequired": "Nom du business requis (minimum {min} caractères)",
+      "businessNameTaken": "Ce nom de structure est déjà pris",
+      "structureTypeRequired": "Veuillez sélectionner un type de structure",
+      "phoneOMInvalid": "Téléphone Orange Money invalide (9 chiffres, préfixes: 77, 78, 70, 76, 75)",
+      "phoneInvalidForCountry": "Numéro de téléphone invalide pour {country}",
+      "countryFallback": "le pays sélectionné",
+      "emailGmailRequiredOutsideSN": "Email Gmail requis pour les inscriptions hors Sénégal (ex: vous@gmail.com)",
+      "addressRequired": "Adresse requise",
+      "addressTooLong": "Adresse trop longue (maximum {max} caractères)",
+      "termsRequired": "Veuillez accepter les conditions générales",
+      "loadingTypes": "Impossible de charger les types de structure"
+    }
+  },
+  "landing": {
+    "desktop": {
+      "login": "Se Connecter",
+      "title": "La Super App du Commerce Digital",
+      "subtitle": "Gérez votre business, acceptez les paiements Orange Money et Wave, et développez votre activité avec la première Super App du Sénégal",
+      "ctaButton": "Commencer Gratuitement",
+      "slides": {
+        "dashboard": "Tableau de bord intuitif",
+        "inventory": "Gestion des stocks simplifiée",
+        "payments": "Paiements instantanés",
+        "reports": "Rapports détaillés"
+      },
+      "footer": {
+        "copyright": "© 2025 FayClick - Tous droits réservés",
+        "developedBy": "Développé par"
+      }
+    },
+    "mobile": {
+      "title": "FayClick",
+      "subtitle": "Commerce Digital Sénégal",
+      "tagline": "Révolutionnez votre business avec une plateforme tout-en-un",
+      "taglineHighlight": "ultra-moderne",
+      "createAccount": "Créer un Compte",
+      "login": "Se Connecter",
+      "features": {
+        "mobilePayments": "Mobile\nPayments",
+        "analytics": "Analytics\nPro",
+        "qrcode": "QR Code\nInstant"
+      },
+      "footer": "© 2025 Développé par"
+    },
+    "hero": {
+      "title": "La Super App des Marchands Sénégalais",
+      "subtitle": "Gérez votre business, recevez des paiements et développez votre activité avec FayClick",
+      "ctaRegister": "Créer mon compte",
+      "ctaLogin": "Se connecter"
+    },
+    "features": {
+      "title": "Tout ce dont vous avez besoin",
+      "subtitle": "Une solution complète pour gérer votre activité",
+      "payments": {
+        "title": "Paiements Instantanés",
+        "description": "Recevez des paiements Orange Money et Wave en temps réel"
+      },
+      "invoicing": {
+        "title": "Facturation Simplifiée",
+        "description": "Créez et envoyez des factures professionnelles en quelques clics"
+      },
+      "inventory": {
+        "title": "Gestion de Stock",
+        "description": "Suivez vos produits et services en temps réel"
+      },
+      "analytics": {
+        "title": "Statistiques Détaillées",
+        "description": "Analysez vos performances avec des rapports complets"
+      }
+    },
+    "segments": {
+      "title": "Pour tous les secteurs",
+      "commerce": "Commerce",
+      "school": "Scolaire",
+      "services": "Services",
+      "realestate": "Immobilier"
+    },
+    "cta": {
+      "title": "Prêt à démarrer ?",
+      "subtitle": "Rejoignez des milliers de marchands qui utilisent FayClick",
+      "button": "Commencer gratuitement"
+    },
+    "marketplaceCta": {
+      "badge": "Nouveau",
+      "title": "Découvrez notre marketplace",
+      "subtitle": "Trouvez un marchand par nom ou téléphone en quelques secondes",
+      "button": "Explorer la marketplace",
+      "statsProducts": "+3K produits",
+      "statsShops": "{count} boutiques"
+    }
+  },
+  "publicFacture": {
+    "loading": "Chargement de la facture...",
+    "errorTitle": "Erreur",
+    "errorGeneric": "Impossible de charger la facture",
+    "errorInvalidToken": "Token de facture invalide",
+    "errorNotFound": "Facture introuvable",
+    "logoAlt": "Logo {name}",
+    "issuedOn": "Facture émise le {date}",
+    "statusPaid": "Payée",
+    "statusPending": "En attente",
+    "paymentConfirmed": "Paiement confirmé !",
+    "infoTitle": "Infos facture",
+    "invoiceNumber": "N° #{num}",
+    "copied": "Copié",
+    "copy": "Copier",
+    "clientLabel": "Client :",
+    "share": "Partager",
+    "downloadPdf": "Télécharger PDF",
+    "hideDetails": "Masquer les détails",
+    "showDetails": "Voir les détails",
+    "help": "Besoin d'aide ?",
+    "legal": "Mentions légales",
+    "orderDetails": "Détails de la commande",
+    "hidePrices": "Masquer les prix",
+    "showPrices": "Afficher les prix",
+    "tableProduct": "Produit",
+    "tableQty": "Qté",
+    "tableUnitPrice": "Prix Unit.",
+    "tableTotal": "Total",
+    "productCode": "Code : {id}",
+    "grandTotal": "Total Général :",
+    "pricesHidden": "Les prix sont masqués. Cliquez sur « Afficher les prix » pour les consulter.",
+    "linkCopied": "Lien copié dans le presse-papier !",
+    "paymentFailed": "Échec du paiement : {error}",
+    "shareTitle": "Facture {num}",
+    "shareText": "Facture de {structure} - {amount}",
+    "amountToPay": "Montant à payer",
+    "downPayment": "Acompte :",
+    "remaining": "Restant :",
+    "payNow": "Payer maintenant",
+    "fullyPaid": "Intégralement payée",
+    "choosePaymentMethod": "Choisir un moyen de paiement",
+    "payAmount": "Payer {amount}",
+    "securePayment": "Paiement sécurisé"
+  },
+  "marketplace": {
+    "sortBy": {
+      "relevance": "Pertinence",
+      "priceAsc": "Prix croissant",
+      "priceDesc": "Prix décroissant",
+      "nameAz": "Nom A-Z"
+    },
+    "nav": {
+      "home": "Accueil",
+      "shops": "Boutiques",
+      "search": "Recherche"
+    },
+    "boutiqueHeader": {
+      "back": "Marketplace",
+      "contact": "Contacter",
+      "live": "En direct",
+      "products": "produits",
+      "categories": "catégories",
+      "follow": "Suivre"
+    },
+    "miniCart": {
+      "title": "Mon panier",
+      "empty": "Votre panier est vide",
+      "subtotal": "Sous-total",
+      "shippingEstimated": "Livraison estimée",
+      "shippingFree": "Gratuite",
+      "total": "Total",
+      "itemSingular": "{count} article",
+      "itemPlural": "{count} articles",
+      "checkout": "Finaliser la commande →"
+    },
+    "toastAdded": "Ajouté au panier !",
+    "modalCarrousel": {
+      "noPhoto": "Aucune photo disponible"
+    },
+    "scrollTop": "Remonter en haut",
+    "hero": {
+      "badge": "Marketplace Premium",
+      "titlePart1": "Les meilleurs commerçants",
+      "titlePart2": "du Sénégal",
+      "subtitle": "Découvrez la marketplace premium pour FayClick. Qualité et authenticité garanties.",
+      "explore": "Explorer les boutiques",
+      "statsShops": "BOUTIQUES",
+      "statsWithCatalog": "AVEC CATALOGUE",
+      "liveSingular": "{count} Live",
+      "livePlural": "{count} Lives"
+    },
+    "search": {
+      "placeholderPhone": "Numéro de téléphone (7xx...)",
+      "placeholderText": "Rechercher un live ou une boutique..."
+    },
+    "searchFilter": {
+      "placeholder": "Rechercher un produit...",
+      "allCategories": "Toutes catégories",
+      "reset": "Réinitialiser filtres"
+    },
+    "types": {
+      "all": "Tous",
+      "commerce": "Commerce",
+      "scolaire": "Scolaire",
+      "immobilier": "Immobilier",
+      "prestataire": "Prestataire",
+      "other": "Autre"
+    },
+    "structure": {
+      "view": "Voir",
+      "productSingular": "{count} produit",
+      "productPlural": "{count} produits"
+    },
+    "carousel": {
+      "popularShops": "Boutiques populaires"
+    },
+    "featured": {
+      "title": "Boutiques avec catalogue en ligne",
+      "badge": "Vedettes",
+      "subtitleSingular": "{count} marchand propose ses produits en ligne",
+      "subtitlePlural": "{count} marchands proposent leurs produits en ligne"
+    },
+    "allShops": {
+      "title": "Toutes les boutiques",
+      "subtitleSingular": "{count} marchand inscrit sur FayClick",
+      "subtitlePlural": "{count} marchands inscrits sur FayClick",
+      "noneFound": "Aucune boutique trouvée",
+      "noneSubtitle": "Aucune boutique de ce type pour le moment",
+      "loadMoreSingular": "Afficher plus ({count} restante)",
+      "loadMorePlural": "Afficher plus ({count} restantes)"
+    },
+    "cataloguesGlobal": {
+      "errorTitle": "Erreur",
+      "retry": "Réessayer"
+    }
+  },
+  "catalogue": {
+    "errorTitle": "Erreur",
+    "errorNotFound": "Catalogue introuvable",
+    "errorGeneric": "Impossible de charger le catalogue",
+    "searchPlaceholder": "Rechercher dans cette boutique...",
+    "newest": "Nouveautés",
+    "sortBy": "Trier par :",
+    "promotions": "Promotions",
+    "noProductsFound": "Aucun produit trouvé",
+    "adjustCriteria": "Essayez de modifier vos critères de recherche",
+    "emptyShop": "Cette boutique n'a pas encore de produits",
+    "card": {
+      "promo": "Promo",
+      "outOfStock": "Rupture de stock",
+      "buy": "Acheter"
+    },
+    "panier": {
+      "title": "Mon panier ({count})",
+      "titleConfirmed": "Commande confirmée",
+      "paymentSuccess": "Paiement réussi !",
+      "orderRegistered": "Votre commande a été enregistrée avec succès.",
+      "invoiceNumber": "Numéro de facture",
+      "redirectingReceipt": "Redirection vers votre reçu...",
+      "viewReceipt": "Voir mon reçu",
+      "close": "Fermer",
+      "creatingInvoice": "Création de votre facture...",
+      "empty": "Votre panier est vide",
+      "subtotal": "Sous-total",
+      "shipping": "Livraison",
+      "shippingFree": "Gratuite",
+      "total": "Total",
+      "phoneLabel": "Numéro de téléphone",
+      "phonePlaceholder": "77 123 45 67",
+      "phoneMustStart7": "Le numéro doit commencer par 7",
+      "payWithOm": "Payer avec OM",
+      "payWithWave": "Payer avec Wave",
+      "secureInfo": "Paiement 100 % sécurisé",
+      "errors": {
+        "paymentPrepFailed": "Erreur lors de la préparation du paiement",
+        "methodMissing": "Méthode de paiement ou facture brouillon manquante",
+        "registerFailed": "Échec de l'enregistrement du paiement",
+        "paymentFailed": "Le paiement a échoué. Veuillez réessayer."
+      }
+    }
+  },
+  "publicRecu": {
+    "loading": "Chargement du reçu...",
+    "errorTitle": "Reçu introuvable",
+    "errorInvalidToken": "Token de reçu invalide",
+    "errorGeneric": "Erreur lors du chargement du reçu",
+    "retry": "Réessayer",
+    "headerSubtitle": "Reçu de paiement",
+    "printTitle": "Imprimer / PDF",
+    "shareTitle": "Partager via WhatsApp",
+    "paymentConfirmed": "PAIEMENT CONFIRMÉ",
+    "amountPaid": "Montant payé",
+    "viaWallet": "via {wallet}",
+    "labelReceiptNumber": "N° Reçu",
+    "labelClient": "Client",
+    "labelPhone": "Téléphone",
+    "labelInvoiceNumber": "N° Facture",
+    "labelDate": "Date",
+    "labelReference": "Réf. transaction",
+    "dateAtTime": "{date} à {time}",
+    "articleCountSingular": "{count} article",
+    "articleCountPlural": "{count} articles",
+    "tableArticle": "Article",
+    "tableQty": "Qté",
+    "tableUnitPrice": "P.U.",
+    "tableTotal": "Total",
+    "footerGenerated": "Reçu généré par FayClick",
+    "copyLinkDone": "Lien copié !",
+    "copyLink": "Copier le lien du reçu",
+    "whatsappMessage": "Salut *{structure}*, je viens de vous acheter pour *{amount}* un de vos articles en ligne.\n\nCeci est mon Reçu N° : *{receipt}*\nce {date} avec *{wallet}*\n\nVoir le reçu : {url}"
+  },
+  "dashboardCommerce": {
+    "sessionChecking": "Vérification de la session...",
+    "loading": "Chargement...",
+    "welcome": "Bon retour,",
+    "logoutTitle": "Déconnexion",
+    "online": "En ligne",
+    "stats": {
+      "products": "Produits",
+      "productsGrowth": "+{count} cette semaine",
+      "stockValue": "Valeur Stock",
+      "hideAmount": "Masquer le montant",
+      "showAmount": "Afficher le montant",
+      "viewInventories": "Voir Inventaires"
+    },
+    "venteFlashTitle": "Vente Flash (Scan code-barres)",
+    "cards": {
+      "productsTitle": "Liste Produits",
+      "productsSubtitle": "Gérer votre stock",
+      "invoicesTitle": "Mes Factures",
+      "invoicesSubtitle": "Gestion des factures",
+      "clientsTitle": "Liste Clients",
+      "clientsSubtitle": "Carnet d'adresses",
+      "expensesTitle": "Liste Dépenses",
+      "expensesSubtitle": "Gérer les dépenses"
+    },
+    "safe": {
+      "title": "Coffre-Fort",
+      "subtitle": "CA réel, ventes, charges & solde"
+    },
+    "features": {
+      "inventories": "Inventaires",
+      "inventoriesLong": "Gestion des inventaires",
+      "venteFlash": "Vente Flash"
+    }
+  },
+  "offline": {
+    "title": "Vous êtes hors ligne",
+    "messageOffline": "Vérifiez votre connexion internet pour continuer à utiliser FayClick",
+    "messageReconnecting": "Reconnexion en cours...",
+    "retry": "Réessayer",
+    "reconnecting": "Reconnexion...",
+    "backHome": "Retour à l'accueil",
+    "info": "Certaines fonctionnalités peuvent être disponibles hors ligne si vous avez déjà visité les pages.",
+    "statusOnline": "Connexion rétablie",
+    "statusOffline": "Pas de connexion",
+    "tip": "Astuce : L'application FayClick fonctionne mieux lorsqu'elle est installée"
+  },
+  "expenses": {
+    "title": "Gestion des Dépenses",
+    "subtitle": "Suivi et contrôle des dépenses",
+    "subtitleDesktop": "Suivez et gérez vos dépenses",
+    "loading": "Chargement des dépenses...",
+    "errorLoadTitle": "Erreur de chargement",
+    "errorLoadDefault": "Impossible de charger les dépenses",
+    "retry": "Réessayer",
+    "backAria": "Retour",
+    "newExpense": "Nouvelle dépense",
+    "newExpenseDesktop": "Nouvelle Dépense",
+    "manageTypes": "Gérer les types",
+    "manageTypesShort": "Gérer Types",
+    "refresh": "Actualiser",
+    "searchPlaceholder": "Rechercher une dépense...",
+    "searchPlaceholderDesktop": "Rechercher par type, description, montant...",
+    "stats": {
+      "expenses": "Dépenses",
+      "count": "Nombre de dépenses",
+      "total": "Total dépensé",
+      "mostCostlyShort": "Type + coûteux",
+      "mostCostlyLong": "Type le plus coûteux",
+      "none": "Aucune dépense",
+      "noData": "Aucune donnée",
+      "avgExpense": "Dépense Moyenne",
+      "vsPrevious": "vs période précédente",
+      "countSingular": "{count} dépense",
+      "countPlural": "{count} dépenses"
+    },
+    "pagination": {
+      "previous": "Précédent",
+      "next": "Suivant",
+      "pageInfo": "Page {current} sur {total}",
+      "resultSingular": "{count} résultat",
+      "resultPlural": "{count} résultats",
+      "rangeInfo": "Affichage de {start} à {end} sur {total} dépenses"
+    },
+    "list": {
+      "empty": "Aucune dépense trouvée",
+      "emptyHint": "Modifiez votre recherche ou ajoutez une dépense"
+    },
+    "table": {
+      "date": "Date",
+      "type": "Type",
+      "description": "Description",
+      "amount": "Montant",
+      "actions": "Actions"
+    },
+    "actions": {
+      "edit": "Modifier",
+      "delete": "Supprimer"
+    },
+    "addEdit": {
+      "titleAdd": "Nouvelle dépense",
+      "titleEdit": "Modifier la dépense",
+      "fieldDate": "Date de la dépense *",
+      "fieldType": "Type de dépense *",
+      "typePlaceholder": "Sélectionnez un type",
+      "fieldAmount": "Montant (FCFA) *",
+      "amountPlaceholder": "0",
+      "fieldDescription": "Description",
+      "descriptionPlaceholder": "Détails de la dépense...",
+      "cancel": "Annuler",
+      "submitAdd": "Ajouter",
+      "submitEdit": "Modifier",
+      "submitting": "Enregistrement...",
+      "errorDateRequired": "La date est requise",
+      "errorTypeRequired": "Veuillez sélectionner un type de dépense",
+      "errorAmountInvalid": "Le montant doit être supérieur à 0",
+      "errorSave": "Erreur lors de l'enregistrement"
+    },
+    "delete": {
+      "title": "Confirmer la suppression",
+      "question": "Êtes-vous sûr de vouloir supprimer cette dépense ?",
+      "labelType": "Type :",
+      "labelAmount": "Montant :",
+      "labelDate": "Date :",
+      "irreversible": "Cette action est irréversible.",
+      "cancel": "Annuler",
+      "confirm": "Supprimer",
+      "errorDelete": "Erreur lors de la suppression"
+    },
+    "types": {
+      "title": "Gérer les types de dépenses",
+      "errorNameRequired": "Le nom du type est requis",
+      "errorSave": "Erreur lors de l'enregistrement",
+      "errorDelete": "Erreur lors de la suppression",
+      "confirmDelete": "Êtes-vous sûr de vouloir supprimer ce type de dépense ?",
+      "labelAdd": "Ajouter un nouveau type",
+      "labelEdit": "Modifier le type",
+      "namePlaceholder": "Ex : SALAIRE, EQUIPEMENTS, etc.",
+      "cancel": "Annuler",
+      "submitAdd": "Ajouter",
+      "submitEdit": "Modifier",
+      "submitting": "...",
+      "existing": "Types existants ({count})",
+      "countSingular": "{count} dépense",
+      "countPlural": "{count} dépenses",
+      "editBtn": "Modifier",
+      "deleteBtn": "Supprimer",
+      "deleteBlocked": "Impossible : dépenses associées"
+    }
+  },
+  "inventory": {
+    "title": "Statistiques Inventaires",
+    "subtitle": "Analyse des performances",
+    "loading": "Chargement des statistiques...",
+    "errorLoadTitle": "Erreur de chargement",
+    "errorLoadDefault": "Impossible de charger les statistiques",
+    "retry": "Réessayer",
+    "backAria": "Retour",
+    "exportAria": "Exporter",
+    "calendarAria": "Sélectionner période",
+    "exportWip": "Fonctionnalité d'export en cours de développement",
+    "tabs": {
+      "week": "Semaine",
+      "month": "Mois",
+      "year": "Année"
+    },
+    "variation": {
+      "vsWeek": "vs semaine dernière",
+      "vsMonth": "vs mois dernier",
+      "vsYear": "vs année dernière"
+    },
+    "summary": {
+      "title": "Résumé des ventes",
+      "caTotal": "CA Total (FCFA)",
+      "salesTotal": "Ventes Total",
+      "avgBasket": "Panier Moyen (FCFA)",
+      "activeClients": "Clients Actifs"
+    },
+    "topArticles": {
+      "title": "Meilleurs articles",
+      "empty": "Aucun article vendu",
+      "saleSingular": "{count} vente",
+      "salePlural": "{count} ventes",
+      "unitSingular": "{count} unité",
+      "unitPlural": "{count} unités"
+    },
+    "topClients": {
+      "title": "Meilleurs clients",
+      "empty": "Aucun client sur cette période",
+      "orderSingular": "{count} cmd",
+      "orderPlural": "{count} cmds"
+    },
+    "chart": {
+      "title": "Évolution des Ventes",
+      "titleWithPeriod": "Évolution des Ventes - {period}",
+      "empty": "Aucune donnée disponible pour cette période",
+      "tooltipSaleSingular": "{count} vente",
+      "tooltipSalePlural": "{count} ventes"
+    },
+    "period": {
+      "generatedAt": "Statistiques générées le {date}",
+      "rangeInfo": "Période du {start} au {end}"
+    },
+    "periodModal": {
+      "title": "Sélection Période",
+      "subtitle": "Choisissez la période à afficher",
+      "year": "Année",
+      "month": "Mois",
+      "week": "Semaine",
+      "weekHint": "(liée au mois)",
+      "day": "Jour",
+      "dayHint": "({count} jours en {month})",
+      "weekOption": "Semaine {num}",
+      "selected": "Période sélectionnée :",
+      "selectedSummary": "{day} {month} {year} - Semaine {week}",
+      "cancel": "Annuler",
+      "validate": "Valider",
+      "months": {
+        "1": "Janvier",
+        "2": "Février",
+        "3": "Mars",
+        "4": "Avril",
+        "5": "Mai",
+        "6": "Juin",
+        "7": "Juillet",
+        "8": "Août",
+        "9": "Septembre",
+        "10": "Octobre",
+        "11": "Novembre",
+        "12": "Décembre"
+      }
+    }
+  },
+  "clients": {
+    "pageTitle": "👥 Gestion Clients",
+    "pageTitleDesktop": "Gestion des Clients",
+    "loading": "Chargement...",
+    "loadingClients": "Chargement des clients...",
+    "loadError": "Impossible de charger les clients",
+    "retry": "Réessayer",
+    "newClient": "Nouveau Client",
+    "addFirstClient": "Ajouter le premier client",
+    "fabAdd": "Ajouter un client",
+    "searchPlaceholder": "Rechercher client...",
+    "searchPlaceholderDesktop": "Rechercher par nom, téléphone, adresse...",
+    "refresh": "Actualiser",
+    "export": "Exporter CSV",
+    "exportCsv": "Export CSV",
+    "print": "Imprimer",
+    "filters": "Filtres",
+    "filtersNoneConfigured": "Filtres avancés non configurés",
+    "filtersReset": "Réinitialiser les filtres",
+    "alerts": {
+      "exportEmpty": "Aucun client à exporter",
+      "exportError": "Erreur lors de l'export CSV",
+      "printEmpty": "Aucun client à imprimer"
+    },
+    "stats": {
+      "totalClients": "Total Clients",
+      "totalUnpaid": "Total Impayés",
+      "unpaid": "Impayés",
+      "filterResults": "Résultats Filtres",
+      "filterResultsDesc": "client(s) affichés",
+      "invoicesCount": "Factures",
+      "totalAmount": "Total",
+      "unpaidAmount": "Impayé",
+      "itemLabel": "clients"
+    },
+    "advanced": {
+      "invoiceCount": "Nombre de factures",
+      "amountPurchased": "Montant acheté (FCFA)",
+      "amountUnpaid": "Montant impayés (FCFA)"
+    },
+    "empty": {
+      "none": "Aucun client enregistré",
+      "search": "Aucun client trouvé pour « {term} »",
+      "seeAll": "Voir tous les clients",
+      "noneFound": "Aucun client trouvé",
+      "noneHint": "Modifiez vos filtres ou ajoutez un nouveau client"
+    },
+    "table": {
+      "name": "Nom Client",
+      "phone": "Téléphone",
+      "address": "Adresse",
+      "nbInvoices": "Nb Factures",
+      "totalPaid": "Total Payé",
+      "unpaid": "Impayé",
+      "actions": "Actions",
+      "viewDetails": "Voir détails",
+      "edit": "Modifier"
+    },
+    "badges": {
+      "unpaid": "Impayés"
+    },
+    "pagination": {
+      "rangeInfo": "Affichage de {start} à {end} sur {total} clients"
+    },
+    "export_": {
+      "headers": {
+        "name": "Nom Client",
+        "phone": "Téléphone",
+        "nbInvoices": "Nbre Factures",
+        "totalPaid": "Total Payé",
+        "unpaid": "Impayé"
+      },
+      "filePrefix": "clients",
+      "printTitle": "Liste des Clients",
+      "printIcon": "📋 Liste des Clients",
+      "printTotal": "Total : {count} client(s)",
+      "printDate": "Imprimé le {date}",
+      "printTotalInvoices": "Total Factures :",
+      "printTotalPaid": "Total Payé :",
+      "printTotalUnpaid": "Total Impayé :"
+    },
+    "modal": {
+      "titleNew": "Nouveau Client",
+      "titleDetails": "Détails Client",
+      "loading": "Chargement...",
+      "close": "Fermer",
+      "edit": "Modifier",
+      "save": "Sauvegarder",
+      "unsavedConfirm": "Vous avez des modifications non sauvegardées. Voulez-vous vraiment fermer ?",
+      "tabs": {
+        "general": "Infos Générales",
+        "invoices": "Factures",
+        "history": "Historique"
+      },
+      "tabsDesc": {
+        "general": "Informations client et statistiques",
+        "invoices": "Historique des factures et paiements",
+        "history": "Historique des achats de produits"
+      },
+      "footer": {
+        "editing": "Modifiez les informations puis sauvegardez",
+        "invoicesCountSingular": "{count} facture au total",
+        "invoicesCountPlural": "{count} factures au total",
+        "productsCountSingular": "{count} produit différent",
+        "productsCountPlural": "{count} produits différents"
+      }
+    },
+    "general": {
+      "title": "Informations Générales",
+      "subtitleEdit": "Modifiez les informations du client",
+      "subtitleView": "Consultez les informations et statistiques du client",
+      "seniority": "Ancienneté",
+      "infoClient": "Informations Client",
+      "edit": "Modifier",
+      "fieldName": "Nom du client *",
+      "fieldNamePlaceholder": "Nom complet du client",
+      "fieldPhone": "Téléphone *",
+      "fieldPhonePlaceholder": "+221 XX XXX XX XX",
+      "fieldAddress": "Adresse",
+      "fieldAddressPlaceholder": "Adresse complète du client",
+      "undefined": "Non défini",
+      "undefinedF": "Non définie",
+      "cancel": "Annuler",
+      "statsTitle": "Statistiques Client",
+      "loadingInfo": "Chargement des informations...",
+      "noInfo": "Aucune information disponible",
+      "addInfo": "Ajouter les informations"
+    },
+    "invoices": {
+      "title": "Gestion des Factures",
+      "subtitle": "Historique des factures et gestion des paiements",
+      "filters": "Filtres",
+      "statsTitle": "Statistiques de Paiement",
+      "listTitle": "Liste des Factures ({count})",
+      "showAll": "Afficher toutes",
+      "statusAll": "Toutes",
+      "statusPaid": "Payées",
+      "statusUnpaid": "Impayées",
+      "statusPartial": "Partielles",
+      "labelDate": "Date :",
+      "labelAmount": "Montant :",
+      "labelPaidOn": "Payé le :",
+      "labelRemaining": "Restant :",
+      "emptyAll": "Aucune facture trouvée",
+      "emptyFiltered": "Aucune facture {status}",
+      "seeAll": "Voir toutes les factures",
+      "summary": {
+        "totalInvoices": "Total Factures",
+        "totalAmount": "Montant Total",
+        "paidAmount": "Montant Payé",
+        "paymentRate": "Taux Paiement"
+      }
+    },
+    "history": {
+      "title": "Historique des Achats",
+      "subtitle": "Analyse des produits achetés et habitudes de consommation",
+      "filters": "Filtres",
+      "statsTitle": "Statistiques d'Achat",
+      "loyalBadge": "Client fidèle",
+      "searchPlaceholder": "Rechercher un produit...",
+      "sort": {
+        "quantity": "Quantité",
+        "amount": "Montant",
+        "date": "Date",
+        "name": "Nom"
+      },
+      "listTitle": "Produits Achetés ({count})",
+      "clearSearch": "Effacer recherche",
+      "labelQuantity": "Quantité :",
+      "labelQuantityShort": "Qte :",
+      "labelTotal": "Total :",
+      "labelAvgPrice": "Prix moyen :",
+      "labelOrders": "Commandes :",
+      "labelLast": "Dernière :",
+      "labelDateShort": "Date :",
+      "popularity": "Popularité",
+      "emptyAll": "Aucun produit acheté",
+      "emptySearch": "Aucun produit trouvé pour « {term} »",
+      "seeAll": "Voir tous les produits",
+      "insightsTitle": "Insights Client",
+      "topProducts": "Top 3 Produits",
+      "summary": "Résumé",
+      "totalSpent": "Total dépensé :",
+      "avgBasket": "Panier moyen :",
+      "lastOrder": "Dernière commande :"
+    }
+  },
+  "invoices": {
+    "pageTitle": "Gestion des Factures",
+    "pageSubtitle": "Gérez vos factures et paiements",
+    "pageSubtitleDesktop": "Gérez vos factures et paiements",
+    "loading": "Chargement des factures...",
+    "loadingPlease": "Veuillez patienter",
+    "loadError": "Impossible de charger les factures",
+    "confirmDelete": "Êtes-vous sûr de vouloir supprimer la facture {num} ?",
+    "toast": {
+      "deleteSuccess": "Facture supprimée avec succès",
+      "deleteError": "Impossible de supprimer la facture",
+      "downloadStarted": "Téléchargement du reçu démarré",
+      "downloadError": "Impossible de télécharger le reçu : {error}"
+    },
+    "tabs": {
+      "invoices": "Factures",
+      "payments": "Paiements",
+      "proformas": "Proformas",
+      "lastUpdate": "Dernière mise à jour"
+    },
+    "stats": {
+      "totalSales": "Total Ventes",
+      "totalAmount": "Montant Total",
+      "paidAmount": "Montant Payé",
+      "unpaid": "Impayés",
+      "clientsSingular": "{count} client",
+      "clientsPlural": "{count} clients",
+      "productsSingular": "{count} produit",
+      "productsPlural": "{count} produits",
+      "unpaidInvoices": "factures impayées",
+      "margin": "{amount} marge"
+    },
+    "filters": {
+      "search": "Rechercher facture...",
+      "searchDesktop": "N° facture, client, tél...",
+      "searchLabel": "Recherche",
+      "period": "Période",
+      "startDate": "Date début",
+      "endDate": "Date fin",
+      "client": "Client",
+      "clientPlaceholder": "Nom...",
+      "clientPlaceholderDesktop": "Nom client",
+      "phone": "Téléphone",
+      "phonePlaceholder": "77 123...",
+      "status": "Statut",
+      "statusAll": "Tous",
+      "statusPaid": "Payées",
+      "statusUnpaid": "Impayées",
+      "statusPaidOne": "Payée",
+      "statusUnpaidOne": "Impayée",
+      "sort": "Tri",
+      "sortBy": "Trier par",
+      "sortByDate": "Date",
+      "sortByAmount": "Montant",
+      "sortByClient": "Client",
+      "sortDateDesc": "Date ↓",
+      "sortDateAsc": "Date ↑",
+      "sortAmountDesc": "Montant ↓",
+      "sortAmountAsc": "Montant ↑",
+      "sortClientAsc": "Client A-Z",
+      "sortClientDesc": "Client Z-A",
+      "reset": "Réinitialiser les filtres"
+    },
+    "list": {
+      "empty": "Aucune facture trouvée",
+      "emptyHint": "Aucune facture ne correspond à vos critères de recherche.",
+      "emptyHintDesktop": "Modifiez vos filtres pour voir des résultats"
+    },
+    "card": {
+      "remise": "Remise : {amount}",
+      "remaining": "Reste : {amount}",
+      "view": "Voir",
+      "delete": "Sup.",
+      "deleteTitle": "Supprimer la facture",
+      "deleteTitleAdmin": "Supprimer la facture (ADMIN)",
+      "pay": "Payer",
+      "payTitle": "Payer",
+      "print": "Imprimer",
+      "printTitle": "Imprimer un document",
+      "receipt": "Reçu",
+      "receiptTitle": "Voir le reçu de paiement",
+      "adminOnly": "🔒 Suppression réservée à l'Administrateur"
+    },
+    "table": {
+      "invoice": "Facture",
+      "client": "Client",
+      "phone": "Téléphone",
+      "date": "Date",
+      "amount": "Montant",
+      "status": "Statut",
+      "actions": "Actions",
+      "viewDetails": "Voir détails"
+    },
+    "pagination": {
+      "rangeInfo": "Affichage de {start} à {end} sur {total} factures"
+    },
+    "desktop": {
+      "venteFlash": "Vente Flash"
+    },
+    "payments": {
+      "loading": "Chargement des paiements...",
+      "emptyTitle": "Aucun paiement enregistré",
+      "emptyDescription": "Les paiements effectués apparaîtront ici. Commencez par encaisser une facture pour voir l'historique.",
+      "emptyFilteredTitle": "Aucun paiement trouvé",
+      "emptyFilteredDescription": "Aucun paiement ne correspond à vos critères de recherche",
+      "statsTotal": "Total Paiements",
+      "statsTotalSub": "reçus générés",
+      "statsAmount": "Montant Total",
+      "statsAmountSub": "encaissés",
+      "methodLabelCash": "Espèces",
+      "methodLabelOm": "Orange Money",
+      "methodLabelWave": "Wave",
+      "methodLabelFree": "Free Money",
+      "via": "Via {method}",
+      "view": "Voir",
+      "viewTitle": "Voir le reçu",
+      "download": "PDF",
+      "downloadTitle": "Télécharger"
+    }
+  },
+  "invoicesModals": {
+    "share": {
+      "title": "Partager la facture",
+      "infoClient": "Client",
+      "infoAmount": "Montant",
+      "infoStatus": "Statut",
+      "infoDate": "Date",
+      "shareLink": "Lien de partage",
+      "copied": "Copié !",
+      "copy": "Copier",
+      "whatsapp": "WhatsApp",
+      "open": "Ouvrir",
+      "qrShow": "Afficher le QR Code",
+      "qrHide": "Masquer le QR Code",
+      "qrInstruction": "Scannez ce code QR pour accéder à la facture",
+      "qrDownload": "Télécharger QR",
+      "qrError": "Erreur lors de la génération du QR Code",
+      "close": "Fermer",
+      "whatsappMessage": "Facture {num}\nMontant : {amount} FCFA\nVoir la facture : {url}"
+    },
+    "choice": {
+      "title": "Mode de Paiement",
+      "subtitle": "Sélectionnez comment recevoir le paiement",
+      "amountLabel": "Montant de l'acompte",
+      "clientLabel": "Client : {name}",
+      "cashName": "Espèces",
+      "cashDesc": "Paiement en liquide",
+      "noteTitle": "Note :",
+      "noteText": "Pour les paiements mobiles, le client devra scanner un QR code ou utiliser un lien de paiement."
+    },
+    "confirm": {
+      "title": "Confirmer le paiement",
+      "subtitle": "Vérifiez les détails avant de procéder",
+      "detailsTitle": "Détails de la facture",
+      "labelInvoice": "N° Facture :",
+      "payTitle": "Paiement à effectuer",
+      "labelAmount": "Montant :",
+      "labelProcessingTime": "Temps de traitement :",
+      "cancel": "Annuler",
+      "processing": "Traitement...",
+      "confirm": "Confirmer le paiement",
+      "cash": {
+        "name": "Espèces",
+        "description": "Paiement en liquide",
+        "processingTime": "Immédiat"
+      },
+      "om": {
+        "name": "Orange Money",
+        "description": "Paiement mobile sécurisé",
+        "processingTime": "1-2 minutes"
+      },
+      "wave": {
+        "name": "Wave",
+        "description": "Transfert d'argent mobile",
+        "processingTime": "1-2 minutes"
+      },
+      "free": {
+        "name": "Free Money",
+        "description": "Service de paiement mobile",
+        "processingTime": "1-2 minutes"
+      }
+    },
+    "selector": {
+      "choose": "Choisissez votre mode de paiement",
+      "cancel": "Annuler",
+      "cancelAria": "Annuler le paiement",
+      "payAria": "Payer avec {name}"
+    },
+    "payment": {
+      "successCompact": "Paiement OK !",
+      "success": "Paiement enregistré !",
+      "balancedCompact": "Facture soldée",
+      "balanced": "La facture a été entièrement payée",
+      "addedSuffix": "{amount} F ajoutés",
+      "cashLabel": "Espèces",
+      "titleCompact": "Acompte",
+      "title": "Ajouter un acompte",
+      "fieldClient": "Client",
+      "fieldTotal": "Total",
+      "fieldPaid": "Payé",
+      "fieldRemaining": "Reste",
+      "toPay": "à payer",
+      "amountLabel": "Montant",
+      "amountPlaceholder": "Montant",
+      "shortcutAll": "Tout",
+      "shortcut25": "25%",
+      "shortcut50": "50%",
+      "shortcut75": "75%",
+      "afterPayment": "Reste après :",
+      "balancedBadge": "Soldée",
+      "balancedInvoice": "Facture soldée",
+      "cancel": "Annuler",
+      "processing": "Traitement...",
+      "buttonSettle": "Solder la facture",
+      "buttonAdd": "Ajouter l'acompte",
+      "buttonSelectMethod": "Sélectionner un mode de paiement",
+      "actionSettle": "Solder",
+      "actionPay": "Payer",
+      "buttonCashWithAmount": "{action} {amount} FCFA en espèces",
+      "buttonOmWithAmount": "{action} {amount} FCFA avec Orange Money",
+      "buttonWaveWithAmount": "{action} {amount} FCFA avec Wave",
+      "buttonFreeWithAmount": "{action} {amount} FCFA avec Free Money",
+      "buttonDefaultWithAmount": "{action} {amount} FCFA",
+      "helpHintCompact": "Saisissez un montant",
+      "helpHint": "Saisissez un montant pour voir les options de paiement",
+      "errors": {
+        "amountPositive": "Le montant doit être supérieur à 0",
+        "amountMax": "Le montant ne peut pas dépasser le restant à payer",
+        "methodRequired": "Veuillez sélectionner un mode de paiement",
+        "genericPayment": "Erreur lors du paiement",
+        "walletSave": "Erreur lors de l'enregistrement du paiement wallet",
+        "dataIncomplete": "Données de paiement incomplètes (UUID ou transaction_id manquant)"
+      }
+    },
+    "qrcode": {
+      "loadingTitle": "Génération du QR Code...",
+      "loadingSubtitle": "Création de votre lien de paiement sécurisé",
+      "timeRemaining": "Temps restant : {time}",
+      "qrAlt": "QR Code de paiement",
+      "openOrangeMoney": "📱 Ouvrir Orange Money",
+      "openMaxit": "🌐 Payer via MaxIt Web",
+      "openPaymentLink": "Ouvrir le lien de paiement",
+      "alternativeHint": "Alternative si le QR code ne fonctionne pas",
+      "howToPay": "Comment payer ?",
+      "step1": "Ouvrez votre application {wallet}",
+      "step2": "Scannez le QR code ou utilisez le lien",
+      "step3": "Confirmez le paiement dans l'application",
+      "processing": "Paiement en cours de traitement...",
+      "successTitle": "Paiement confirmé !",
+      "successSubtitle": "L'acompte a été enregistré avec succès",
+      "successTransaction": "Transaction : {ref}",
+      "successUuid": "UUID : {uuid}",
+      "failedTitle": "Paiement échoué",
+      "failedDefault": "Une erreur est survenue",
+      "retry": "Réessayer",
+      "timeoutTitle": "Temps expiré",
+      "timeoutSubtitle": "Le délai de paiement a été dépassé. Veuillez réessayer.",
+      "retryPayment": "Réessayer le paiement",
+      "close": "Fermer",
+      "cancel": "Annuler",
+      "paymentFailed": "Le paiement a échoué",
+      "paymentFailedShort": "Paiement échoué",
+      "creationError": "Erreur lors de la création du paiement"
+    }
+  },
+  "venteFlash": {
+    "loading": "Chargement...",
+    "back": "Retour",
+    "toasts": {
+      "passwordRequired": "Mot de passe requis",
+      "passwordRequiredMsg": "Veuillez d'abord modifier votre mot de passe initial pour effectuer des ventes.",
+      "noStock": "Stock insuffisant",
+      "noStockMsg": "{name} n'est plus en stock",
+      "addedToCart": "Ajouté au panier",
+      "addedToCartMsg": "{qty} x {name}",
+      "deleteSuccess": "Suppression réussie",
+      "deleteSuccessMsg": "La facture a été supprimée",
+      "deleteError": "Impossible de supprimer la facture",
+      "saleNotFound": "Vente non trouvée",
+      "printError": "Impossible d'ouvrir la fenêtre d'impression",
+      "error": "Erreur",
+      "deleteForbidden": "Suppression impossible"
+    },
+    "header": {
+      "title": "Vente Flash",
+      "printTitle": "Imprimer le rapport du jour",
+      "refreshTitle": "Actualiser les données",
+      "searchPlaceholder": "Nom produit ou code-barres...",
+      "productNotFound": "Aucun produit trouvé avec le code-barre: {code}",
+      "stockLabel": "Stock: {count}",
+      "available": "Disponible",
+      "outOfStock": "Rupture"
+    },
+    "report": {
+      "title": "Rapport Ventes Flash",
+      "cashier": "Caissier",
+      "nbSales": "Nombre de ventes",
+      "uniqueArticles": "Articles uniques",
+      "totalSales": "Total ventes",
+      "discounts": "Remises",
+      "dayCA": "CA du jour",
+      "sectionTitle": "Détail des ventes ({count} articles uniques)",
+      "colProduct": "Nom Produit",
+      "colQty": "Quantité",
+      "colUnit": "Prix Unit.",
+      "colTotal": "Total",
+      "footerGenerated": "Document généré le",
+      "footerBrand": "FayClick - La Super App des Marchands"
+    },
+    "quantityModal": {
+      "stockAvailable": "Stock disponible",
+      "stockUnit": "unités",
+      "pricePublic": "Public",
+      "priceGros": "Gros",
+      "subtotal": "Sous-total",
+      "cancel": "Annuler",
+      "add": "Ajouter"
+    },
+    "barcodeModal": {
+      "title": "Plusieurs produits trouvés",
+      "subtitle": "{count} produits avec ce code-barres",
+      "noCategory": "Sans catégorie",
+      "outOfStock": "Rupture",
+      "stockLabel": "Stock: {count}",
+      "cancel": "Annuler"
+    },
+    "stats": {
+      "nbSales": "Nombre de ventes",
+      "totalSales": "Total ventes",
+      "discountsLabel": "Remises: {amount} F",
+      "dayCA": "CA du jour"
+    },
+    "salesList": {
+      "empty": "Aucune vente aujourd'hui",
+      "emptyHint": "Les ventes de la journée apparaîtront ici",
+      "titleWithCount": "Ventes du jour ({count})"
+    },
+    "saleCard": {
+      "details": "Détails",
+      "delete": "Supprimer",
+      "receipt": "Reçu",
+      "invoice": "Facture",
+      "confirmDelete": "Supprimer la facture #{num} ?\nCette action est irréversible.",
+      "soldItems": "Articles vendus",
+      "noDetails": "Aucun détail disponible",
+      "discount": "Remise : {amount} F"
+    },
+    "cart": {
+      "title": "Panier",
+      "itemSingular": "{count} article",
+      "itemPlural": "{count} articles",
+      "emptyConfirm": "Vider le panier et annuler la vente ?",
+      "cartEmpty": "Panier vide",
+      "cartEmptyHint": "Ajoutez des produits avant de procéder",
+      "discount": "Remise",
+      "discountWithPct": "Remise ({pct}%)",
+      "perArticleDiscount": "Remise:",
+      "subtotal": "Sous-total",
+      "total": "TOTAL",
+      "cancel": "Annuler",
+      "checkout": "Encaisser",
+      "processing": "Traitement...",
+      "grossBadge": "GROS",
+      "saleError": "Erreur lors de la vente",
+      "userNotConnected": "Utilisateur non connecté"
+    },
+    "tabs": {
+      "itemCount": "{count} art.",
+      "closeConfirm": "Ce panier contient {count} article(s). Fermer quand même ?",
+      "closeTitle": "Fermer ce panier",
+      "newCart": "Nouveau panier",
+      "maxCarts": "Maximum 3 paniers",
+      "maxLabel": "Max 3"
+    },
+    "checkout": {
+      "title": "Encaissement",
+      "chooseMethod": "Choisissez le mode de paiement",
+      "cashChange": "Monnaie: {amount}F",
+      "cashMissing": "Manque: {amount}F",
+      "cashTotal": "Total: {amount}F",
+      "confirm": "Confirmer",
+      "waiting": "En attente...",
+      "cancel": "Annuler",
+      "success": "Confirmé !",
+      "failed": "Échec",
+      "retry": "Réessayer",
+      "timeout": "Temps expiré",
+      "close": "Fermer",
+      "minAmount": "Minimum {amount} F",
+      "phoneRequired": "9 chiffres requis",
+      "omPhoneError": "Doit commencer par 77 ou 78",
+      "wavePhoneError": "Numéro invalide",
+      "paymentFailed": "Le paiement a échoué",
+      "openWave": "Ouvrir Wave"
+    },
+    "receipt": {
+      "paymentConfirmed": "Paiement Confirmé",
+      "receiptTitle": "REÇU DE VENTE",
+      "labelNumber": "N°",
+      "labelDate": "Date",
+      "labelClient": "Client",
+      "labelPayment": "Paiement",
+      "labelTotal": "TOTAL",
+      "labelChange": "Monnaie",
+      "btnTicket": "Ticket",
+      "btnWhatsapp": "WhatsApp",
+      "btnClose": "Fermer",
+      "autoClose": "Fermeture dans {count}s - Cliquez pour annuler",
+      "methodCash": "Espèces",
+      "methodOM": "Orange Money",
+      "methodWave": "Wave",
+      "anonymous": "ANONYME"
+    },
+    "refresh": {
+      "title": "Rafraîchissement en cours...",
+      "subtitle": "Mise à jour des données",
+      "hint": "Veuillez patienter quelques instants"
+    }
+  },
+  "produits": {
+    "loading": "Chargement des produits...",
+    "loadingSubtitle": "Veuillez patienter",
+    "live": {
+      "createBtn": "Créer un Live — Publier mes produits en ligne"
+    },
+    "stats": {
+      "title": "Valeur de vos Stocks",
+      "collapse": "Cliquez pour replier",
+      "expand": "Cliquez pour voir les détails"
+    },
+    "statsCards": {
+      "marchandisePA": "Valeur Marchandise (PA)",
+      "stockPV": "Valeur Stock (PV)",
+      "ventesRealisees": "Valeur Ventes réalisées",
+      "beneficePotentiel": "Bénéfice Potentiel",
+      "totalArticles": "Total Articles: {count}"
+    },
+    "error": {
+      "loadingTitle": "Erreur de chargement"
+    },
+    "toasts": {
+      "passwordRequired": "Mot de passe requis",
+      "passwordRequiredMsg": "Veuillez d'abord modifier votre mot de passe initial.",
+      "passwordRequiredSaleMsg": "Veuillez d'abord modifier votre mot de passe initial pour effectuer des ventes.",
+      "noStock": "Stock épuisé",
+      "noStockMsg": "\"{name}\" n'est plus en stock",
+      "noStockAvailable": "Ce produit n'est plus disponible",
+      "modeVenteOn": "Mode Vente activé",
+      "modeVenteOff": "Mode Vente désactivé",
+      "modeVenteOnMsg": "La recherche ajoutera automatiquement au panier",
+      "modeVenteOffMsg": "Recherche en mode filtrage normal",
+      "addedToCart": "Ajouté au panier",
+      "addedToCartMsg": "{qty}x \"{name}\" ajouté",
+      "addedToCartMsgPlural": "{qty}x \"{name}\" ajoutés",
+      "articleAdded": "Article ajouté !",
+      "articleAddedMsg": "{qty} x {name} ajouté au panier",
+      "articleAddedMsgPlural": "{qty} x {name} ajoutés au panier",
+      "deletePartial": "Suppression partielle",
+      "deletePartialMsg": "{success} supprimé(s), {error} erreur(s)",
+      "deleteSuccess": "Suppression réussie",
+      "deleteSuccessMsg": "{count} produit(s) supprimé(s)",
+      "productsCreated": "Produits créés !",
+      "productsCreatedMsg": "{count} produit ajouté avec succès",
+      "productsCreatedMsgPlural": "{count} produits ajoutés avec succès",
+      "productNotFound": "Produit non trouvé",
+      "productNotFoundMsg": "Aucun produit trouvé avec le code-barres {code}",
+      "noProducts": "Aucun produit",
+      "noProductsExport": "Aucun produit à exporter",
+      "exportSuccess": "Export réussi",
+      "exportSuccessMsg": "{count} produits exportés",
+      "exportError": "Erreur",
+      "exportErrorMsg": "Erreur lors de l'export CSV"
+    },
+    "selectionBar": {
+      "count": "{count} produit",
+      "countPlural": "{count} produits",
+      "selectAll": "Tout sélect.",
+      "deselectAll": "Tout désélect.",
+      "delete": "Supprimer"
+    },
+    "fab": {
+      "label": "Ajouter",
+      "ariaLabel": "Ajouter un produit"
+    },
+    "stockModal": {
+      "stockLabel": "Stock: {count}",
+      "pricePublic": "Public: {price} F",
+      "priceGros": "Gros: {price} F",
+      "subtotal": "Sous-total : ",
+      "cancel": "Annuler",
+      "addToCart": "Ajouter au panier"
+    },
+    "barcodeModal": {
+      "title": "Plusieurs produits trouvés",
+      "subtitle": "{count} produits avec ce code-barres",
+      "noCategory": "Sans catégorie",
+      "outOfStock": "Rupture",
+      "stockLabel": "Stock: {count}",
+      "cancel": "Annuler"
+    },
+    "stockConfirmModal": {
+      "title": "Produit créé avec succès !",
+      "body": "Voulez-vous ajouter des quantités au stock pour ce produit maintenant ?",
+      "later": "Plus tard",
+      "confirm": "Oui, ajouter du stock"
+    },
+    "deleteModal": {
+      "title": "Supprimer le produit ?",
+      "irreversible": "Cette action est irréversible.",
+      "irreversibleFull": "Cette action est irréversible. Le produit et toutes ses données associées seront définitivement supprimés.",
+      "cancel": "Annuler",
+      "confirm": "Supprimer"
+    },
+    "batchDeleteModal": {
+      "title": "Supprimer {count} produit ?",
+      "titlePlural": "Supprimer {count} produits ?",
+      "irreversible": "Cette action est irréversible. Les produits et toutes leurs données associées seront définitivement supprimés.",
+      "deleting": "Suppression en cours... {progress}%",
+      "cancel": "Annuler",
+      "confirm": "Supprimer tout",
+      "confirming": "Suppression..."
+    },
+    "alertErrors": {
+      "deleteError": "Impossible de supprimer le produit. Veuillez réessayer.",
+      "missingId": "Erreur: ID du produit manquant. Impossible d'ajouter du stock."
+    },
+    "card": {
+      "noName": "Produit sans nom",
+      "noDescription": "Aucune description",
+      "uncategorized": "Non classé",
+      "priceLabel": "Prix",
+      "grossLabel": "Gros: {price}",
+      "stockLabel": "Stock",
+      "stockUnits": "{count} unités",
+      "categoryLabel": "Catégorie",
+      "descriptionLabel": "Description",
+      "btnSell": "Vendre ce produit",
+      "outOfStock": "Rupture de stock"
+    },
+    "cardReduit": {
+      "stockHeader": "Stock: {count}",
+      "priceLabel": "Prix",
+      "grossLabel": "Gros: {price}",
+      "availableLabel": "Dispo",
+      "unitSingular": "unité",
+      "unitPlural": "unités",
+      "outOfStockBadge": "Rupture",
+      "lowStockBadge": "Faible",
+      "availableBadge": "Dispo",
+      "menuQR": "QR Code",
+      "menuEdit": "Modifier",
+      "menuDelete": "Supprimer",
+      "btnSell": "Vendre",
+      "btnOutOfStock": "Rupture"
+    },
+    "list": {
+      "empty": "Aucun produit enregistré",
+      "emptyHint": "Commencez par ajouter vos premiers produits",
+      "addFirst": "Ajouter un produit",
+      "noResults": "Aucun produit trouvé",
+      "noResultsHint": "Aucun produit ne correspond à vos critères de recherche",
+      "clearFilters": "Effacer les filtres",
+      "addNew": "Ajouter un produit"
+    },
+    "table": {
+      "productName": "Nom produit",
+      "stockHeader": "Stock dispo",
+      "noResults": "Aucun produit trouvé",
+      "noCategory": "Sans catégorie",
+      "outOfStock": "Épuisé",
+      "stockTooltip": "Stock épuisé",
+      "addToCart": "Ajouter au panier"
+    },
+    "optionsModal": {
+      "title": "Ajouter un produit",
+      "subtitle": "Choisissez votre méthode",
+      "cancel": "Annuler",
+      "manualTitle": "Ajout manuel",
+      "manualDesc": "Saisissez les informations du produit",
+      "photoTitle": "Capture photo",
+      "photoDesc": "Reconnaissance par intelligence artificielle",
+      "voiceTitle": "Ajout vocal",
+      "voiceDesc": "Dictez les informations du produit",
+      "comingSoon": "Bientôt"
+    },
+    "modal": {
+      "titleEdit": "Modifier le produit",
+      "titleAdd": "Ajouter un produit",
+      "tabs": {
+        "informations": "Informations",
+        "infosShort": "Infos",
+        "photos": "Photos",
+        "gestionStock": "Gestion du stock",
+        "stockShort": "Stocks",
+        "historique": "Historique",
+        "histoShort": "Histo"
+      },
+      "fields": {
+        "productName": "Nom du produit *",
+        "serviceName": "Nom du service *",
+        "barcode": "Code-barres (optionnel)",
+        "type": "Type",
+        "typeProduct": "Produit",
+        "typeService": "Service",
+        "purchasePrice": "Prix d'achat (FCFA) *",
+        "purchasePriceShort": "P.Achat *",
+        "salePrice": "Prix de vente (FCFA) *",
+        "salePriceShort": "P.Vente *",
+        "wholesalePrice": "Prix en gros (FCFA)",
+        "margin": "Marge :",
+        "category": "Catégorie",
+        "categorySelect": "Sélectionner une catégorie",
+        "loading": "Chargement...",
+        "description": "Description",
+        "descriptionPlaceholderProduct": "Décrivez votre produit...",
+        "descriptionPlaceholderService": "Décrivez votre service...",
+        "presentPublic": "Présenter au public",
+        "presentPublicDescProduct": "Ce produit sera visible dans votre catalogue public",
+        "presentPublicDescService": "Ce service sera visible dans votre catalogue public",
+        "inPromo": "En promotion",
+        "inPromoDescProduct": "Ce produit sera mis en avant dans la section Promotions du catalogue",
+        "inPromoDescService": "Ce service sera mis en avant dans la section Promotions du catalogue"
+      },
+      "actions": {
+        "close": "Fermer",
+        "cancel": "Annuler",
+        "saving": "Enregistrement...",
+        "save": "Enregistrer",
+        "edit": "Modifier",
+        "create": "Créer",
+        "continue": "Continuer"
+      },
+      "adminOnly": "Seul l'administrateur peut modifier les produits",
+      "stock": {
+        "productLabel": "Produit :",
+        "currentStock": "Stock actuel :",
+        "units": "unités",
+        "movementType": "Type de mouvement",
+        "entry": "Entrée",
+        "exit": "Sortie",
+        "quantity": "Quantité *",
+        "unitPrice": "Prix unitaire (FCFA) *",
+        "unitPriceShort": "Prix unit. *",
+        "descriptionOptional": "Description (optionnelle)",
+        "descriptionPlaceholder": "Motif du mouvement...",
+        "totalMovement": "Total {type} :"
+      },
+      "history": {
+        "totalEntries": "Total Entrées",
+        "totalExits": "Total Sorties",
+        "colDate": "Date",
+        "colType": "Type",
+        "colQty": "Qté",
+        "colPurchasePrice": "P.Achat",
+        "colTotal": "Total",
+        "empty": "Aucun mouvement de stock enregistré",
+        "error": "Erreur lors du chargement de l'historique"
+      },
+      "photos": {
+        "title": "Photos du produit",
+        "loading": "Chargement...",
+        "delete": "Supprimer",
+        "tip": "Astuce : Utilisez des photos de haute qualité pour mettre en valeur votre produit."
+      },
+      "stockSuccess": {
+        "title": "Stock mis à jour !",
+        "units": "unités",
+        "added": "ajoutées au",
+        "removed": "retirées du",
+        "stock": "stock"
+      }
+    },
+    "qrModal": {
+      "title": "Partager ce produit",
+      "copy": "Copier",
+      "copied": "Copié !",
+      "whatsapp": "Partager sur WhatsApp",
+      "downloadQR": "Télécharger le QR code",
+      "downloading": "Export en cours..."
+    }
+  },
+  "commerceDashboard": {
+    "welcome": "Bon retour,",
+    "online": "En ligne",
+    "retry": "Réessayer",
+    "venteFlashBtn": "Vente Flash",
+    "kpi": {
+      "salesToday": "Ventes du jour",
+      "clientsToday": "Clients du jour",
+      "caWeek": "CA Semaine",
+      "avgBasket": "Panier Moyen"
+    },
+    "chart": {
+      "title": "Ventes de la semaine",
+      "saleSingular": "{count} vte",
+      "salePlural": "{count} vtes"
+    },
+    "topProducts": {
+      "title": "Top 5 Produits vendus",
+      "empty": "Aucune vente sur la période",
+      "soldCount": "{count} vendus"
+    },
+    "topClients": {
+      "title": "Top 5 Clients",
+      "empty": "Aucun client sur la période",
+      "invoiceSingular": "{count} facture",
+      "invoicePlural": "{count} factures"
+    },
+    "recentInvoices": {
+      "title": "Dernières Factures",
+      "viewAll": "Voir tout",
+      "empty": "Aucune facture",
+      "colRef": "Ref",
+      "colClient": "Client",
+      "colAmount": "Montant",
+      "colStatus": "Statut",
+      "colDate": "Date",
+      "statusPaid": "Payée",
+      "statusPartial": "Partielle",
+      "statusPending": "En attente"
+    },
+    "variation": {
+      "vsLastWeek": "vs sem. dern."
+    },
+    "stats": {
+      "title": "Stats Globales",
+      "products": "Produits",
+      "stockValue": "Valeur Stock",
+      "monthlySales": "Ventes du mois",
+      "activeClients": "Clients actifs",
+      "monthlyCA": "CA du mois"
+    },
+    "expenses": {
+      "title": "Dépenses du Mois",
+      "thisMonth": "ce mois",
+      "countSingular": "{count} dépense",
+      "countPlural": "{count} dépenses"
+    }
+  },
+  "pagination": {
+    "showing": "Affichage de {total} {label}",
+    "showingRange": "Affichage de {start} à {end} sur {total} {label}",
+    "previous": "Précédent",
+    "next": "Suivant"
+  },
+  "panier": {
+    "title": "Mon Panier",
+    "dragHint": "Glisser pour déplacer",
+    "empty": "Panier vide",
+    "emptyHint": "Ajoutez des produits depuis la grille",
+    "loyalizeClient": "Saisir le client",
+    "unitPrice": "Prix unitaire",
+    "subtotal": "Sous-total",
+    "quantity": "Quantité",
+    "calculations": "Calculs",
+    "discount": "Remise",
+    "discountWithPct": "Remise ({pct}%)",
+    "total": "Total",
+    "subtotalColon": "Sous-total :",
+    "discountColon": "Remise :",
+    "totalColon": "Total :",
+    "validate": "Valider la vente",
+    "clear": "Vider le panier",
+    "clientSearch": "Rechercher client",
+    "itemSingular": "{count} article",
+    "itemPlural": "{count} articles",
+    "cancelBtn": "Annuler",
+    "orderBtn": "Commander",
+    "processingBtn": "Traitement...",
+    "proformaBtn": "Proforma",
+    "clientSearch": {
+      "titleSearch": "Rechercher un client",
+      "titleNew": "Nouveau client",
+      "searchPlaceholder": "Tapez un nom ou un n° de téléphone...",
+      "phoneHint": "Recherche par téléphone ({count}/9)",
+      "nameHint": "Recherche par nom ({count} car.)",
+      "clientFound": "Client trouvé dans la base",
+      "unpaid": "Impayé",
+      "sales": "Ventes",
+      "purchases": "Achats",
+      "unpaidInvoices": "Impayées",
+      "invoiceSingular": "facture",
+      "invoicePlural": "factures",
+      "clientName": "Nom du client",
+      "clientNamePlaceholder": "Saisir le nom du client",
+      "phone": "N° de Tél. ({count}/9)",
+      "cancel": "Annuler",
+      "confirm": "Confirmer",
+      "add": "Ajouter"
+    }
+  },
+  "sidebar": {
+    "dashboard": "Tableau de Bord",
+    "profile": "Mon Profil",
+    "products": "Mes Produits",
+    "invoices": "Mes Factures",
+    "clients": "Mes Clients",
+    "expenses": "Mes Dépenses",
+    "vault": "Mon Coffre",
+    "insights": "Insights",
+    "settings": "Paramètres",
+    "logout": "Déconnexion"
+  }
+}
