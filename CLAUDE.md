@@ -260,17 +260,19 @@ Key features: Mobile money integration, offline capabilities, multi-language sup
 - `/settings` : Paramètres utilisateur/structure
 - `/structure/gestion` : Gestion de la structure (profil, logo, infos)
 
-## Système i18n (FR/EN)
+## Système i18n (FR/EN/WO)
 
-Architecture maison — **pas de next-intl ni i18next**.
+Architecture maison — **pas de next-intl ni i18next**. Trois locales supportées : français (défaut), anglais, wolof.
 
-- **Fichiers** : `messages/fr.json` + `messages/en.json` (~1758 lignes, parité stricte requise)
-- **Namespaces** : `common`, `auth`, `register`, `landing`, `publicFacture`, `marketplace`, `catalogue`, `publicRecu`, `dashboardCommerce`, `offline`, `expenses`, `inventory`, `clients`, `invoices`, `invoicesModals`, `venteFlash`, `produits`, `commerceDashboard`, `pagination`, `panier`, `sidebar`
+- **Fichiers** : `messages/fr.json` + `messages/en.json` + `messages/wo.json` (~1758 lignes chacun, 1392 clés, parité stricte requise)
+- **Namespaces** (21) : `common`, `auth`, `register`, `landing`, `publicFacture`, `marketplace`, `catalogue`, `publicRecu`, `dashboardCommerce`, `offline`, `expenses`, `inventory`, `clients`, `invoices`, `invoicesModals`, `venteFlash`, `produits`, `commerceDashboard`, `pagination`, `panier`, `sidebar`
 - **Hook** : `useTranslations(namespace)` → retourne `t(key, params?)` mémoïsé sur `[locale, namespace]`
-- **Contexte** : `LanguageContext` — fournit `locale` + `setLocale`
-- **Fallback** : Clé manquante EN → FR avec `console.warn`
+- **Contexte** : `LanguageContext` — fournit `locale: 'fr' | 'en' | 'wo'` + `setLocale`, détection navigateur `wo`/`wo-SN`
+- **Fallback** : Clé manquante EN/WO → FR avec `console.warn`
+- **Sélecteurs UI** : `components/ui/LanguageSwitcher.tsx` (variants light/dark/glass) + `components/LanguageSwitcher.tsx` (framer-motion)
+- **Wolof** : Orthographe pragmatique francisée (pas le décret 2005-981). Emprunts FR conservés pour termes modernes (facture, wallet, Orange Money, Wave, QR Code, paiement, service). Glossaire 60+ termes dans `docs/i18n-guide.md`.
 - **Interpolation** : `{param}` dans les valeurs → `t('soldCount', { count: 5 })`
-- **Règle** : Ajouter chaque clé dans les **deux** fichiers simultanément — parité 1:1 obligatoire
+- **Règle** : Ajouter chaque clé dans les **trois** fichiers simultanément — parité 1:1 obligatoire (validée par `npm run i18n:check`)
 
 ## État Management & Services
 
