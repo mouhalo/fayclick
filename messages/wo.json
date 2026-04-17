@@ -684,72 +684,72 @@
     }
   },
   "inventory": {
-    "title": "Statistiques Inventaires",
-    "subtitle": "Analyse des performances",
-    "loading": "Chargement des statistiques...",
-    "errorLoadTitle": "Erreur de chargement",
-    "errorLoadDefault": "Impossible de charger les statistiques",
-    "retry": "Réessayer",
-    "backAria": "Retour",
-    "exportAria": "Exporter",
-    "calendarAria": "Sélectionner période",
-    "exportWip": "Fonctionnalité d'export en cours de développement",
+    "title": "Statistiques Inventaire",
+    "subtitle": "Analyse u performance yi",
+    "loading": "Àngi jël statistiques yi...",
+    "errorLoadTitle": "Njuumte ci jël bi",
+    "errorLoadDefault": "Mënoñu jël statistiques yi",
+    "retry": "Jéem waat",
+    "backAria": "Dellu",
+    "exportAria": "Export",
+    "calendarAria": "Tannal période",
+    "exportWip": "Export, àngi ko def",
     "tabs": {
-      "week": "Semaine",
-      "month": "Mois",
-      "year": "Année"
+      "week": "Ayu-bés",
+      "month": "Weer",
+      "year": "At"
     },
     "variation": {
-      "vsWeek": "vs semaine dernière",
-      "vsMonth": "vs mois dernier",
-      "vsYear": "vs année dernière"
+      "vsWeek": "vs ayu-bés bi weesu",
+      "vsMonth": "vs weer wi weesu",
+      "vsYear": "vs at mi weesu"
     },
     "summary": {
-      "title": "Résumé des ventes",
-      "caTotal": "CA Total (FCFA)",
-      "salesTotal": "Ventes Total",
+      "title": "Pooñu jaay yi",
+      "caTotal": "CA Yépp (FCFA)",
+      "salesTotal": "Jaay Yépp",
       "avgBasket": "Panier Moyen (FCFA)",
-      "activeClients": "Clients Actifs"
+      "activeClients": "Client yu Dox"
     },
     "topArticles": {
-      "title": "Meilleurs articles",
-      "empty": "Aucun article vendu",
-      "saleSingular": "{count} vente",
-      "salePlural": "{count} ventes",
+      "title": "Article yi gën",
+      "empty": "Amul article bu ñu jaay",
+      "saleSingular": "{count} jaay",
+      "salePlural": "{count} jaay",
       "unitSingular": "{count} unité",
       "unitPlural": "{count} unités"
     },
     "topClients": {
-      "title": "Meilleurs clients",
-      "empty": "Aucun client sur cette période",
+      "title": "Client yi gën",
+      "empty": "Amul client ci période bii",
       "orderSingular": "{count} cmd",
-      "orderPlural": "{count} cmds"
+      "orderPlural": "{count} cmd"
     },
     "chart": {
-      "title": "Évolution des Ventes",
-      "titleWithPeriod": "Évolution des Ventes - {period}",
-      "empty": "Aucune donnée disponible pour cette période",
-      "tooltipSaleSingular": "{count} vente",
-      "tooltipSalePlural": "{count} ventes"
+      "title": "Évolution u Jaay yi",
+      "titleWithPeriod": "Évolution u Jaay yi - {period}",
+      "empty": "Amul données ngir période bii",
+      "tooltipSaleSingular": "{count} jaay",
+      "tooltipSalePlural": "{count} jaay"
     },
     "period": {
-      "generatedAt": "Statistiques générées le {date}",
-      "rangeInfo": "Période du {start} au {end}"
+      "generatedAt": "Statistiques defar nañu ci {date}",
+      "rangeInfo": "Période ci {start} ba {end}"
     },
     "periodModal": {
-      "title": "Sélection Période",
-      "subtitle": "Choisissez la période à afficher",
-      "year": "Année",
-      "month": "Mois",
-      "week": "Semaine",
-      "weekHint": "(liée au mois)",
-      "day": "Jour",
-      "dayHint": "({count} jours en {month})",
-      "weekOption": "Semaine {num}",
-      "selected": "Période sélectionnée :",
-      "selectedSummary": "{day} {month} {year} - Semaine {week}",
-      "cancel": "Annuler",
-      "validate": "Valider",
+      "title": "Tannal Période",
+      "subtitle": "Tannal période bi nga bëgg wone",
+      "year": "At",
+      "month": "Weer",
+      "week": "Ayu-bés",
+      "weekHint": "(séq ak weer wi)",
+      "day": "Bés",
+      "dayHint": "({count} bés ci {month})",
+      "weekOption": "Ayu-bés {num}",
+      "selected": "Période bu ñu tann :",
+      "selectedSummary": "{day} {month} {year} - Ayu-bés {week}",
+      "cancel": "Bañ",
+      "validate": "Nangu",
       "months": {
         "1": "Janvier",
         "2": "Février",
