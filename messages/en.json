@@ -1755,5 +1755,13 @@
     "insights": "Insights",
     "settings": "Settings",
     "logout": "Logout"
+  },
+  "notifications": {
+    "drawerTitle": "Payments received",
+    "viewAll": "View all notifications",
+    "timeAgo": "{time} ago",
+    "justNow": "Just now",
+    "read": "Read",
+    "empty": "No recent payments"
   }
 }

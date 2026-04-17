@@ -51,9 +51,11 @@ function timeAgo(dateStr: string): string {
 function PaymentItem({
   notification,
   onMarkRead,
+  readLabel,
 }: {
   notification: Notification;
   onMarkRead: (id: number) => Promise<boolean>;
+  readLabel: string;
 }) {
   const method = extractMethod(notification.message);
   const phone = extractPhone(notification.message);
@@ -93,7 +95,7 @@ function PaymentItem({
         <div className="text-green-300 text-xs">📞 {phone}</div>
         <div className="text-slate-500 text-[10px] mt-0.5">
           {timeAgo(notification.date_creation)}
-          {!isNew && <span className="ml-1">• Lu</span>}
+          {!isNew && <span className="ml-1">• {readLabel}</span>}
         </div>
       </div>
 
@@ -112,8 +114,7 @@ export function PaymentDrawer({
   onMarkRead,
   onViewAll,
 }: PaymentDrawerProps) {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const t = useTranslations('notifications' as any);
+  const t = useTranslations('notifications');
 
   // Fermeture au clavier Echap
   useEffect(() => {
@@ -175,12 +176,12 @@ export function PaymentDrawer({
               {payments.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-slate-500 text-sm">
                   <span className="text-2xl mb-2">🔔</span>
-                  <span>Aucun paiement récent</span>
+                  <span>{t('empty')}</span>
                 </div>
               ) : (
                 <AnimatePresence>
                   {payments.map(p => (
-                    <PaymentItem key={p.id} notification={p} onMarkRead={onMarkRead} />
+                    <PaymentItem key={p.id} notification={p} onMarkRead={onMarkRead} readLabel={t('read')} />
                   ))}
                 </AnimatePresence>
               )}
