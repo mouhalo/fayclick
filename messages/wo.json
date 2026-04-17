@@ -1,23 +1,23 @@
 {
   "common": {
-    "back": "Retour",
-    "next": "Suivant",
-    "previous": "Précédent",
-    "loading": "Chargement...",
-    "submit": "Soumettre",
-    "cancel": "Annuler",
-    "save": "Enregistrer",
-    "edit": "Modifier",
-    "delete": "Supprimer",
-    "required": "Requis",
-    "optional": "Optionnel",
-    "close": "Fermer",
-    "confirm": "Confirmer",
-    "continue": "Continuer",
-    "retry": "Réessayer",
-    "search": "Rechercher",
-    "yes": "Oui",
-    "no": "Non"
+    "back": "Dellu",
+    "next": "Topp",
+    "previous": "Kanam",
+    "loading": "Dafay ñëw...",
+    "submit": "Yonnee",
+    "cancel": "Bañ",
+    "save": "Denc",
+    "edit": "Soppi",
+    "delete": "Far",
+    "required": "Laajtelu na",
+    "optional": "Du fàww",
+    "close": "Tëj",
+    "confirm": "Nangu",
+    "continue": "Jëkk ba noppi",
+    "retry": "Jéem waat",
+    "search": "Seet",
+    "yes": "Waaw",
+    "no": "Déedéet"
   },
   "auth": {
     "appTagline": "Gestion simplifiée de votre business",
@@ -569,16 +569,16 @@
     }
   },
   "offline": {
-    "title": "Vous êtes hors ligne",
-    "messageOffline": "Vérifiez votre connexion internet pour continuer à utiliser FayClick",
-    "messageReconnecting": "Reconnexion en cours...",
-    "retry": "Réessayer",
+    "title": "Amul nga connexion",
+    "messageOffline": "Xoolal sa connexion internet ngir continue jëfandikoo FayClick",
+    "messageReconnecting": "Reconnexion àngi dem...",
+    "retry": "Jéem waat",
     "reconnecting": "Reconnexion...",
-    "backHome": "Retour à l'accueil",
-    "info": "Certaines fonctionnalités peuvent être disponibles hors ligne si vous avez déjà visité les pages.",
-    "statusOnline": "Connexion rétablie",
-    "statusOffline": "Pas de connexion",
-    "tip": "Astuce : L'application FayClick fonctionne mieux lorsqu'elle est installée"
+    "backHome": "Dellu ci accueil bi",
+    "info": "Ay liggéey man nañoo dox hors ligne su nga jëlu na page yooyu ba noppi.",
+    "statusOnline": "Connexion delluwaat na",
+    "statusOffline": "Amul connexion",
+    "tip": "Neex : App FayClick mungi doxaat bu baax su nga ko install"
   },
   "expenses": {
     "title": "Gestion des Dépenses",
@@ -1693,10 +1693,10 @@
     }
   },
   "pagination": {
-    "showing": "Affichage de {total} {label}",
-    "showingRange": "Affichage de {start} à {end} sur {total} {label}",
-    "previous": "Précédent",
-    "next": "Suivant"
+    "showing": "Wone {total} {label}",
+    "showingRange": "Wone {start} ba {end} ci {total} {label}",
+    "previous": "Kanam",
+    "next": "Topp"
   },
   "panier": {
     "title": "Mon Panier",
@@ -1746,14 +1746,14 @@
   },
   "sidebar": {
     "dashboard": "Tableau de Bord",
-    "profile": "Mon Profil",
-    "products": "Mes Produits",
-    "invoices": "Mes Factures",
-    "clients": "Mes Clients",
-    "expenses": "Mes Dépenses",
-    "vault": "Mon Coffre",
+    "profile": "Sama Profil",
+    "products": "Sama Jumtukaay yi",
+    "invoices": "Sama Facture yi",
+    "clients": "Sama Client yi",
+    "expenses": "Sama Dépense yi",
+    "vault": "Sama Coffre",
     "insights": "Insights",
     "settings": "Paramètres",
-    "logout": "Déconnexion"
+    "logout": "Génn"
   }
 }
