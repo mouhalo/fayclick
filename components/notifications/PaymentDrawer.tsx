@@ -67,7 +67,7 @@ function PaymentItem({
       className={`rounded-xl p-3 mb-2 flex items-center gap-3 cursor-pointer transition-all ${
         isNew
           ? 'bg-green-900/40 border border-green-500/30'
-          : 'bg-white/5 border border-white/8'
+          : 'bg-white/5 border border-white/10'
       }`}
       onClick={() => isNew && onMarkRead(notification.id)}
     >
@@ -82,7 +82,7 @@ function PaymentItem({
       {/* Contenu */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-0.5">
-          <span className="text-white font-bold text-sm">{amount}</span>
+          <span className="text-white font-bold text-sm">{amount || '—'}</span>
           <span
             className="text-white text-[10px] font-bold px-1.5 py-0.5 rounded"
             style={{ background: method.bg }}
