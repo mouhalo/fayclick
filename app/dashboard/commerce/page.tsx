@@ -23,6 +23,8 @@ import CommerceDashboardDesktop from '@/components/dashboard/CommerceDashboardDe
 import { useTranslations } from '@/hooks/useTranslations';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { formatCurrency } from '@/lib/format-locale';
+import { usePaymentNotifications } from '@/hooks/usePaymentNotifications';
+import { PaymentDrawer } from '@/components/notifications/PaymentDrawer';
 
 
 export default function CommerceDashboard() {
@@ -78,6 +80,16 @@ export default function CommerceDashboard() {
     autoFetch: !!user?.id,
     refreshInterval: 60000
   });
+
+  // Hook notifications paiements (poll 15s, drawer automatique)
+  const {
+    newPayments,
+    hasNew,
+    drawerOpen,
+    setDrawerOpen,
+    unreadCount: paymentUnreadCount,
+    markAsRead: markPaymentAsRead,
+  } = usePaymentNotifications({ userId: user?.id || 0 });
 
   useEffect(() => {
     // Attendre que le composant soit monté côté client avant de vérifier localStorage
@@ -162,7 +174,7 @@ export default function CommerceDashboard() {
       <>
         <CommerceDashboardDesktop
           user={user}
-          notificationCount={notificationCount}
+          notificationCount={paymentUnreadCount || notificationCount}
           canViewCA={canViewCA}
           canAccessFeature={canAccessFeature}
           showAbonnementModal={showAbonnementModal}
@@ -171,6 +183,8 @@ export default function CommerceDashboard() {
           onShowNotificationsModal={() => setShowNotificationsModal(true)}
           onShowProfilModal={() => window.dispatchEvent(new Event('openProfileModal'))}
           isTablet={!isDesktopLarge}
+          hasNewPayments={hasNew}
+          onBellAlertClick={() => setDrawerOpen(true)}
         />
 
         {/* MainMenu (masque, monte pour ecouter openProfileModal) */}
@@ -208,6 +222,14 @@ export default function CommerceDashboard() {
           }}
           userName={user?.username}
         />
+        {/* Drawer paiements reçus (desktop) */}
+        <PaymentDrawer
+          isOpen={drawerOpen}
+          payments={newPayments}
+          onClose={() => setDrawerOpen(false)}
+          onMarkRead={markPaymentAsRead}
+          onViewAll={() => { setDrawerOpen(false); setShowNotificationsModal(true); }}
+        />
       </>
     );
   }
@@ -244,21 +266,31 @@ export default function CommerceDashboard() {
             </motion.button>
 
             <div className="flex items-center gap-2">
-              {/* Bouton Notifications */}
+              {/* Bouton Notifications — pulse orange si nouveaux paiements */}
               <motion.button
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
-                className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:bg-white/30 transition-all relative"
-                onClick={() => setShowNotificationsModal(true)}
+                className={`w-10 h-10 backdrop-blur-sm rounded-full flex items-center justify-center text-white transition-all relative ${
+                  hasNew
+                    ? 'bg-gradient-to-br from-amber-500 to-orange-500 shadow-[0_0_16px_rgba(245,158,11,0.6)]'
+                    : 'bg-white/20 hover:bg-white/30'
+                }`}
+                onClick={() => hasNew ? setDrawerOpen(true) : setShowNotificationsModal(true)}
               >
-                <span className="text-xl">🔔</span>
-                {notificationCount > 0 && (
+                {hasNew && (
+                  <>
+                    <span className="absolute inset-0 rounded-full bg-amber-400 opacity-40 animate-ping" />
+                    <span className="absolute -inset-1 rounded-full border-2 border-amber-400/40 animate-ping [animation-delay:0.3s]" />
+                  </>
+                )}
+                <span className="text-xl relative z-10">🔔</span>
+                {(paymentUnreadCount > 0 || notificationCount > 0) && (
                   <motion.div
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
-                    className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-xs font-bold"
+                    className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-xs font-bold z-10"
                   >
-                    {notificationCount > 9 ? '9+' : notificationCount}
+                    {(paymentUnreadCount || notificationCount) > 9 ? '9+' : (paymentUnreadCount || notificationCount)}
                   </motion.div>
                 )}
               </motion.button>
@@ -528,6 +560,15 @@ export default function CommerceDashboard() {
         isOpen={showNotificationsModal}
         onClose={() => setShowNotificationsModal(false)}
         userId={user?.id || 0}
+      />
+
+      {/* Drawer paiements reçus */}
+      <PaymentDrawer
+        isOpen={drawerOpen}
+        payments={newPayments}
+        onClose={() => setDrawerOpen(false)}
+        onMarkRead={markPaymentAsRead}
+        onViewAll={() => { setDrawerOpen(false); setShowNotificationsModal(true); }}
       />
 
       {/* Modal Déconnexion */}
