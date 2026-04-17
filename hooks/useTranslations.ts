@@ -2,8 +2,9 @@ import { useCallback } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import fr from '@/messages/fr.json';
 import en from '@/messages/en.json';
+import wo from '@/messages/wo.json';
 
-const translations = { fr, en } as const;
+const translations = { fr, en, wo } as const;
 
 export type Locale = keyof typeof translations;
 export type Namespace = keyof typeof fr;
