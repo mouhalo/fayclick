@@ -39,10 +39,22 @@ FayClick V2 is a Next.js-based Progressive Web App (PWA) designed as a "Super Ap
 ## Architecture & Technology Stack
 
 ### Framework & Core Technologies
-- **Next.js 15** with App Router
-- **TypeScript** for type safety
-- **Tailwind CSS v3.4.1** for styling
-- **React 19** with modern patterns
+- **Next.js 14.2.18** with App Router
+- **TypeScript 5.9** for type safety
+- **Tailwind CSS v3.4** for styling
+- **React 18.3** with modern patterns
+
+### Key Libraries
+- **recharts 3** — graphiques (barres, lignes) sur pages Partenaire/Admin/Structure
+- **framer-motion 12** — animations avancées
+- **@tanstack/react-query 5** — cache et synchronisation données serveur
+- **react-hook-form 7 + zod 4** — formulaires avec validation typée
+- **zustand 5** — state management global (panierStore, etc.)
+- **sonner 2** — notifications toast
+- **lucide-react** — icônes
+- **date-fns 4** — manipulation dates
+- **jspdf 3** — génération PDF côté client
+- **browser-image-compression 2** — compression images avant upload logo
 
 ### Design System
 - **Primary Colors**: Blue (#0ea5e9) and Orange (#f59e0b) palette
@@ -248,6 +260,18 @@ Key features: Mobile money integration, offline capabilities, multi-language sup
 - `/settings` : Paramètres utilisateur/structure
 - `/structure/gestion` : Gestion de la structure (profil, logo, infos)
 
+## Système i18n (FR/EN)
+
+Architecture maison — **pas de next-intl ni i18next**.
+
+- **Fichiers** : `messages/fr.json` + `messages/en.json` (~1758 lignes, parité stricte requise)
+- **Namespaces** : `common`, `auth`, `register`, `landing`, `publicFacture`, `marketplace`, `catalogue`, `publicRecu`, `dashboardCommerce`, `offline`, `expenses`, `inventory`, `clients`, `invoices`, `invoicesModals`, `venteFlash`, `produits`, `commerceDashboard`, `pagination`, `panier`, `sidebar`
+- **Hook** : `useTranslations(namespace)` → retourne `t(key, params?)` mémoïsé sur `[locale, namespace]`
+- **Contexte** : `LanguageContext` — fournit `locale` + `setLocale`
+- **Fallback** : Clé manquante EN → FR avec `console.warn`
+- **Interpolation** : `{param}` dans les valeurs → `t('soldCount', { count: 5 })`
+- **Règle** : Ajouter chaque clé dans les **deux** fichiers simultanément — parité 1:1 obligatoire
+
 ## État Management & Services
 
 ### Zustand Stores
@@ -255,6 +279,11 @@ Key features: Mobile money integration, offline capabilities, multi-language sup
   - Articles, quantités, client, remise, acompte
   - Auto-réinitialisation du client quand panier vidé
   - Validation stock disponible
+- **`panierProformaStore`** : Panier dédié à la création de proformas
+- **`panierVFMultiStore`** : Panier multi-articles pour VenteFlash
+- **`clientsStore`** : Cache liste clients avec invalidation
+- **`produitsStore`** : Cache liste produits avec invalidation
+- **`apiKeysStore`** : Gestion clés API structure
 
 ### Services Architecture
 Tous les services suivent un pattern singleton avec gestion d'erreurs centralisée :
@@ -714,6 +743,8 @@ const response = typeof rawResponse === 'string'
 - ✅ **info_facture** : Merge côté serveur (COALESCE champ par champ)
 - ✅ **Dashboard desktop montants** : Toujours passer `canViewCA` aux sous-composants (WeeklyBarChart, TopProducts, TopClients, RecentInvoices) et afficher `***` si false
 - ✅ **DatabaseService import** : Utiliser directement `DatabaseService.executeFunction()` (l'import est l'instance, pas la classe)
+- ✅ **WeeklyBarChart montants** : Afficher les montants à l'intérieur des barres (texte vertical blanc `writing-mode: vertical-rl`), jamais au-dessus (chevauchement titre). Afficher seulement si `heightPct > 12`
+- ✅ **tsconfig** : `moduleResolution: "bundler"` (pas `"node"`, déprécié TS 7.0), pas de `baseUrl` (les alias `@/*` via `paths` suffisent)
 
 ---
 

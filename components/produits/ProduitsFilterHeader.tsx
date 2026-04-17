@@ -5,9 +5,15 @@
 
 'use client';
 
-import { forwardRef, useImperativeHandle, useRef } from 'react';
-import { motion } from 'framer-motion';
-import { Search, Filter, Grid, LayoutList, LayoutGrid, RefreshCw, Printer, FileDown, CheckSquare, ShoppingCart, PanelRightOpen } from 'lucide-react';
+import { forwardRef, useImperativeHandle, useRef, useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Search, Filter, Grid, LayoutList, LayoutGrid, RefreshCw, Printer, FileDown, CheckSquare, ShoppingCart, PanelRightOpen, ChevronDown } from 'lucide-react';
+
+const VIEW_MODES = [
+  { key: 'grid',    icon: Grid,       label: 'Grille' },
+  { key: 'compact', icon: LayoutGrid, label: 'Compacte' },
+  { key: 'table',   icon: LayoutList, label: 'Tableau' },
+] as const;
 
 export interface ProduitsFilterHeaderRef {
   focusSearch: () => void;
@@ -53,6 +59,22 @@ export const ProduitsFilterHeader = forwardRef<ProduitsFilterHeaderRef, Produits
   onTogglePanierSide
 }, ref) => {
   const inputRef = useRef<HTMLInputElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const [showViewDropdown, setShowViewDropdown] = useState(false);
+
+  const activeView = VIEW_MODES.find(v => v.key === viewMode) ?? VIEW_MODES[0];
+
+  // Fermer dropdown au clic extérieur
+  useEffect(() => {
+    if (!showViewDropdown) return;
+    const handler = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setShowViewDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [showViewDropdown]);
 
   // Exposer focusSearch() au parent pour auto-focus après ajout au panier
   useImperativeHandle(ref, () => ({
@@ -113,43 +135,45 @@ export const ProduitsFilterHeader = forwardRef<ProduitsFilterHeaderRef, Produits
 
       {/* Contrôles vue et filtres - Style glassmorphe harmonisé avec l'accordéon */}
       <div className="flex items-center justify-between p-2.5 sm:p-3 bg-emerald-900/40 backdrop-blur-md rounded-xl border border-white/30 shadow-lg">
-        {/* Boutons de vue */}
-        <div className="flex items-center bg-white/10 rounded-lg p-1 gap-1">
-          {/* Vue Grille normale */}
+        {/* Dropdown mode d'affichage */}
+        <div ref={dropdownRef} className="relative">
           <motion.button
             whileTap={{ scale: 0.95 }}
-            onClick={() => onViewModeChange('grid')}
-            className={`p-2 rounded-md transition-colors ${
-              viewMode === 'grid' ? 'bg-white text-green-600 shadow-sm' : 'text-white hover:bg-white/20'
-            }`}
-            title="Vue grille normale"
+            onClick={() => setShowViewDropdown(v => !v)}
+            className="flex items-center gap-1.5 px-2.5 py-2 bg-white/10 hover:bg-white/20 rounded-lg transition-colors text-white"
+            title="Mode d'affichage"
           >
-            <Grid className="w-4 h-4" />
+            <activeView.icon className="w-4 h-4" />
+            <span className="text-xs font-medium hidden sm:inline">{activeView.label}</span>
+            <ChevronDown className={`w-3 h-3 transition-transform ${showViewDropdown ? 'rotate-180' : ''}`} />
           </motion.button>
 
-          {/* Vue Compacte */}
-          <motion.button
-            whileTap={{ scale: 0.95 }}
-            onClick={() => onViewModeChange('compact')}
-            className={`p-2 rounded-md transition-colors ${
-              viewMode === 'compact' ? 'bg-white text-green-600 shadow-sm' : 'text-white hover:bg-white/20'
-            }`}
-            title="Vue compacte"
-          >
-            <LayoutGrid className="w-4 h-4" />
-          </motion.button>
-
-          {/* Vue Tableau */}
-          <motion.button
-            whileTap={{ scale: 0.95 }}
-            onClick={() => onViewModeChange('table')}
-            className={`p-2 rounded-md transition-colors ${
-              viewMode === 'table' ? 'bg-white text-green-600 shadow-sm' : 'text-white hover:bg-white/20'
-            }`}
-            title="Vue tableau"
-          >
-            <LayoutList className="w-4 h-4" />
-          </motion.button>
+          <AnimatePresence>
+            {showViewDropdown && (
+              <motion.div
+                initial={{ opacity: 0, y: -6, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -6, scale: 0.95 }}
+                transition={{ duration: 0.15 }}
+                className="absolute left-0 top-full mt-1 z-50 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden min-w-[130px]"
+              >
+                {VIEW_MODES.map(({ key, icon: Icon, label }) => (
+                  <button
+                    key={key}
+                    onClick={() => { onViewModeChange(key); setShowViewDropdown(false); }}
+                    className={`w-full flex items-center gap-2.5 px-3 py-2.5 text-sm transition-colors ${
+                      viewMode === key
+                        ? 'bg-green-50 text-green-700 font-semibold'
+                        : 'text-gray-700 hover:bg-gray-50'
+                    }`}
+                  >
+                    <Icon className="w-4 h-4 flex-shrink-0" />
+                    {label}
+                  </button>
+                ))}
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
         {/* Boutons actions */}
