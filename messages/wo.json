@@ -369,137 +369,137 @@
   "marketplace": {
     "sortBy": {
       "relevance": "Pertinence",
-      "priceAsc": "Prix croissant",
-      "priceDesc": "Prix décroissant",
-      "nameAz": "Nom A-Z"
+      "priceAsc": "Njëg ci yokk",
+      "priceDesc": "Njëg ci wàññiku",
+      "nameAz": "Tur A-Z"
     },
     "nav": {
       "home": "Accueil",
-      "shops": "Boutiques",
-      "search": "Recherche"
+      "shops": "Bitig yi",
+      "search": "Seet"
     },
     "boutiqueHeader": {
       "back": "Marketplace",
-      "contact": "Contacter",
-      "live": "En direct",
-      "products": "produits",
-      "categories": "catégories",
-      "follow": "Suivre"
+      "contact": "Ak contact",
+      "live": "Ci direct",
+      "products": "jumtukaay",
+      "categories": "catégorie",
+      "follow": "Topp"
     },
     "miniCart": {
-      "title": "Mon panier",
-      "empty": "Votre panier est vide",
+      "title": "Sama panier",
+      "empty": "Sa panier dafa nangu",
       "subtotal": "Sous-total",
-      "shippingEstimated": "Livraison estimée",
-      "shippingFree": "Gratuite",
+      "shippingEstimated": "Yóbbu ci njortal",
+      "shippingFree": "Gratuit",
       "total": "Total",
       "itemSingular": "{count} article",
-      "itemPlural": "{count} articles",
-      "checkout": "Finaliser la commande →"
+      "itemPlural": "{count} article",
+      "checkout": "Mujjal commande bi →"
     },
-    "toastAdded": "Ajouté au panier !",
+    "toastAdded": "Yokk nañu ci panier !",
     "modalCarrousel": {
-      "noPhoto": "Aucune photo disponible"
+      "noPhoto": "Amul photo"
     },
-    "scrollTop": "Remonter en haut",
+    "scrollTop": "Dellu ca kaw",
     "hero": {
       "badge": "Marketplace Premium",
-      "titlePart1": "Les meilleurs commerçants",
-      "titlePart2": "du Sénégal",
-      "subtitle": "Découvrez la marketplace premium pour FayClick. Qualité et authenticité garanties.",
-      "explore": "Explorer les boutiques",
-      "statsShops": "BOUTIQUES",
-      "statsWithCatalog": "AVEC CATALOGUE",
+      "titlePart1": "Jaaykat yu gën",
+      "titlePart2": "ci Senegaal",
+      "subtitle": "Xamal marketplace premium ngir FayClick. Qualité ak authenticité wóor nañu.",
+      "explore": "Xool bitig yi",
+      "statsShops": "BITIG YI",
+      "statsWithCatalog": "AK CATALOGUE",
       "liveSingular": "{count} Live",
-      "livePlural": "{count} Lives"
+      "livePlural": "{count} Live"
     },
     "search": {
-      "placeholderPhone": "Numéro de téléphone (7xx...)",
-      "placeholderText": "Rechercher un live ou une boutique..."
+      "placeholderPhone": "Limu telefon (7xx...)",
+      "placeholderText": "Seet ab live walla ab bitig..."
     },
     "searchFilter": {
-      "placeholder": "Rechercher un produit...",
-      "allCategories": "Toutes catégories",
-      "reset": "Réinitialiser filtres"
+      "placeholder": "Seet ab jumtukaay...",
+      "allCategories": "Catégorie yépp",
+      "reset": "Raxas filtres yi"
     },
     "types": {
-      "all": "Tous",
+      "all": "Yépp",
       "commerce": "Commerce",
-      "scolaire": "Scolaire",
+      "scolaire": "Daara",
       "immobilier": "Immobilier",
       "prestataire": "Prestataire",
-      "other": "Autre"
+      "other": "Weneen"
     },
     "structure": {
-      "view": "Voir",
-      "productSingular": "{count} produit",
-      "productPlural": "{count} produits"
+      "view": "Xool",
+      "productSingular": "{count} jumtukaay",
+      "productPlural": "{count} jumtukaay"
     },
     "carousel": {
-      "popularShops": "Boutiques populaires"
+      "popularShops": "Bitig yu siw"
     },
     "featured": {
-      "title": "Boutiques avec catalogue en ligne",
-      "badge": "Vedettes",
-      "subtitleSingular": "{count} marchand propose ses produits en ligne",
-      "subtitlePlural": "{count} marchands proposent leurs produits en ligne"
+      "title": "Bitig yu am catalogue ci ligne",
+      "badge": "Yu Siw",
+      "subtitleSingular": "{count} jaaykat wone na sa jumtukaay ci ligne",
+      "subtitlePlural": "{count} jaaykat wone nañu seen jumtukaay ci ligne"
     },
     "allShops": {
-      "title": "Toutes les boutiques",
-      "subtitleSingular": "{count} marchand inscrit sur FayClick",
-      "subtitlePlural": "{count} marchands inscrits sur FayClick",
-      "noneFound": "Aucune boutique trouvée",
-      "noneSubtitle": "Aucune boutique de ce type pour le moment",
-      "loadMoreSingular": "Afficher plus ({count} restante)",
-      "loadMorePlural": "Afficher plus ({count} restantes)"
+      "title": "Bitig yépp",
+      "subtitleSingular": "{count} jaaykat bu inscri ci FayClick",
+      "subtitlePlural": "{count} jaaykat yu inscri ci FayClick",
+      "noneFound": "Amul bitig bu ñu gis",
+      "noneSubtitle": "Amul bitig u xeet bii ci kaw",
+      "loadMoreSingular": "Wone bu yokk ({count} bu des)",
+      "loadMorePlural": "Wone bu yokk ({count} bu des)"
     },
     "cataloguesGlobal": {
-      "errorTitle": "Erreur",
-      "retry": "Réessayer"
+      "errorTitle": "Njuumte",
+      "retry": "Jéem waat"
     }
   },
   "catalogue": {
-    "errorTitle": "Erreur",
-    "errorNotFound": "Catalogue introuvable",
-    "errorGeneric": "Impossible de charger le catalogue",
-    "searchPlaceholder": "Rechercher dans cette boutique...",
-    "newest": "Nouveautés",
-    "sortBy": "Trier par :",
-    "promotions": "Promotions",
-    "noProductsFound": "Aucun produit trouvé",
-    "adjustCriteria": "Essayez de modifier vos critères de recherche",
-    "emptyShop": "Cette boutique n'a pas encore de produits",
+    "errorTitle": "Njuumte",
+    "errorNotFound": "Catalogue gisuñu ko",
+    "errorGeneric": "Mënoñu jël catalogue bi",
+    "searchPlaceholder": "Seet ci bitig bii...",
+    "newest": "Bees bi",
+    "sortBy": "Tri ci :",
+    "promotions": "Promotion yi",
+    "noProductsFound": "Amul jumtukaay bu ñu gis",
+    "adjustCriteria": "Jéem soppi sa critères seet",
+    "emptyShop": "Bitig bii amul jumtukaay ba tëy",
     "card": {
       "promo": "Promo",
-      "outOfStock": "Rupture de stock",
-      "buy": "Acheter"
+      "outOfStock": "Jeex",
+      "buy": "Jënd"
     },
     "panier": {
-      "title": "Mon panier ({count})",
-      "titleConfirmed": "Commande confirmée",
-      "paymentSuccess": "Paiement réussi !",
-      "orderRegistered": "Votre commande a été enregistrée avec succès.",
-      "invoiceNumber": "Numéro de facture",
-      "redirectingReceipt": "Redirection vers votre reçu...",
-      "viewReceipt": "Voir mon reçu",
-      "close": "Fermer",
-      "creatingInvoice": "Création de votre facture...",
-      "empty": "Votre panier est vide",
+      "title": "Sama panier ({count})",
+      "titleConfirmed": "Commande nangu nañu",
+      "paymentSuccess": "Paiement antu na !",
+      "orderRegistered": "Sa commande bi denc nañu ko baax.",
+      "invoiceNumber": "Limu u facture",
+      "redirectingReceipt": "Àngi jàll ci sa reçu...",
+      "viewReceipt": "Xool sama reçu",
+      "close": "Tëj",
+      "creatingInvoice": "Àngi defar sa facture...",
+      "empty": "Sa panier dafa nangu",
       "subtotal": "Sous-total",
-      "shipping": "Livraison",
-      "shippingFree": "Gratuite",
+      "shipping": "Yóbbu",
+      "shippingFree": "Gratuit",
       "total": "Total",
-      "phoneLabel": "Numéro de téléphone",
+      "phoneLabel": "Limu telefon",
       "phonePlaceholder": "77 123 45 67",
-      "phoneMustStart7": "Le numéro doit commencer par 7",
-      "payWithOm": "Payer avec OM",
-      "payWithWave": "Payer avec Wave",
-      "secureInfo": "Paiement 100 % sécurisé",
+      "phoneMustStart7": "Limu bi war na tàmbali ak 7",
+      "payWithOm": "Fay ak OM",
+      "payWithWave": "Fay ak Wave",
+      "secureInfo": "Paiement bu wóor 100 %",
       "errors": {
-        "paymentPrepFailed": "Erreur lors de la préparation du paiement",
-        "methodMissing": "Méthode de paiement ou facture brouillon manquante",
-        "registerFailed": "Échec de l'enregistrement du paiement",
-        "paymentFailed": "Le paiement a échoué. Veuillez réessayer."
+        "paymentPrepFailed": "Njuumte ci preparation u paiement",
+        "methodMissing": "Mode u paiement walla facture brouillon amul",
+        "registerFailed": "Denc u paiement antu ul",
+        "paymentFailed": "Paiement bi antu ul. Jéem waat."
       }
     }
   },
