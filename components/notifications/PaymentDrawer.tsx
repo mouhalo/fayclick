@@ -41,21 +41,17 @@ function extractAmount(message: string): string {
   return match ? match[1].trim() + ' FCFA' : '';
 }
 
-function timeAgo(dateStr: string): string {
-  const diff = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
-  if (diff < 60) return `Il y a ${diff}s`;
-  if (diff < 3600) return `Il y a ${Math.floor(diff / 60)}min`;
-  return `Il y a ${Math.floor(diff / 3600)}h`;
-}
 
 function PaymentItem({
   notification,
   onMarkRead,
   readLabel,
+  timeAgoLabel,
 }: {
   notification: Notification;
   onMarkRead: (id: number) => Promise<boolean>;
   readLabel: string;
+  timeAgoLabel: string;
 }) {
   const method = extractMethod(notification.message);
   const phone = extractPhone(notification.message);
@@ -94,7 +90,7 @@ function PaymentItem({
         </div>
         <div className="text-green-300 text-xs">📞 {phone}</div>
         <div className="text-slate-500 text-[10px] mt-0.5">
-          {timeAgo(notification.date_creation)}
+          {timeAgoLabel}
           {!isNew && <span className="ml-1">• {readLabel}</span>}
         </div>
       </div>
@@ -115,6 +111,13 @@ export function PaymentDrawer({
   onViewAll,
 }: PaymentDrawerProps) {
   const t = useTranslations('notifications');
+
+  const formatTimeAgo = (dateStr: string): string => {
+    const diff = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
+    if (diff < 60) return t('justNow');
+    if (diff < 3600) return t('timeAgo', { time: `${Math.floor(diff / 60)}min` });
+    return t('timeAgo', { time: `${Math.floor(diff / 3600)}h` });
+  };
 
   // Fermeture au clavier Echap
   useEffect(() => {
@@ -151,7 +154,7 @@ export function PaymentDrawer({
             }}
             role="dialog"
             aria-modal="true"
-            aria-label="Paiements reçus"
+            aria-label={t('drawerTitle')}
           >
             {/* Header */}
             <div className="flex items-center justify-between px-4 py-4 border-b border-green-900/40">
@@ -181,7 +184,13 @@ export function PaymentDrawer({
               ) : (
                 <AnimatePresence>
                   {payments.map(p => (
-                    <PaymentItem key={p.id} notification={p} onMarkRead={onMarkRead} readLabel={t('read')} />
+                    <PaymentItem
+                      key={p.id}
+                      notification={p}
+                      onMarkRead={onMarkRead}
+                      readLabel={t('read')}
+                      timeAgoLabel={formatTimeAgo(p.date_creation)}
+                    />
                   ))}
                 </AnimatePresence>
               )}

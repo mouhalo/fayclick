@@ -87,7 +87,6 @@ export default function CommerceDashboard() {
     hasNew,
     drawerOpen,
     setDrawerOpen,
-    unreadCount: paymentUnreadCount,
     markAsRead: markPaymentAsRead,
   } = usePaymentNotifications({ userId: user?.id || 0 });
 
@@ -174,7 +173,7 @@ export default function CommerceDashboard() {
       <>
         <CommerceDashboardDesktop
           user={user}
-          notificationCount={paymentUnreadCount || notificationCount}
+          notificationCount={notificationCount}
           canViewCA={canViewCA}
           canAccessFeature={canAccessFeature}
           showAbonnementModal={showAbonnementModal}
@@ -284,13 +283,13 @@ export default function CommerceDashboard() {
                   </>
                 )}
                 <span className="text-xl relative z-10">🔔</span>
-                {(paymentUnreadCount > 0 || notificationCount > 0) && (
+                {notificationCount > 0 && (
                   <motion.div
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
                     className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-xs font-bold z-10"
                   >
-                    {(paymentUnreadCount || notificationCount) > 9 ? '9+' : (paymentUnreadCount || notificationCount)}
+                    {notificationCount > 9 ? '9+' : notificationCount}
                   </motion.div>
                 )}
               </motion.button>
