@@ -404,7 +404,7 @@ export function ModalNotifications({
               </div>
             ) : (
               <div className="space-y-2">
-                <AnimatePresence mode="popLayout">
+                <AnimatePresence mode="sync">
                   {notifications.map((notification) => (
                     <NotificationItem
                       key={notification.id}
