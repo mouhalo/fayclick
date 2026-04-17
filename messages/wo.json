@@ -245,80 +245,80 @@
   },
   "landing": {
     "desktop": {
-      "login": "Se Connecter",
-      "title": "La Super App du Commerce Digital",
-      "subtitle": "Gérez votre business, acceptez les paiements Orange Money et Wave, et développez votre activité avec la première Super App du Sénégal",
-      "ctaButton": "Commencer Gratuitement",
+      "login": "Dugg",
+      "title": "Super App u Commerce Digital",
+      "subtitle": "Toppal sa business, nangul paiement Orange Money ak Wave, te yokkal sa liggéey ak Super App bu jëkk ci Senegaal",
+      "ctaButton": "Tàmbali Gratuit",
       "slides": {
-        "dashboard": "Tableau de bord intuitif",
-        "inventory": "Gestion des stocks simplifiée",
-        "payments": "Paiements instantanés",
-        "reports": "Rapports détaillés"
+        "dashboard": "Tableau de bord bu yomb",
+        "inventory": "Gestion u stock bu yomb",
+        "payments": "Paiement saa si",
+        "reports": "Rapports yu mat sëkk"
       },
       "footer": {
         "copyright": "© 2025 FayClick - Tous droits réservés",
-        "developedBy": "Développé par"
+        "developedBy": "Mi ngi liggéeyoo ci"
       }
     },
     "mobile": {
       "title": "FayClick",
-      "subtitle": "Commerce Digital Sénégal",
-      "tagline": "Révolutionnez votre business avec une plateforme tout-en-un",
-      "taglineHighlight": "ultra-moderne",
-      "createAccount": "Créer un Compte",
-      "login": "Se Connecter",
+      "subtitle": "Commerce Digital Senegaal",
+      "tagline": "Soppiwaat sa business ak plateforme bu boole lépp",
+      "taglineHighlight": "bu bees lool",
+      "createAccount": "Defal Compte",
+      "login": "Dugg",
       "features": {
         "mobilePayments": "Mobile\nPayments",
         "analytics": "Analytics\nPro",
         "qrcode": "QR Code\nInstant"
       },
-      "footer": "© 2025 Développé par"
+      "footer": "© 2025 Mi ngi liggéeyoo ci"
     },
     "hero": {
-      "title": "La Super App des Marchands Sénégalais",
-      "subtitle": "Gérez votre business, recevez des paiements et développez votre activité avec FayClick",
-      "ctaRegister": "Créer mon compte",
-      "ctaLogin": "Se connecter"
+      "title": "Super App u Jaaykat yi Senegaal",
+      "subtitle": "Toppal sa business, nangul paiement te yokkal sa liggéey ak FayClick",
+      "ctaRegister": "Defal sama compte",
+      "ctaLogin": "Dugg"
     },
     "features": {
-      "title": "Tout ce dont vous avez besoin",
-      "subtitle": "Une solution complète pour gérer votre activité",
+      "title": "Lépp loo soxla",
+      "subtitle": "Solution bu mat sëkk ngir toppal sa liggéey",
       "payments": {
-        "title": "Paiements Instantanés",
-        "description": "Recevez des paiements Orange Money et Wave en temps réel"
+        "title": "Paiement Saa Si",
+        "description": "Nangul paiement Orange Money ak Wave ci saa si"
       },
       "invoicing": {
-        "title": "Facturation Simplifiée",
-        "description": "Créez et envoyez des factures professionnelles en quelques clics"
+        "title": "Facture bu Yomb",
+        "description": "Defal te yonnee facture yu yees ci ay clic rekk"
       },
       "inventory": {
-        "title": "Gestion de Stock",
-        "description": "Suivez vos produits et services en temps réel"
+        "title": "Gestion u Stock",
+        "description": "Toppal sa produit ak service yi ci saa si"
       },
       "analytics": {
-        "title": "Statistiques Détaillées",
-        "description": "Analysez vos performances avec des rapports complets"
+        "title": "Statistiques yu Mat Sëkk",
+        "description": "Xoolal sa performance ak rapports yu mat"
       }
     },
     "segments": {
-      "title": "Pour tous les secteurs",
+      "title": "Ngir xeet yu bari",
       "commerce": "Commerce",
-      "school": "Scolaire",
+      "school": "Daara",
       "services": "Services",
       "realestate": "Immobilier"
     },
     "cta": {
-      "title": "Prêt à démarrer ?",
-      "subtitle": "Rejoignez des milliers de marchands qui utilisent FayClick",
-      "button": "Commencer gratuitement"
+      "title": "Ndax nga pare tàmbali ?",
+      "subtitle": "Booloo ak junniy jaaykat yi jëfandikoo FayClick",
+      "button": "Tàmbali gratuit"
     },
     "marketplaceCta": {
-      "badge": "Nouveau",
-      "title": "Découvrez notre marketplace",
-      "subtitle": "Trouvez un marchand par nom ou téléphone en quelques secondes",
-      "button": "Explorer la marketplace",
-      "statsProducts": "+3K produits",
-      "statsShops": "{count} boutiques"
+      "badge": "Bees",
+      "title": "Xamal sunu marketplace",
+      "subtitle": "Gisal jaaykat ci sa tur walla sa telefon ci saa si",
+      "button": "Xool marketplace bi",
+      "statsProducts": "+3K jumtukaay",
+      "statsShops": "{count} bitig"
     }
   },
   "publicFacture": {
