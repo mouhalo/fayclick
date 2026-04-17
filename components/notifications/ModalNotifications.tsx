@@ -279,6 +279,7 @@ export function ModalNotifications({
           await deleteAllNotifications();
           break;
       }
+      await refresh();
     } finally {
       setActionLoading(false);
       setConfirmAction(null);
