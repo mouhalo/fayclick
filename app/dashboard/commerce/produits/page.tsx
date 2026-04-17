@@ -1091,7 +1091,7 @@ export default function ProduitsCommercePage() {
       </div>
 
       {/* Barre de filtres (recherche, vue, mode vente, etc.) */}
-      <div className={`${isDesktopView || isTablet ? 'mb-4' : ''}`}>
+      <div className={`relative z-40 ${isDesktopView || isTablet ? 'mb-4' : ''}`}>
         <ProduitsFilterHeader
           ref={filterHeaderRef}
           searchTerm={searchTerm}
