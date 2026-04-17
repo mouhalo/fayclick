@@ -182,3 +182,135 @@ Sort avec code 1 si divergence FR↔EN. À lancer avant chaque commit i18n.
 - [ ] `npm run build` passe (0 erreur TS).
 - [ ] Test visuel FR + EN sur les pages modifiées.
 - [ ] Aucun warning console `[i18n] Missing ...`.
+
+## Support Wolof (`wo`)
+
+Ajouté en avril 2026. Troisième locale après FR et EN.
+
+### Orthographe : Wolof pragmatique francisé
+
+Choix assumé : écriture proche du français pour un public sénégalais alphabétisé en français, plutôt que l'orthographe officielle du décret 2005-981 (qui utilise `ñ`, `ë`, `à`, `é`).
+
+**Règles :**
+- Pas de diacritiques : `ñ` → `gn`, `ë` → `e`, `x` → `kh`
+- Les doubles voyelles sont simplifiées quand le sens reste clair
+- Emprunts modernes au français conservés tels quels (voir liste ci-dessous)
+
+### Glossaire terminologique (appliquer à tous les namespaces)
+
+#### Actions UI
+
+| Français | Wolof |
+|---|---|
+| Retour | Dellu |
+| Suivant | Topp |
+| Précédent | Kanam |
+| Chargement... | Dafay ñëw... |
+| Soumettre | Yonnee |
+| Annuler | Bañ |
+| Enregistrer | Denc |
+| Modifier | Soppi |
+| Supprimer | Far |
+| Requis | Laajtelu na |
+| Optionnel | Du fàww |
+| Fermer | Tëj |
+| Confirmer | Nangu |
+| Continuer | Jëkk ba noppi |
+| Réessayer | Jéem waat |
+| Rechercher | Seet |
+| Oui | Waaw |
+| Non | Déedéet |
+| Connexion | Dugg |
+| Déconnexion | Génn |
+| Ajouter | Yokk |
+| Imprimer | Imprimé |
+| Partager | Séddale |
+| Télécharger | Téléchargé |
+| Voir | Xool |
+| Détails | Détails |
+
+#### Statuts
+
+| Français | Wolof |
+|---|---|
+| Payé | Fay na |
+| Impayé | Feyul |
+| En attente | Xaar |
+| Brouillon | Brouillon |
+| Actif | Dafa dox |
+| Inactif | Doxul |
+| Validé | Nangu na |
+| Annulé | Bañ na |
+| Terminé | Jeex na |
+| En cours | Àngi doxee |
+| Nouveau | Bees |
+
+#### Rôles & personnes
+
+| Français | Wolof |
+|---|---|
+| Administrateur | Admin |
+| Caissier | Keesu |
+| Client | Jaaykat / Client |
+| Marchand | Jaaykat |
+| Prestataire | Jëfandikoo |
+| Élève | Jàngalekat |
+| Parent | Waajur |
+| Utilisateur | Jëfandikoo |
+
+#### Domaine métier FayClick
+
+| Français | Wolof |
+|---|---|
+| Facture | Facture |
+| Reçu | Reçu |
+| Panier | Panier |
+| Article / Produit | Jumtukaay |
+| Stock | Stock |
+| Dépense | Dépense |
+| Prestation | Liggéey |
+| Devis | Devis |
+| Proforma | Proforma |
+| Wallet | Wallet |
+| Retrait | Génn xaalis |
+| Abonnement | Abonnement |
+| Structure | Mbootaay |
+| Boutique | Bitig |
+| École | Daara / École |
+| Argent | Xaalis |
+| Prix | Njëg |
+| Total | Total |
+| Montant | Xaalis bi |
+| Quantité | Limu |
+| Nom | Tur |
+| Téléphone | Telefon |
+| Adresse | Adrees |
+| Vente | Jaay |
+| Achat | Jënd |
+| Paiement | Paiement |
+| Remise | Wàññi |
+| Acompte | Acompte |
+| Solde | Solde |
+
+#### Emprunts conservés en français
+
+Ces termes modernes sont utilisés tels quels en Wolof urbain (Dakar) et doivent rester en français dans les traductions :
+
+`facture`, `wallet`, `paiement`, `Orange Money`, `Wave`, `Free Money`, `QR code`, `SMS`, `PIN`, `code`, `email`, `login`, `admin`, `abonnement`, `menu`, `option`, `page`, `stock`, `proforma`, `devis`, `dashboard`.
+
+### Principes de traduction
+
+1. **Garder les placeholders `{param}`** tels quels — ne jamais les traduire (`{count}`, `{length}`, etc.)
+2. **Ton** : informel et direct, comme un commerçant s'adresse à un autre
+3. **Cohérence** : toujours appliquer les termes du glossaire, même si une autre traduction serait possible
+4. **Longueur** : rester proche de la longueur FR pour ne pas casser les layouts UI
+5. **Noms propres** : "FayClick", "Orange Money", "Wave", "ICELABSOFT" ne se traduisent jamais
+
+### Validation
+
+Après toute modification de `wo.json` :
+```bash
+npm run i18n:check
+```
+
+Doit afficher : `✅ Parité parfaite FR / EN / WO (clés + placeholders).`
