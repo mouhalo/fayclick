@@ -1,6 +1,7 @@
 'use client';
 
 import { ReactNode } from 'react';
+import { usePathname } from 'next/navigation';
 import SplashScreen from './SplashScreen';
 import { useSplashScreen } from '@/hooks/useSplashScreen';
 
@@ -8,22 +9,29 @@ interface SplashScreenProviderProps {
   children: ReactNode;
 }
 
+// Routes sur lesquelles le splash s'affiche
+const SPLASH_ROUTES = ['/'];
+
 export default function SplashScreenProvider({ children }: SplashScreenProviderProps) {
+  const pathname = usePathname();
+  const showSplash = SPLASH_ROUTES.includes(pathname);
+
   const { isVisible, onAnimationComplete } = useSplashScreen({
-    minDuration: 4000, // 4 secondes minimum pour bien voir les animations
-    storageKey: null, // Désactivé temporairement pour les tests (toujours afficher)
-    cacheValidity: 24 * 60 * 60 * 1000, // 24 heures
+    minDuration: showSplash ? 4000 : 0,
+    storageKey: null,
+    cacheValidity: 24 * 60 * 60 * 1000,
   });
+
+  if (!showSplash) {
+    return <>{children}</>;
+  }
 
   return (
     <>
-      {/* Splash Screen au premier plan */}
       <SplashScreen
         isVisible={isVisible}
         onAnimationComplete={onAnimationComplete}
       />
-
-      {/* Contenu de l'app - toujours rendu mais avec opacité contrôlée */}
       <div
         className="transition-opacity duration-500"
         style={{

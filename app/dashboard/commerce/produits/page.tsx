@@ -1654,6 +1654,26 @@ export default function ProduitsCommercePage() {
           />
         </div>
 
+        {/* Live Shopping : Badge actif OU bouton créer (mobile) */}
+        {liveAutorise && (
+          <div className="px-5 pt-2 mb-2">
+            {activeLive ? (
+              <LiveBadgeHeader live={activeLive} onDelete={handleDeleteLive} />
+            ) : (
+              <button
+                onClick={() => setShowLiveModal(true)}
+                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-yellow-100 border border-yellow-300 text-green-700 text-sm font-bold hover:bg-yellow-200 transition-all"
+              >
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-500 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-green-600" />
+                </span>
+                {t('live.createBtn')}
+              </button>
+            )}
+          </div>
+        )}
+
         {/* Contenu principal */}
         <div className={`p-5 pb-24 transition-all duration-300 ${showPanierSide && isDesktopView ? 'pr-[400px]' : ''}`}>
 

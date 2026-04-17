@@ -502,27 +502,34 @@ export default function ProduitPublicClient({ token }: ProduitPublicClientProps)
             transition={{ delay: 0.05 }}
             className="bg-white rounded-2xl shadow-lg px-4 py-3"
           >
-            <label className="text-xs text-gray-500 mb-2 block">Quantité</label>
-            <div className="flex items-center gap-3 mb-3">
-              <button
-                onClick={() => setQuantite(Math.max(1, quantite - 1))}
-                disabled={quantite <= 1}
-                className="w-8 h-8 rounded-full border-2 border-gray-200 flex items-center justify-center hover:bg-gray-50 disabled:opacity-40 transition-colors"
-              >
-                <Minus className="w-4 h-4 text-gray-600" />
-              </button>
-              <span className="text-xl font-bold text-gray-900 min-w-[1.5rem] text-center">{quantite}</span>
-              <button
-                onClick={() => setQuantite(Math.min(produit.niveau_stock, quantite + 1))}
-                disabled={quantite >= produit.niveau_stock}
-                className="w-8 h-8 rounded-full border-2 border-gray-200 flex items-center justify-center hover:bg-gray-50 disabled:opacity-40 transition-colors"
-              >
-                <Plus className="w-4 h-4 text-gray-600" />
-              </button>
-            </div>
-            <div className="bg-gray-50 rounded-lg p-3 flex justify-between items-center">
-              <span className="text-gray-600 text-sm font-medium">Total à payer</span>
-              <span className="text-lg font-bold text-emerald-600">{formatMontant(montantTotal)}</span>
+            <div className="flex items-center justify-between gap-4">
+              {/* Sélecteur quantité */}
+              <div className="flex flex-col gap-1">
+                <label className="text-xs text-gray-500">Quantité</label>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => setQuantite(Math.max(1, quantite - 1))}
+                    disabled={quantite <= 1}
+                    className="w-8 h-8 rounded-full border-2 border-gray-200 flex items-center justify-center hover:bg-gray-50 disabled:opacity-40 transition-colors"
+                  >
+                    <Minus className="w-4 h-4 text-gray-600" />
+                  </button>
+                  <span className="text-xl font-bold text-gray-900 min-w-[1.5rem] text-center">{quantite}</span>
+                  <button
+                    onClick={() => setQuantite(Math.min(produit.niveau_stock, quantite + 1))}
+                    disabled={quantite >= produit.niveau_stock}
+                    className="w-8 h-8 rounded-full border-2 border-gray-200 flex items-center justify-center hover:bg-gray-50 disabled:opacity-40 transition-colors"
+                  >
+                    <Plus className="w-4 h-4 text-gray-600" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Total */}
+              <div className="flex flex-col items-end gap-1">
+                <span className="text-xs text-gray-500">Total à payer</span>
+                <span className="text-lg font-bold text-emerald-600">{formatMontant(montantTotal)}</span>
+              </div>
             </div>
           </motion.div>
         )}

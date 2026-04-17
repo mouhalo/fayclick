@@ -72,17 +72,21 @@ function WeeklyBarChart({ data, canViewCA }: { data: DashboardCommerceGraphiqueJ
           const heightPct = (d.montant / maxMontant) * 100;
           return (
             <div key={d.jour} className="flex-1 flex flex-col items-center gap-2 group">
-              <span className="text-xs text-gray-500 font-medium">
-                {canViewCA ? formatAmount(d.montant) : '***'}
-              </span>
               <div className="w-full relative" style={{ height: '160px' }}>
                 <div
-                  className="absolute bottom-0 left-1/2 -translate-x-1/2 w-8 xl:w-10 rounded-t-lg transition-all duration-700 ease-out"
+                  className="absolute bottom-0 left-1/2 -translate-x-1/2 w-8 xl:w-10 rounded-t-lg transition-all duration-700 ease-out flex items-start justify-center pt-1 overflow-hidden"
                   style={{
                     height: `${heightPct}%`,
+                    minHeight: heightPct > 0 ? '28px' : '0px',
                     background: `linear-gradient(to top, #16a34d, #22c55e)`,
                   }}
-                />
+                >
+                  {heightPct > 12 && (
+                    <span className="text-[9px] xl:text-[10px] text-white font-semibold leading-none text-center whitespace-nowrap" style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)', maxHeight: '100%' }}>
+                      {canViewCA ? formatAmount(d.montant) : '***'}
+                    </span>
+                  )}
+                </div>
               </div>
               <span className="text-xs font-semibold text-gray-600">{d.jour}</span>
               {d.nb_ventes > 0 && (
