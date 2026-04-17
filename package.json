@@ -5,8 +5,8 @@
   "scripts": {
     "dev": "next dev",
     "prebuild": "node scripts/inject-build-info.mjs",
-    "build": "next build",
-    "export": "next build",
+    "build": "node scripts/build-static.mjs",
+    "export": "node scripts/build-static.mjs",
     "start": "next start",
     "lint": "next lint",
     "i18n:check": "node scripts/check-i18n-keys.mjs",
