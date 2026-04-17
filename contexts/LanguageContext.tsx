@@ -2,7 +2,21 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
-export type Locale = 'fr' | 'en';
+export type Locale = 'fr' | 'en' | 'wo';
+
+const SUPPORTED_LOCALES: readonly Locale[] = ['fr', 'en', 'wo'] as const;
+
+function isLocale(value: unknown): value is Locale {
+  return typeof value === 'string' && (SUPPORTED_LOCALES as readonly string[]).includes(value);
+}
+
+function detectBrowserLocale(): Locale {
+  if (typeof navigator === 'undefined') return 'fr';
+  const browserLang = navigator.language.toLowerCase();
+  if (browserLang.startsWith('wo')) return 'wo';
+  if (browserLang.startsWith('fr')) return 'fr';
+  return 'en';
+}
 
 interface LanguageContextType {
   locale: Locale;
@@ -15,19 +29,16 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   const [locale, setLocaleState] = useState<Locale>('fr');
 
   useEffect(() => {
-    // Récupérer la langue depuis localStorage ou détecter depuis le navigateur
-    const savedLocale = localStorage.getItem('fayclick-locale') as Locale | null;
+    const savedLocale = localStorage.getItem('fayclick-locale');
 
-    if (savedLocale && (savedLocale === 'fr' || savedLocale === 'en')) {
+    if (isLocale(savedLocale)) {
       setLocaleState(savedLocale);
       document.documentElement.lang = savedLocale;
     } else {
-      // Détecter la langue du navigateur
-      const browserLang = navigator.language.toLowerCase();
-      const detectedLocale = browserLang.startsWith('fr') ? 'fr' : 'en';
-      setLocaleState(detectedLocale);
-      localStorage.setItem('fayclick-locale', detectedLocale);
-      document.documentElement.lang = detectedLocale;
+      const detected = detectBrowserLocale();
+      setLocaleState(detected);
+      localStorage.setItem('fayclick-locale', detected);
+      document.documentElement.lang = detected;
     }
   }, []);
 
