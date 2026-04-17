@@ -6,6 +6,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { authService } from '@/services/auth.service';
 import { useDashboardData } from '@/hooks/useDashboardData';
 import { useNotifications } from '@/hooks/useNotifications';
+import { usePaymentNotifications } from '@/hooks/usePaymentNotifications';
+import { PaymentDrawer } from '@/components/notifications/PaymentDrawer';
 import MainMenu from '@/components/layout/MainMenu';
 import { ModalDeconnexion } from '@/components/auth/ModalDeconnexion';
 import { ModalNotifications } from '@/components/notifications/ModalNotifications';
@@ -41,6 +43,15 @@ export default function ServicesDashboard() {
     autoFetch: !!user?.id,
     refreshInterval: 60000 // Rafraîchir toutes les 60 secondes
   });
+
+  // Hook notifications paiements (poll 15s, drawer automatique)
+  const {
+    newPayments,
+    hasNew,
+    drawerOpen,
+    setDrawerOpen,
+    markAsRead: markPaymentAsRead,
+  } = usePaymentNotifications({ userId: user?.id || 0 });
 
   useEffect(() => {
     // Attendre que le composant soit monté côté client avant de vérifier localStorage
@@ -175,18 +186,29 @@ export default function ServicesDashboard() {
             </motion.button>
 
             <div className="flex items-center gap-2">
+              {/* Bouton Notifications — pulse orange si nouveaux paiements */}
               <motion.button
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
-                className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:bg-white/30 transition-all relative"
-                onClick={handleNotifications}
+                className={`w-10 h-10 backdrop-blur-sm rounded-full flex items-center justify-center text-white transition-all relative ${
+                  hasNew
+                    ? 'bg-gradient-to-br from-amber-500 to-orange-500 shadow-[0_0_16px_rgba(245,158,11,0.6)]'
+                    : 'bg-white/20 hover:bg-white/30'
+                }`}
+                onClick={() => hasNew ? setDrawerOpen(true) : handleNotifications()}
               >
-                <span className="text-xl">🔔</span>
+                {hasNew && (
+                  <>
+                    <span className="absolute inset-0 rounded-full bg-amber-400 opacity-40 animate-ping" />
+                    <span className="absolute -inset-1 rounded-full border-2 border-amber-400/40 animate-ping [animation-delay:0.3s]" />
+                  </>
+                )}
+                <span className="text-xl relative z-10">🔔</span>
                 {notificationCount > 0 && (
                   <motion.div
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
-                    className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-xs font-bold"
+                    className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-xs font-bold z-10"
                   >
                     {notificationCount > 9 ? '9+' : notificationCount}
                   </motion.div>
@@ -548,6 +570,15 @@ export default function ServicesDashboard() {
           refreshNotifications(); // Rafraîchir le compteur après fermeture
         }}
         userId={user?.id || 0}
+      />
+
+      {/* Drawer paiements reçus */}
+      <PaymentDrawer
+        isOpen={drawerOpen}
+        payments={newPayments}
+        onClose={() => setDrawerOpen(false)}
+        onMarkRead={markPaymentAsRead}
+        onViewAll={() => { setDrawerOpen(false); setShowNotificationsModal(true); }}
       />
 
       <style jsx global>{`
