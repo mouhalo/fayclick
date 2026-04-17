@@ -534,38 +534,38 @@
     "whatsappMessage": "Salut *{structure}*, je viens de vous acheter pour *{amount}* un de vos articles en ligne.\n\nCeci est mon Reçu N° : *{receipt}*\nce {date} avec *{wallet}*\n\nVoir le reçu : {url}"
   },
   "dashboardCommerce": {
-    "sessionChecking": "Vérification de la session...",
-    "loading": "Chargement...",
-    "welcome": "Bon retour,",
-    "logoutTitle": "Déconnexion",
-    "online": "En ligne",
+    "sessionChecking": "Xool session bi...",
+    "loading": "Dafay ñëw...",
+    "welcome": "Dalal ak jàmm,",
+    "logoutTitle": "Génn",
+    "online": "Ci ligne",
     "stats": {
-      "products": "Produits",
-      "productsGrowth": "+{count} cette semaine",
-      "stockValue": "Valeur Stock",
-      "hideAmount": "Masquer le montant",
-      "showAmount": "Afficher le montant",
-      "viewInventories": "Voir Inventaires"
+      "products": "Jumtukaay",
+      "productsGrowth": "+{count} ci ayu-bés gii",
+      "stockValue": "Njëg u Stock",
+      "hideAmount": "Nëbb montant bi",
+      "showAmount": "Wone montant bi",
+      "viewInventories": "Xool Inventaire yi"
     },
-    "venteFlashTitle": "Vente Flash (Scan code-barres)",
+    "venteFlashTitle": "Jaay Gaaw (Scan code-barres)",
     "cards": {
-      "productsTitle": "Liste Produits",
-      "productsSubtitle": "Gérer votre stock",
-      "invoicesTitle": "Mes Factures",
-      "invoicesSubtitle": "Gestion des factures",
-      "clientsTitle": "Liste Clients",
-      "clientsSubtitle": "Carnet d'adresses",
-      "expensesTitle": "Liste Dépenses",
-      "expensesSubtitle": "Gérer les dépenses"
+      "productsTitle": "Liste Jumtukaay",
+      "productsSubtitle": "Toppal sa stock",
+      "invoicesTitle": "Sama Facture yi",
+      "invoicesSubtitle": "Gestion u facture yi",
+      "clientsTitle": "Liste Client yi",
+      "clientsSubtitle": "Livre u adrees yi",
+      "expensesTitle": "Liste Dépense",
+      "expensesSubtitle": "Toppal dépense yi"
     },
     "safe": {
       "title": "Coffre-Fort",
-      "subtitle": "CA réel, ventes, charges & solde"
+      "subtitle": "CA dëgg, jaay, charges ak solde"
     },
     "features": {
-      "inventories": "Inventaires",
-      "inventoriesLong": "Gestion des inventaires",
-      "venteFlash": "Vente Flash"
+      "inventories": "Inventaire yi",
+      "inventoriesLong": "Gestion u inventaire yi",
+      "venteFlash": "Jaay Gaaw"
     }
   },
   "offline": {
@@ -1635,61 +1635,61 @@
     }
   },
   "commerceDashboard": {
-    "welcome": "Bon retour,",
-    "online": "En ligne",
-    "retry": "Réessayer",
-    "venteFlashBtn": "Vente Flash",
+    "welcome": "Dalal ak jàmm,",
+    "online": "Ci ligne",
+    "retry": "Jéem waat",
+    "venteFlashBtn": "Jaay Gaaw",
     "kpi": {
-      "salesToday": "Ventes du jour",
-      "clientsToday": "Clients du jour",
-      "caWeek": "CA Semaine",
+      "salesToday": "Jaay yu tëy",
+      "clientsToday": "Client yu tëy",
+      "caWeek": "CA Ayu-bés",
       "avgBasket": "Panier Moyen"
     },
     "chart": {
-      "title": "Ventes de la semaine",
-      "saleSingular": "{count} vte",
-      "salePlural": "{count} vtes"
+      "title": "Jaay yu ayu-bés bi",
+      "saleSingular": "{count} jaay",
+      "salePlural": "{count} jaay"
     },
     "topProducts": {
-      "title": "Top 5 Produits vendus",
-      "empty": "Aucune vente sur la période",
-      "soldCount": "{count} vendus"
+      "title": "5 Jumtukaay yi gën jaay",
+      "empty": "Amul jaay ci période bi",
+      "soldCount": "{count} jaay"
     },
     "topClients": {
-      "title": "Top 5 Clients",
-      "empty": "Aucun client sur la période",
+      "title": "Top 5 Client yi",
+      "empty": "Amul client ci période bi",
       "invoiceSingular": "{count} facture",
-      "invoicePlural": "{count} factures"
+      "invoicePlural": "{count} facture"
     },
     "recentInvoices": {
-      "title": "Dernières Factures",
-      "viewAll": "Voir tout",
-      "empty": "Aucune facture",
+      "title": "Facture yi mujj",
+      "viewAll": "Xool yépp",
+      "empty": "Amul facture",
       "colRef": "Ref",
       "colClient": "Client",
       "colAmount": "Montant",
-      "colStatus": "Statut",
-      "colDate": "Date",
-      "statusPaid": "Payée",
-      "statusPartial": "Partielle",
-      "statusPending": "En attente"
+      "colStatus": "Statu",
+      "colDate": "Bés",
+      "statusPaid": "Fay na",
+      "statusPartial": "Nek partiel",
+      "statusPending": "Xaar"
     },
     "variation": {
-      "vsLastWeek": "vs sem. dern."
+      "vsLastWeek": "vs ayu-bés bi weesu"
     },
     "stats": {
-      "title": "Stats Globales",
-      "products": "Produits",
-      "stockValue": "Valeur Stock",
-      "monthlySales": "Ventes du mois",
-      "activeClients": "Clients actifs",
-      "monthlyCA": "CA du mois"
+      "title": "Stats Yépp",
+      "products": "Jumtukaay",
+      "stockValue": "Njëg u Stock",
+      "monthlySales": "Jaay yu weer wi",
+      "activeClients": "Client yu dox",
+      "monthlyCA": "CA u weer wi"
     },
     "expenses": {
-      "title": "Dépenses du Mois",
-      "thisMonth": "ce mois",
+      "title": "Dépense yu Weer wi",
+      "thisMonth": "weer wi",
       "countSingular": "{count} dépense",
-      "countPlural": "{count} dépenses"
+      "countPlural": "{count} dépense"
     }
   },
   "pagination": {
