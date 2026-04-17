@@ -12,6 +12,7 @@ interface LanguageOption {
 const LANGUAGES: LanguageOption[] = [
   { code: 'fr', label: 'FR', flag: '🇫🇷' },
   { code: 'en', label: 'EN', flag: '🇬🇧' },
+  { code: 'wo', label: 'WO', flag: '🇸🇳' },
 ];
 
 export type LanguageSwitcherVariant = 'light' | 'dark' | 'glass';
