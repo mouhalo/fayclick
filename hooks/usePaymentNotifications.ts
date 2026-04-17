@@ -24,7 +24,7 @@ const POLL_INTERVAL_MS = 15_000;
 
 function playNotificationSound() {
   try {
-    const AudioCtx = (window.AudioContext || (window as any).webkitAudioContext);
+    const AudioCtx = (window.AudioContext || (window as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext);
     if (!AudioCtx) return;
     const ctx = new AudioCtx();
     const osc = ctx.createOscillator();

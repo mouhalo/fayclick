@@ -306,7 +306,7 @@ export default function ServicesDashboard() {
                   formatAmount(statsCardData?.totalAmount || 0)
                 )}
               </div>
-              <div className="text-xs text-gray-600 font-semibold uppercase tracking-wide">Chiffre d'Affaires</div>
+              <div className="text-xs text-gray-600 font-semibold uppercase tracking-wide">Chiffre d&apos;Affaires</div>
               <div className="text-xs text-green-600 mt-2 font-semibold">FCFA</div>
             </motion.div>
           </motion.div>
@@ -370,7 +370,7 @@ export default function ServicesDashboard() {
               <div className="text-center">
                 <span className="text-3xl mb-2 block">👥</span>
                 <div className="text-sm font-bold text-gray-800 mb-0.5">Mes Clients</div>
-                <div className="text-xs text-gray-500">Carnet d'adresses</div>
+                <div className="text-xs text-gray-500">Carnet d&apos;adresses</div>
               </div>
             </motion.div>
 
@@ -466,7 +466,7 @@ export default function ServicesDashboard() {
                           formatCurrency(financialData?.totalRevenues || 0)
                         )}
                       </motion.div>
-                      <div className="text-sm opacity-90">Chiffre d'Affaires Total</div>
+                      <div className="text-sm opacity-90">Chiffre d&apos;Affaires Total</div>
                     </div>
                   </div>
 
