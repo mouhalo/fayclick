@@ -148,6 +148,9 @@ export function PaymentDrawer({
               borderLeft: '1px solid rgba(74, 222, 128, 0.25)',
               boxShadow: '-8px 0 32px rgba(0,0,0,0.6)',
             }}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Paiements reçus"
           >
             {/* Header */}
             <div className="flex items-center justify-between px-4 py-4 border-b border-green-900/40">
@@ -158,8 +161,10 @@ export function PaymentDrawer({
                 </span>
               </div>
               <button
+                type="button"
                 onClick={onClose}
                 className="text-slate-400 hover:text-white transition-colors p-1"
+                aria-label="Fermer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -173,15 +178,18 @@ export function PaymentDrawer({
                   <span>Aucun paiement récent</span>
                 </div>
               ) : (
-                payments.map(p => (
-                  <PaymentItem key={p.id} notification={p} onMarkRead={onMarkRead} />
-                ))
+                <AnimatePresence>
+                  {payments.map(p => (
+                    <PaymentItem key={p.id} notification={p} onMarkRead={onMarkRead} />
+                  ))}
+                </AnimatePresence>
               )}
             </div>
 
             {/* Footer */}
             <div className="px-4 py-3 border-t border-green-900/40 text-center">
               <button
+                type="button"
                 onClick={onViewAll}
                 className="text-green-400 text-xs font-semibold hover:text-green-300 transition-colors"
               >
