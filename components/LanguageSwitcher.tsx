@@ -15,6 +15,11 @@ const languages = {
     flag: '🇬🇧',
     name: 'English',
     shortName: 'EN'
+  },
+  wo: {
+    flag: '🇸🇳',
+    name: 'Wolof',
+    shortName: 'WO'
   }
 };
 
@@ -87,7 +92,7 @@ export function LanguageSwitcher({ variant = 'default', className = '' }: Langua
                 <button
                   key={key}
                   onClick={() => {
-                    setLocale(key as 'fr' | 'en');
+                    setLocale(key as 'fr' | 'en' | 'wo');
                     setIsOpen(false);
                   }}
                   className={`
