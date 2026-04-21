@@ -32,6 +32,7 @@ import { ModalFacturePrivee } from '@/components/facture/ModalFacturePrivee';
 import { ModalRecuGenere } from '@/components/recu';
 import ModalImpressionDocuments from '@/components/impression/ModalImpressionDocuments';
 import { ModalConfirmation } from '@/components/ui/ModalConfirmation';
+import { ModalSuppressionAdmin } from '@/components/ui/ModalSuppressionAdmin';
 import { Toast } from '@/components/ui/Toast';
 import { factureListService } from '@/services/facture-list.service';
 import { facturePriveeService } from '@/services/facture-privee.service';
@@ -100,6 +101,13 @@ export default function FacturesGlassPage() {
     message: string;
     onConfirm: () => void;
   }>({ isOpen: false, message: '', onConfirm: () => {} });
+
+  // Modal suppression admin (facture PAYÉE) — password + raison
+  const [modalSuppressionAdmin, setModalSuppressionAdmin] = useState<{
+    isOpen: boolean;
+    facture: FactureComplete | null;
+    loading: boolean;
+  }>({ isOpen: false, facture: null, loading: false });
 
   // États des notifications
   const [toast, setToast] = useState<{
@@ -247,6 +255,21 @@ export default function FacturesGlassPage() {
   };
 
   const handleDeleteFacture = (facture: FactureComplete) => {
+    // Facture PAYÉE → seul un ADMIN (profil 1 ou 2) peut supprimer via modal password
+    if (facture.facture.libelle_etat === 'PAYEE') {
+      const profil = user?.id_profil;
+      if (profil !== 1 && profil !== 2) {
+        setToast({
+          isOpen: true,
+          type: 'error',
+          message: t('toast.adminOnlyForPaid')
+        });
+        return;
+      }
+      setModalSuppressionAdmin({ isOpen: true, facture, loading: false });
+      return;
+    }
+    // Facture IMPAYÉE → modal de confirmation classique
     setModalConfirmation({
       isOpen: true,
       message: t('confirmDelete', { num: facture.facture.num_facture }),
@@ -276,6 +299,43 @@ export default function FacturesGlassPage() {
     }
 
     setModalConfirmation({ isOpen: false, message: '', onConfirm: () => {} });
+  };
+
+  const executerSuppressionAdmin = async (password: string, raison: string) => {
+    const facture = modalSuppressionAdmin.facture;
+    if (!facture) return;
+    setModalSuppressionAdmin((prev) => ({ ...prev, loading: true }));
+    try {
+      const res = await facturePriveeService.deleteFacturePriveeAdmin(
+        facture.facture.id_facture,
+        password,
+        raison
+      );
+      if (res.success) {
+        setToast({
+          isOpen: true,
+          type: 'success',
+          message: t('toast.adminDeleteSuccess')
+        });
+        setModalSuppressionAdmin({ isOpen: false, facture: null, loading: false });
+        await loadFactures();
+      } else {
+        setToast({
+          isOpen: true,
+          type: 'error',
+          message: res.message || t('toast.deleteError')
+        });
+        setModalSuppressionAdmin((prev) => ({ ...prev, loading: false }));
+      }
+    } catch (err) {
+      console.error('Erreur suppression admin:', err);
+      setToast({
+        isOpen: true,
+        type: 'error',
+        message: err instanceof Error ? err.message : t('toast.deleteError')
+      });
+      setModalSuppressionAdmin((prev) => ({ ...prev, loading: false }));
+    }
   };
 
   // Déterminer si la structure a un compte privé
@@ -547,6 +607,17 @@ export default function FacturesGlassPage() {
           type="danger"
         />
 
+        {modalSuppressionAdmin.facture && (
+          <ModalSuppressionAdmin
+            isOpen={modalSuppressionAdmin.isOpen}
+            onClose={() => setModalSuppressionAdmin({ isOpen: false, facture: null, loading: false })}
+            onConfirm={executerSuppressionAdmin}
+            numFacture={modalSuppressionAdmin.facture.facture.num_facture}
+            montant={modalSuppressionAdmin.facture.facture.montant}
+            loading={modalSuppressionAdmin.loading}
+          />
+        )}
+
         <Toast
           isVisible={toast.isOpen}
           onClose={() => setToast({ ...toast, isOpen: false })}
@@ -735,6 +806,17 @@ export default function FacturesGlassPage() {
         message={modalConfirmation.message}
         type="danger"
       />
+
+      {modalSuppressionAdmin.facture && (
+        <ModalSuppressionAdmin
+          isOpen={modalSuppressionAdmin.isOpen}
+          onClose={() => setModalSuppressionAdmin({ isOpen: false, facture: null, loading: false })}
+          onConfirm={executerSuppressionAdmin}
+          numFacture={modalSuppressionAdmin.facture.facture.num_facture}
+          montant={modalSuppressionAdmin.facture.facture.montant}
+          loading={modalSuppressionAdmin.loading}
+        />
+      )}
 
         {/* Toast notifications */}
         <Toast

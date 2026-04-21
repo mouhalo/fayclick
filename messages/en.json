@@ -964,6 +964,8 @@
     "toast": {
       "deleteSuccess": "Invoice deleted successfully",
       "deleteError": "Unable to delete invoice",
+      "adminDeleteSuccess": "Paid invoice deleted by administrator",
+      "adminOnlyForPaid": "Only an administrator can delete a paid invoice",
       "downloadStarted": "Receipt download started",
       "downloadError": "Unable to download receipt: {error}"
     },
@@ -1074,6 +1076,19 @@
     }
   },
   "invoicesModals": {
+    "adminDelete": {
+      "title": "Administrator deletion",
+      "subtitle": "Irreversible action requiring your password",
+      "warningTitle": "Warning: paid invoice",
+      "warningBody": "You are about to delete an invoice that has already been paid. Stock will be restored and the operation will be logged.",
+      "invoiceLabel": "Invoice",
+      "amountLabel": "Amount",
+      "passwordLabel": "Administrator password",
+      "passwordPlaceholder": "Enter your password",
+      "reasonLabel": "Reason (optional)",
+      "reasonPlaceholder": "e.g. cashier error, duplicate invoice, customer cancellation...",
+      "confirmButton": "Delete permanently"
+    },
     "share": {
       "title": "Share invoice",
       "infoClient": "Client",
@@ -1254,6 +1269,9 @@
       "totalSales": "Total sales",
       "discounts": "Discounts",
       "dayCA": "Daily revenue",
+      "grossSubtotal": "Gross subtotal",
+      "netTotal": "Net total",
+      "totalDiscounts": "Total discounts",
       "sectionTitle": "Sales detail ({count} unique items)",
       "colProduct": "Product Name",
       "colQty": "Quantity",

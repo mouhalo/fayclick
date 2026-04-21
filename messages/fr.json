@@ -964,6 +964,8 @@
     "toast": {
       "deleteSuccess": "Facture supprimée avec succès",
       "deleteError": "Impossible de supprimer la facture",
+      "adminDeleteSuccess": "Facture payée supprimée par administrateur",
+      "adminOnlyForPaid": "Seul un administrateur peut supprimer une facture payée",
       "downloadStarted": "Téléchargement du reçu démarré",
       "downloadError": "Impossible de télécharger le reçu : {error}"
     },
@@ -1074,6 +1076,19 @@
     }
   },
   "invoicesModals": {
+    "adminDelete": {
+      "title": "Suppression administrateur",
+      "subtitle": "Action irréversible nécessitant votre mot de passe",
+      "warningTitle": "Attention : facture payée",
+      "warningBody": "Vous êtes sur le point de supprimer une facture déjà encaissée. Le stock sera remis à jour et l'opération sera tracée.",
+      "invoiceLabel": "Facture",
+      "amountLabel": "Montant",
+      "passwordLabel": "Mot de passe administrateur",
+      "passwordPlaceholder": "Saisissez votre mot de passe",
+      "reasonLabel": "Raison (optionnelle)",
+      "reasonPlaceholder": "Ex: erreur de caisse, double facturation, annulation client...",
+      "confirmButton": "Supprimer définitivement"
+    },
     "share": {
       "title": "Partager la facture",
       "infoClient": "Client",
@@ -1254,6 +1269,9 @@
       "totalSales": "Total ventes",
       "discounts": "Remises",
       "dayCA": "CA du jour",
+      "grossSubtotal": "Sous-total brut",
+      "netTotal": "Total net",
+      "totalDiscounts": "Total remises",
       "sectionTitle": "Détail des ventes ({count} articles uniques)",
       "colProduct": "Nom Produit",
       "colQty": "Quantité",

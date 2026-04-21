@@ -964,6 +964,8 @@
     "toast": {
       "deleteSuccess": "Facture bi far nañu ko baax",
       "deleteError": "Mënoñu far facture bi",
+      "adminDeleteSuccess": "Facture bi payee na far ko administrateur bi",
+      "adminOnlyForPaid": "Administrateur rekk mën na far facture bu payee",
       "downloadStarted": "Téléchargement u reçu tàmbali na",
       "downloadError": "Mënoñu télécharger reçu bi : {error}"
     },
@@ -1074,6 +1076,19 @@
     }
   },
   "invoicesModals": {
+    "adminDelete": {
+      "title": "Suppression administrateur",
+      "subtitle": "Liggéey bi amul delloo — soo wax mot de passe bi",
+      "warningTitle": "Moytuleen : facture bi payee na",
+      "warningBody": "Yaay far facture bu payee ba noppi. Stock bi dina dellu te ñu bind liggéey bi ci log bi.",
+      "invoiceLabel": "Facture",
+      "amountLabel": "Xaalis",
+      "passwordLabel": "Mot de passe administrateur",
+      "passwordPlaceholder": "Bindal sa mot de passe",
+      "reasonLabel": "Li tax (mën na am walla déet)",
+      "reasonPlaceholder": "Misaal : njuumte caisse, facture bu ñaari yoon, client annuleer na...",
+      "confirmButton": "Faral fu mu dul delloo"
+    },
     "share": {
       "title": "Séddale facture bi",
       "infoClient": "Client",
@@ -1254,6 +1269,9 @@
       "totalSales": "Total jaay",
       "discounts": "Wàññi",
       "dayCA": "CA u bés bi",
+      "grossSubtotal": "Sous-total bu tey",
+      "netTotal": "Total net",
+      "totalDiscounts": "Total wàññi",
       "sectionTitle": "Détails u jaay yi ({count} article yu wuute)",
       "colProduct": "Tur u Jumtukaay",
       "colQty": "Limu",

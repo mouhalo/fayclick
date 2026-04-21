@@ -207,6 +207,69 @@ class FacturePriveeService {
   }
 
   /**
+   * Suppression ADMIN d'une facture PAYÉE (nécessite mot de passe administrateur)
+   * Appelle supprimer_facturecom_admin qui vérifie profil + password + logue dans
+   * log_suppressions_factures avant de créer les mouvements ENTREE retour stock.
+   */
+  async supprimerFactureAdmin(
+    idFacture: number,
+    idStructure: number,
+    password: string,
+    raison?: string
+  ): Promise<SupprimerFactureResponse> {
+    try {
+      const user = this.authService.getUser();
+      if (!user) throw new Error('Utilisateur non authentifié');
+
+      const escapedPwd = password.replace(/'/g, "''");
+      const escapedRaison = (raison ?? '').replace(/'/g, "''");
+      const raisonSql = raison ? `'${escapedRaison}'::text` : 'NULL';
+
+      const requete = `SELECT * FROM supprimer_facturecom_admin(${idStructure}, ${idFacture}, ${user.id}, '${escapedPwd}'::varchar, ${raisonSql})`;
+      const rows = await DatabaseService.query(requete);
+
+      if (rows && rows.length > 0) {
+        const result = rows[0] as Record<string, unknown>;
+        // La fonction renvoie un json sous la clé supprimer_facturecom_admin
+        const payload = (result.supprimer_facturecom_admin ?? result) as Record<string, unknown>;
+        const parsed = typeof payload === 'string' ? JSON.parse(payload) : payload;
+
+        if (parsed.success === true) {
+          return {
+            success: true,
+            message: (parsed.message as string) || 'Facture supprimée',
+            id_facture: idFacture,
+            details: parsed.details
+          };
+        }
+        // Erreur métier — relaie le code pour que l'UI puisse réagir
+        const err = new Error((parsed.message as string) || 'Suppression refusée');
+        (err as Error & { code?: string }).code = parsed.code as string;
+        throw err;
+      }
+      throw new Error('Réponse vide du serveur');
+    } catch (error) {
+      console.error('Erreur suppression admin:', error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : 'Erreur lors de la suppression',
+        id_facture: idFacture,
+        details: { code: (error as Error & { code?: string }).code }
+      };
+    }
+  }
+
+  async deleteFacturePriveeAdmin(
+    idFacture: number,
+    password: string,
+    raison?: string
+  ): Promise<SupprimerFactureResponse> {
+    const user = this.authService.getUser();
+    if (!user?.id_structure) throw new Error('Utilisateur non authentifié ou sans structure');
+    return this.supprimerFactureAdmin(idFacture, user.id_structure, password, raison);
+  }
+
+  /**
    * Génère l'URL de partage pour une facture privée
    */
   generateUrlPartage(idStructure: number, idFacture: number): string {
