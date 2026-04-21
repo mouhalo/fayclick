@@ -153,10 +153,10 @@ export default function DashboardSidebar({
           {!collapsed && (
             <div className="flex-1 min-w-0">
               <p className="text-white text-sm font-semibold truncate">
-                {user.username || user.login}
+                {user?.username || user?.login || '—'}
               </p>
               <p className="text-white/60 text-xs truncate">
-                {user.nom_structure}
+                {user?.nom_structure || ''}
               </p>
             </div>
           )}
