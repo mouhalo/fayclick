@@ -684,6 +684,9 @@ export default function VenteFlashPage() {
       total: produit.total
     }));
 
+    // Sous-total brut = somme des lignes (sans remises) — doit égaler total_ventes + total_remises
+    const sousTotalBrut = detailsVentes.reduce((sum, d) => sum + d.total, 0);
+
     // Créer le contenu HTML du rapport
     const dateJour = new Date().toLocaleDateString('fr-FR', {
       weekday: 'long',
@@ -733,17 +736,16 @@ export default function VenteFlashPage() {
             <div class="stat-label">${t('report.nbSales')}</div>
           </div>
           <div class="stat-card">
-            <div class="stat-value">${detailsVentes.length}</div>
-            <div class="stat-label">${t('report.uniqueArticles')}</div>
+            <div class="stat-value" style="color: #334155;">${sousTotalBrut.toLocaleString('fr-FR')} F</div>
+            <div class="stat-label">${t('report.grossSubtotal')}</div>
           </div>
-          <div class="stat-card">
-            <div class="stat-value">${stats.total_ventes.toLocaleString('fr-FR')} FCFA</div>
-            <div class="stat-label">${t('report.totalSales')}</div>
-            ${stats.total_remises > 0 ? `<div style="color: #d97706; font-size: 11px; font-weight: 500; margin-top: 4px;">(${t('report.discounts')}: ${stats.total_remises.toLocaleString('fr-FR')} F)</div>` : ''}
+          <div class="stat-card" style="${stats.total_remises > 0 ? 'border-left-color: #d97706; background: #fff7ed;' : 'opacity: 0.5;'}">
+            <div class="stat-value" style="color: #d97706;">${stats.total_remises > 0 ? '− ' : ''}${stats.total_remises.toLocaleString('fr-FR')} F</div>
+            <div class="stat-label">${t('report.totalDiscounts')}</div>
           </div>
-          <div class="stat-card">
-            <div class="stat-value">${stats.ca_jour.toLocaleString('fr-FR')} FCFA</div>
-            <div class="stat-label">${t('report.dayCA')}</div>
+          <div class="stat-card" style="border-left-color: #059669; background: #ecfdf5;">
+            <div class="stat-value" style="color: #059669;">${stats.total_ventes.toLocaleString('fr-FR')} F</div>
+            <div class="stat-label" style="font-weight: bold;">${t('report.netTotal')}</div>
           </div>
         </div>
 
@@ -769,6 +771,21 @@ export default function VenteFlashPage() {
               </tr>
             `).join('')}
           </tbody>
+          <tfoot>
+            <tr style="background: #f8fafc;">
+              <td colspan="4" style="text-align: right; padding: 10px; border-top: 2px solid #cbd5e1;">${t('report.grossSubtotal')}</td>
+              <td style="text-align: right; padding: 10px; border-top: 2px solid #cbd5e1; font-weight: bold;">${sousTotalBrut.toLocaleString('fr-FR')} FCFA</td>
+            </tr>
+            ${stats.total_remises > 0 ? `
+            <tr style="background: #fff7ed;">
+              <td colspan="4" style="text-align: right; padding: 10px; color: #d97706;">${t('report.totalDiscounts')}</td>
+              <td style="text-align: right; padding: 10px; color: #d97706; font-weight: bold;">− ${stats.total_remises.toLocaleString('fr-FR')} FCFA</td>
+            </tr>` : ''}
+            <tr style="background: #ecfdf5;">
+              <td colspan="4" style="text-align: right; padding: 12px; font-size: 15px; font-weight: bold; color: #059669; border-top: 2px solid #059669;">${t('report.netTotal')}</td>
+              <td style="text-align: right; padding: 12px; font-size: 15px; font-weight: bold; color: #059669; border-top: 2px solid #059669;">${stats.total_ventes.toLocaleString('fr-FR')} FCFA</td>
+            </tr>
+          </tfoot>
         </table>
 
         <div class="footer">
