@@ -63,3 +63,12 @@ logs
 # Temporary folders
 tmp/
 temp/
+
+# Playwright MCP runtime artifacts
+.playwright-mcp/
+
+# Local test screenshots
+test-*.png
+
+# Superpowers brainstorm working directory
+.superpowers/
