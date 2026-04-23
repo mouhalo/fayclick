@@ -48,6 +48,12 @@ interface ModalAjoutProduitNewProps {
   typeStructure: string;
   /** Si false, masque la marge avec ****** (caissier sans droit VOIR CA) */
   canViewMontants?: boolean;
+  /** Nombre actuel de produits (pour défense en profondeur sur la limite) */
+  currentProductCount?: number;
+  /** Nombre max de produits autorisés par l'abonnement */
+  maxProductsAllowed?: number;
+  /** Callback appelé si la limite est atteinte lors de la création */
+  onLimitReached?: () => void;
 }
 
 type OngletType = 'informations' | 'photos' | 'gestion-stock' | 'historique';
@@ -60,7 +66,10 @@ export function ModalAjoutProduitNew({
   onRequestStockAddition,
   produitToEdit,
   typeStructure,
-  canViewMontants = true
+  canViewMontants = true,
+  currentProductCount,
+  maxProductsAllowed,
+  onLimitReached,
 }: ModalAjoutProduitNewProps) {
   // Hook pour vérifier si l'utilisateur est ADMIN
   const { isAdmin, user } = useUserProfile();
@@ -337,6 +346,18 @@ export function ModalAjoutProduitNew({
     e.preventDefault();
 
     if (!validateForm()) return;
+
+    // Défense en profondeur : empêcher la création si la limite est atteinte
+    if (
+      !produitToEdit &&
+      typeof currentProductCount === 'number' &&
+      typeof maxProductsAllowed === 'number' &&
+      currentProductCount >= maxProductsAllowed
+    ) {
+      onClose();
+      if (onLimitReached) onLimitReached();
+      return;
+    }
 
     setIsLoading(true);
 

@@ -27,7 +27,7 @@ import {
 import { authService } from '@/services/auth.service';
 import { produitsService, ProduitsApiException } from '@/services/produits.service';
 import { useProduits, useProduitsUI } from '@/hooks/useProduits';
-import { useSubscriptionStatus } from '@/contexts/AuthContext';
+import { useSubscriptionStatus, useAuth } from '@/contexts/AuthContext';
 import { useHasRight } from '@/hooks/useRights';
 import { StatsCardsNouveaux, StatsCardsNouveauxLoading } from '@/components/produits/StatsCardsNouveaux';
 import { CarteProduit, CarteProduitSkeleton } from '@/components/produits/CarteProduit';
@@ -52,6 +52,8 @@ import { useSalesRules } from '@/hooks/useSalesRules';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { PanierSidePanel } from '@/components/panier/PanierSidePanel';
 import { ModalAbonnementExpire, useModalAbonnementExpire } from '@/components/subscription/ModalAbonnementExpire';
+import { ModalLimiteProduitsAtteinte, useModalLimiteProduitsAtteinte } from '@/components/produits/ModalLimiteProduitsAtteinte';
+import { QuotaProduitsBadge } from '@/components/produits/QuotaProduitsBadge';
 import { ModalEnrolementProduits } from '@/components/visual-recognition';
 import { ModalOptionsAjout } from '@/components/produits/ModalOptionsAjout';
 import { ProduitsFilterPanel } from '@/components/produits/ProduitsFilterPanel';
@@ -172,6 +174,17 @@ export default function ProduitsCommercePage() {
 
   // Hook état abonnement pour bloquer les fonctionnalités si expiré
   const { canAccessFeature } = useSubscriptionStatus();
+
+  // Structure (pour limite de produits)
+  const { structure } = useAuth();
+  const maxProduitsAutorises = structure?.nombre_produit_max ?? 600;
+
+  // Hook modal limite produits atteinte
+  const {
+    isOpen: isLimiteModalOpen,
+    showModal: showLimiteModal,
+    hideModal: hideLimiteModal,
+  } = useModalLimiteProduitsAtteinte();
 
   // Droit de voir le chiffre d'affaire (masquer montants pour caissier)
   const canViewCA = useHasRight("VOIR CHIFFRE D'AFFAIRE");
@@ -731,10 +744,20 @@ export default function ProduitsCommercePage() {
       showAbonnementModal('Ajout de produit');
       return;
     }
+    // Vérifier la limite de produits de l'abonnement
+    if (produits.length >= maxProduitsAutorises) {
+      showLimiteModal();
+      return;
+    }
     setShowOptionsAjoutModal(true);
   };
 
   const handleAddProduit = () => {
+    // Garde-fou : vérifier la limite aussi ici (au cas où déclenché directement)
+    if (produits.length >= maxProduitsAutorises) {
+      showLimiteModal();
+      return;
+    }
     setProduitSelectionne(null);
     setModeEdition(false);
     setModalAjoutOpen(true);
@@ -743,7 +766,22 @@ export default function ProduitsCommercePage() {
   // Gestion de l'enrôlement par photo
   const handleOpenEnrolement = () => {
     console.log('📸 [PRODUITS COMMERCE] Ouverture enrôlement par photo');
+    // Vérifier la limite de produits avant l'enrôlement (qui crée plusieurs produits)
+    if (produits.length >= maxProduitsAutorises) {
+      showLimiteModal();
+      return;
+    }
     setShowEnrolementModal(true);
+  };
+
+  // Redirige vers le filtre stock = 0 pour aider à nettoyer le catalogue
+  const handleCleanStockFilter = () => {
+    setFiltres({
+      stockOperator: '=',
+      stockValue: 0,
+    });
+    setShowFilters(true);
+    setCurrentPage(1);
   };
 
   const handleEnrolementSuccess = (nbProduits: number) => {
@@ -1116,6 +1154,15 @@ export default function ProduitsCommercePage() {
 
       {/* Contenu principal */}
       <div className={`transition-all duration-300 ${showPanierSide && isDesktopView ? 'pr-[400px]' : ''}`}>
+        {/* Badge quota produits - toujours visible */}
+        <div className="mb-3 flex justify-end">
+          <QuotaProduitsBadge
+            current={produits.length}
+            max={maxProduitsAutorises}
+            onClick={() => showLimiteModal()}
+          />
+        </div>
+
         {/* Accordéon Statistiques */}
         <div className="mb-4">
           <motion.button
@@ -1412,6 +1459,9 @@ export default function ProduitsCommercePage() {
           typeStructure="COMMERCIALE"
           defaultTab={produitSelectionne ? 'gestion-stock' : 'informations'}
           canViewMontants={canViewCA}
+          currentProductCount={produits.length}
+          maxProductsAllowed={maxProduitsAutorises}
+          onLimitReached={showLimiteModal}
         />
 
         {!showPanierSide && <ModalPanier />}
@@ -1601,6 +1651,13 @@ export default function ProduitsCommercePage() {
         {user && <ModalEnrolementProduits isOpen={showEnrolementModal} onClose={() => setShowEnrolementModal(false)} idStructure={user.id_structure} onSuccess={handleEnrolementSuccess} />}
         <ToastComponent />
         <ModalAbonnementExpire isOpen={isAbonnementModalOpen} onClose={hideAbonnementModal} featureName={abonnementFeatureName} />
+        <ModalLimiteProduitsAtteinte
+          isOpen={isLimiteModalOpen}
+          onClose={hideLimiteModal}
+          currentCount={produits.length}
+          maxCount={maxProduitsAutorises}
+          onCleanStock={handleCleanStockFilter}
+        />
         {produitPartage && user && <ModalPartagerProduit isOpen={!!produitPartage} onClose={() => setProduitPartage(null)} produit={produitPartage} idStructure={user.id_structure} />}
       </>
     );
@@ -1676,6 +1733,16 @@ export default function ProduitsCommercePage() {
 
         {/* Contenu principal */}
         <div className={`p-5 pb-24 transition-all duration-300 ${showPanierSide && isDesktopView ? 'pr-[400px]' : ''}`}>
+
+          {/* Badge quota produits - toujours visible */}
+          <div className="mb-3 flex justify-end">
+            <QuotaProduitsBadge
+              current={produits.length}
+              max={maxProduitsAutorises}
+              onClick={() => showLimiteModal()}
+              variant="dark"
+            />
+          </div>
 
           {/* Accordéon Statistiques */}
           <div className="mb-4">
@@ -1952,6 +2019,9 @@ export default function ProduitsCommercePage() {
         typeStructure="COMMERCIALE"
         defaultTab={produitSelectionne ? 'gestion-stock' : 'informations'}
         canViewMontants={canViewCA}
+        currentProductCount={produits.length}
+        maxProductsAllowed={maxProduitsAutorises}
+        onLimitReached={showLimiteModal}
       />
 
       {/* Modal Panier (masqué si side panel actif) */}
@@ -2348,6 +2418,15 @@ export default function ProduitsCommercePage() {
         isOpen={isAbonnementModalOpen}
         onClose={hideAbonnementModal}
         featureName={abonnementFeatureName}
+      />
+
+      {/* Modal limite produits atteinte */}
+      <ModalLimiteProduitsAtteinte
+        isOpen={isLimiteModalOpen}
+        onClose={hideLimiteModal}
+        currentCount={produits.length}
+        maxCount={maxProduitsAutorises}
+        onCleanStock={handleCleanStockFilter}
       />
 
       {/* Modal partage produit (Online Seller) */}
