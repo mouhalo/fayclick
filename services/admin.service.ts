@@ -35,7 +35,21 @@ import {
   AdminStatsCodesPromoParams,
   ValidateCodePromoResponse,
   // Type détail structure
-  GetUneStructureResponse
+  GetUneStructureResponse,
+  // Types admin gestion structures (PRD admin-gestion-structures)
+  EditStructureParams,
+  EditStructureResponse,
+  EditParamStructureAdminParams,
+  DeleteStructureParams,
+  DeleteStructureResponse,
+  OffrirAbonnementParams,
+  OffrirAbonnementResponse,
+  AjusterMensualiteParams,
+  AjusterMensualiteResponse,
+  ResetUserPasswordParams,
+  ResetUserPasswordResponse,
+  AdminActionType,
+  AdminActionCibleType
 } from '@/types/admin.types';
 
 class AdminService {
@@ -341,8 +355,12 @@ class AdminService {
   }
 
   /**
-   * Récupère la liste des utilisateurs avec stats et filtres
-   * Fonction PostgreSQL: get_admin_all_utilisateurs(limit, offset, search, id_structure, id_groupe, id_profil, actif, order_by, order_dir)
+   * Récupère la liste des utilisateurs avec stats et filtres.
+   * Fonction PostgreSQL: get_admin_all_utilisateurs(limit, offset, search, id_structure, id_groupe, id_profil, actif, order_by, order_dir, search_structure, search_telephone)
+   *
+   * Signature étendue (cf. PRD admin-gestion-structures § 4.7) :
+   * - p_search_structure VARCHAR DEFAULT NULL : recherche LIKE sur nom_structure
+   * - p_search_telephone VARCHAR DEFAULT NULL : recherche stricte (=) sur telephone
    */
   async getAllUtilisateurs(params: AdminAllUtilisateursParams = {}): Promise<AdminAllUtilisateursResponse> {
     try {
@@ -355,7 +373,9 @@ class AdminService {
         id_profil,
         actif,
         order_by = 'createdat',
-        order_dir = 'DESC'
+        order_dir = 'DESC',
+        search_structure,
+        search_telephone
       } = params;
 
       SecurityService.secureLog('log', '👥 [ADMIN] Récupération liste utilisateurs', params);
@@ -366,8 +386,10 @@ class AdminService {
       const groupeParam = id_groupe !== undefined ? id_groupe : 'NULL';
       const profilParam = id_profil !== undefined ? id_profil : 'NULL';
       const actifParam = actif !== undefined ? actif : 'NULL';
+      const searchStructureParam = search_structure ? `'${search_structure.replace(/'/g, "''")}'` : 'NULL';
+      const searchTelephoneParam = search_telephone ? `'${search_telephone.replace(/'/g, "''")}'` : 'NULL';
 
-      const query = `SELECT * FROM get_admin_all_utilisateurs(${limit}, ${offset}, ${searchParam}, ${structureParam}, ${groupeParam}, ${profilParam}, ${actifParam}, '${order_by}', '${order_dir}')`;
+      const query = `SELECT * FROM get_admin_all_utilisateurs(${limit}, ${offset}, ${searchParam}, ${structureParam}, ${groupeParam}, ${profilParam}, ${actifParam}, '${order_by}', '${order_dir}', ${searchStructureParam}, ${searchTelephoneParam})`;
       const result = await databaseService.query(query);
 
       if (!result || result.length === 0) {
@@ -746,6 +768,421 @@ class AdminService {
 
     } catch (error) {
       SecurityService.secureLog('error', '❌ [ADMIN] Erreur récupération détails structure', error);
+      throw error;
+    }
+  }
+
+  // ========================================
+  // GESTION ADMIN AVANCÉE — Structures, Abonnements, Utilisateurs
+  // PRD: docs/prd-admin-gestion-structures-2026-04-30.md
+  // ⚠️ Phase 1 : squelettes services. Les fonctions PG correspondantes
+  // sont en cours de création par le DBA (sauf reset_user_password
+  // et add_edit_structure qui existent déjà).
+  // ========================================
+
+  /**
+   * Logue une action admin dans la table `admin_actions_log`.
+   * Helper privé utilisé par les méthodes qui n'ont pas un log
+   * intégré côté fonction PG (ex: ajusterMensualite, resetUserPassword).
+   *
+   * ⚠️ Le log est NON BLOQUANT : si le log échoue, l'action principale
+   * reste considérée comme réussie. Cf. recommandation advisor.
+   *
+   * Fonction PostgreSQL: log_admin_action(p_id_admin, p_action, p_cible_type,
+   *   p_cible_id, p_cible_nom, p_ancienne_valeur, p_nouvelle_valeur, p_motif)
+   */
+  private async logAdminAction(payload: {
+    id_admin: number;
+    action: AdminActionType;
+    cible_type: AdminActionCibleType;
+    cible_id: number;
+    cible_nom?: string | null;
+    ancienne_valeur?: Record<string, unknown> | null;
+    nouvelle_valeur?: Record<string, unknown> | null;
+    motif?: string | null;
+  }): Promise<void> {
+    try {
+      const cibleNomParam = payload.cible_nom
+        ? `'${payload.cible_nom.replace(/'/g, "''")}'`
+        : 'NULL';
+      const ancienneParam = payload.ancienne_valeur
+        ? `'${JSON.stringify(payload.ancienne_valeur).replace(/'/g, "''")}'::jsonb`
+        : 'NULL';
+      const nouvelleParam = payload.nouvelle_valeur
+        ? `'${JSON.stringify(payload.nouvelle_valeur).replace(/'/g, "''")}'::jsonb`
+        : 'NULL';
+      const motifParam = payload.motif
+        ? `'${payload.motif.replace(/'/g, "''")}'`
+        : 'NULL';
+
+      const query = `SELECT log_admin_action(${payload.id_admin}, '${payload.action}', '${payload.cible_type}', ${payload.cible_id}, ${cibleNomParam}, ${ancienneParam}, ${nouvelleParam}, ${motifParam})`;
+      await databaseService.query(query);
+
+      SecurityService.secureLog('log', '📝 [ADMIN] Action loggée', {
+        action: payload.action,
+        cible: `${payload.cible_type}#${payload.cible_id}`
+      });
+    } catch (error) {
+      // Log non-bloquant
+      SecurityService.secureLog('error', '⚠️ [ADMIN] log_admin_action a échoué (non bloquant)', error);
+    }
+  }
+
+  /**
+   * Modifie la fiche d'une structure (admin).
+   * Champs autorisés (cf. PRD § 3.1) : nom_structure, numautorisatioon, id_localite.
+   * Les autres champs (mobile_om/wave, email, adresse, logo, code_structure)
+   * ne sont PAS modifiables par l'admin.
+   *
+   * Approche en 2 étapes (cf. décision advisor option B) :
+   * 1. add_edit_structure() pour nom_structure + numautorisatioon
+   *    (les autres params sont ré-injectés depuis l'état actuel)
+   * 2. UPDATE direct sur structures.id_localite (la fonction PG actuelle ne
+   *    l'expose pas)
+   *
+   * TODO DBA: étendre add_edit_structure pour accepter p_id_localite
+   * et fusionner ces deux étapes en une transaction atomique.
+   */
+  async editStructure(params: EditStructureParams): Promise<EditStructureResponse> {
+    try {
+      SecurityService.secureLog('log', '✏️ [ADMIN] Modification fiche structure', {
+        id_structure: params.id_structure,
+        nom_structure: params.nom_structure
+      });
+
+      // 1. Récupérer l'état actuel (snapshot pour log + ré-injection champs immuables)
+      const currentRes = await this.getUneStructure(params.id_structure);
+      if (!currentRes.success || !currentRes.data) {
+        return { success: false, message: 'Structure introuvable' };
+      }
+      const current = currentRes.data;
+      const ancienneValeur = {
+        nom_structure: current.nom_structure,
+        numautorisatioon: current.numautorisatioon,
+        id_localite: current.id_localite
+      };
+
+      // 2. add_edit_structure : on ré-injecte tous les champs actuels
+      //    sauf nom_structure et numautorisatioon (qui changent)
+      const escName = `'${params.nom_structure.replace(/'/g, "''")}'`;
+      const escAdresse = `'${(current.adresse ?? '').replace(/'/g, "''")}'`;
+      const escMobileOm = `'${(current.mobile_om ?? '').replace(/'/g, "''")}'`;
+      const escMobileWave = `'${(current.mobile_wave ?? '').replace(/'/g, "''")}'`;
+      const escNumAuth = `'${(params.numautorisatioon ?? '').replace(/'/g, "''")}'`;
+      const escNumMarchand = `'${(current.nummarchand ?? '').replace(/'/g, "''")}'`;
+      const escEmail = `'${(current.email ?? '').replace(/'/g, "''")}'`;
+      const escLogo = `'${(current.logo ?? '').replace(/'/g, "''")}'`;
+
+      const editQuery = `SELECT add_edit_structure(${current.id_type}, ${escName}, ${escAdresse}, ${escMobileOm}, ${escMobileWave}, ${escNumAuth}, ${escNumMarchand}, ${escEmail}, ${escLogo}, ${params.id_structure})`;
+      await databaseService.query(editQuery);
+
+      // 3. UPDATE id_localite (champ non géré par add_edit_structure)
+      if (params.id_localite !== current.id_localite) {
+        const updateLocaliteQuery = `UPDATE structures SET id_localite = ${params.id_localite} WHERE id_structure = ${params.id_structure}`;
+        await databaseService.query(updateLocaliteQuery);
+      }
+
+      // 4. Log audit (non bloquant)
+      await this.logAdminAction({
+        id_admin: params.id_admin,
+        action: 'EDIT_STRUCTURE',
+        cible_type: 'STRUCTURE',
+        cible_id: params.id_structure,
+        cible_nom: params.nom_structure,
+        ancienne_valeur: ancienneValeur,
+        nouvelle_valeur: {
+          nom_structure: params.nom_structure,
+          numautorisatioon: params.numautorisatioon,
+          id_localite: params.id_localite
+        }
+      });
+
+      SecurityService.secureLog('log', '✅ [ADMIN] Fiche structure modifiée', {
+        id_structure: params.id_structure
+      });
+
+      return {
+        success: true,
+        message: 'Structure modifiée avec succès',
+        data: {
+          id_structure: params.id_structure,
+          nom_structure: params.nom_structure,
+          numautorisatioon: params.numautorisatioon,
+          id_localite: params.id_localite
+        }
+      };
+    } catch (error) {
+      SecurityService.secureLog('error', '❌ [ADMIN] Erreur modification structure', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Modifie les paramètres `param_structure` réservés à l'admin.
+   * Délègue à `databaseService.editParamStructure()` qui gère l'appel PG.
+   *
+   * Cf. PRD § 3.2 et § 4.6.
+   *
+   * ⚠️ Le log d'audit est créé séparément via `logAdminAction()` car
+   * `edit_param_structure` ne logue pas par défaut.
+   */
+  async editParamStructureAdmin(
+    idStructure: number,
+    params: EditParamStructureAdminParams,
+    idAdmin: number
+  ): Promise<{ success: boolean; message: string; data?: Record<string, unknown> }> {
+    try {
+      SecurityService.secureLog('log', '⚙️ [ADMIN] Modification params admin structure', {
+        id_structure: idStructure,
+        params
+      });
+
+      // Délégation à database.service (qui gère les 16 args PG)
+      const result = await databaseService.editParamStructure(idStructure, params);
+
+      if (result.success) {
+        // Log audit non bloquant
+        await this.logAdminAction({
+          id_admin: idAdmin,
+          action: 'EDIT_PARAM',
+          cible_type: 'PARAM_STRUCTURE',
+          cible_id: idStructure,
+          nouvelle_valeur: { ...params }
+        });
+
+        SecurityService.secureLog('log', '✅ [ADMIN] Params admin structure modifiés', {
+          id_structure: idStructure
+        });
+      }
+
+      return result;
+    } catch (error) {
+      SecurityService.secureLog('error', '❌ [ADMIN] Erreur modification params admin', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Supprime définitivement une structure (HARD DELETE avec cascade).
+   * Le snapshot complet et le log sont gérés CÔTÉ FONCTION PG (cf. PRD § 4.4).
+   *
+   * Fonction PostgreSQL: delete_structure(p_id_structure, p_id_admin)
+   * ⚠️ Cette fonction est en cours de création par le DBA.
+   */
+  async deleteStructure(params: DeleteStructureParams): Promise<DeleteStructureResponse> {
+    try {
+      SecurityService.secureLog('log', '🗑️ [ADMIN] Suppression structure (HARD DELETE)', params);
+
+      const query = `SELECT delete_structure(${params.id_structure}, ${params.id_admin})`;
+      const result = await databaseService.query(query);
+
+      if (!result || result.length === 0) {
+        throw new Error('Aucune réponse du serveur');
+      }
+
+      const rawData = (result[0] as Record<string, unknown>).delete_structure;
+      const data: DeleteStructureResponse = typeof rawData === 'string'
+        ? JSON.parse(rawData)
+        : (rawData as DeleteStructureResponse);
+
+      SecurityService.secureLog('log', '✅ [ADMIN] Structure supprimée', {
+        success: data.success,
+        nb_factures: data.nb_factures_supprimees,
+        nb_users: data.nb_users_supprimes
+      });
+
+      return data;
+    } catch (error) {
+      SecurityService.secureLog('error', '❌ [ADMIN] Erreur suppression structure', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Offre un abonnement gratuit (méthode 'OFFERT', montant 0) à une structure.
+   * Le calcul des dates et le log sont gérés côté fonction PG (cf. PRD § 4.5).
+   *
+   * Fonction PostgreSQL: add_abonnement_offert(p_id_structure, p_nb_jours, p_motif, p_id_admin)
+   * ⚠️ Cette fonction est en cours de création par le DBA.
+   */
+  async offrirAbonnement(params: OffrirAbonnementParams): Promise<OffrirAbonnementResponse> {
+    try {
+      SecurityService.secureLog('log', '🎁 [ADMIN] Offrir abonnement', {
+        id_structure: params.id_structure,
+        nb_jours: params.nb_jours
+      });
+
+      const escMotif = `'${params.motif.replace(/'/g, "''")}'`;
+      const query = `SELECT add_abonnement_offert(${params.id_structure}, ${params.nb_jours}, ${escMotif}, ${params.id_admin})`;
+      const result = await databaseService.query(query);
+
+      if (!result || result.length === 0) {
+        throw new Error('Aucune réponse du serveur');
+      }
+
+      const rawData = (result[0] as Record<string, unknown>).add_abonnement_offert;
+      const data: OffrirAbonnementResponse = typeof rawData === 'string'
+        ? JSON.parse(rawData)
+        : (rawData as OffrirAbonnementResponse);
+
+      SecurityService.secureLog('log', '✅ [ADMIN] Abonnement offert', {
+        id_abonnement: data.data?.id_abonnement,
+        date_debut: data.data?.date_debut,
+        date_fin: data.data?.date_fin
+      });
+
+      return data;
+    } catch (error) {
+      SecurityService.secureLog('error', '❌ [ADMIN] Erreur offrir abonnement', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Ajuste la mensualité d'une structure (compte_prive uniquement, cf. PRD § 3.5).
+   *
+   * Workflow :
+   * 1. Récupérer ancienne mensualite via getUneStructure (pour snapshot log)
+   * 2. Appel `edit_param_structure(...)` avec p_mensualite=nouvelle_mensualite
+   * 3. Log séparé via log_admin_action (car edit_param_structure ne logue pas)
+   */
+  async ajusterMensualite(params: AjusterMensualiteParams): Promise<AjusterMensualiteResponse> {
+    try {
+      SecurityService.secureLog('log', '💰 [ADMIN] Ajuster mensualité', {
+        id_structure: params.id_structure,
+        nouvelle_mensualite: params.nouvelle_mensualite
+      });
+
+      // Validation côté client (la fonction PG validera aussi)
+      if (params.motif.trim().length < 10) {
+        return {
+          success: false,
+          message: 'Le motif est requis (10 caractères minimum)'
+        };
+      }
+
+      // 1. Snapshot ancienne mensualité (pour log audit)
+      let ancienneMensualite: number | undefined;
+      try {
+        const current = await this.getUneStructure(params.id_structure);
+        // mensualite est dans param_structure (pas directement sur StructureDetailData)
+        // On cast pour récupérer la valeur si présente
+        const dataAsRecord = current.data as unknown as Record<string, unknown>;
+        const paramStruct = dataAsRecord.param_structure as Record<string, unknown> | undefined;
+        if (paramStruct && typeof paramStruct.mensualite === 'number') {
+          ancienneMensualite = paramStruct.mensualite;
+        }
+      } catch {
+        // Snapshot best-effort, on continue
+      }
+
+      // 2. Appel edit_param_structure avec uniquement p_mensualite
+      const result = await databaseService.editParamStructure(params.id_structure, {
+        mensualite: params.nouvelle_mensualite
+      });
+
+      if (!result.success) {
+        return {
+          success: false,
+          message: result.message || 'Erreur lors de la mise à jour de la mensualité'
+        };
+      }
+
+      // 3. Log séparé (non bloquant)
+      await this.logAdminAction({
+        id_admin: params.id_admin,
+        action: 'AJUSTER_MENSUALITE',
+        cible_type: 'PARAM_STRUCTURE',
+        cible_id: params.id_structure,
+        ancienne_valeur: ancienneMensualite !== undefined
+          ? { mensualite: ancienneMensualite }
+          : null,
+        nouvelle_valeur: { mensualite: params.nouvelle_mensualite },
+        motif: params.motif
+      });
+
+      SecurityService.secureLog('log', '✅ [ADMIN] Mensualité ajustée', {
+        id_structure: params.id_structure,
+        ancienne: ancienneMensualite,
+        nouvelle: params.nouvelle_mensualite
+      });
+
+      return {
+        success: true,
+        message: 'Mensualité ajustée avec succès',
+        data: {
+          id_structure: params.id_structure,
+          ancienne_mensualite: ancienneMensualite,
+          nouvelle_mensualite: params.nouvelle_mensualite
+        }
+      };
+    } catch (error) {
+      SecurityService.secureLog('error', '❌ [ADMIN] Erreur ajuster mensualité', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Réinitialise le mot de passe d'un utilisateur.
+   * Retourne le nouveau MDP en clair pour affichage popup admin (V1, cf. PRD § 5.2).
+   *
+   * Workflow :
+   * 1. Appel `reset_user_password(pid_utilisateur)` qui :
+   *    - Génère un nouveau MDP aléatoire
+   *    - Met à jour utilisateurs.pwd
+   *    - Force pwd_changed=false (à vérifier côté DBA, cf. PRD § Sprint 3)
+   *    - Retourne le nouveau MDP en clair (VARCHAR)
+   * 2. Log séparé via log_admin_action (non bloquant : si le log échoue,
+   *    l'admin doit quand même récupérer le MDP en clair côté UI).
+   */
+  async resetUserPassword(params: ResetUserPasswordParams): Promise<ResetUserPasswordResponse> {
+    try {
+      SecurityService.secureLog('log', '🔑 [ADMIN] Reset mot de passe', {
+        id_utilisateur: params.id_utilisateur
+      });
+
+      const query = `SELECT reset_user_password(${params.id_utilisateur})`;
+      const result = await databaseService.query(query);
+
+      if (!result || result.length === 0) {
+        throw new Error('Aucune réponse du serveur');
+      }
+
+      const rawData = (result[0] as Record<string, unknown>).reset_user_password;
+      // reset_user_password retourne directement un VARCHAR (nouveau MDP)
+      const newPassword: string = typeof rawData === 'string'
+        ? rawData
+        : String(rawData ?? '');
+
+      if (!newPassword) {
+        return {
+          success: false,
+          message: 'Impossible de générer le nouveau mot de passe',
+          new_password: ''
+        };
+      }
+
+      // Log audit (non bloquant — ne JAMAIS faire échouer le retour du MDP)
+      await this.logAdminAction({
+        id_admin: params.id_admin,
+        action: 'RESET_PASSWORD',
+        cible_type: 'UTILISATEUR',
+        cible_id: params.id_utilisateur,
+        // ne pas logger le MDP en clair dans la table d'audit
+        nouvelle_valeur: { pwd_changed: false, action: 'reset' }
+      });
+
+      SecurityService.secureLog('log', '✅ [ADMIN] Mot de passe réinitialisé', {
+        id_utilisateur: params.id_utilisateur
+      });
+
+      return {
+        success: true,
+        message: 'Mot de passe réinitialisé avec succès',
+        new_password: newPassword
+      };
+    } catch (error) {
+      SecurityService.secureLog('error', '❌ [ADMIN] Erreur reset mot de passe', error);
       throw error;
     }
   }
