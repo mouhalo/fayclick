@@ -14,7 +14,7 @@
 
 export type TypeStructure = 'COMMERCIALE' | 'PRESTATAIRE DE SERVICES' | 'SCOLAIRE' | 'IMMOBILIER';
 export type StatutAbonnement = 'ACTIF' | 'EXPIRE' | 'EN_ATTENTE' | 'ANNULE' | 'SANS_ABONNEMENT';
-export type TypeAbonnement = 'MENSUEL' | 'ANNUEL';
+export type TypeAbonnement = 'MENSUEL' | 'ANNUEL' | 'OFFERT';
 
 // ========================================
 // Réponse get_admin_stats_global()
@@ -129,7 +129,7 @@ export interface AdminAbonnementItem {
   date_debut: string;
   date_fin: string;
   montant: number;
-  methode_paiement: 'OM' | 'WAVE' | 'FREE';
+  methode_paiement: 'OM' | 'WAVE' | 'FREE' | 'OFFERT';
   ref_abonnement: string;
   jours_restants: number;
   date_creation: string;
