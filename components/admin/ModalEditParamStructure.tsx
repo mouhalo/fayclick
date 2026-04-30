@@ -220,7 +220,8 @@ export function ModalEditParamStructure({
       const response = await adminService.editParamStructureAdmin(
         idStructure,
         payload,
-        user.id
+        user.id,
+        motif.trim() || undefined
       );
 
       if (response.success) {

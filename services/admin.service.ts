@@ -929,7 +929,8 @@ class AdminService {
   async editParamStructureAdmin(
     idStructure: number,
     params: EditParamStructureAdminParams,
-    idAdmin: number
+    idAdmin: number,
+    motif?: string
   ): Promise<{ success: boolean; message: string; data?: Record<string, unknown> }> {
     try {
       SecurityService.secureLog('log', '⚙️ [ADMIN] Modification params admin structure', {
@@ -937,17 +938,47 @@ class AdminService {
         params
       });
 
-      // Délégation à database.service (qui gère les 16 args PG)
+      // 1. Capturer un snapshot des 6 champs admin AVANT modification
+      //    (cf. QA MAJ-001 — l'audit EDIT_PARAM doit contenir l'ancienne_valeur)
+      //    Les champs admin peuvent être exposés au top-level OU dans
+      //    `param_structure` selon la version de get_une_structure() — on lit
+      //    les deux niveaux pour rester robuste (cf. ajusterMensualite).
+      let snapshot: Record<string, unknown> | null = null;
+      let nomStructureSnapshot: string | null = null;
+      try {
+        const detailRes = await this.getUneStructure(idStructure);
+        if (detailRes.success && detailRes.data) {
+          const d = detailRes.data as unknown as Record<string, unknown>;
+          const ps = (d.param_structure as Record<string, unknown> | undefined) ?? {};
+          const pick = (key: string): unknown => d[key] ?? ps[key] ?? null;
+          snapshot = {
+            nombre_produit_max: pick('nombre_produit_max'),
+            nombre_caisse_max: pick('nombre_caisse_max'),
+            compte_prive: pick('compte_prive'),
+            mensualite: pick('mensualite'),
+            taux_wallet: pick('taux_wallet'),
+            live_autorise: pick('live_autorise'),
+          };
+          nomStructureSnapshot = (d.nom_structure as string) ?? null;
+        }
+      } catch (errSnap) {
+        SecurityService.secureLog('warn', '[ADMIN] Snapshot pre-edit param échoué', errSnap);
+      }
+
+      // 2. Délégation à database.service (qui gère les 16 args PG)
       const result = await databaseService.editParamStructure(idStructure, params);
 
       if (result.success) {
-        // Log audit non bloquant
+        // 3. Log audit non bloquant — avec snapshot avant/après et motif
         await this.logAdminAction({
           id_admin: idAdmin,
           action: 'EDIT_PARAM',
           cible_type: 'PARAM_STRUCTURE',
           cible_id: idStructure,
-          nouvelle_valeur: { ...params }
+          cible_nom: nomStructureSnapshot,
+          ancienne_valeur: snapshot,
+          nouvelle_valeur: { ...params },
+          motif: motif || null,
         });
 
         SecurityService.secureLog('log', '✅ [ADMIN] Params admin structure modifiés', {
