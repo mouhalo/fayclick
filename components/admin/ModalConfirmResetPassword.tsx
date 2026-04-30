@@ -17,8 +17,10 @@
  * Backend : `reset_user_password(pid_utilisateur)` retourne le nouveau MDP
  * en clair (8 chars alphanumériques) et force `pwd_changed=false`.
  *
- * V2 (futur) : remplacement du popup par envoi WhatsApp via template
- * `fayclick_password_reset`. Voir docs/memo-icelabsoft-templates-whatsapp-2026-04-30.md
+ * Étape 2 : envoi WhatsApp optionnel via template `fayclick_admin_message`
+ * (générique sujet + corps). Le bouton est désactivé si aucun téléphone
+ * n'est fourni. L'admin garde la possibilité de copier le MDP en parallèle.
+ * Voir docs/memo_whatsapp_new_endpoints.md § 4.2 A.
  */
 
 'use client';
@@ -34,10 +36,12 @@ import {
   Loader2,
   User,
   Building2,
-  Phone
+  Phone,
+  MessageCircle
 } from 'lucide-react';
 import { toast } from 'sonner';
 import adminService from '@/services/admin.service';
+import whatsAppMessageService from '@/services/whatsapp-message.service';
 import { useAuth } from '@/contexts/AuthContext';
 import SecurityService from '@/services/security.service';
 
@@ -73,6 +77,8 @@ export function ModalConfirmResetPassword({
   const [step, setStep] = useState<Step>('confirm');
   const [resetting, setResetting] = useState(false);
   const [newPassword, setNewPassword] = useState<string>('');
+  const [sendingWhatsApp, setSendingWhatsApp] = useState(false);
+  const [whatsAppSent, setWhatsAppSent] = useState(false);
 
   /**
    * Fermeture sécurisée :
@@ -80,10 +86,12 @@ export function ModalConfirmResetPassword({
    * - Reset complet du state (notamment le MDP) avant de notifier le parent
    */
   const handleClose = () => {
-    if (resetting) return;
+    if (resetting || sendingWhatsApp) return;
     setNewPassword(''); // ⚠️ Critique : MDP retiré du state immédiatement
     setStep('confirm');
     setResetting(false);
+    setSendingWhatsApp(false);
+    setWhatsAppSent(false);
     onClose();
   };
 
@@ -144,6 +152,71 @@ export function ModalConfirmResetPassword({
     } catch {
       toast.error('Impossible de copier — copiez-le manuellement');
     }
+  };
+
+  /**
+   * Envoie le nouveau MDP par WhatsApp via le template fayclick_admin_message.
+   *
+   * ⚠️ Ne PAS fermer le modal après envoi : l'admin peut copier ET envoyer,
+   * et peut renvoyer en cas d'échec ou de doute.
+   *
+   * Sécurité :
+   *  - Aucun log du nouveau MDP ni du corps du message
+   *  - Le numéro est masqué dans les toasts
+   */
+  const handleSendWhatsApp = async () => {
+    if (!newPassword || !login || !telephone) return;
+
+    setSendingWhatsApp(true);
+    try {
+      const response = await whatsAppMessageService.sendNewPasswordNotification(
+        telephone,
+        login,
+        newPassword,
+        'fr'
+      );
+
+      if (response.success) {
+        setWhatsAppSent(true);
+        const masked = response.recipient || maskPhoneForToast(telephone);
+        toast.success(`WhatsApp envoyé à ${masked}`);
+      } else {
+        // ⚠️ Ne pas logger l'objet response (peut contenir corps avec MDP)
+        SecurityService.secureLog(
+          'warn',
+          `[ModalConfirmResetPassword] WhatsApp KO code=${response.error_code ?? 'unknown'}`
+        );
+        toast.error(
+          response.error_code === 'META_INVALID_NUMBER'
+            ? 'Numéro non enregistré sur WhatsApp — transmettre manuellement'
+            : 'Échec envoi WhatsApp — transmettre manuellement'
+        );
+      }
+    } catch (err) {
+      SecurityService.secureLog(
+        'error',
+        `[ModalConfirmResetPassword] Exception WhatsApp: ${err instanceof Error ? err.message : 'unknown'}`
+      );
+      toast.error('Erreur réseau WhatsApp — transmettre manuellement');
+    } finally {
+      setSendingWhatsApp(false);
+    }
+  };
+
+  /**
+   * Masque un numéro local SN pour affichage dans les toasts.
+   * Ex: "777301221" → "+2217*****221"
+   */
+  const maskPhoneForToast = (phone: string): string => {
+    if (!phone) return '***';
+    const digits = phone.replace(/\D/g, '');
+    if (digits.length === 9) {
+      return `+221${digits.substring(0, 1)}*****${digits.substring(digits.length - 3)}`;
+    }
+    if (phone.startsWith('+') && phone.length >= 8) {
+      return `${phone.substring(0, 5)}*****${phone.substring(phone.length - 3)}`;
+    }
+    return '***';
   };
 
   if (!isOpen) return null;
@@ -288,9 +361,6 @@ export function ModalConfirmResetPassword({
           )}
 
           {/* ===================== ÉTAPE 2 : SUCCÈS — MDP AFFICHÉ ===================== */}
-          {/* TODO V2: Bouton "Envoyer par WhatsApp" qui appellera whatsAppMessageService.sendNewPassword(telephone, login, password)
-              après livraison du template fayclick_password_reset par ICELABSOFT.
-              Voir docs/memo-icelabsoft-templates-whatsapp-2026-04-30.md */}
           {step === 'success' && (
             <>
               {/* Header vert — PAS de bouton X (fermeture forcée via "Fermer") */}
@@ -347,8 +417,52 @@ export function ModalConfirmResetPassword({
                       Ce mot de passe ne sera plus jamais affiché.
                     </span>{' '}
                     Transmettez-le immédiatement à l&apos;utilisateur (par
-                    téléphone, en personne, ou via WhatsApp si disponible).
+                    téléphone, en personne, ou via WhatsApp).
                   </p>
+                </div>
+
+                {/* Bouton WhatsApp */}
+                <div>
+                  <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-2">
+                    Transmission par WhatsApp
+                  </p>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleSendWhatsApp();
+                    }}
+                    disabled={sendingWhatsApp || !telephone || !newPassword}
+                    className="w-full py-2.5 bg-green-600 hover:bg-green-700 disabled:bg-gray-700 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+                    title={
+                      !telephone
+                        ? 'Aucun numéro disponible pour cet utilisateur'
+                        : whatsAppSent
+                          ? 'Renvoyer par WhatsApp'
+                          : 'Envoyer le nouveau mot de passe par WhatsApp'
+                    }
+                  >
+                    {sendingWhatsApp ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span>Envoi WhatsApp...</span>
+                      </>
+                    ) : whatsAppSent ? (
+                      <>
+                        <CheckCircle className="w-4 h-4" />
+                        <span>Renvoyer par WhatsApp</span>
+                      </>
+                    ) : (
+                      <>
+                        <MessageCircle className="w-4 h-4" />
+                        <span>Envoyer par WhatsApp</span>
+                      </>
+                    )}
+                  </button>
+                  {!telephone && (
+                    <p className="text-xs text-gray-500 mt-1.5 italic">
+                      Aucun numéro de téléphone enregistré pour cet utilisateur
+                    </p>
+                  )}
                 </div>
 
                 {/* Info pwd_changed */}
@@ -367,7 +481,8 @@ export function ModalConfirmResetPassword({
                     e.stopPropagation();
                     handleClose();
                   }}
-                  className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-medium transition-colors"
+                  disabled={sendingWhatsApp}
+                  className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Fermer
                 </button>
