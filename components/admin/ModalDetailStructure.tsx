@@ -23,7 +23,9 @@ import {
   Clock,
   CheckCircle,
   AlertCircle,
-  Loader2
+  Loader2,
+  Edit,
+  Settings
 } from 'lucide-react';
 import adminService from '@/services/admin.service';
 import {
@@ -33,6 +35,8 @@ import {
   StatutAbonnement,
   TypeAbonnement
 } from '@/types/admin.types';
+import ModalEditStructure from './ModalEditStructure';
+import ModalEditParamStructure from './ModalEditParamStructure';
 
 type TabType = 'infos' | 'abonnement' | 'stats';
 
@@ -51,6 +55,10 @@ export function ModalDetailStructure({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [structure, setStructure] = useState<StructureDetailData | null>(null);
+
+  // Sous-modals (US-1, US-2)
+  const [editStructureOpen, setEditStructureOpen] = useState(false);
+  const [editParamOpen, setEditParamOpen] = useState(false);
 
   // Charger les données de la structure
   useEffect(() => {
@@ -505,17 +513,67 @@ export function ModalDetailStructure({
             )}
           </div>
 
-          {/* Footer */}
-          <div className="p-4 border-t border-gray-700/50">
+          {/* Footer avec actions admin (US-1 & US-2) */}
+          <div className="p-3 border-t border-gray-700/50 space-y-2">
+            {/* Boutons d'édition (visibles uniquement si structure chargée) */}
+            {structure && !loading && !error && (
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setEditStructureOpen(true);
+                  }}
+                  className="flex items-center justify-center gap-1.5 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-medium transition-colors"
+                >
+                  <Edit className="w-4 h-4" />
+                  <span>Modifier la fiche</span>
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setEditParamOpen(true);
+                  }}
+                  className="flex items-center justify-center gap-1.5 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg text-sm font-medium transition-colors"
+                >
+                  <Settings className="w-4 h-4" />
+                  <span>Paramètres</span>
+                </button>
+              </div>
+            )}
             <button
-              onClick={handleClose}
-              className="w-full py-2.5 bg-gray-700 hover:bg-gray-600 text-white rounded-lg font-medium transition-colors"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleClose();
+              }}
+              className="w-full py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg text-sm font-medium transition-colors"
             >
               Fermer
             </button>
           </div>
         </motion.div>
       </motion.div>
+
+      {/* Sous-modal : Modifier la fiche structure (US-1) */}
+      <ModalEditStructure
+        isOpen={editStructureOpen}
+        onClose={() => setEditStructureOpen(false)}
+        idStructure={idStructure}
+        onSaved={() => {
+          loadStructureDetails();
+          setEditStructureOpen(false);
+        }}
+      />
+
+      {/* Sous-modal : Paramètres admin (US-2) */}
+      <ModalEditParamStructure
+        isOpen={editParamOpen}
+        onClose={() => setEditParamOpen(false)}
+        idStructure={idStructure}
+        onSaved={() => {
+          loadStructureDetails();
+          setEditParamOpen(false);
+        }}
+      />
     </AnimatePresence>
   );
 }
