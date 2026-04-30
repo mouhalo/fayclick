@@ -523,6 +523,9 @@ export interface AdminAllUtilisateursParams {
   actif?: boolean;
   order_by?: 'createdat' | 'username' | 'login' | 'structure';
   order_dir?: 'ASC' | 'DESC';
+  // Filtres admin avancés (PRD admin-gestion-structures — US-6)
+  search_structure?: string;   // Recherche LIKE sur nom_structure
+  search_telephone?: string;   // Recherche stricte (=) sur telephone (9 chiffres SN)
 }
 
 export interface AdminDetailUtilisateurResponse {
@@ -788,4 +791,160 @@ export interface StructureDetailData {
 export interface GetUneStructureResponse {
   success: boolean;
   data: StructureDetailData;
+}
+
+// ========================================
+// Types Admin — Gestion avancée des structures
+// PRD: docs/prd-admin-gestion-structures-2026-04-30.md
+// Branche: feature/admin-gestion-structures
+// ========================================
+
+// --- US-1 — Modifier la fiche d'une structure -----------------
+
+/**
+ * Paramètres pour modifier la fiche d'une structure (admin).
+ * Seuls les 3 champs autorisés par le PRD § 3.1 sont éditables.
+ * id_type, mobile_om, mobile_wave, email, adresse, logo, code_structure
+ * sont volontairement NON inclus (immuables côté admin).
+ */
+export interface EditStructureParams {
+  id_structure: number;
+  nom_structure: string;
+  numautorisatioon?: string;
+  id_localite: number;
+  id_admin: number; // Pour log_admin_action
+}
+
+export interface EditStructureResponse {
+  success: boolean;
+  message: string;
+  data?: {
+    id_structure: number;
+    nom_structure: string;
+    numautorisatioon?: string;
+    id_localite: number;
+  };
+}
+
+// --- US-2 — Modifier les paramètres admin d'une structure -----
+
+/**
+ * Paramètres `param_structure` modifiables UNIQUEMENT par l'admin.
+ * Distinct du sous-ensemble géré par Settings côté structure
+ * (credit_autorise, limite_credit, acompte_autorise, prix_engros, etc.).
+ * Cf. PRD § 3.2 et § 4.6.
+ */
+export interface EditParamStructureAdminParams {
+  nombre_produit_max?: number;   // min 0, max 99999
+  nombre_caisse_max?: number;    // min 1, max 99
+  compte_prive?: boolean;        // débloque mensualite si true
+  mensualite?: number;           // FCFA, éditable si compte_prive=true
+  taux_wallet?: number;          // %, ex: 1.5
+  live_autorise?: boolean;       // active live shopping
+}
+
+// --- US-3 — Suppression définitive d'une structure ------------
+
+export interface DeleteStructureParams {
+  id_structure: number;
+  id_admin: number;
+}
+
+export interface DeleteStructureResponse {
+  success: boolean;
+  message: string;
+  nb_factures_supprimees?: number;
+  nb_users_supprimes?: number;
+}
+
+// --- US-4 — Offrir un abonnement gratuit ----------------------
+
+export interface OffrirAbonnementParams {
+  id_structure: number;
+  nb_jours: number;     // 1-730 (cf. PRD § 4.5)
+  motif: string;        // requis, min 10 caractères
+  id_admin: number;
+}
+
+export interface OffrirAbonnementResponse {
+  success: boolean;
+  message?: string;
+  data?: {
+    id_abonnement: number;
+    date_debut: string;   // YYYY-MM-DD
+    date_fin: string;     // YYYY-MM-DD
+  };
+}
+
+// --- US-5 — Ajuster la mensualité d'une structure -------------
+
+export interface AjusterMensualiteParams {
+  id_structure: number;
+  nouvelle_mensualite: number; // FCFA, min 0, max 999999
+  motif: string;               // requis, min 10 caractères
+  id_admin: number;
+}
+
+export interface AjusterMensualiteResponse {
+  success: boolean;
+  message: string;
+  data?: {
+    id_structure: number;
+    ancienne_mensualite?: number;
+    nouvelle_mensualite: number;
+  };
+}
+
+// --- US-7 — Reset mot de passe utilisateur --------------------
+
+export interface ResetUserPasswordParams {
+  id_utilisateur: number;
+  id_admin: number;
+}
+
+export interface ResetUserPasswordResponse {
+  success: boolean;
+  message: string;
+  /**
+   * Nouveau mot de passe en clair retourné par `reset_user_password()`.
+   * En V1 affiché dans un popup admin (cf. PRD § 5.2).
+   * V2 envoyé via WhatsApp template `fayclick_password_reset`.
+   */
+  new_password: string;
+}
+
+// --- Audit log : admin_actions_log ----------------------------
+
+export type AdminActionType =
+  | 'DELETE_STRUCTURE'
+  | 'EDIT_STRUCTURE'
+  | 'EDIT_PARAM'
+  | 'OFFRIR_ABONNEMENT'
+  | 'AJUSTER_MENSUALITE'
+  | 'RESET_PASSWORD';
+
+export type AdminActionCibleType =
+  | 'STRUCTURE'
+  | 'UTILISATEUR'
+  | 'ABONNEMENT'
+  | 'PARAM_STRUCTURE';
+
+/**
+ * Modèle de la table `admin_actions_log` (cf. PRD § 4.2).
+ * Snapshot avant/après en JSONB pour reconstitution forensics.
+ */
+export interface AdminActionLog {
+  id_log: number;
+  id_admin: number;
+  username_admin: string;            // snapshot, robuste à la suppression
+  action: AdminActionType;
+  cible_type: AdminActionCibleType;
+  cible_id: number;
+  cible_nom: string | null;          // snapshot nom (structure ou user)
+  ancienne_valeur: Record<string, unknown> | null; // état avant (JSONB)
+  nouvelle_valeur: Record<string, unknown> | null; // état après (JSONB)
+  motif: string | null;              // requis pour OFFRIR_ABONNEMENT et AJUSTER_MENSUALITE
+  ip_address: string | null;
+  user_agent: string | null;
+  tms_create: string;                // ISO timestamp
 }

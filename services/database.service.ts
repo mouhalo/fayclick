@@ -189,6 +189,17 @@ class DatabaseService {
     }
   }
 
+  /**
+   * Édite les paramètres d'une structure dans `param_structure`.
+   * Signature étendue (cf. PRD admin-gestion-structures § 4.6) :
+   * - 9 params existants (Settings côté structure)
+   * - 6 nouveaux params admin : nombre_produit_max, nombre_caisse_max,
+   *   compte_prive, mensualite, taux_wallet, live_autorise
+   *
+   * Tous les params sont optionnels (NULL = non modifié côté PG).
+   * Compatibilité ascendante 100% garantie : les appels existants depuis
+   * Settings n'utilisent que les 9 premiers.
+   */
   async editParamStructure(
     idStructure: number,
     params: {
@@ -201,6 +212,13 @@ class DatabaseService {
       inclure_tva?: boolean;
       taux_tva?: number;
       wallet_paiement?: boolean;
+      // Nouveaux params admin (cf. PRD § 4.6)
+      nombre_produit_max?: number;
+      nombre_caisse_max?: number;
+      compte_prive?: boolean;
+      mensualite?: number;
+      taux_wallet?: number;
+      live_autorise?: boolean;
     }
   ): Promise<{ success: boolean; message: string; data?: Record<string, unknown> }> {
     const args = [
@@ -214,6 +232,13 @@ class DatabaseService {
       params.inclure_tva !== undefined ? params.inclure_tva.toString() : 'NULL',
       params.taux_tva !== undefined ? params.taux_tva.toString() : 'NULL',
       params.wallet_paiement !== undefined ? params.wallet_paiement.toString() : 'NULL',
+      // Nouveaux params admin (positions 11..16 — DEFAULT NULL côté PG)
+      params.nombre_produit_max !== undefined ? params.nombre_produit_max.toString() : 'NULL',
+      params.nombre_caisse_max !== undefined ? params.nombre_caisse_max.toString() : 'NULL',
+      params.compte_prive !== undefined ? params.compte_prive.toString() : 'NULL',
+      params.mensualite !== undefined ? params.mensualite.toString() : 'NULL',
+      params.taux_wallet !== undefined ? params.taux_wallet.toString() : 'NULL',
+      params.live_autorise !== undefined ? params.live_autorise.toString() : 'NULL',
     ];
 
     const query = `SELECT edit_param_structure(${args.join(', ')})`;
