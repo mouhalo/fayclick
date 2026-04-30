@@ -22,7 +22,8 @@ import {
   Eye,
   ArrowUpDown,
   ArrowUp,
-  ArrowDown
+  ArrowDown,
+  KeyRound
 } from 'lucide-react';
 import adminService from '@/services/admin.service';
 import {
@@ -31,6 +32,7 @@ import {
   AdminAllUtilisateursParams,
   AdminReferenceData
 } from '@/types/admin.types';
+import ModalConfirmResetPassword from './ModalConfirmResetPassword';
 
 // ========================================
 // Types locaux
@@ -161,6 +163,9 @@ export default function AdminUsersTab() {
   // Tri colonnes tableau
   const [sortColumn, setSortColumn] = useState<UserSortColumn | null>(null);
   const [sortDirection, setSortDirection] = useState<UserSortDirection>('asc');
+
+  // Modal reset password (Sprint 3 — US-7)
+  const [resetPasswordUser, setResetPasswordUser] = useState<AdminUtilisateur | null>(null);
 
   // Chargement des données de référence
   const loadRefData = useCallback(async () => {
@@ -589,6 +594,7 @@ export default function AdminUsersTab() {
                       {getUserSortIcon('date_creation')}
                     </button>
                   </th>
+                  <th className="p-3 font-medium text-center">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -652,11 +658,41 @@ export default function AdminUsersTab() {
                         {formatDate(user.date_creation)}
                       </div>
                     </td>
+                    <td className="p-3">
+                      {(() => {
+                        const isAdminSystem =
+                          user.is_admin_system === true ||
+                          user.structure?.id_structure === 0;
+                        const tooltip = isAdminSystem
+                          ? 'Action non disponible pour l’admin système'
+                          : 'Réinitialiser le mot de passe';
+                        return (
+                          <div className="flex items-center justify-center">
+                            <button
+                              onClick={() => {
+                                if (isAdminSystem) return;
+                                setResetPasswordUser(user);
+                              }}
+                              disabled={isAdminSystem}
+                              title={tooltip}
+                              aria-label={tooltip}
+                              className={`p-2 rounded-lg transition-colors ${
+                                isAdminSystem
+                                  ? 'bg-gray-700/40 text-gray-600 cursor-not-allowed'
+                                  : 'bg-gray-700 text-gray-300 hover:bg-orange-500 hover:text-white'
+                              }`}
+                            >
+                              <KeyRound className="w-4 h-4" />
+                            </button>
+                          </div>
+                        );
+                      })()}
+                    </td>
                   </tr>
                 ))}
                 {utilisateurs.length === 0 && (
                   <tr>
-                    <td colSpan={5} className="p-8 text-center text-gray-500">
+                    <td colSpan={6} className="p-8 text-center text-gray-500">
                       Aucun utilisateur trouvé
                     </td>
                   </tr>
@@ -773,6 +809,17 @@ export default function AdminUsersTab() {
           )}
         </div>
       </div>
+
+      {/* Modal Reset Password (Sprint 3 — US-7) */}
+      <ModalConfirmResetPassword
+        isOpen={resetPasswordUser !== null}
+        onClose={() => setResetPasswordUser(null)}
+        idUtilisateur={resetPasswordUser?.id ?? null}
+        username={resetPasswordUser?.username ?? ''}
+        login={resetPasswordUser?.login ?? ''}
+        nomStructure={resetPasswordUser?.structure?.nom_structure || 'Système'}
+        telephone={resetPasswordUser?.telephone ?? '-'}
+      />
     </div>
   );
 }
