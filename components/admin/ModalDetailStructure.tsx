@@ -25,7 +25,10 @@ import {
   AlertCircle,
   Loader2,
   Edit,
-  Settings
+  Settings,
+  Gift,
+  DollarSign,
+  Trash2
 } from 'lucide-react';
 import adminService from '@/services/admin.service';
 import {
@@ -37,6 +40,14 @@ import {
 } from '@/types/admin.types';
 import ModalEditStructure from './ModalEditStructure';
 import ModalEditParamStructure from './ModalEditParamStructure';
+import ModalConfirmDeleteStructure from './ModalConfirmDeleteStructure';
+import ModalOffrirAbonnement from './ModalOffrirAbonnement';
+import ModalAjusterMensualite from './ModalAjusterMensualite';
+
+// Type étendu pour accéder à `compte_prive` (plat à la racine via param_structure)
+type StructureWithParams = StructureDetailData & {
+  compte_prive?: boolean;
+};
 
 type TabType = 'infos' | 'abonnement' | 'stats';
 
@@ -44,12 +55,15 @@ interface ModalDetailStructureProps {
   isOpen: boolean;
   onClose: () => void;
   idStructure: number | null;
+  /** Callback exécuté après une suppression réussie (US-3) — typiquement recharge la liste parent */
+  onStructureDeleted?: () => void;
 }
 
 export function ModalDetailStructure({
   isOpen,
   onClose,
-  idStructure
+  idStructure,
+  onStructureDeleted
 }: ModalDetailStructureProps) {
   const [activeTab, setActiveTab] = useState<TabType>('infos');
   const [loading, setLoading] = useState(false);
@@ -59,6 +73,11 @@ export function ModalDetailStructure({
   // Sous-modals (US-1, US-2)
   const [editStructureOpen, setEditStructureOpen] = useState(false);
   const [editParamOpen, setEditParamOpen] = useState(false);
+
+  // Sous-modals (US-3, US-4, US-5)
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  const [offrirAbonnementOpen, setOffrirAbonnementOpen] = useState(false);
+  const [ajusterMensualiteOpen, setAjusterMensualiteOpen] = useState(false);
 
   // Charger les données de la structure
   useEffect(() => {
@@ -434,6 +453,32 @@ export function ModalDetailStructure({
                         </p>
                       )}
                     </div>
+
+                    {/* Actions admin abonnement (US-4 / US-5) */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setOffrirAbonnementOpen(true);
+                        }}
+                        className="flex items-center justify-center gap-1.5 py-2 bg-green-600 hover:bg-green-500 text-white rounded-lg text-sm font-medium transition-colors"
+                      >
+                        <Gift className="w-4 h-4" />
+                        <span>Offrir abonnement</span>
+                      </button>
+                      {(structure as StructureWithParams).compte_prive === true && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setAjusterMensualiteOpen(true);
+                          }}
+                          className="flex items-center justify-center gap-1.5 py-2 bg-orange-600 hover:bg-orange-500 text-white rounded-lg text-sm font-medium transition-colors"
+                        >
+                          <DollarSign className="w-4 h-4" />
+                          <span>Ajuster mensualité</span>
+                        </button>
+                      )}
+                    </div>
                   </div>
                 )}
 
@@ -513,32 +558,48 @@ export function ModalDetailStructure({
             )}
           </div>
 
-          {/* Footer avec actions admin (US-1 & US-2) */}
+          {/* Footer avec actions admin (US-1, US-2, US-3) */}
           <div className="p-3 border-t border-gray-700/50 space-y-2">
             {/* Boutons d'édition (visibles uniquement si structure chargée) */}
             {structure && !loading && !error && (
-              <div className="grid grid-cols-2 gap-2">
+              <>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setEditStructureOpen(true);
+                    }}
+                    className="flex items-center justify-center gap-1.5 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-medium transition-colors"
+                  >
+                    <Edit className="w-4 h-4" />
+                    <span>Modifier la fiche</span>
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setEditParamOpen(true);
+                    }}
+                    className="flex items-center justify-center gap-1.5 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg text-sm font-medium transition-colors"
+                  >
+                    <Settings className="w-4 h-4" />
+                    <span>Paramètres</span>
+                  </button>
+                </div>
+                {/* Bouton Supprimer (US-3) — désactivé pour la structure système (id=0) */}
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    setEditStructureOpen(true);
+                    if (idStructure === 0) return;
+                    setConfirmDeleteOpen(true);
                   }}
-                  className="flex items-center justify-center gap-1.5 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-medium transition-colors"
+                  disabled={idStructure === 0}
+                  className="w-full flex items-center justify-center gap-1.5 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  title={idStructure === 0 ? 'Suppression interdite pour la structure système' : 'Supprimer définitivement la structure'}
                 >
-                  <Edit className="w-4 h-4" />
-                  <span>Modifier la fiche</span>
+                  <Trash2 className="w-4 h-4" />
+                  <span>Supprimer la structure</span>
                 </button>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setEditParamOpen(true);
-                  }}
-                  className="flex items-center justify-center gap-1.5 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg text-sm font-medium transition-colors"
-                >
-                  <Settings className="w-4 h-4" />
-                  <span>Paramètres</span>
-                </button>
-              </div>
+              </>
             )}
             <button
               onClick={(e) => {
@@ -572,6 +633,42 @@ export function ModalDetailStructure({
         onSaved={() => {
           loadStructureDetails();
           setEditParamOpen(false);
+        }}
+      />
+
+      {/* Sous-modal : Suppression définitive (US-3) */}
+      <ModalConfirmDeleteStructure
+        isOpen={confirmDeleteOpen}
+        onClose={() => setConfirmDeleteOpen(false)}
+        idStructure={idStructure}
+        onDeleted={() => {
+          // 1. Fermer le sous-modal et le modal principal
+          setConfirmDeleteOpen(false);
+          handleClose();
+          // 2. Notifier le parent pour rafraîchir la liste des structures
+          if (onStructureDeleted) onStructureDeleted();
+        }}
+      />
+
+      {/* Sous-modal : Offrir abonnement (US-4) */}
+      <ModalOffrirAbonnement
+        isOpen={offrirAbonnementOpen}
+        onClose={() => setOffrirAbonnementOpen(false)}
+        idStructure={idStructure}
+        onSaved={() => {
+          loadStructureDetails();
+          setOffrirAbonnementOpen(false);
+        }}
+      />
+
+      {/* Sous-modal : Ajuster mensualité (US-5) */}
+      <ModalAjusterMensualite
+        isOpen={ajusterMensualiteOpen}
+        onClose={() => setAjusterMensualiteOpen(false)}
+        idStructure={idStructure}
+        onSaved={() => {
+          loadStructureDetails();
+          setAjusterMensualiteOpen(false);
         }}
       />
     </AnimatePresence>

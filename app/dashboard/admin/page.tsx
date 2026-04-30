@@ -1185,6 +1185,10 @@ export default function AdminDashboard() {
           setSelectedStructureId(null);
         }}
         idStructure={selectedStructureId}
+        onStructureDeleted={() => {
+          // Rafraîchir la liste après suppression (US-3)
+          loadStructures();
+        }}
       />
     </div>
   );
