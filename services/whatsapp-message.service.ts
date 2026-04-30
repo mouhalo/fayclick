@@ -182,11 +182,18 @@ class WhatsAppMessageService {
     if (!corps || !corps.trim()) {
       throw new Error('WhatsApp: corps requis pour fayclick_admin_message');
     }
+    // ⚠️ Meta refuse les newlines, tabs et 4+ espaces dans les variables (#132018).
+    // Sanitize : remplace tout caractère de mise en forme par un espace, puis collapse.
+    const sanitize = (txt: string) =>
+      txt
+        .replace(/[\r\n\t]+/g, ' ')
+        .replace(/ {4,}/g, ' ')
+        .trim();
     return this.sendMessage({
       telephone,
       template: 'fayclick_admin_message',
       langue,
-      variables: [sujet.trim(), corps.trim()],
+      variables: [sanitize(sujet), sanitize(corps)],
     });
   }
 
@@ -223,10 +230,12 @@ class WhatsAppMessageService {
         ? 'Réinitialisation mot de passe FayClick'
         : 'FayClick password reset';
 
+    // ⚠️ Meta interdit les newlines (\n) dans les variables de template
+    // (erreur 132018 "issue with the parameters"). On utilise des séparateurs " — " à la place.
     const corps =
       langue === 'fr'
-        ? `Bonjour, votre mot de passe FayClick a été réinitialisé par l'équipe administrative.\n\nLogin : ${login}\nNouveau mot de passe : ${newPassword}\n\nConnectez-vous immédiatement et changez ce mot de passe depuis vos paramètres.`
-        : `Hello, your FayClick password has been reset by the admin team.\n\nLogin: ${login}\nNew password: ${newPassword}\n\nPlease log in immediately and change this password from your settings.`;
+        ? `Votre mot de passe FayClick a été réinitialisé par l'équipe administrative. Login : ${login} — Nouveau mot de passe : ${newPassword} — Connectez-vous immédiatement et changez ce mot de passe depuis vos paramètres.`
+        : `Your FayClick password has been reset by the admin team. Login: ${login} — New password: ${newPassword} — Please log in immediately and change this password from your settings.`;
 
     return this.sendAdminMessage(telephone, sujet, corps, langue);
   }
