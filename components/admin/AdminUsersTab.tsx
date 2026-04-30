@@ -143,13 +143,20 @@ export default function AdminUsersTab() {
   const [total, setTotal] = useState(0);
   const ITEMS_PER_PAGE = 15;
 
-  // Filtres
+  // Filtres (inputs utilisateur)
   const [showFilters, setShowFilters] = useState(false);
   const [search, setSearch] = useState('');
+  const [searchStructure, setSearchStructure] = useState('');
+  const [searchTelephone, setSearchTelephone] = useState('');
   const [filterGroupe, setFilterGroupe] = useState<number | undefined>();
   const [filterProfil, setFilterProfil] = useState<number | undefined>();
   const [filterActif, setFilterActif] = useState<boolean | undefined>();
   const [orderBy, setOrderBy] = useState<'createdat' | 'username' | 'login' | 'structure'>('createdat');
+
+  // Valeurs debouncées (500ms) pour éviter de spammer l'API
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [debouncedSearchStructure, setDebouncedSearchStructure] = useState('');
+  const [debouncedSearchTelephone, setDebouncedSearchTelephone] = useState('');
 
   // Tri colonnes tableau
   const [sortColumn, setSortColumn] = useState<UserSortColumn | null>(null);
@@ -180,7 +187,9 @@ export default function AdminUsersTab() {
         order_dir: 'DESC'
       };
 
-      if (search) params.search = search;
+      if (debouncedSearch) params.search = debouncedSearch;
+      if (debouncedSearchStructure) params.search_structure = debouncedSearchStructure;
+      if (debouncedSearchTelephone) params.search_telephone = debouncedSearchTelephone;
       if (filterGroupe !== undefined) params.id_groupe = filterGroupe;
       if (filterProfil !== undefined) params.id_profil = filterProfil;
       if (filterActif !== undefined) params.actif = filterActif;
@@ -201,7 +210,16 @@ export default function AdminUsersTab() {
     } finally {
       setLoading(false);
     }
-  }, [page, search, filterGroupe, filterProfil, filterActif, orderBy]);
+  }, [
+    page,
+    debouncedSearch,
+    debouncedSearchStructure,
+    debouncedSearchTelephone,
+    filterGroupe,
+    filterProfil,
+    filterActif,
+    orderBy
+  ]);
 
   // Chargement initial
   useEffect(() => {
@@ -212,10 +230,39 @@ export default function AdminUsersTab() {
     loadUtilisateurs();
   }, [loadUtilisateurs]);
 
-  // Reset page quand les filtres changent
+  // Debounce des 3 inputs de recherche (500ms)
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(search.trim()), 500);
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  useEffect(() => {
+    const timer = setTimeout(
+      () => setDebouncedSearchStructure(searchStructure.trim()),
+      500
+    );
+    return () => clearTimeout(timer);
+  }, [searchStructure]);
+
+  useEffect(() => {
+    const timer = setTimeout(
+      () => setDebouncedSearchTelephone(searchTelephone.trim()),
+      500
+    );
+    return () => clearTimeout(timer);
+  }, [searchTelephone]);
+
+  // Reset page quand les filtres effectifs changent
   useEffect(() => {
     setPage(1);
-  }, [search, filterGroupe, filterProfil, filterActif]);
+  }, [
+    debouncedSearch,
+    debouncedSearchStructure,
+    debouncedSearchTelephone,
+    filterGroupe,
+    filterProfil,
+    filterActif
+  ]);
 
   // Formatage date
   const formatDate = (dateStr: string) => {
@@ -378,16 +425,51 @@ export default function AdminUsersTab() {
           animate={{ opacity: 1, height: 'auto' }}
           className="flex flex-wrap gap-3 p-4 bg-gray-800/50 rounded-lg border border-gray-700"
         >
-          {/* Recherche */}
+          {/* Recherche utilisateur */}
           <div className="flex-1 min-w-[200px]">
-            <label className="block text-xs text-gray-400 mb-1">Recherche</label>
+            <label className="block text-xs text-gray-400 mb-1">
+              Recherche utilisateur
+            </label>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <input
                 type="text"
-                placeholder="Nom, login, téléphone..."
+                placeholder="Nom utilisateur, login..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 text-sm focus:outline-none focus:border-blue-500"
+              />
+            </div>
+          </div>
+
+          {/* Recherche par structure */}
+          <div className="flex-1 min-w-[180px]">
+            <label className="block text-xs text-gray-400 mb-1">Structure</label>
+            <div className="relative">
+              <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Nom structure..."
+                value={searchStructure}
+                onChange={(e) => setSearchStructure(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 text-sm focus:outline-none focus:border-blue-500"
+              />
+            </div>
+          </div>
+
+          {/* Recherche par téléphone (exact) */}
+          <div className="min-w-[160px]">
+            <label className="block text-xs text-gray-400 mb-1">
+              Téléphone (exact)
+            </label>
+            <div className="relative">
+              <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                type="tel"
+                inputMode="numeric"
+                placeholder="771234567"
+                value={searchTelephone}
+                onChange={(e) => setSearchTelephone(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 text-sm focus:outline-none focus:border-blue-500"
               />
             </div>
