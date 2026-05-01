@@ -86,7 +86,11 @@ export function ModalConfirmResetPassword({
    * - Reset complet du state (notamment le MDP) avant de notifier le parent
    */
   const handleClose = () => {
-    if (resetting || sendingWhatsApp) return;
+    // Bloquer uniquement pendant l'appel API du reset (étape 1).
+    // En étape 2, le bouton "Fermer" doit toujours être actif : si un envoi
+    // WhatsApp est en cours, le user peut fermer (la requête fetch peut finir
+    // en arrière-plan, le state local est déjà nettoyé).
+    if (resetting) return;
     setNewPassword(''); // ⚠️ Critique : MDP retiré du state immédiatement
     setStep('confirm');
     setResetting(false);
@@ -474,15 +478,14 @@ export function ModalConfirmResetPassword({
                 </div>
               </div>
 
-              {/* Footer — UNIQUEMENT le bouton Fermer */}
+              {/* Footer — bouton Fermer TOUJOURS actif en étape 2 */}
               <div className="p-4 border-t border-gray-700/50">
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
                     handleClose();
                   }}
-                  disabled={sendingWhatsApp}
-                  className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-medium transition-colors"
                 >
                   Fermer
                 </button>
