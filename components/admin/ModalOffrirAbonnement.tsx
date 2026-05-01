@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import adminService from '@/services/admin.service';
+import whatsAppMessageService from '@/services/whatsapp-message.service';
 import { useAuth } from '@/contexts/AuthContext';
 import SecurityService from '@/services/security.service';
 
@@ -73,7 +74,14 @@ export function ModalOffrirAbonnement({
   const [motif, setMotif] = useState('');
   const [saving, setSaving] = useState(false);
 
-  // Reset à l'ouverture
+  // Infos structure pour notification WhatsApp post-succès (best-effort, non bloquant)
+  const [structureInfo, setStructureInfo] = useState<{
+    nom: string;
+    mobileOm: string;
+    mobileWave: string;
+  } | null>(null);
+
+  // Reset à l'ouverture + précharge des infos structure pour notification
   useEffect(() => {
     if (isOpen) {
       setSelectedDuree(30);
@@ -81,8 +89,31 @@ export function ModalOffrirAbonnement({
       setDureePerso(30);
       setMotif('');
       setSaving(false);
+      setStructureInfo(null);
+
+      if (idStructure) {
+        adminService
+          .getUneStructure(idStructure)
+          .then((res) => {
+            if (res.success && res.data) {
+              setStructureInfo({
+                nom: res.data.nom_structure || '',
+                mobileOm: (res.data.mobile_om || '').trim(),
+                mobileWave: (res.data.mobile_wave || '').trim(),
+              });
+            }
+          })
+          .catch((err) => {
+            // Pré-chargement best-effort : si échec, l'envoi WhatsApp post-save sera juste skippé
+            SecurityService.secureLog(
+              'warn',
+              '[ModalOffrirAbonnement] préchargement structure échoué',
+              err
+            );
+          });
+      }
     }
-  }, [isOpen]);
+  }, [isOpen, idStructure]);
 
   const handleClose = () => {
     if (saving) return;
@@ -168,6 +199,43 @@ export function ModalOffrirAbonnement({
           }
         }
         toast.success(msg);
+
+        // ===== Notification WhatsApp BEST-EFFORT (non bloquant) =====
+        // L'admin a offert un abonnement → on prévient la structure via WhatsApp.
+        // En cas d'échec : toast warning séparé, l'offre reste validée.
+        const phoneToNotify =
+          structureInfo?.mobileOm || structureInfo?.mobileWave || '';
+        const nomStructure = structureInfo?.nom || '';
+
+        if (phoneToNotify && nomStructure && dateFinSrv) {
+          try {
+            const wa = await whatsAppMessageService.sendSubscriptionOfferedNotification(
+              phoneToNotify,
+              nomStructure,
+              nbJoursEffectif,
+              dateFinSrv
+            );
+            if (wa.success) {
+              toast.success('Notification WhatsApp envoyée à la structure');
+            } else {
+              toast.warning(
+                `WhatsApp non envoyé : ${wa.message || wa.error_code || 'erreur'}`
+              );
+            }
+          } catch (waErr) {
+            SecurityService.secureLog(
+              'warn',
+              '[ModalOffrirAbonnement] WhatsApp offre abo échec',
+              waErr
+            );
+            toast.warning('WhatsApp non envoyé (réseau)');
+          }
+        } else if (!phoneToNotify) {
+          toast.warning(
+            'Aucun numéro WhatsApp configuré pour cette structure'
+          );
+        }
+
         if (onSaved) onSaved();
         handleClose();
       } else {

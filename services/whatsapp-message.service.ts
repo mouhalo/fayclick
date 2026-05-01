@@ -241,6 +241,52 @@ class WhatsAppMessageService {
   }
 
   /**
+   * Helper spécialisé : notification d'abonnement offert via `fayclick_subscription_offered`.
+   *
+   * Variables Meta :
+   *  - {{1}} = nom_structure
+   *  - {{2}} = nb_jours
+   *  - {{3}} = date_fin (formatée DD/MM/YYYY si reçue en ISO)
+   *
+   * @param telephone - Numéro destinataire (mobile_om / mobile_wave de la structure)
+   * @param nomStructure - Nom de la structure bénéficiaire
+   * @param nbJours - Nombre de jours offerts (> 0)
+   * @param dateFin - Date de fin (ISO YYYY-MM-DD ou DD/MM/YYYY)
+   * @param langue - 'fr' (défaut) ou 'en'
+   */
+  async sendSubscriptionOfferedNotification(
+    telephone: string,
+    nomStructure: string,
+    nbJours: number,
+    dateFin: string,
+    langue: WhatsAppLang = 'fr'
+  ): Promise<SendMessageResponse> {
+    if (!nomStructure || !nomStructure.trim()) {
+      throw new Error('WhatsApp: nom de structure requis');
+    }
+    if (!Number.isFinite(nbJours) || nbJours <= 0) {
+      throw new Error('WhatsApp: nombre de jours invalide');
+    }
+    if (!dateFin || !dateFin.trim()) {
+      throw new Error('WhatsApp: date de fin requise');
+    }
+
+    // Convertit YYYY-MM-DD → DD/MM/YYYY pour affichage humain.
+    const formatDate = (d: string): string => {
+      const iso = d.match(/^(\d{4})-(\d{2})-(\d{2})/);
+      if (iso) return `${iso[3]}/${iso[2]}/${iso[1]}`;
+      return d.trim();
+    };
+
+    return this.sendMessage({
+      telephone,
+      template: 'fayclick_subscription_offered',
+      langue,
+      variables: [nomStructure.trim(), String(nbJours), formatDate(dateFin)],
+    });
+  }
+
+  /**
    * Indique si une réponse WhatsApp en échec doit déclencher un fallback
    * (SMS, email, ou affichage manuel à l'admin).
    */
