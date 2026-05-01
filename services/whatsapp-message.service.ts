@@ -287,6 +287,64 @@ class WhatsAppMessageService {
   }
 
   /**
+   * Helper spécialisé : notification d'achat confirmé au marchand via
+   * `achat_confirme_ok` (FR) / `payment_confirmed` (EN).
+   *
+   * Variables Meta :
+   *  - {{1}} = numéro client (téléphone payeur)
+   *  - {{2}} = montant formaté (ex: "1500 FCFA")
+   *  - {{3}} = mode de paiement libellé (ex: "Orange Money", "Wave", "Free Money")
+   *  - {{4}} = URL facture publique (Meta extrait automatiquement le suffixe
+   *           `?token=...` pour le bouton "Facture")
+   *
+   * @param telephoneMarchand - Numéro WhatsApp du marchand (mobile_om / mobile_wave)
+   * @param numeroClient - Téléphone du client payeur (affiché dans le message)
+   * @param montant - Montant payé (sera formaté en "X XXX FCFA")
+   * @param modePaiement - 'OM' / 'WAVE' / 'FREE' / 'CASH' / autre — converti en libellé humain
+   * @param factureUrl - URL complète de la facture publique (avec ?token=...)
+   * @param langue - 'fr' (défaut, template `achat_confirme_ok`) ou 'en' (`payment_confirmed`)
+   */
+  async sendPurchaseConfirmedNotification(
+    telephoneMarchand: string,
+    numeroClient: string,
+    montant: number,
+    modePaiement: string,
+    factureUrl: string,
+    langue: WhatsAppLang = 'fr'
+  ): Promise<SendMessageResponse> {
+    if (!numeroClient || !numeroClient.trim()) {
+      throw new Error('WhatsApp: numéro client requis');
+    }
+    if (!Number.isFinite(montant) || montant <= 0) {
+      throw new Error('WhatsApp: montant invalide');
+    }
+    if (!factureUrl || !factureUrl.trim()) {
+      throw new Error('WhatsApp: URL facture requise');
+    }
+
+    // Mapping code interne → libellé humain (FR + EN). Conserve le code original
+    // s'il n'est pas reconnu plutôt que de planter.
+    const modeMap: Record<string, { fr: string; en: string }> = {
+      OM: { fr: 'Orange Money', en: 'Orange Money' },
+      WAVE: { fr: 'Wave', en: 'Wave' },
+      FREE: { fr: 'Free Money', en: 'Free Money' },
+      CASH: { fr: 'Espèces', en: 'Cash' },
+    };
+    const codeUpper = (modePaiement || '').toUpperCase();
+    const modeLabel = modeMap[codeUpper]?.[langue] ?? modePaiement;
+
+    // Format montant en français : "1 500 FCFA"
+    const montantStr = `${Math.round(montant).toLocaleString('fr-FR')} FCFA`;
+
+    return this.sendMessage({
+      telephone: telephoneMarchand,
+      template: langue === 'en' ? 'payment_confirmed' : 'achat_confirme_ok',
+      langue,
+      variables: [numeroClient.trim(), montantStr, modeLabel, factureUrl.trim()],
+    });
+  }
+
+  /**
    * Indique si une réponse WhatsApp en échec doit déclencher un fallback
    * (SMS, email, ou affichage manuel à l'admin).
    */
