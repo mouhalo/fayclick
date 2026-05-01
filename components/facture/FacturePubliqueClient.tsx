@@ -20,7 +20,7 @@ import {
   HelpCircle
 } from 'lucide-react';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
-import { decodeFactureParams } from '@/lib/url-encoder';
+import { decodeFactureParams, encodeFactureParams } from '@/lib/url-encoder';
 import { facturePubliqueService } from '@/services/facture-publique.service';
 import { recuService } from '@/services/recu.service';
 import cataloguePublicService from '@/services/catalogue-public.service';
@@ -178,6 +178,15 @@ export default function FacturePubliqueClient({ token }: FacturePubliqueClientPr
   const createPaymentContext = (): PaymentContext | null => {
     if (!facture) return null;
 
+    // Construire purl_success vers la page reçu (cohérence avec /produit
+    // et /catalogue qui passent ce param au service de paiement).
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://v2.fayclick.net';
+    const recuToken = encodeFactureParams(
+      facture.facture.id_structure,
+      facture.facture.id_facture
+    );
+    const purlSuccess = `${baseUrl}/recu?token=${recuToken}`;
+
     return {
       facture: {
         id_facture: facture.facture.id_facture,
@@ -187,7 +196,8 @@ export default function FacturePubliqueClient({ token }: FacturePubliqueClientPr
         montant_total: facture.facture.montant,
         montant_restant: facture.facture.mt_restant
       },
-      montant_acompte: facture.facture.mt_restant // Paiement du montant restant
+      montant_acompte: facture.facture.mt_restant, // Paiement du montant restant
+      purl_success: purlSuccess
     };
   };
 
