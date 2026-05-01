@@ -94,6 +94,23 @@ export default function FacturePubliqueClient({ token }: FacturePubliqueClientPr
         logo_length: typedFactureData.facture.logo?.length
       });
 
+      // Si la facture est déjà payée, rediriger immédiatement vers le reçu.
+      // Cas d'usage : marchand qui clique sur le bouton "Facture" dans la
+      // notification WhatsApp achat_confirme_ok (Meta exige une URL /facture
+      // dans le template, mais le marchand veut voir le reçu généré).
+      const isPaid =
+        typedFactureData.facture.id_etat !== 1 ||
+        typedFactureData.facture.mt_restant === 0;
+      if (isPaid) {
+        const recuUrl = recuService.generateUrlPartage(
+          typedFactureData.facture.id_structure,
+          typedFactureData.facture.id_facture
+        );
+        console.log('✅ [FACTURE-PUBLIQUE] Facture déjà payée, redirection vers reçu:', recuUrl);
+        window.location.replace(recuUrl);
+        return;
+      }
+
     } catch (err: unknown) {
       console.error('Erreur lors du chargement de la facture:', err);
       setError(err instanceof Error ? err.message : t('errorGeneric'));
@@ -248,12 +265,18 @@ export default function FacturePubliqueClient({ token }: FacturePubliqueClientPr
           );
           const phoneMarchand = contact?.mobile_om || contact?.mobile_wave;
           if (phoneMarchand && telephone) {
+            // ⚠️ Template Meta exige https://fayclick.com/facture (whitelist).
+            // La page /facture redirige auto vers /recu si payée.
+            const factureUrl = recuService.generateUrlFactureCanonique(
+              facture.facture.id_structure,
+              facture.facture.id_facture
+            );
             await whatsAppMessageService.sendPurchaseConfirmedNotification(
               phoneMarchand,
               telephone,
               facture.facture.mt_restant,
               selectedPaymentMethod || 'OM',
-              recuUrl
+              factureUrl
             );
           }
         } catch (waErr) {

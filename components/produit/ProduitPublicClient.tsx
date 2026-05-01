@@ -237,7 +237,13 @@ export default function ProduitPublicClient({ token }: ProduitPublicClientProps)
           const contact = await cataloguePublicService.getStructureContact(idStructure);
           const phoneMarchand = contact?.mobile_om || contact?.mobile_wave;
           if (phoneMarchand && telephone) {
-            const factureUrl = recuService.generateUrlPartage(idStructure, draftContext.id_facture);
+            // ⚠️ Template Meta achat_confirme_ok exige https://fayclick.com/facture
+            // (whitelist URL du bouton). La page /facture redirige automatiquement
+            // vers /recu si la facture est payée.
+            const factureUrl = recuService.generateUrlFactureCanonique(
+              idStructure,
+              draftContext.id_facture
+            );
             await whatsAppMessageService.sendPurchaseConfirmedNotification(
               phoneMarchand,
               telephone,

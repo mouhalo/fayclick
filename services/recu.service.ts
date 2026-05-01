@@ -427,6 +427,28 @@ class RecuService {
   }
 
   /**
+   * Génère l'URL canonique de facture publique à utiliser dans les notifications
+   * WhatsApp (template `achat_confirme_ok`).
+   *
+   * ⚠️ Le template Meta exige une URL commençant exactement par
+   * `https://fayclick.com/facture` (whitelist URL du bouton). Toute autre
+   * variante (`v2.fayclick.net`, `localhost`, `/recu`, etc.) est rejetée par
+   * Meta avec HTTP 400 INVALID_REQUEST.
+   *
+   * Comportement utilisateur final : la page `/facture?token=...` détecte
+   * automatiquement si la facture est payée et redirige vers `/recu?token=...`
+   * → le marchand arrive bien sur le reçu en cliquant le bouton WhatsApp.
+   *
+   * @param idStructure - ID de la structure
+   * @param idFacture - ID de la facture
+   * @returns URL canonique fixe (production), indépendante de window.location
+   */
+  generateUrlFactureCanonique(idStructure: number, idFacture: number): string {
+    const params = btoa(`${idStructure}:${idFacture}`);
+    return `https://fayclick.com/facture?token=${params}`;
+  }
+
+  /**
    * Statistiques des reçus pour une structure
    */
   async getStatistiquesRecus(idStructure: number, periode: string = '30'): Promise<{
