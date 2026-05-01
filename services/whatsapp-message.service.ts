@@ -294,14 +294,18 @@ class WhatsAppMessageService {
    *  - {{1}} = numéro client (téléphone payeur)
    *  - {{2}} = montant formaté (ex: "1500 FCFA")
    *  - {{3}} = mode de paiement libellé (ex: "Orange Money", "Wave", "Free Money")
-   *  - {{4}} = URL facture publique (Meta extrait automatiquement le suffixe
-   *           `?token=...` pour le bouton "Facture")
+   *  - {{4}} = TEXTE D'INVITATION uniquement ("Cliquer sur le bouton facture.")
+   *           — l'URL réelle du bouton est passée via `button_url_param`,
+   *           plus joli côté UX (pas d'URL en clair dans le body).
+   *
+   * Le bouton "Facture" du template Meta utilise le `button_url_param` pour
+   * construire `https://fayclick.com/facture` + suffixe (ex: `?token=...`).
    *
    * @param telephoneMarchand - Numéro WhatsApp du marchand (mobile_om / mobile_wave)
    * @param numeroClient - Téléphone du client payeur (affiché dans le message)
    * @param montant - Montant payé (sera formaté en "X XXX FCFA")
    * @param modePaiement - 'OM' / 'WAVE' / 'FREE' / 'CASH' / autre — converti en libellé humain
-   * @param factureUrl - URL complète de la facture publique (avec ?token=...)
+   * @param factureUrl - URL complète de la facture publique (https://fayclick.com/facture?token=...)
    * @param langue - 'fr' (défaut, template `achat_confirme_ok`) ou 'en' (`payment_confirmed`)
    */
   async sendPurchaseConfirmedNotification(
@@ -336,11 +340,24 @@ class WhatsAppMessageService {
     // Format montant en français : "1 500 FCFA"
     const montantStr = `${Math.round(montant).toLocaleString('fr-FR')} FCFA`;
 
+    // Texte placé en {{4}} à la place de l'URL en clair.
+    const buttonInvitation =
+      langue === 'en'
+        ? 'Click the Invoice button.'
+        : 'Cliquer sur le bouton facture.';
+
+    // Extrait le suffixe `?token=...` (ou tout query string) de l'URL pour
+    // alimenter le button_url_param. Si l'URL n'a pas de query string, on
+    // passe l'URL entière en fallback (l'API ICELABSOFT validera).
+    const queryMatch = factureUrl.match(/\?[^#\s]+/);
+    const buttonUrlParam = queryMatch ? queryMatch[0] : factureUrl.trim();
+
     return this.sendMessage({
       telephone: telephoneMarchand,
       template: langue === 'en' ? 'payment_confirmed' : 'achat_confirme_ok',
       langue,
-      variables: [numeroClient.trim(), montantStr, modeLabel, factureUrl.trim()],
+      variables: [numeroClient.trim(), montantStr, modeLabel, buttonInvitation],
+      button_url_param: buttonUrlParam,
     });
   }
 
