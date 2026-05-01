@@ -14,6 +14,8 @@ import { PaymentContext } from '@/types/payment-wallet';
 import { onlineSellerService } from '@/services/online-seller.service';
 import { recuService } from '@/services/recu.service';
 import { encodeFactureParams } from '@/lib/url-encoder';
+import cataloguePublicService from '@/services/catalogue-public.service';
+import whatsAppMessageService from '@/services/whatsapp-message.service';
 import { useTranslations } from '@/hooks/useTranslations';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { formatCurrency } from '@/lib/format-locale';
@@ -178,6 +180,27 @@ export default function PanierPublic({
 
         const recuUrl = recuService.generateUrlPartage(idStructure, draftContext.id_facture);
         console.log('🔗 [PANIER] Redirection vers reçu:', recuUrl);
+
+        // ===== Notification WhatsApp MARCHAND (best-effort, non bloquant) =====
+        // Template `achat_confirme_ok` : informe le marchand qu'un paiement vient
+        // d'être reçu sur son catalogue public. Utilise mobile_om en priorité.
+        // En cas d'échec : juste un warn console (l'achat est validé pour le client).
+        try {
+          const contact = await cataloguePublicService.getStructureContact(idStructure);
+          const phoneMarchand = contact?.mobile_om || contact?.mobile_wave;
+          if (phoneMarchand && telephone) {
+            await whatsAppMessageService.sendPurchaseConfirmedNotification(
+              phoneMarchand,
+              telephone,
+              payTotal,
+              payMethod,
+              recuUrl
+            );
+          }
+        } catch (waErr) {
+          console.warn('[PANIER-PUBLIC] Notification marchand WhatsApp échec', waErr);
+        }
+
         setTimeout(() => {
           window.location.href = recuUrl;
         }, 3000);

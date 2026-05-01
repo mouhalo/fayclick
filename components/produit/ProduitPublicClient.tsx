@@ -18,6 +18,8 @@ import Image from 'next/image';
 import { decodeProduitParams, encodeFactureParams } from '@/lib/url-encoder';
 import { onlineSellerService, ProduitPublic } from '@/services/online-seller.service';
 import { recuService } from '@/services/recu.service';
+import cataloguePublicService from '@/services/catalogue-public.service';
+import whatsAppMessageService from '@/services/whatsapp-message.service';
 import { ModalPaiementQRCode } from '@/components/factures/ModalPaiementQRCode';
 import { PaymentMethod, PaymentContext } from '@/types/payment-wallet';
 
@@ -227,6 +229,26 @@ export default function ProduitPublicClient({ token }: ProduitPublicClientProps)
         setNumFacture(result.num_facture);
         setPageState('SUCCESS');
         console.log('🧾 [PRODUIT-PUBLIC] Paiement enregistré sur facture', draftContext.id_facture);
+
+        // ===== Notification WhatsApp MARCHAND (best-effort, non bloquant) =====
+        // Template `achat_confirme_ok` : informe le marchand qu'un paiement
+        // vient d'être reçu sur sa page produit publique.
+        try {
+          const contact = await cataloguePublicService.getStructureContact(idStructure);
+          const phoneMarchand = contact?.mobile_om || contact?.mobile_wave;
+          if (phoneMarchand && telephone) {
+            const factureUrl = recuService.generateUrlPartage(idStructure, draftContext.id_facture);
+            await whatsAppMessageService.sendPurchaseConfirmedNotification(
+              phoneMarchand,
+              telephone,
+              montantTotal,
+              selectedPaymentMethod || 'OM',
+              factureUrl
+            );
+          }
+        } catch (waErr) {
+          console.warn('[PRODUIT-PUBLIC] Notification marchand WhatsApp échec', waErr);
+        }
 
         // Transition vers mascotte après 2.5s
         setTimeout(() => setPageState('MASCOTTE'), 2500);

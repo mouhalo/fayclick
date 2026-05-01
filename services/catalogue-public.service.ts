@@ -221,6 +221,39 @@ class CataloguePublicService {
       throw error;
     }
   }
+  /**
+   * Récupère les coordonnées de contact d'une structure (nom + numéros mobiles).
+   *
+   * Utilisé par les pages publiques (PanierPublic, ProduitPublicClient) pour
+   * pouvoir notifier le marchand par WhatsApp après un paiement complété.
+   *
+   * Pas de données sensibles : nom et numéros mobiles sont déjà publics
+   * (affichés sur factures, reçus, fiches structure).
+   *
+   * @param idStructure - ID de la structure
+   * @returns null si structure introuvable, sinon les contacts
+   */
+  async getStructureContact(
+    idStructure: number
+  ): Promise<{ nom_structure: string; mobile_om: string; mobile_wave: string } | null> {
+    try {
+      if (!idStructure || isNaN(idStructure)) return null;
+      const database = (await import('./database.service')).default;
+      const result = await database.query(
+        `SELECT nom_structure, COALESCE(mobile_om, '') AS mobile_om, COALESCE(mobile_wave, '') AS mobile_wave FROM structures WHERE id_structure = ${idStructure}`
+      );
+      if (!result || result.length === 0) return null;
+      const row = result[0] as Record<string, unknown>;
+      return {
+        nom_structure: (row.nom_structure as string) || '',
+        mobile_om: ((row.mobile_om as string) || '').trim(),
+        mobile_wave: ((row.mobile_wave as string) || '').trim(),
+      };
+    } catch (err) {
+      console.warn('[CATALOGUE PUBLIC] getStructureContact échec', err);
+      return null;
+    }
+  }
 }
 
 export const cataloguePublicService = CataloguePublicService.getInstance();
