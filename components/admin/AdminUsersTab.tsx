@@ -26,6 +26,7 @@ import {
   KeyRound
 } from 'lucide-react';
 import adminService from '@/services/admin.service';
+import { useAuth } from '@/contexts/AuthContext';
 import {
   AdminUtilisateur,
   AdminUtilisateursStats,
@@ -132,6 +133,8 @@ type UserSortDirection = 'asc' | 'desc';
 // Composant Principal
 // ========================================
 export default function AdminUsersTab() {
+  const { user: currentUser } = useAuth();
+
   // États
   const [loading, setLoading] = useState(true);
   const [utilisateurs, setUtilisateurs] = useState<AdminUtilisateur[]>([]);
@@ -660,24 +663,29 @@ export default function AdminUsersTab() {
                     </td>
                     <td className="p-3">
                       {(() => {
-                        const isAdminSystem =
-                          user.is_admin_system === true ||
-                          user.structure?.id_structure === 0;
-                        const tooltip = isAdminSystem
-                          ? 'Action non disponible pour l’admin système'
+                        // Seule restriction : l'admin connecté ne peut pas
+                        // reset son propre mot de passe (sinon il se déconnecte
+                        // de la session courante). Tous les autres utilisateurs
+                        // sont resettables, y compris admins système et autres
+                        // structures (cas oubli MDP couvert).
+                        const isSelf =
+                          currentUser?.id !== undefined &&
+                          user.id === currentUser.id;
+                        const tooltip = isSelf
+                          ? 'Vous ne pouvez pas réinitialiser votre propre mot de passe'
                           : 'Réinitialiser le mot de passe';
                         return (
                           <div className="flex items-center justify-center">
                             <button
                               onClick={() => {
-                                if (isAdminSystem) return;
+                                if (isSelf) return;
                                 setResetPasswordUser(user);
                               }}
-                              disabled={isAdminSystem}
+                              disabled={isSelf}
                               title={tooltip}
                               aria-label={tooltip}
                               className={`p-2 rounded-lg transition-colors ${
-                                isAdminSystem
+                                isSelf
                                   ? 'bg-gray-700/40 text-gray-600 cursor-not-allowed'
                                   : 'bg-gray-700 text-gray-300 hover:bg-orange-500 hover:text-white'
                               }`}
