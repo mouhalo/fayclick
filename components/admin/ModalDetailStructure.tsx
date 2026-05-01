@@ -28,7 +28,8 @@ import {
   Settings,
   Gift,
   DollarSign,
-  Trash2
+  Trash2,
+  MessageCircle
 } from 'lucide-react';
 import adminService from '@/services/admin.service';
 import {
@@ -43,6 +44,7 @@ import ModalEditParamStructure from './ModalEditParamStructure';
 import ModalConfirmDeleteStructure from './ModalConfirmDeleteStructure';
 import ModalOffrirAbonnement from './ModalOffrirAbonnement';
 import ModalAjusterMensualite from './ModalAjusterMensualite';
+import ModalEnvoyerMessage from './ModalEnvoyerMessage';
 
 // Type étendu pour accéder à `compte_prive` (plat à la racine via param_structure)
 type StructureWithParams = StructureDetailData & {
@@ -78,6 +80,7 @@ export function ModalDetailStructure({
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [offrirAbonnementOpen, setOffrirAbonnementOpen] = useState(false);
   const [ajusterMensualiteOpen, setAjusterMensualiteOpen] = useState(false);
+  const [envoyerMessageOpen, setEnvoyerMessageOpen] = useState(false);
 
   // Charger les données de la structure
   useEffect(() => {
@@ -277,54 +280,76 @@ export function ModalDetailStructure({
                       </span>
                     </div>
 
-                    {/* Infos de contact */}
-                    <div className="space-y-3 bg-gray-700/30 rounded-xl p-4">
-                      {/* Adresse */}
-                      <div className="flex items-start gap-3">
-                        <MapPin className="w-5 h-5 text-emerald-400 mt-0.5 flex-shrink-0" />
-                        <div>
-                          <p className="text-xs text-gray-400">Adresse</p>
-                          <p className="text-white">{structure.adresse || '-'}</p>
-                        </div>
-                      </div>
-
-                      {/* Numéros OM / WAVE */}
-                      <div className="flex items-start gap-3">
-                        <Phone className="w-5 h-5 text-emerald-400 mt-0.5 flex-shrink-0" />
-                        <div>
-                          <p className="text-xs text-gray-400">Numéros (OM / WAVE)</p>
-                          <p className="text-white font-mono">
-                            {formatNumeros(structure.mobile_om, structure.mobile_wave)}
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Date de création */}
-                      {structure.createdat && (
+                    {/* Infos de contact + bouton "Écrire un message" */}
+                    <div className="bg-gray-700/30 rounded-xl p-4 flex items-start gap-4">
+                      {/* Colonne infos */}
+                      <div className="flex-1 space-y-3 min-w-0">
+                        {/* Adresse */}
                         <div className="flex items-start gap-3">
-                          <Calendar className="w-5 h-5 text-emerald-400 mt-0.5 flex-shrink-0" />
-                          <div>
-                            <p className="text-xs text-gray-400">Créée le</p>
-                            <p className="text-white">
-                              {new Date(structure.createdat).toLocaleDateString('fr-FR', {
-                                day: '2-digit',
-                                month: 'long',
-                                year: 'numeric',
-                              })}
+                          <MapPin className="w-5 h-5 text-emerald-400 mt-0.5 flex-shrink-0" />
+                          <div className="min-w-0">
+                            <p className="text-xs text-gray-400">Adresse</p>
+                            <p className="text-white break-words">{structure.adresse || '-'}</p>
+                          </div>
+                        </div>
+
+                        {/* Numéros OM / WAVE */}
+                        <div className="flex items-start gap-3">
+                          <Phone className="w-5 h-5 text-emerald-400 mt-0.5 flex-shrink-0" />
+                          <div className="min-w-0">
+                            <p className="text-xs text-gray-400">Numéros (OM / WAVE)</p>
+                            <p className="text-white font-mono break-all">
+                              {formatNumeros(structure.mobile_om, structure.mobile_wave)}
                             </p>
                           </div>
                         </div>
-                      )}
 
-                      {/* Email */}
-                      {structure.email && (
-                        <div className="flex items-start gap-3">
-                          <Mail className="w-5 h-5 text-emerald-400 mt-0.5 flex-shrink-0" />
-                          <div>
-                            <p className="text-xs text-gray-400">Email</p>
-                            <p className="text-white">{structure.email}</p>
+                        {/* Date de création */}
+                        {structure.createdat && (
+                          <div className="flex items-start gap-3">
+                            <Calendar className="w-5 h-5 text-emerald-400 mt-0.5 flex-shrink-0" />
+                            <div>
+                              <p className="text-xs text-gray-400">Créée le</p>
+                              <p className="text-white">
+                                {new Date(structure.createdat).toLocaleDateString('fr-FR', {
+                                  day: '2-digit',
+                                  month: 'long',
+                                  year: 'numeric',
+                                })}
+                              </p>
+                            </div>
                           </div>
-                        </div>
+                        )}
+
+                        {/* Email */}
+                        {structure.email && (
+                          <div className="flex items-start gap-3">
+                            <Mail className="w-5 h-5 text-emerald-400 mt-0.5 flex-shrink-0" />
+                            <div className="min-w-0">
+                              <p className="text-xs text-gray-400">Email</p>
+                              <p className="text-white truncate">{structure.email}</p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Bouton circulaire "Écrire un message" — visible si numéro dispo */}
+                      {(structure.mobile_om?.trim() || structure.mobile_wave?.trim()) && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setEnvoyerMessageOpen(true);
+                          }}
+                          className="flex flex-col items-center gap-1.5 group flex-shrink-0"
+                          title="Envoyer un message WhatsApp à cette structure"
+                        >
+                          <div className="w-14 h-14 rounded-full bg-green-500/10 border-2 border-green-500/60 flex items-center justify-center group-hover:bg-green-500/20 group-hover:border-green-400 transition-all">
+                            <MessageCircle className="w-7 h-7 text-green-400" />
+                          </div>
+                          <span className="text-xs text-gray-300 group-hover:text-green-400 transition-colors text-center leading-tight">
+                            Écrire un<br />message
+                          </span>
+                        </button>
                       )}
                     </div>
 
@@ -670,6 +695,15 @@ export function ModalDetailStructure({
           loadStructureDetails();
           setAjusterMensualiteOpen(false);
         }}
+      />
+
+      {/* Sous-modal : Envoyer un message WhatsApp libre (fayclick_admin_message) */}
+      <ModalEnvoyerMessage
+        isOpen={envoyerMessageOpen}
+        onClose={() => setEnvoyerMessageOpen(false)}
+        nomStructure={structure?.nom_structure || ''}
+        mobileOm={structure?.mobile_om || ''}
+        mobileWave={structure?.mobile_wave || ''}
       />
     </AnimatePresence>
   );
