@@ -189,12 +189,18 @@ export default function PanierPublic({
           const contact = await cataloguePublicService.getStructureContact(idStructure);
           const phoneMarchand = contact?.mobile_om || contact?.mobile_wave;
           if (phoneMarchand && telephone) {
+            // ⚠️ Template Meta exige https://fayclick.com/facture (whitelist).
+            // La page /facture redirige auto vers /recu si payée.
+            const factureUrl = recuService.generateUrlFactureCanonique(
+              idStructure,
+              draftContext.id_facture
+            );
             await whatsAppMessageService.sendPurchaseConfirmedNotification(
               phoneMarchand,
               telephone,
               payTotal,
               payMethod,
-              recuUrl
+              factureUrl
             );
           }
         } catch (waErr) {
