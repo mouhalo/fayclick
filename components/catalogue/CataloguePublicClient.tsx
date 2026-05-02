@@ -412,6 +412,7 @@ export default function CataloguePublicClient({ nomStructure, idStructure }: Cat
         onTabChange={(tab) => {
           if (tab === 'cart' && nbArticlesPanier > 0) setPanierOuvert(true);
           if (tab === 'home') window.scrollTo({ top: 0, behavior: 'smooth' });
+          if (tab === 'history') window.location.href = '/historique';
         }}
       />
 

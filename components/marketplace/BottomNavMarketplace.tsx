@@ -1,10 +1,10 @@
 'use client';
 
-import { Home, Store, Search, ShoppingCart } from 'lucide-react';
+import { Home, Store, History, ShoppingCart } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslations } from '@/hooks/useTranslations';
 
-type TabId = 'home' | 'boutiques' | 'search' | 'cart';
+type TabId = 'home' | 'boutiques' | 'history' | 'cart';
 
 interface BottomNavMarketplaceProps {
   activeTab?: TabId;
@@ -32,7 +32,7 @@ export default function BottomNavMarketplace({
     ...(showCart
       ? [{ id: 'cart' as TabId, icon: ShoppingCart, label: t('nav.cart') }]
       : []),
-    { id: 'search', icon: Search, label: t('nav.search') },
+    { id: 'history', icon: History, label: t('nav.history') },
   ];
 
   return (
