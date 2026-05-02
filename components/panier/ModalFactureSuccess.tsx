@@ -17,7 +17,7 @@ import QRCode from 'react-qr-code';
 import { factureService } from '@/services/facture.service';
 import { authService } from '@/services/auth.service';
 import { encodeFactureParams } from '@/lib/url-encoder';
-import { generateTicketHTML, printViaIframe } from '@/lib/generate-ticket-html';
+import { generateTicketHTML } from '@/lib/generate-ticket-html';
 import { useFactureSuccessStore } from '@/hooks/useFactureSuccess';
 import { PaymentMethodSelector } from '@/components/factures/PaymentMethodSelector';
 import { ModalPaiementQRCode } from '@/components/factures/ModalPaiementQRCode';
@@ -25,6 +25,44 @@ import { PaymentMethod, PaymentContext } from '@/types/payment-wallet';
 import { AjouterAcompteData } from '@/types/facture';
 import { paymentWalletService } from '@/services/payment-wallet.service';
 import DatabaseService from '@/services/database.service';
+
+// Type minimal des détails facture utilisés par ce modal
+// (factureService.getFactureDetails() retourne Promise<unknown>)
+interface FactureDetailsView {
+  id_facture: number;
+  id_structure: number;
+  num_facture: string;
+  date_facture: string;
+  nom_client_payeur?: string;
+  nom_client?: string;
+  tel_client?: string;
+  description?: string;
+  montant: number;
+  mt_remise: number;
+  mt_acompte: number;
+  mt_restant: number;
+  id_etat: number;
+  nom_structure?: string;
+  [key: string]: unknown;
+}
+
+// Type minimal de la réponse de polling paiement wallet
+interface WalletPaymentStatusResponse {
+  data?: {
+    uuid?: string;
+    reference_externe?: string;
+    statut?: string;
+  };
+  [key: string]: unknown;
+}
+
+// Type d'un article de facture pour impression
+interface FactureArticleRow {
+  nom_produit: string;
+  quantite: number;
+  prix: number;
+  sous_total: number;
+}
 
 // Conversion nombre en lettres (FCFA)
 function nombreEnLettres(n: number): string {
@@ -67,7 +105,7 @@ function nombreEnLettres(n: number): string {
 export function ModalFactureSuccess() {
   const { isOpen, factureId, preloadedArticles, closeModal } = useFactureSuccessStore();
   const { isMobile, isMobileLarge,  isDesktop } = useBreakpoint();
-  const [factureDetails, setFactureDetails] = useState<any>(null);
+  const [factureDetails, setFactureDetails] = useState<FactureDetailsView | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [copiedUrl, setCopiedUrl] = useState(false);
@@ -152,6 +190,9 @@ export function ModalFactureSuccess() {
       // Reset pour la prochaine ouverture
       setHasInitialized(false);
     }
+    // loadFactureDetails est volontairement omis : sa redéfinition à chaque render
+    // déclencherait une boucle infinie de fetch
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, factureId, hasInitialized]);
 
   const loadFactureDetails = async () => {
@@ -161,7 +202,7 @@ export function ModalFactureSuccess() {
       setLoading(true);
       setError(null);
       const details = await factureService.getFactureDetails(factureId);
-      setFactureDetails(details);
+      setFactureDetails(details as FactureDetailsView);
 
       // Utiliser les articles pré-chargés si disponibles (évite un appel DB)
       if (preloadedArticles && preloadedArticles.length > 0) {
@@ -178,15 +219,16 @@ export function ModalFactureSuccess() {
             ORDER BY d.id_detail
           `;
           const articlesResult = await DatabaseService.query(articlesQuery);
-          setFactureArticles(articlesResult || []);
+          setFactureArticles((articlesResult as FactureArticleRow[]) || []);
         } catch (err) {
           console.warn('Articles facture non disponibles:', err);
           setFactureArticles([]);
         }
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Erreur chargement détails facture:', err);
-      setError(err.message || 'Impossible de charger les détails');
+      const errorMessage = err instanceof Error ? err.message : 'Impossible de charger les détails';
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -294,7 +336,6 @@ export function ModalFactureSuccess() {
 
         // Mise à jour locale des détails (PAS de re-fetch API)
         if (factureDetails) {
-          const montantPaye = response.facture?.montant_verse ?? acompteData.montant_acompte;
           const nouveauRestant = response.facture?.nouveau_restant ?? 0;
           setFactureDetails({
             ...factureDetails,
@@ -316,7 +357,7 @@ export function ModalFactureSuccess() {
   };
 
   // Gérer le succès du paiement wallet
-  const handleWalletPaymentComplete = async (paymentStatusResponse: any) => {
+  const handleWalletPaymentComplete = async (paymentStatusResponse: WalletPaymentStatusResponse) => {
     if (!factureDetails || !selectedPaymentMethod) return;
 
     try {
@@ -401,11 +442,11 @@ export function ModalFactureSuccess() {
       facture: {
         id_facture: factureDetails.id_facture,
         num_facture: factureDetails.num_facture,
-        nom_client: factureDetails.nom_client_payeur,
-        tel_client: factureDetails.tel_client,
+        nom_client: factureDetails.nom_client_payeur || '',
+        tel_client: factureDetails.tel_client || '',
         montant_total: factureDetails.montant,
         montant_restant: factureDetails.mt_restant,
-        nom_structure: factureDetails.nom_structure
+        nom_structure: factureDetails.nom_structure || ''
       },
       montant_acompte: factureDetails.mt_restant // Solde complet
     };
@@ -583,7 +624,7 @@ export function ModalFactureSuccess() {
               ${structure?.logo ? `<img src="${structure.logo}" alt="Logo" />` : ''}
               <h2>${structure?.nom_structure || 'Entreprise'}</h2>
               <p>${structure?.adresse || ''}</p>
-              <p>Tel: ${user?.telephone || structure?.telephone || ''}</p>
+              <p>Tel: ${user?.telephone || structure?.info_facture?.tel_contact || ''}</p>
             </div>
             <div class="facture-badge">
               <span class="type-label">Facture</span>
@@ -707,7 +748,7 @@ export function ModalFactureSuccess() {
       nomStructure: structure?.nom_structure || 'Entreprise',
       logoUrl: structure?.logo || '',
       adresse: structure?.adresse || '',
-      telephone: user?.telephone || structure?.telephone || '',
+      telephone: user?.telephone || structure?.info_facture?.tel_contact || '',
       numFacture: factureDetails.num_facture,
       dateFacture: dateFormatee,
       nomClient: factureDetails.nom_client_payeur || factureDetails.nom_client || 'Anonyme',
@@ -870,7 +911,7 @@ export function ModalFactureSuccess() {
                     <h2 className={`${styles.titleSize} font-bold`}>
                       {paymentSuccess
                         ? 'Facture payée !'
-                        : factureDetails?.mt_restant <= 0
+                        : (factureDetails?.mt_restant ?? 0) <= 0
                           ? 'Facture soldée !'
                           : 'Facture créée !'
                       }
@@ -878,7 +919,7 @@ export function ModalFactureSuccess() {
                     <p className={`text-sky-100 ${styles.subtitleSize}`}>
                       {paymentSuccess
                         ? 'Paiement enregistré'
-                        : factureDetails?.mt_restant <= 0
+                        : (factureDetails?.mt_restant ?? 0) <= 0
                           ? 'Entièrement payée'
                           : 'Prête à partager'
                       }

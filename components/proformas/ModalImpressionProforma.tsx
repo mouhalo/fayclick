@@ -6,11 +6,13 @@
 
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Printer, Sparkles, File } from 'lucide-react';
 import { ConfigFacture, InfoFacture } from '@/types/auth';
 import { Proforma, ProformaDetail } from '@/types/proforma';
+import { Produit } from '@/types/produit';
+import { produitsService } from '@/services/produits.service';
 import { formatDate } from '@/lib/utils';
 
 type FormatType = 'personnalise' | 'standard';
@@ -33,7 +35,19 @@ export function ModalImpressionProforma({
   inclureTva = false, tauxTva = 18
 }: Props) {
   const [avecTva, setAvecTva] = useState(inclureTva);
+  const [produits, setProduits] = useState<Produit[]>([]);
+  const [isLoadingProduits, setIsLoadingProduits] = useState(false);
   const printFrameRef = useRef<HTMLIFrameElement>(null);
+
+  // Charger les produits pour reconstituer le prix d'origine et déduire la remise par ligne
+  useEffect(() => {
+    if (!isOpen) return;
+    setIsLoadingProduits(true);
+    produitsService.getListeProduits()
+      .then(res => setProduits(res.data || []))
+      .catch(() => setProduits([]))
+      .finally(() => setIsLoadingProduits(false));
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -65,7 +79,7 @@ export function ModalImpressionProforma({
   };
 
   // HTML identique à generateDocumentHTML de ModalImpressionDocuments
-  const generateProformaHTML = (format: FormatType): string => {
+  const generateProformaHTML = (format: FormatType, produitsForLookup: Produit[]): string => {
     const useCustom = format === 'personnalise' && configFacture;
 
     // En-tête (identique factures)
@@ -99,12 +113,31 @@ export function ModalImpressionProforma({
       }
     }
 
-    const articlesHtml = details.map(d => `<tr>
+    // Pour chaque ligne, lookup du prix d'origine pour reconstituer la remise par article (uniquement) :
+    //   remise_article = (prix_origine - prix_unitaire_BD) / prix_origine × 100
+    // La remise globale (proforma.mt_remise) est affichée séparément dans le tfoot
+    const articlesHtml = details.map(d => {
+      const prod = produitsForLookup.find(p => p.id_produit === d.id_produit);
+      const prixOrigine = prod?.prix_vente && prod.prix_vente > d.prix_unitaire
+        ? prod.prix_vente
+        : d.prix_unitaire;
+      const totalLigne = d.prix_unitaire * d.quantite;
+      const remiseArtPct = prixOrigine > 0
+        ? ((prixOrigine - d.prix_unitaire) / prixOrigine) * 100
+        : 0;
+      const remiseDisplay = remiseArtPct > 0.5
+        ? (Math.abs(remiseArtPct - Math.round(remiseArtPct)) < 0.5
+          ? `${Math.round(remiseArtPct)}%`
+          : `${remiseArtPct.toFixed(2)}%`)
+        : '—';
+      return `<tr>
           <td style="padding:3px 6px;border-bottom:1px solid #eee;font-size:11px;">${d.nom_produit}</td>
           <td style="padding:3px 6px;border-bottom:1px solid #eee;text-align:center;font-size:11px;">${d.quantite}</td>
-          <td style="padding:3px 6px;border-bottom:1px solid #eee;text-align:right;font-size:11px;">${d.prix_unitaire.toLocaleString('fr-FR')}</td>
-          <td style="padding:3px 6px;border-bottom:1px solid #eee;text-align:right;font-size:11px;font-weight:bold;">${d.sous_total.toLocaleString('fr-FR')}</td>
-        </tr>`).join('');
+          <td style="padding:3px 6px;border-bottom:1px solid #eee;text-align:right;font-size:11px;">${prixOrigine.toLocaleString('fr-FR')}</td>
+          <td style="padding:3px 6px;border-bottom:1px solid #eee;text-align:center;font-size:11px;color:#e65100;">${remiseDisplay}</td>
+          <td style="padding:3px 6px;border-bottom:1px solid #eee;text-align:right;font-size:11px;font-weight:bold;">${totalLigne.toLocaleString('fr-FR')}</td>
+        </tr>`;
+    }).join('');
 
     return `<!DOCTYPE html>
 <html><head><meta charset="utf-8"><title>FACTURE PROFORMA</title>
@@ -134,6 +167,7 @@ export function ModalImpressionProforma({
         <th style="padding:4px 6px;text-align:left;font-size:11px;border-bottom:2px solid #333;">Désignation</th>
         <th style="padding:4px 6px;text-align:center;font-size:11px;border-bottom:2px solid #333;">Qté</th>
         <th style="padding:4px 6px;text-align:right;font-size:11px;border-bottom:2px solid #333;">P.U.</th>
+        <th style="padding:4px 6px;text-align:center;font-size:11px;border-bottom:2px solid #333;">Remise</th>
         <th style="padding:4px 6px;text-align:right;font-size:11px;border-bottom:2px solid #333;">Total</th>
       </tr>
     </thead>
@@ -143,24 +177,24 @@ export function ModalImpressionProforma({
     <tfoot>
       ${proforma.mt_remise > 0 ? `
       <tr>
-        <td colspan="3" style="padding:3px 6px;text-align:right;font-size:11px;">Sous-total:</td>
+        <td colspan="4" style="padding:3px 6px;text-align:right;font-size:11px;">Sous-total :</td>
         <td style="padding:3px 6px;text-align:right;font-size:11px;">${proforma.montant.toLocaleString('fr-FR')} FCFA</td>
       </tr>
       <tr>
-        <td colspan="3" style="padding:3px 6px;text-align:right;font-size:11px;color:#e65100;">Remise:</td>
-        <td style="padding:3px 6px;text-align:right;font-size:11px;color:#e65100;">-${proforma.mt_remise.toLocaleString('fr-FR')} FCFA</td>
+        <td colspan="4" style="padding:3px 6px;text-align:right;font-size:11px;color:#e65100;">Remise globale :</td>
+        <td style="padding:3px 6px;text-align:right;font-size:11px;color:#e65100;">−${proforma.mt_remise.toLocaleString('fr-FR')} FCFA</td>
       </tr>` : ''}
       <tr class="total-row">
-        <td colspan="3" style="padding:6px;text-align:right;font-size:13px;">${avecTva ? 'TOTAL HT:' : 'TOTAL:'}</td>
+        <td colspan="4" style="padding:6px;text-align:right;font-size:13px;">${avecTva ? 'TOTAL HT:' : 'TOTAL:'}</td>
         <td style="padding:6px;text-align:right;font-size:13px;">${proforma.montant_net.toLocaleString('fr-FR')} FCFA</td>
       </tr>
       ${avecTva ? `
       <tr>
-        <td colspan="3" style="padding:3px 6px;text-align:right;font-size:11px;">TVA (${tauxTva}%):</td>
+        <td colspan="4" style="padding:3px 6px;text-align:right;font-size:11px;">TVA (${tauxTva}%):</td>
         <td style="padding:3px 6px;text-align:right;font-size:11px;">${Math.round(proforma.montant_net * tauxTva / 100).toLocaleString('fr-FR')} FCFA</td>
       </tr>
       <tr style="border-top:2px solid #333;">
-        <td colspan="3" style="padding:6px;text-align:right;font-size:13px;font-weight:bold;">TOTAL TTC:</td>
+        <td colspan="4" style="padding:6px;text-align:right;font-size:13px;font-weight:bold;">TOTAL TTC:</td>
         <td style="padding:6px;text-align:right;font-size:13px;font-weight:bold;">${Math.round(proforma.montant_net * (1 + tauxTva / 100)).toLocaleString('fr-FR')} FCFA</td>
       </tr>` : ''}
     </tfoot>
@@ -172,8 +206,19 @@ export function ModalImpressionProforma({
 </body></html>`;
   };
 
-  const handlePrint = (format: FormatType) => {
-    const html = generateProformaHTML(format);
+  const handlePrint = async (format: FormatType) => {
+    // Garantir que les produits sont chargés avant impression (sinon la colonne Remise reste vide)
+    let prods = produits;
+    if (prods.length === 0) {
+      try {
+        const res = await produitsService.getListeProduits();
+        prods = res.data || [];
+        setProduits(prods);
+      } catch {
+        prods = [];
+      }
+    }
+    const html = generateProformaHTML(format, prods);
     const iframe = printFrameRef.current;
     if (!iframe) return;
     const doc = iframe.contentDocument || iframe.contentWindow?.document;

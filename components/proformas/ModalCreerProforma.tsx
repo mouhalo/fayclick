@@ -66,11 +66,17 @@ export function ModalCreerProforma({
   useEffect(() => {
     if (isOpen) {
       loadProduits();
-      if (editMode && proformaToEdit && proformaDetails.length > 0) {
-        loadEditData();
-      }
     }
   }, [isOpen]);
+
+  // En mode édition, hydrater les articles une fois les produits chargés
+  // (besoin du prix_vente d'origine pour reconstituer la remise par article)
+  useEffect(() => {
+    if (isOpen && editMode && proformaToEdit && proformaDetails.length > 0 && allProduits.length > 0) {
+      loadEditData();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, editMode, proformaToEdit, proformaDetails, allProduits]);
 
   // Reset a la fermeture
   useEffect(() => {
@@ -105,18 +111,28 @@ export function ModalCreerProforma({
     setRemiseInput(proformaToEdit.mt_remise);
     setRemiseMode('F');
 
-    // Convertir details proforma en articles
-    const arts = proformaDetails.map(d => ({
-      id_produit: d.id_produit,
-      nom_produit: d.nom_produit,
-      prix_vente: d.prix_unitaire,
-      prix_applique: d.prix_unitaire,
-      quantity: d.quantite,
-      cout_revient: 0,
-      id_structure: 0,
-      niveau_stock: 9999,
-      code_barre: '',
-    } as unknown as ArticlePanier));
+    // Convertir details proforma en articles + reconstituer la remise par ligne
+    // En option A, le prix_unitaire stocké en BD est le prix net (après remise article).
+    // On retrouve le prix d'origine via allProduits pour déduire le % de remise.
+    const arts = proformaDetails.map(d => {
+      const prod = allProduits.find(p => p.id_produit === d.id_produit);
+      const prixOrigine = prod?.prix_vente ?? d.prix_unitaire;
+      const remisePct = prixOrigine > d.prix_unitaire
+        ? Math.round(((prixOrigine - d.prix_unitaire) / prixOrigine) * 100)
+        : 0;
+      return {
+        id_produit: d.id_produit,
+        nom_produit: d.nom_produit,
+        prix_vente: prixOrigine,
+        prix_applique: prixOrigine,
+        quantity: d.quantite,
+        remise_article: remisePct,
+        cout_revient: 0,
+        id_structure: 0,
+        niveau_stock: 9999,
+        code_barre: '',
+      } as unknown as ArticlePanier;
+    });
     setArticles(arts);
   };
 
@@ -168,6 +184,14 @@ export function ModalCreerProforma({
     setArticles(prev => prev.filter(a => a.id_produit !== id_produit));
   };
 
+  // Modifier la remise (%) d'un article (clamp 0-100)
+  const handleUpdateRemiseArticle = (id_produit: number, remisePct: number) => {
+    const clamped = Math.max(0, Math.min(100, isNaN(remisePct) ? 0 : remisePct));
+    setArticles(prev => prev.map(a =>
+      a.id_produit === id_produit ? { ...a, remise_article: clamped } : a
+    ));
+  };
+
   // Selection client
   const handleSelectClient = (client: Partial<Client> & { id_client?: number; nom_client: string; tel_client: string }) => {
     setClientInfo({
@@ -180,9 +204,24 @@ export function ModalCreerProforma({
   };
 
   // Calculs montants
-  const sousTotal = articles.reduce((total, art) => total + (art.prix_applique ?? art.prix_vente) * art.quantity, 0);
-  const remiseCalculee = remiseMode === '%' ? Math.round(sousTotal * Math.min(100, remiseInput) / 100) : Math.min(sousTotal, remiseInput);
-  const montantNet = sousTotal - remiseCalculee;
+  // sousTotalBrut : somme prix × qty (avant toute remise)
+  const sousTotalBrut = articles.reduce((total, art) => total + (art.prix_applique ?? art.prix_vente) * art.quantity, 0);
+  // Total des remises par ligne (chaque article a un % indépendant)
+  const totalRemisesLignes = articles.reduce((total, art) => {
+    const prix = art.prix_applique ?? art.prix_vente;
+    const pct = art.remise_article || 0;
+    return total + Math.round(prix * art.quantity * pct / 100);
+  }, 0);
+  // sousTotalNet : montant après remises par ligne (base pour la remise globale)
+  const sousTotalNet = sousTotalBrut - totalRemisesLignes;
+  // Remise globale appliquée sur le sousTotalNet
+  const remiseGlobale = remiseMode === '%'
+    ? Math.round(sousTotalNet * Math.min(100, remiseInput) / 100)
+    : Math.min(sousTotalNet, remiseInput);
+  // Pour le résumé visuel et l'envoi backend
+  const sousTotal = sousTotalBrut;
+  const remiseCalculee = totalRemisesLignes + remiseGlobale;
+  const montantNet = sousTotalBrut - remiseCalculee;
 
   // Remise
   const handleRemiseChange = (value: number) => {
@@ -202,13 +241,23 @@ export function ModalCreerProforma({
 
     setIsLoading(true);
     try {
+      // Option A : remises par ligne absorbées dans prix_applique net.
+      // La remise envoyée au backend = remise globale uniquement (la part par ligne
+      // est déjà soustraite via prix_applique).
+      const articlesAEnvoyer = articles.map(art => {
+        const prixOrigine = art.prix_applique ?? art.prix_vente;
+        const remisePct = art.remise_article || 0;
+        const prixNet = Math.round(prixOrigine * (1 - remisePct / 100));
+        return { ...art, prix_applique: prixNet };
+      });
+
       if (editMode && proformaToEdit) {
         // Mode edition
         const result = await proformaService.editProforma(
           proformaToEdit.id_proforma,
-          articles,
+          articlesAEnvoyer,
           { tel_client: clientInfo.tel_client, nom_client_payeur: clientInfo.nom_client, description },
-          { remise: remiseCalculee, montant: sousTotal }
+          { remise: remiseGlobale, montant: sousTotalNet }
         );
         if (result.success) {
           showToast('success', 'Proforma modifiee', result.message);
@@ -220,9 +269,9 @@ export function ModalCreerProforma({
       } else {
         // Mode creation
         const result = await proformaService.createProforma(
-          articles,
+          articlesAEnvoyer,
           { tel_client: clientInfo.tel_client, nom_client_payeur: clientInfo.nom_client, description },
-          { remise: remiseCalculee }
+          { remise: remiseGlobale }
         );
         if (result.success) {
           showToast('success', 'Proforma creee', `${result.num_proforma} creee avec succes`);
@@ -338,40 +387,65 @@ export function ModalCreerProforma({
                   <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-1">
                     <ShoppingCart className="w-4 h-4" /> Articles ({articles.length})
                   </h3>
-                  {articles.map(art => (
-                    <div key={art.id_produit} className="flex items-center gap-2 bg-gray-50 rounded-xl p-2.5 border border-gray-100">
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-900 truncate">{art.nom_produit}</p>
-                        <p className="text-xs text-gray-500">
-                          {formatAmount(art.prix_applique ?? art.prix_vente)} x {art.quantity}
-                        </p>
+                  {articles.map(art => {
+                    const prix = art.prix_applique ?? art.prix_vente;
+                    const remiseArt = art.remise_article || 0;
+                    const totalLigneNet = Math.round(prix * art.quantity * (1 - remiseArt / 100));
+                    return (
+                      <div key={art.id_produit} className="bg-gray-50 rounded-xl p-2.5 border border-gray-100">
+                        <div className="flex items-center gap-2">
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-gray-900 truncate">{art.nom_produit}</p>
+                            <p className="text-xs text-gray-500">
+                              {formatAmount(prix)} x {art.quantity}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={() => handleUpdateQuantity(art.id_produit, -1)}
+                              className="w-7 h-7 bg-gray-200 rounded-lg flex items-center justify-center hover:bg-gray-300"
+                            >
+                              <Minus className="w-3 h-3" />
+                            </button>
+                            <span className="w-8 text-center text-sm font-bold">{art.quantity}</span>
+                            <button
+                              onClick={() => handleUpdateQuantity(art.id_produit, 1)}
+                              className="w-7 h-7 bg-amber-100 rounded-lg flex items-center justify-center hover:bg-amber-200 text-amber-700"
+                            >
+                              <Plus className="w-3 h-3" />
+                            </button>
+                          </div>
+                          <p className="text-sm font-bold text-gray-900 w-20 text-right">
+                            {formatAmount(totalLigneNet)}
+                          </p>
+                          <button
+                            onClick={() => handleRemoveArticle(art.id_produit)}
+                            className="p-1 text-red-400 hover:text-red-600"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                        <div className="flex items-center gap-2 mt-2 pt-2 border-t border-gray-200/60">
+                          <span className="text-xs text-gray-600 font-medium">Remise :</span>
+                          <input
+                            type="number"
+                            value={remiseArt || ''}
+                            onChange={(e) => handleUpdateRemiseArticle(art.id_produit, Number(e.target.value))}
+                            placeholder="0"
+                            min={0}
+                            max={100}
+                            className="w-16 px-2 py-1 bg-white border border-gray-200 rounded-md text-xs text-right focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                          />
+                          <span className="text-xs text-gray-500">%</span>
+                          {remiseArt > 0 && (
+                            <span className="ml-auto text-xs text-orange-600">
+                              −{formatAmount(Math.round(prix * art.quantity * remiseArt / 100))}
+                            </span>
+                          )}
+                        </div>
                       </div>
-                      <div className="flex items-center gap-1">
-                        <button
-                          onClick={() => handleUpdateQuantity(art.id_produit, -1)}
-                          className="w-7 h-7 bg-gray-200 rounded-lg flex items-center justify-center hover:bg-gray-300"
-                        >
-                          <Minus className="w-3 h-3" />
-                        </button>
-                        <span className="w-8 text-center text-sm font-bold">{art.quantity}</span>
-                        <button
-                          onClick={() => handleUpdateQuantity(art.id_produit, 1)}
-                          className="w-7 h-7 bg-amber-100 rounded-lg flex items-center justify-center hover:bg-amber-200 text-amber-700"
-                        >
-                          <Plus className="w-3 h-3" />
-                        </button>
-                      </div>
-                      <p className="text-sm font-bold text-gray-900 w-20 text-right">
-                        {formatAmount((art.prix_applique ?? art.prix_vente) * art.quantity)}
-                      </p>
-                      <button
-                        onClick={() => handleRemoveArticle(art.id_produit)}
-                        className="p-1 text-red-400 hover:text-red-600"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               ) : (
                 <div className="text-center py-6 text-gray-400">
