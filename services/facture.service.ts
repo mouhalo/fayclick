@@ -86,24 +86,36 @@ class FactureService {
         throw new FactureApiException('Aucun article sélectionné', 400);
       }
 
-      // Calcul du montant total (utilise prix_applique si choisi, sinon prix_vente)
-      const sousTotal = articles.reduce((total, article) => {
+      // Pattern aligné sur proforma : la remise par article est absorbée dans
+      // prix_applique net (= prix × (1 - remise%/100)). La remise envoyée au backend
+      // dans mt_remise = remise globale UNIQUEMENT. Cela permet de reconstituer la
+      // remise par article à l'impression (lookup prix_vente actuel vs prix BD).
+      // En mode F (FCFA), on convertit en % équivalent par ligne pour absorber.
+      const remiseMode = (typeof window !== 'undefined' && localStorage.getItem('vf_remise_mode')) || '%';
+      const articlesAvecPrixNet = articles.map(art => {
+        const prixOrigine = art.prix_applique ?? art.prix_vente;
+        const remiseArt = art.remise_article || 0;
+        if (remiseArt === 0) return { ...art, prix_applique: prixOrigine };
+        let pctEquivalent = 0;
+        if (remiseMode === '%') {
+          pctEquivalent = Math.max(0, Math.min(100, remiseArt));
+        } else {
+          // Mode F : remiseArt est un montant total (prix × qty × pct/100 pré-calculé)
+          // On convertit en % de la ligne pour application unitaire
+          const lineBrut = prixOrigine * art.quantity;
+          pctEquivalent = lineBrut > 0 ? Math.min(100, (remiseArt / lineBrut) * 100) : 0;
+        }
+        const prixNet = Math.round(prixOrigine * (1 - pctEquivalent / 100));
+        return { ...art, prix_applique: prixNet };
+      });
+
+      // sousTotal recalculé à partir des prix nets (après remises par article)
+      const sousTotal = articlesAvecPrixNet.reduce((total, article) => {
         return total + ((article.prix_applique ?? article.prix_vente) * article.quantity);
       }, 0);
 
-      // Remises par article (mode % ou F selon localStorage) + remise globale
-      const remiseMode = (typeof window !== 'undefined' && localStorage.getItem('vf_remise_mode')) || '%';
-      const totalRemiseArticles = articles.reduce((sum, art) => {
-        const remiseArt = art.remise_article || 0;
-        if (remiseArt === 0) return sum;
-        if (remiseMode === '%') {
-          const prix = art.prix_applique ?? art.prix_vente;
-          return sum + Math.round(prix * art.quantity * remiseArt / 100);
-        } else {
-          return sum + remiseArt;
-        }
-      }, 0);
-      const remise = totalRemiseArticles + (montants.remise || 0);
+      // Remise globale uniquement (les remises par article sont déjà absorbées)
+      const remise = montants.remise || 0;
       const acompte = montants.acompte || 0;
       const montantNet = sousTotal - remise;
 
@@ -117,7 +129,7 @@ class FactureService {
       }
 
       // Préparation des données de facture avec valeurs par défaut
-      // Note: On envoie sousTotal (montant brut), le backend gère la déduction de la remise
+      // Note: On envoie sousTotal (montant brut net après remises article), le backend gère la déduction de la remise globale
       const factureData: FactureData = {
         date_facture: new Date().toISOString().split('T')[0], // Format YYYY-MM-DD
         id_structure: user.id_structure,
@@ -133,8 +145,8 @@ class FactureService {
       };
 
       // Approche senior: une seule requête atomique avec stored procedure
-      // Construire le string des articles au format "id-qty-prix#"
-      const articlesString = articles
+      // Construire le string des articles au format "id-qty-prix#" (prix net après remise article)
+      const articlesString = articlesAvecPrixNet
         .map(article => `${article.id_produit}-${article.quantity}-${article.prix_applique ?? article.prix_vente}`)
         .join('#') + '#';
 

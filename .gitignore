@@ -72,3 +72,6 @@ test-*.png
 
 # Superpowers brainstorm working directory
 .superpowers/
+
+# Claude Code runtime locks
+.claude/scheduled_tasks.lock

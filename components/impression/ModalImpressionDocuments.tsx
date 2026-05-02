@@ -1,10 +1,12 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Printer, FileText, Truck, RotateCcw, Receipt, Sparkles, File, ClipboardList } from 'lucide-react';
 import { FactureComplete } from '@/types/facture';
 import { ConfigFacture, InfoFacture } from '@/types/auth';
+import { Produit } from '@/types/produit';
+import { produitsService } from '@/services/produits.service';
 import { formatAmount, formatDate } from '@/lib/utils';
 
 type DocumentType = 'facture' | 'proforma' | 'bl' | 'br';
@@ -54,7 +56,16 @@ export default function ModalImpressionDocuments({
   const [selectedDoc, setSelectedDoc] = useState<DocumentType | null>(null);
   const [selectedFormat, setSelectedFormat] = useState<FormatType>('personnalise');
   const [avecTva, setAvecTva] = useState(inclureTva);
+  const [produits, setProduits] = useState<Produit[]>([]);
   const printFrameRef = useRef<HTMLIFrameElement>(null);
+
+  // Charger les produits pour reconstituer le prix d'origine et déduire la remise par ligne
+  useEffect(() => {
+    if (!isOpen) return;
+    produitsService.getListeProduits()
+      .then(res => setProduits(res.data || []))
+      .catch(() => setProduits([]));
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -88,7 +99,7 @@ export default function ModalImpressionDocuments({
   };
 
   // Générer le HTML du document pour impression
-  const generateDocumentHTML = (docType: DocumentType, format: FormatType): string => {
+  const generateDocumentHTML = (docType: DocumentType, format: FormatType, produitsForLookup: Produit[]): string => {
     const title = DOCUMENT_TITLES[docType];
     const useCustom = format === 'personnalise' && configFacture;
 
@@ -127,22 +138,50 @@ export default function ModalImpressionDocuments({
 
     // BL = uniquement désignation + qté, pas de prix
     const isBL = docType === 'bl';
+    // Colonne Remise uniquement pour les factures (BR conserve son layout actuel)
+    const isFacture = docType === 'facture';
     const totalQte = details.reduce((sum, d) => sum + d.quantite, 0);
 
-    const articlesHtml = details.map(d => isBL
-      ? `<tr>
+    const articlesHtml = details.map(d => {
+      if (isBL) {
+        return `<tr>
           <td style="padding:3px 6px;border-bottom:1px solid #eee;font-size:11px;">${d.nom_produit}</td>
           <td style="padding:3px 6px;border-bottom:1px solid #eee;text-align:center;font-size:11px;">${d.quantite}</td>
-        </tr>`
-      : `<tr>
+        </tr>`;
+      }
+      if (isFacture) {
+        // Lookup prix d'origine pour reconstituer la remise par article
+        // (le service facture absorbe la remise par article dans d.prix net)
+        const prod = produitsForLookup.find(p => p.id_produit === d.id_produit);
+        const prixOrigine = prod?.prix_vente && prod.prix_vente > d.prix
+          ? prod.prix_vente
+          : d.prix;
+        const remiseArtPct = prixOrigine > 0
+          ? ((prixOrigine - d.prix) / prixOrigine) * 100
+          : 0;
+        const remiseDisplay = remiseArtPct > 0.5
+          ? (Math.abs(remiseArtPct - Math.round(remiseArtPct)) < 0.5
+            ? `${Math.round(remiseArtPct)}%`
+            : `${remiseArtPct.toFixed(2)}%`)
+          : '—';
+        return `<tr>
+          <td style="padding:3px 6px;border-bottom:1px solid #eee;font-size:11px;">${d.nom_produit}</td>
+          <td style="padding:3px 6px;border-bottom:1px solid #eee;text-align:center;font-size:11px;">${d.quantite}</td>
+          <td style="padding:3px 6px;border-bottom:1px solid #eee;text-align:right;font-size:11px;">${prixOrigine.toLocaleString('fr-FR')}</td>
+          <td style="padding:3px 6px;border-bottom:1px solid #eee;text-align:center;font-size:11px;color:#e65100;">${remiseDisplay}</td>
+          <td style="padding:3px 6px;border-bottom:1px solid #eee;text-align:right;font-size:11px;font-weight:bold;">${d.sous_total.toLocaleString('fr-FR')}</td>
+        </tr>`;
+      }
+      // BR (et proforma legacy via ce modal) : layout 4 colonnes inchangé
+      return `<tr>
           <td style="padding:3px 6px;border-bottom:1px solid #eee;font-size:11px;">${d.nom_produit}</td>
           <td style="padding:3px 6px;border-bottom:1px solid #eee;text-align:center;font-size:11px;">${d.quantite}</td>
           <td style="padding:3px 6px;border-bottom:1px solid #eee;text-align:right;font-size:11px;">${d.prix.toLocaleString('fr-FR')}</td>
           <td style="padding:3px 6px;border-bottom:1px solid #eee;text-align:right;font-size:11px;font-weight:bold;">${d.sous_total.toLocaleString('fr-FR')}</td>
-        </tr>`
-    ).join('');
+        </tr>`;
+    }).join('');
 
-    const colCount = isBL ? 2 : 4;
+    const colCount = isBL ? 2 : (isFacture ? 5 : 4);
 
     return `<!DOCTYPE html>
 <html><head><meta charset="utf-8"><title>${title}${isProforma ? '' : ` ${f.num_facture}`}</title>
@@ -172,6 +211,7 @@ export default function ModalImpressionDocuments({
         <th style="padding:4px 6px;text-align:left;font-size:11px;border-bottom:2px solid #333;">Désignation</th>
         <th style="padding:4px 6px;text-align:center;font-size:11px;border-bottom:2px solid #333;">Qté</th>
         ${isBL ? '' : `<th style="padding:4px 6px;text-align:right;font-size:11px;border-bottom:2px solid #333;">P.U.</th>
+        ${isFacture ? `<th style="padding:4px 6px;text-align:center;font-size:11px;border-bottom:2px solid #333;">Remise</th>` : ''}
         <th style="padding:4px 6px;text-align:right;font-size:11px;border-bottom:2px solid #333;">Total</th>`}
       </tr>
     </thead>
@@ -188,11 +228,11 @@ export default function ModalImpressionDocuments({
     <tfoot>
       ${f.mt_remise > 0 ? `
       <tr>
-        <td colspan="${colCount - 1}" style="padding:3px 6px;text-align:right;font-size:11px;">Sous-total:</td>
+        <td colspan="${colCount - 1}" style="padding:3px 6px;text-align:right;font-size:11px;">Sous-total${isFacture ? ' (après remises article)' : ''}:</td>
         <td style="padding:3px 6px;text-align:right;font-size:11px;">${(f.montant + f.mt_remise).toLocaleString('fr-FR')} FCFA</td>
       </tr>
       <tr>
-        <td colspan="${colCount - 1}" style="padding:3px 6px;text-align:right;font-size:11px;color:#e65100;">Remise:</td>
+        <td colspan="${colCount - 1}" style="padding:3px 6px;text-align:right;font-size:11px;color:#e65100;">Remise${isFacture ? ' globale' : ''}:</td>
         <td style="padding:3px 6px;text-align:right;font-size:11px;color:#e65100;">-${f.mt_remise.toLocaleString('fr-FR')} FCFA</td>
       </tr>` : ''}
       <tr class="total-row">
@@ -218,8 +258,19 @@ export default function ModalImpressionDocuments({
   };
 
   // Imprimer via iframe caché
-  const handlePrint = (docType: DocumentType, format: FormatType) => {
-    const html = generateDocumentHTML(docType, format);
+  const handlePrint = async (docType: DocumentType, format: FormatType) => {
+    // Garantir que les produits sont chargés (sinon la colonne Remise reste vide pour les factures)
+    let prods = produits;
+    if (prods.length === 0 && docType === 'facture') {
+      try {
+        const res = await produitsService.getListeProduits();
+        prods = res.data || [];
+        setProduits(prods);
+      } catch {
+        prods = [];
+      }
+    }
+    const html = generateDocumentHTML(docType, format, prods);
     const iframe = printFrameRef.current;
     if (!iframe) return;
 
