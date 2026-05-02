@@ -45,7 +45,7 @@ export default function CataloguesGlobalClient() {
   const [visibleCount, setVisibleCount] = useState(24);
 
   // Bottom nav
-  const [activeTab, setActiveTab] = useState<'home' | 'boutiques' | 'search'>('home');
+  const [activeTab, setActiveTab] = useState<'home' | 'boutiques' | 'history'>('home');
 
   // Charger les donnees (LEGER — pas de produits)
   const loadData = useCallback(async () => {
@@ -353,14 +353,17 @@ export default function CataloguesGlobalClient() {
       <BottomNavMarketplace
         activeTab={activeTab}
         onTabChange={(tab) => {
-          setActiveTab(tab);
-          if (tab === 'home') window.scrollTo({ top: 0, behavior: 'smooth' });
+          if (tab === 'home') {
+            setActiveTab(tab);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }
           if (tab === 'boutiques') {
+            setActiveTab(tab);
             document.getElementById('boutiques-vedettes')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
           }
-          if (tab === 'search') {
-            // Focus sur la barre de recherche en haut
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+          if (tab === 'history') {
+            // Redirection vers la page historique client public
+            window.location.href = '/historique';
           }
         }}
       />
