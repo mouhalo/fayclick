@@ -20,6 +20,7 @@ import { ArrowLeft, History } from 'lucide-react';
 import { Toaster } from 'sonner';
 import StepPhone from './StepPhone';
 import StepOtp from './StepOtp';
+import ListeAchatsClient from './ListeAchatsClient';
 
 /** Étapes du workflow (la 3e — 'list' — sera implémentée au Sprint 3). */
 export type HistoriqueStep = 'phone' | 'otp' | 'list';
@@ -43,25 +44,8 @@ interface HistoriqueClientPageProps {
   initialTelephone?: string;
 }
 
-/**
- * Masque un téléphone (SN 9 chiffres ou E.164) pour affichage public.
- * - "+221777301221" -> "+22177*****221"
- * - "771234567"     -> "771****67"
- */
-function maskPhoneForDisplay(phone: string): string {
-  if (!phone) return '***';
-  if (phone.length <= 5) return '***';
-  // Format SN 9 chiffres
-  if (/^\d{9}$/.test(phone)) {
-    return `${phone.slice(0, 3)}****${phone.slice(-2)}`;
-  }
-  // Format E.164 ou autre
-  if (phone.length < 8) return '***';
-  const start = phone.slice(0, 6);
-  const end = phone.slice(-3);
-  const middleLen = Math.max(0, phone.length - 9);
-  return `${start}${'*'.repeat(middleLen)}${end}`;
-}
+// (Note: le masquage du numéro pour affichage est géré désormais
+//  à l'intérieur de <ListeAchatsClient />, plus aucun usage ici.)
 
 export default function HistoriqueClientPage({
   initialTelephone,
@@ -229,17 +213,16 @@ export default function HistoriqueClientPage({
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -12 }}
                 transition={{ duration: 0.25 }}
-                className="text-center text-white/85 py-16 sm:py-20"
               >
-                <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-emerald-500/20 border border-emerald-400/30 mb-4">
-                  <History className="w-7 h-7 text-emerald-300" />
-                </div>
-                <p className="text-base font-semibold">
-                  Identité vérifiée pour le numéro {maskPhoneForDisplay(telephone)}
-                </p>
-                <p className="text-sm mt-3 italic text-emerald-200/80">
-                  La liste de vos achats sera disponible au prochain sprint.
-                </p>
+                <ListeAchatsClient
+                  telephone={telephone}
+                  onChangeNumber={() => {
+                    setOtpSession(null);
+                    setTelephone('');
+                    setTelephoneE164('');
+                    setStep('phone');
+                  }}
+                />
               </motion.div>
             )}
           </AnimatePresence>
