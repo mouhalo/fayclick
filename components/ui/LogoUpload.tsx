@@ -207,31 +207,33 @@ export default function LogoUpload({
   };
 
   return (
-    <div className={`bg-white/90 backdrop-blur-sm rounded-2xl p-4 md:p-5 lg:p-6 shadow-lg border border-gray-100 ${className}`}>
+    <div className={`bg-white/90 backdrop-blur-sm rounded-xl ${registerMode ? 'p-2 md:p-5' : 'p-4 md:p-5 lg:p-6'} shadow-lg border border-gray-100 ${className}`}>
       {/* Header avec icône */}
-      <div className="flex items-center mb-3 md:mb-4">
-        <div className="w-7 h-7 md:w-8 md:h-8 bg-pink-100 rounded-lg flex items-center justify-center mr-2 md:mr-3">
-          <span className="text-pink-500 text-base md:text-lg">
+      <div className={`flex items-center ${registerMode ? 'mb-1.5 md:mb-4' : 'mb-3 md:mb-4'}`}>
+        <div className={`${registerMode ? 'w-5 h-5 md:w-8 md:h-8' : 'w-7 h-7 md:w-8 md:h-8'} bg-pink-100 rounded-lg flex items-center justify-center mr-1.5 md:mr-3`}>
+          <span className={`text-pink-500 ${registerMode ? 'text-xs md:text-lg' : 'text-base md:text-lg'}`}>
             {uploadType === 'photo' ? '📷' : '🎨'}
           </span>
         </div>
-        <h3 className="text-base md:text-lg font-semibold text-gray-800">
+        <h3 className={`${registerMode ? 'text-xs md:text-lg' : 'text-base md:text-lg'} font-semibold text-gray-800`}>
           {label || 'Logo de votre business'}
         </h3>
         {logoState.url && (
-          <span className="ml-2 text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
+          <span className="ml-2 text-[10px] md:text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full">
             ✓ Uploadé
           </span>
         )}
       </div>
 
-      {/* Sous-titre */}
-      <p className="text-gray-600 text-xs md:text-sm mb-4 md:mb-6">
-        {uploadType === 'photo'
-          ? 'Image du produit (optionnel)'
-          : 'Photo/Logo du commerce (optionnel)'
-        }
-      </p>
+      {/* Sous-titre - masqué en registerMode mobile pour gagner de la place */}
+      {!registerMode && (
+        <p className="text-gray-600 text-xs md:text-sm mb-4 md:mb-6">
+          {uploadType === 'photo'
+            ? 'Image du produit (optionnel)'
+            : 'Photo/Logo du commerce (optionnel)'
+          }
+        </p>
+      )}
 
       {/* Zone d'upload/preview */}
       <div
@@ -240,7 +242,7 @@ export default function LogoUpload({
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
         className={`
-          relative w-full h-40 md:h-48 border-2 border-dashed rounded-xl cursor-pointer
+          relative w-full ${registerMode ? 'h-20 md:h-48' : 'h-40 md:h-48'} border-2 border-dashed rounded-xl cursor-pointer
           transition-all duration-200 bg-gray-50/50
           ${isDragOver
             ? 'border-primary-400 bg-primary-50/50 scale-[1.02]'
@@ -318,11 +320,11 @@ export default function LogoUpload({
           </div>
         ) : (
           // Interface d'upload vide
-          <div className="w-full h-full flex flex-col items-center justify-center text-center p-4 md:p-6">
+          <div className={`w-full h-full flex ${registerMode ? 'flex-row md:flex-col' : 'flex-col'} items-center justify-center text-center ${registerMode ? 'p-1.5 md:p-6 gap-2 md:gap-0' : 'p-4 md:p-6'}`}>
             {/* Icône appareil photo */}
-            <div className="w-12 h-12 md:w-16 md:h-16 bg-gray-200 rounded-xl flex items-center justify-center mb-3 md:mb-4">
+            <div className={`${registerMode ? 'w-7 h-7 md:w-16 md:h-16 mb-0 md:mb-4' : 'w-12 h-12 md:w-16 md:h-16 mb-3 md:mb-4'} bg-gray-200 rounded-lg flex items-center justify-center flex-shrink-0`}>
               <svg
-                className="w-6 h-6 md:w-8 md:h-8 text-gray-400"
+                className={`${registerMode ? 'w-3.5 h-3.5 md:w-8 md:h-8' : 'w-6 h-6 md:w-8 md:h-8'} text-gray-400`}
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -342,38 +344,41 @@ export default function LogoUpload({
               </svg>
             </div>
 
-            {/* Texte principal */}
-            <h4 className="text-base md:text-lg font-medium text-gray-700 mb-2">
-              {uploadType === 'photo' ? 'Cliquer' : 'Cliquer'}
-            </h4>
+            {/* Bloc texte + boutons - en ligne sur mobile registerMode */}
+            <div className={`${registerMode ? 'flex flex-col items-start md:items-center text-left md:text-center' : 'contents'}`}>
+              {/* Texte principal */}
+              <h4 className={`${registerMode ? 'text-[11px] md:text-lg leading-tight mb-0 md:mb-2' : 'text-base md:text-lg mb-2'} font-medium text-gray-700`}>
+                Cliquer
+              </h4>
 
-            {/* Formats acceptés */}
-            <p className="text-xs md:text-sm text-gray-500 mb-4">
-              JPG, PNG, GIF - Max 5MB
-            </p>
+              {/* Formats acceptés */}
+              <p className={`${registerMode ? 'text-[9px] md:text-sm leading-tight mb-1 md:mb-4' : 'text-xs md:text-sm mb-4'} text-gray-500`}>
+                JPG, PNG, GIF - Max 5MB
+              </p>
 
-            {/* Boutons sélection */}
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  fileInputRef.current?.click();
-                }}
-                className="px-3 py-1.5 bg-primary-50 text-primary-700 text-xs font-medium rounded-lg hover:bg-primary-100 transition-colors border border-primary-200"
-              >
-                Galerie
-              </button>
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  cameraInputRef.current?.click();
-                }}
-                className="px-3 py-1.5 bg-indigo-50 text-indigo-700 text-xs font-medium rounded-lg hover:bg-indigo-100 transition-colors border border-indigo-200 md:hidden"
-              >
-                Photo
-              </button>
+              {/* Boutons sélection */}
+              <div className={`flex ${registerMode ? 'gap-1 md:gap-2' : 'gap-2'}`}>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    fileInputRef.current?.click();
+                  }}
+                  className={`${registerMode ? 'px-2 py-0.5 text-[10px] md:px-3 md:py-1.5 md:text-xs' : 'px-3 py-1.5 text-xs'} bg-primary-50 text-primary-700 font-medium rounded-md hover:bg-primary-100 transition-colors border border-primary-200`}
+                >
+                  Galerie
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    cameraInputRef.current?.click();
+                  }}
+                  className={`${registerMode ? 'px-2 py-0.5 text-[10px] md:px-3 md:py-1.5 md:text-xs' : 'px-3 py-1.5 text-xs'} bg-indigo-50 text-indigo-700 font-medium rounded-md hover:bg-indigo-100 transition-colors border border-indigo-200 md:hidden`}
+                >
+                  Photo
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -427,13 +432,20 @@ export default function LogoUpload({
         </div>
       )}
 
-      {/* Note informative */}
-      <div className="mt-3 md:mt-4 text-xs text-gray-500 italic text-center">
-        {uploadType === 'photo'
-          ? '💡 Optionnel : Ajoutez des photos'
-          : '💡 Optionnel : Ajoutez le logo de votre commerce pour personnaliser vos factures'
-        }
-      </div>
+      {/* Note informative - masquée en registerMode mobile pour gagner de la place */}
+      {!registerMode && (
+        <div className="mt-3 md:mt-4 text-xs text-gray-500 italic text-center">
+          {uploadType === 'photo'
+            ? '💡 Optionnel : Ajoutez des photos'
+            : '💡 Optionnel : Ajoutez le logo de votre commerce pour personnaliser vos factures'
+          }
+        </div>
+      )}
+      {registerMode && (
+        <div className="hidden md:block mt-4 text-xs text-gray-500 italic text-center">
+          💡 Optionnel : Ajoutez le logo de votre commerce pour personnaliser vos factures
+        </div>
+      )}
 
       {/* Modal PhotoResizer pour logos ET photos */}
       {showPhotoResizer && pendingFile && (

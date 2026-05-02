@@ -861,19 +861,26 @@ html, body {
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
   }
 
-  /* Glass Input */
+  /* Glass Input - Compact mobile, full desktop */
   .reg_glass-input {
     width: 100%;
-    padding: 0.875rem 1rem;
+    padding: 0.625rem 0.875rem;
     background: rgba(255, 255, 255, 0.12);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
     border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 0.75rem;
+    border-radius: 0.625rem;
     color: white;
-    font-size: 1rem;
+    font-size: 0.875rem;
     transition: all 0.3s ease;
     outline: none;
+  }
+  @media (min-width: 768px) {
+    .reg_glass-input {
+      padding: 0.875rem 1rem;
+      border-radius: 0.75rem;
+      font-size: 1rem;
+    }
   }
 
   .reg_glass-input::placeholder {
@@ -908,17 +915,25 @@ html, body {
     animation: reg_progress-shine 1.5s ease-in-out infinite;
   }
 
-  /* Buttons */
+  /* Buttons - Compact mobile, full desktop */
   .reg_btn-primary {
     background: linear-gradient(135deg, #10b981, #14b8a6);
     color: white;
     font-weight: 700;
-    padding: 0.875rem 1.5rem;
-    border-radius: 0.75rem;
+    padding: 0.625rem 1.25rem;
+    font-size: 0.875rem;
+    border-radius: 0.625rem;
     border: none;
     cursor: pointer;
     transition: all 0.3s ease;
     box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+  }
+  @media (min-width: 768px) {
+    .reg_btn-primary {
+      padding: 0.875rem 1.5rem;
+      font-size: 1rem;
+      border-radius: 0.75rem;
+    }
   }
 
   .reg_btn-primary:hover {
@@ -938,10 +953,18 @@ html, body {
     border: 1px solid rgba(255, 255, 255, 0.2);
     color: #d1fae5;
     font-weight: 600;
-    padding: 0.875rem 1.5rem;
-    border-radius: 0.75rem;
+    padding: 0.625rem 1.25rem;
+    font-size: 0.875rem;
+    border-radius: 0.625rem;
     cursor: pointer;
     transition: all 0.3s ease;
+  }
+  @media (min-width: 768px) {
+    .reg_btn-secondary {
+      padding: 0.875rem 1.5rem;
+      font-size: 1rem;
+      border-radius: 0.75rem;
+    }
   }
 
   .reg_btn-secondary:hover {

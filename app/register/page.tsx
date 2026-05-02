@@ -525,7 +525,7 @@ export default function RegisterPage() {
           <form onSubmit={step === 2 ? handleSubmit : (e) => { e.preventDefault(); nextStep(); }}>
 
             {/* Glass Card */}
-            <div className="reg_glass-card p-4 md:p-8 mb-4">
+            <div className="reg_glass-card p-2.5 md:p-8 mb-2 md:mb-4">
               <AnimatePresence mode="wait" custom={direction}>
                 {step === 1 ? (
                   <motion.div
@@ -734,22 +734,22 @@ export default function RegisterPage() {
                     initial="enter"
                     animate="center"
                     exit="exit"
-                    className="space-y-3 md:space-y-6"
+                    className="space-y-2 md:space-y-6"
                   >
-                    {/* Step Title */}
-                    <div className="text-center space-y-2">
-                      <h2 className="text-2xl md:text-3xl font-bold text-white">
+                    {/* Step Title - compact mobile */}
+                    <div className="text-center space-y-0.5 md:space-y-2">
+                      <h2 className="text-base md:text-3xl font-bold text-white">
                         {t('step3Extended.heading')}
                       </h2>
-                      <p className="text-green-200/70 text-sm">
+                      <p className="hidden md:block text-green-200/70 text-sm">
                         {t('step3Extended.helperText')}
                       </p>
                     </div>
 
                     {/* Address */}
-                    <div className="space-y-2">
-                      <label className="flex items-center gap-2 text-green-100 font-semibold text-sm">
-                        <MapPin className="w-4 h-4 text-emerald-400" />
+                    <div className="space-y-1 md:space-y-2">
+                      <label className="flex items-center gap-1.5 text-green-100 font-semibold text-xs md:text-sm">
+                        <MapPin className="w-3.5 h-3.5 md:w-4 md:h-4 text-emerald-400" />
                         Adresse <span className="text-red-400">*</span>
                       </label>
                       <input
@@ -763,16 +763,16 @@ export default function RegisterPage() {
                         maxLength={VALIDATION_RULES.ADDRESS_MAX_LENGTH}
                         required
                       />
-                      <div className="text-xs text-green-300/40 text-right">
+                      <div className="hidden md:block text-xs text-green-300/40 text-right">
                         {formData.address.length}/{VALIDATION_RULES.ADDRESS_MAX_LENGTH}
                       </div>
                     </div>
 
                     {/* Logo Upload */}
-                    <div className="space-y-2">
-                      <label className="flex items-center gap-2 text-green-100 font-semibold text-sm">
-                        <Upload className="w-4 h-4 text-emerald-400" />
-                        {t('step3Extended.logoLabel')} <span className="text-green-300/40 text-xs font-normal">({tCommon('optional')})</span>
+                    <div className="space-y-1 md:space-y-2">
+                      <label className="flex items-center gap-1.5 text-green-100 font-semibold text-xs md:text-sm">
+                        <Upload className="w-3.5 h-3.5 md:w-4 md:h-4 text-emerald-400" />
+                        {t('step3Extended.logoLabel')} <span className="text-green-300/40 text-[10px] md:text-xs font-normal">({tCommon('optional')})</span>
                       </label>
                       <LogoUpload
                         onUploadComplete={handleLogoUploadComplete}
@@ -784,10 +784,10 @@ export default function RegisterPage() {
                     </div>
 
                     {/* Code Parrainage */}
-                    <div className="space-y-2">
-                      <label className="flex items-center gap-2 text-green-100 font-semibold text-sm">
-                        <Tag className="w-4 h-4 text-orange-400" />
-                        {t('step3Extended.promoCodeLabel')} <span className="text-green-300/40 text-xs font-normal">({tCommon('optional')})</span>
+                    <div className="space-y-1 md:space-y-2">
+                      <label className="flex items-center gap-1.5 text-green-100 font-semibold text-xs md:text-sm">
+                        <Tag className="w-3.5 h-3.5 md:w-4 md:h-4 text-orange-400" />
+                        {t('step3Extended.promoCodeLabel')} <span className="text-green-300/40 text-[10px] md:text-xs font-normal">({tCommon('optional')})</span>
                       </label>
                       <input
                         type="text"
@@ -798,24 +798,24 @@ export default function RegisterPage() {
                         placeholder={t('step3Extended.promoCodePlaceholder')}
                         maxLength={11}
                       />
-                      <p className="text-xs text-green-300/40">
+                      <p className="hidden md:block text-xs text-green-300/40">
                         {t('step3Extended.promoCodeHelp')}
                       </p>
                     </div>
 
-                    {/* Terms */}
-                    <div className="p-4 rounded-xl" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
-                      <label className="flex items-start gap-3 cursor-pointer group">
+                    {/* Terms - compact mobile */}
+                    <div className="p-2 md:p-4 rounded-lg md:rounded-xl" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                      <label className="flex items-start gap-2 md:gap-3 cursor-pointer group">
                         <input
                           type="checkbox"
                           name="acceptTerms"
                           checked={formData.acceptTerms}
                           onChange={handleChange}
-                          className="mt-1 w-5 h-5 rounded border-green-600 text-emerald-500 focus:ring-emerald-500 cursor-pointer"
+                          className="mt-0.5 md:mt-1 w-4 h-4 md:w-5 md:h-5 rounded border-green-600 text-emerald-500 focus:ring-emerald-500 cursor-pointer flex-shrink-0"
                           style={{ accentColor: '#10b981' }}
                           required
                         />
-                        <span className="text-sm text-green-100/80 leading-relaxed group-hover:text-green-100">
+                        <span className="text-[11px] md:text-sm leading-snug md:leading-relaxed text-green-100/80 group-hover:text-green-100">
                           J&apos;accepte les{' '}
                           <a href="/terms" target="_blank" className="text-emerald-400 hover:text-emerald-300 font-semibold underline">
                             conditions générales
