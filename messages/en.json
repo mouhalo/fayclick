@@ -376,6 +376,7 @@
     "nav": {
       "home": "Home",
       "shops": "Shops",
+      "cart": "Cart",
       "search": "Search"
     },
     "boutiqueHeader": {
