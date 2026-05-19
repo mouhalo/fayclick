@@ -8,11 +8,14 @@ import type { InventaireData, PeriodeType } from '@/types/inventaire.types';
 import { useTranslations } from '@/hooks/useTranslations';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { formatNumber, toBcp47 } from '@/lib/format-locale';
+import { useHasRight } from '@/hooks/useRights';
 
 // Composants
 import InventaireHeader from '@/components/inventaire/InventaireHeader';
 import ModalSelectionPeriode from '@/components/inventaire/ModalSelectionPeriode';
 import EvolutionChart from '@/components/inventaire/EvolutionChart';
+import EvolutionMargesChart from '@/components/inventaire/EvolutionMargesChart';
+import ResumeMargesCard from '@/components/inventaire/ResumeMargesCard';
 import TopArticlesCard from '@/components/inventaire/TopArticlesCard';
 import TopClientsCard from '@/components/inventaire/TopClientsCard';
 
@@ -41,6 +44,10 @@ export default function InventairePage() {
   const { locale } = useLanguage();
   const bcp47 = toBcp47(locale);
   const currentDate = new Date();
+
+  // Droit applicatif "VOIR VALEUR STOCK PA" : pilote l'affichage des montants
+  // de marges (Résumé + graphique). CAISSIER (= false) → montants masqués `***`.
+  const canViewMargins = useHasRight('VOIR VALEUR STOCK PA');
 
   // États pour la période (valeurs définies par l'utilisateur dans le modal)
   const [data, setData] = useState<InventaireData | null>(null);
@@ -338,6 +345,28 @@ export default function InventairePage() {
             titre={t('chart.titleWithPeriod', { period: periodeLabel })}
           />
         </div>
+
+        {/* Bloc Marges (résumé + graphique) — v2 de get_inventaire_periodique
+            Affiché uniquement si la fonction PG renvoie les nouvelles clés
+            (rétrocompat : anciens clients PWA en cache ignorent simplement). */}
+        {data.resume_marges && data.evolution_marges && (
+          <>
+            <div className="mb-6">
+              <ResumeMargesCard
+                data={data.resume_marges}
+                canView={canViewMargins}
+                periode={periode}
+              />
+            </div>
+            <div className="mb-8">
+              <EvolutionMargesChart
+                data={data.evolution_marges}
+                canView={canViewMargins}
+                titre={t('margins.chart.titleWithPeriod', { period: periodeLabel })}
+              />
+            </div>
+          </>
+        )}
 
         {/* Footer avec infos de génération */}
         <div className="mt-8 text-center text-sm text-gray-500">

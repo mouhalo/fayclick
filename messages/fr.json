@@ -766,6 +766,21 @@
         "11": "Novembre",
         "12": "Décembre"
       }
+    },
+    "margins": {
+      "summary": {
+        "title": "Résumé des marges",
+        "marginTotal": "Marge totale (FCFA)",
+        "marginVariation": "Variation"
+      },
+      "chart": {
+        "title": "Évolution des Marges",
+        "titleWithPeriod": "Évolution des Marges - {period}",
+        "empty": "Aucune donnée de marge disponible",
+        "tooltipMargin": "Marge"
+      },
+      "masked": "***",
+      "naLabel": "—"
     }
   },
   "clients": {

@@ -766,6 +766,21 @@
         "11": "November",
         "12": "December"
       }
+    },
+    "margins": {
+      "summary": {
+        "title": "Margins summary",
+        "marginTotal": "Total margin (FCFA)",
+        "marginVariation": "Variation"
+      },
+      "chart": {
+        "title": "Margins Evolution",
+        "titleWithPeriod": "Margins Evolution - {period}",
+        "empty": "No margin data available",
+        "tooltipMargin": "Margin"
+      },
+      "masked": "***",
+      "naLabel": "—"
     }
   },
   "clients": {
