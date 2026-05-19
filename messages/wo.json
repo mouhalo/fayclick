@@ -766,6 +766,21 @@
         "11": "Novembre",
         "12": "Décembre"
       }
+    },
+    "margins": {
+      "summary": {
+        "title": "Risubeem benefice yi",
+        "marginTotal": "Benefice bu yepp (FCFA)",
+        "marginVariation": "Coppite"
+      },
+      "chart": {
+        "title": "Yokkute benefice yi",
+        "titleWithPeriod": "Yokkute benefice yi - {period}",
+        "empty": "Amul données benefice",
+        "tooltipMargin": "Benefice"
+      },
+      "masked": "***",
+      "naLabel": "—"
     }
   },
   "clients": {
