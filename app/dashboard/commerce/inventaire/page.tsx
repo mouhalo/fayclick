@@ -342,6 +342,7 @@ export default function InventairePage() {
         <div className="mb-8">
           <EvolutionChart
             data={data.evolution_ventes}
+            periode={periode}
             titre={t('chart.titleWithPeriod', { period: periodeLabel })}
           />
         </div>
@@ -361,6 +362,7 @@ export default function InventairePage() {
             <div className="mb-8">
               <EvolutionMargesChart
                 data={data.evolution_marges}
+                periode={periode}
                 canView={canViewMargins}
                 titre={t('margins.chart.titleWithPeriod', { period: periodeLabel })}
               />

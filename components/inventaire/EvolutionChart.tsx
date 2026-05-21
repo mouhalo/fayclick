@@ -1,25 +1,31 @@
 'use client';
 
+import { useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { motion } from 'framer-motion';
-import type { EvolutionVente } from '@/types/inventaire.types';
+import type { EvolutionVente, PeriodeType } from '@/types/inventaire.types';
 import { useTranslations } from '@/hooks/useTranslations';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { formatNumber } from '@/lib/format-locale';
+import ChartTableButton from './ChartTableButton';
+import DataTableModal from './DataTableModal';
 
 interface EvolutionChartProps {
   data: EvolutionVente[];
   titre?: string;
+  /** Période courante — transmise au modal tableau (titre + nom de fichier CSV). */
+  periode: PeriodeType;
 }
 
 /**
  * Graphique d'évolution des ventes avec barres vertes
  * Affiche le montant des ventes sur une période donnée
  */
-export default function EvolutionChart({ data, titre }: EvolutionChartProps) {
+export default function EvolutionChart({ data, titre, periode }: EvolutionChartProps) {
   const t = useTranslations('inventory');
   const { locale } = useLanguage();
   const displayTitle = titre ?? t('chart.title');
+  const [isTableOpen, setIsTableOpen] = useState(false);
 
   // Tooltip personnalisé
   const CustomTooltip = ({ active, payload }: {active?: boolean; payload?: unknown[]}) => {
@@ -51,9 +57,16 @@ export default function EvolutionChart({ data, titre }: EvolutionChartProps) {
       className="bg-white rounded-2xl p-6 shadow-lg"
     >
       {/* Titre */}
-      <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-        <div className="w-1 h-6 bg-emerald-500 rounded-full"></div>
-        {displayTitle}
+      <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center justify-between gap-2">
+        <span className="flex items-center gap-2">
+          <div className="w-1 h-6 bg-emerald-500 rounded-full"></div>
+          {displayTitle}
+        </span>
+        <ChartTableButton
+          color="emerald"
+          onClick={() => setIsTableOpen(true)}
+          label={t('dataTable.openButtonLabel')}
+        />
       </h3>
 
       {/* Graphique */}
@@ -87,6 +100,15 @@ export default function EvolutionChart({ data, titre }: EvolutionChartProps) {
           <p>{t('chart.empty')}</p>
         </div>
       )}
+
+      {/* Modal tableau de données + export CSV */}
+      <DataTableModal
+        isOpen={isTableOpen}
+        onClose={() => setIsTableOpen(false)}
+        variant="ventes"
+        periode={periode}
+        data={data}
+      />
     </motion.div>
   );
 }

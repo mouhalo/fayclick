@@ -781,6 +781,23 @@
       },
       "masked": "***",
       "naLabel": "—"
+    },
+    "dataTable": {
+      "openButtonLabel": "Show data as table",
+      "titleVentes": "Sales Trend",
+      "titleMarges": "Margin Trend",
+      "periodSemaine": "Week",
+      "periodMois": "Month",
+      "periodAnnee": "Year",
+      "colPeriode": "Period",
+      "colMontant": "Amount",
+      "colMarge": "Margin",
+      "colNbVentes": "No. of sales",
+      "totalRow": "Total",
+      "exportCsv": "Export CSV",
+      "empty": "No data to display for this period",
+      "exportDisabledCaissier": "Export not allowed for your profile",
+      "exportDisabledEmpty": "No data to export"
     }
   },
   "clients": {

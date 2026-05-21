@@ -781,6 +781,23 @@
       },
       "masked": "***",
       "naLabel": "—"
+    },
+    "dataTable": {
+      "openButtonLabel": "Afficher les données en tableau",
+      "titleVentes": "Évolution des Ventes",
+      "titleMarges": "Évolution des Marges",
+      "periodSemaine": "Semaine",
+      "periodMois": "Mois",
+      "periodAnnee": "Année",
+      "colPeriode": "Période",
+      "colMontant": "Montant",
+      "colMarge": "Marge",
+      "colNbVentes": "Nb ventes",
+      "totalRow": "Total",
+      "exportCsv": "Exporter CSV",
+      "empty": "Aucune donnée à afficher pour cette période",
+      "exportDisabledCaissier": "Export non autorisé pour votre profil",
+      "exportDisabledEmpty": "Aucune donnée à exporter"
     }
   },
   "clients": {

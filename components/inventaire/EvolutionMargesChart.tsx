@@ -1,15 +1,20 @@
 'use client';
 
+import { useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { motion } from 'framer-motion';
-import type { EvolutionMarge } from '@/types/inventaire.types';
+import type { EvolutionMarge, PeriodeType } from '@/types/inventaire.types';
 import { useTranslations } from '@/hooks/useTranslations';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { formatNumber } from '@/lib/format-locale';
+import ChartTableButton from './ChartTableButton';
+import DataTableModal from './DataTableModal';
 
 interface EvolutionMargesChartProps {
   data: EvolutionMarge[];
   titre?: string;
+  /** Période courante — transmise au modal tableau (titre + nom de fichier CSV). */
+  periode: PeriodeType;
   /**
    * Contrôle la visibilité des montants (droit `VOIR VALEUR STOCK PA`).
    * - true  : montants affichés normalement (profils ADMIN, MANAGER…)
@@ -27,11 +32,12 @@ interface EvolutionMargesChartProps {
  * Pattern de masquage CAISSIER : si canView === false, on remplace
  * uniquement les valeurs chiffrées par `***` (axe + tooltip), pas les barres.
  */
-export default function EvolutionMargesChart({ data, titre, canView = true }: EvolutionMargesChartProps) {
+export default function EvolutionMargesChart({ data, titre, periode, canView = true }: EvolutionMargesChartProps) {
   const t = useTranslations('inventory');
   const { locale } = useLanguage();
   const displayTitle = titre ?? t('margins.chart.title');
   const maskedLabel = t('margins.masked');
+  const [isTableOpen, setIsTableOpen] = useState(false);
 
   // Tooltip personnalisé (violet)
   const CustomTooltip = ({ active, payload }: { active?: boolean; payload?: unknown[] }) => {
@@ -64,9 +70,16 @@ export default function EvolutionMargesChart({ data, titre, canView = true }: Ev
       className="bg-white rounded-2xl p-6 shadow-lg"
     >
       {/* Titre */}
-      <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-        <div className="w-1 h-6 bg-violet-500 rounded-full"></div>
-        {displayTitle}
+      <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center justify-between gap-2">
+        <span className="flex items-center gap-2">
+          <div className="w-1 h-6 bg-violet-500 rounded-full"></div>
+          {displayTitle}
+        </span>
+        <ChartTableButton
+          color="violet"
+          onClick={() => setIsTableOpen(true)}
+          label={t('dataTable.openButtonLabel')}
+        />
       </h3>
 
       {/* Graphique */}
@@ -103,6 +116,16 @@ export default function EvolutionMargesChart({ data, titre, canView = true }: Ev
           <p>{t('margins.chart.empty')}</p>
         </div>
       )}
+
+      {/* Modal tableau de données + export CSV */}
+      <DataTableModal
+        isOpen={isTableOpen}
+        onClose={() => setIsTableOpen(false)}
+        variant="marges"
+        periode={periode}
+        data={data}
+        canView={canView}
+      />
     </motion.div>
   );
 }
