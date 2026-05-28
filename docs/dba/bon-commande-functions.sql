@@ -195,11 +195,11 @@ BEGIN
       RAISE EXCEPTION 'Coût de revient doit être ≥ 0 pour l''article id_produit=%', v_id_produit;
     END IF;
 
-    -- Snapshot nom_produit : recherche dans la table produits
+    -- Snapshot nom_produit : recherche dans la table produit_service
     -- Si le produit n'existe pas : RAISE EXCEPTION (fail-fast à la création,
     -- intégrité garantie — il sera éventuellement supprimé après sans casser l'historique)
     SELECT nom_produit INTO v_nom_produit_snap
-    FROM produits
+    FROM produit_service
     WHERE id_produit   = v_id_produit
       AND id_structure = p_id_structure;
 
@@ -439,7 +439,7 @@ BEGIN
       END IF;
 
       SELECT nom_produit INTO v_nom_produit_snap
-      FROM produits
+      FROM produit_service
       WHERE id_produit   = v_id_produit
         AND id_structure = p_id_structure;
 
