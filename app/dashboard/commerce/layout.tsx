@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { authService } from '@/services/auth.service';
+import { DocumentModeProvider } from '@/contexts/DocumentModeContext';
 
 export default function CommerceLayout({
   children,
@@ -25,5 +26,8 @@ export default function CommerceLayout({
     }
   }, [router]);
 
-  return <>{children}</>;
+  // DocumentModeProvider rend `useDocumentMode()` disponible dans toutes
+  // les pages commerce (produits, factures, etc.) + composants partages
+  // (PanierSidePanel, ModalPanier). Source de verite du mode panier actif.
+  return <DocumentModeProvider>{children}</DocumentModeProvider>;
 }

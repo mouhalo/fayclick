@@ -48,6 +48,9 @@ import { User } from '@/types/auth';
 import { ModalScanCodeBarre } from '@/components/produits/ModalScanCodeBarre';
 import { ModalImpressionProduits } from '@/components/produits/ModalImpressionProduits';
 import { usePanierStore } from '@/stores/panierStore';
+import { usePanierProformaStore } from '@/stores/panierProformaStore';
+import { usePanierBonCommandeStore } from '@/stores/panierBonCommandeStore';
+import { useDocumentMode } from '@/contexts/DocumentModeContext';
 import { useSalesRules } from '@/hooks/useSalesRules';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { PanierSidePanel } from '@/components/panier/PanierSidePanel';
@@ -203,18 +206,47 @@ export default function ProduitsCommercePage() {
   // Règles de vente (prix en gros, etc.)
   const salesRules = useSalesRules();
 
-  // Store panier
-  const addArticle = usePanierStore(state => state.addArticle);
+  // Stores panier (3 modes : facture / proforma / bon de commande)
+  // Le mode actif est lu via DocumentModeContext (source de verite unique partagee
+  // avec PanierSidePanel / ModalPanier). Sans ce routage, tous les ajouts allaient
+  // dans le store facture, rendant les modes Proforma/BC inutilisables.
+  const facturePanierAdd = usePanierStore(state => state.addArticle);
+  const proformaPanierAdd = usePanierProformaStore(state => state.addArticle);
+  const bcPanierAdd = usePanierBonCommandeStore(state => state.addArticle);
+  const { mode: documentMode } = useDocumentMode();
+
+  // Articles + setModalOpen du store facture (utilises pour StatusBar / Ctrl+7 / ModalPanier mobile).
+  // Note : la StatusBar ne reflete que le panier facture ici — c'est OK car
+  // PanierSidePanel (desktop) gere sa propre UI multi-mode via l'adapter.
   const panierArticles = usePanierStore(state => state.articles);
   const setModalOpen = usePanierStore(state => state.setModalOpen);
 
-  // Vider le panier quand on quitte la page produits
-  useEffect(() => {
-    return () => {
-      console.log('🧹 [PRODUITS] Nettoyage panier - sortie de page');
-      usePanierStore.getState().clearPanier();
-    };
-  }, []);
+  /**
+   * Route l'ajout d'article vers le store correspondant au mode actif.
+   * - facture  : signature (produit, qty, prixApplique) — 3 args
+   * - proforma : signature (produit, qty, prixApplique) — 3 args
+   * - BC       : signature (produit, qty) — 2 args (prix = cout_revient resolu en interne)
+   */
+  const addArticleToActiveStore = (
+    produit: Produit,
+    quantity: number,
+    prixApplique: number
+  ) => {
+    if (documentMode === 'proforma') {
+      proformaPanierAdd(produit, quantity, prixApplique);
+    } else if (documentMode === 'bonCommande') {
+      // ATTENTION : NE PAS passer prixApplique — le store BC resout lui-meme
+      // le prix via resolvePrixBC (cout_revient, fallback prix_vente).
+      bcPanierAdd(produit, quantity);
+    } else {
+      facturePanierAdd(produit, quantity, prixApplique);
+    }
+  };
+
+  // NOTE : pas de cleanup au unmount des stores panier — conforme reco QA
+  // (section 3.6 point 5 du rapport qa-e2e-bugs-panier-2026-05-28.md).
+  // L'utilisateur doit retrouver son brouillon de proforma/BC/facture en
+  // revenant sur la page. Les stores sont persistes en localStorage.
 
   // Pagination
   const filteredCount = produitsFiltered.length;
@@ -515,7 +547,7 @@ export default function ProduitsCommercePage() {
     const prixChoisi = modeVentePrixType === 'gros' && (modeVenteProduit.prix_grossiste || 0) > 0
       ? modeVenteProduit.prix_grossiste!
       : modeVenteProduit.prix_vente;
-    addArticle(modeVenteProduit, modeVenteQuantity, prixChoisi);
+    addArticleToActiveStore(modeVenteProduit, modeVenteQuantity, prixChoisi);
     showToast('success', t('toasts.addedToCart'),
       modeVenteQuantity > 1
         ? t('toasts.addedToCartMsgPlural', { qty: modeVenteQuantity, name: modeVenteProduit.nom_produit })

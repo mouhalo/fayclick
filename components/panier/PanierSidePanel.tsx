@@ -36,6 +36,7 @@ import { factureService } from '@/services/facture.service';
 import { proformaService } from '@/services/proforma.service';
 import { bonCommandeService } from '@/services/bon-commande.service';
 import { useAuth } from '@/contexts/AuthContext';
+import { useDocumentMode, type DocumentMode } from '@/contexts/DocumentModeContext';
 import { useToast } from '@/components/ui/Toast';
 import { useFactureSuccessStore } from '@/hooks/useFactureSuccess';
 import { ModalRechercheClient } from './ModalRechercheClient';
@@ -63,7 +64,7 @@ const ENABLE_DOCUMENT_DROPDOWN = true;
 // TYPES
 // =============================================================================
 
-type DocumentMode = 'facture' | 'proforma' | 'bonCommande';
+// DocumentMode est exporte depuis DocumentModeContext (source de verite unique)
 
 interface PanierSidePanelProps {
   onSuccess?: () => void;
@@ -98,7 +99,8 @@ export function PanierSidePanel({ onSuccess, onClose }: PanierSidePanelProps) {
   // =========================================================================
   const { structure } = useAuth();
   const comptePrive = structure?.compte_prive === true;
-  const idStructure = structure?.id_structure ?? 0;
+  // idStructure n'est plus utilise ici — la persistance du mode est geree
+  // par DocumentModeContext (par structure).
 
   const { showToast } = useToast();
   const t = useTranslations('panier');
@@ -118,30 +120,26 @@ export function PanierSidePanel({ onSuccess, onClose }: PanierSidePanelProps) {
   const [isModalRechercheOpen, setIsModalRechercheOpen] = useState(false);
   const [isModalFournisseurOpen, setIsModalFournisseurOpen] = useState(false);
 
-  // Mode document (dropdown) — restaure depuis localStorage si compte_prive
-  const [documentMode, setDocumentMode] = useState<DocumentMode>(() => {
-    if (typeof window === 'undefined') return 'facture';
-    if (!comptePrive || !ENABLE_DOCUMENT_DROPDOWN) return 'facture';
-    const stored = localStorage.getItem(`fayclick_panier_mode_${idStructure}`);
-    if (stored === 'facture' || stored === 'proforma' || stored === 'bonCommande') {
-      return stored;
-    }
-    return 'facture';
-  });
+  // Mode document — source de verite via DocumentModeContext
+  // (persistance localStorage + hydratation cross-structure geres dans le provider)
+  const { mode: documentModeRaw, setMode: setDocumentModeCtx } = useDocumentMode();
 
-  // Garde de coherence : si compte_prive devient false (rare), forcer 'facture'
-  useEffect(() => {
-    if ((!comptePrive || !ENABLE_DOCUMENT_DROPDOWN) && documentMode !== 'facture') {
-      setDocumentMode('facture');
-    }
-  }, [comptePrive, documentMode]);
+  // Si feature flag OFF, on force 'facture' (le legacy render se charge du reste).
+  // Sinon, le mode reflete directement le context.
+  const documentMode: DocumentMode = ENABLE_DOCUMENT_DROPDOWN ? documentModeRaw : 'facture';
 
-  // Persistance mode au changement
+  // Wrapper : ne propage le setMode au context que si le flag est ON
+  const setDocumentMode = (m: DocumentMode) => {
+    if (ENABLE_DOCUMENT_DROPDOWN) setDocumentModeCtx(m);
+  };
+
+  // Garde de coherence : si feature flag OFF mais mode != facture en localStorage,
+  // forcer le retour a 'facture' dans le context (reset propre)
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-    if (!comptePrive || !ENABLE_DOCUMENT_DROPDOWN) return;
-    localStorage.setItem(`fayclick_panier_mode_${idStructure}`, documentMode);
-  }, [documentMode, comptePrive, idStructure]);
+    if (!ENABLE_DOCUMENT_DROPDOWN && documentModeRaw !== 'facture') {
+      setDocumentModeCtx('facture');
+    }
+  }, [documentModeRaw, setDocumentModeCtx]);
 
   // Modal impression proforma apres creation
   const [modalImpressionProforma, setModalImpressionProforma] = useState<{
