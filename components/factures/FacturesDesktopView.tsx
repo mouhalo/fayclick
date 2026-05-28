@@ -27,6 +27,7 @@ import {
 import DashboardSidebar from '@/components/dashboard/DashboardSidebar';
 import { ListePaiements } from '@/components/factures/ListePaiements';
 import { ProformasTab } from '@/components/proformas/ProformasTab';
+import { BonsCommandesTab } from '@/components/boncommandes';
 import { User } from '@/types/auth';
 import { useTranslations } from '@/hooks/useTranslations';
 import {
@@ -105,7 +106,7 @@ export default function FacturesDesktopView({
   const router = useRouter();
   const t = useTranslations('invoices');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(isTablet);
-  const [activeTab, setActiveTab] = useState<'factures' | 'paiements' | 'proformas'>('factures');
+  const [activeTab, setActiveTab] = useState<'factures' | 'paiements' | 'proformas' | 'bonsCommandes'>('factures');
 
   // Sync collapsed avec isTablet
   useEffect(() => {
@@ -286,6 +287,19 @@ export default function FacturesDesktopView({
                 }`}
               >
                 {t('tabs.proformas')}
+              </button>
+            )}
+
+            {comptePrive && (
+              <button
+                onClick={() => setActiveTab('bonsCommandes')}
+                className={`px-5 py-2 rounded-full text-sm font-semibold transition-all ${
+                  activeTab === 'bonsCommandes'
+                    ? 'bg-sky-600 text-white shadow-md'
+                    : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'
+                }`}
+              >
+                Bons de Commande
               </button>
             )}
 
@@ -699,10 +713,15 @@ export default function FacturesDesktopView({
                 canViewMontants={canViewMontants}
               />
             </div>
-          ) : (
+          ) : activeTab === 'proformas' ? (
             /* Onglet Proformas */
             <div className="bg-gradient-to-br from-green-900/90 to-green-950/90 rounded-xl shadow-md border border-green-700/30 p-6">
               <ProformasTab canViewMontants={canViewMontants} />
+            </div>
+          ) : (
+            /* Onglet Bons de Commande */
+            <div className="bg-gradient-to-br from-green-900/90 to-green-950/90 rounded-xl shadow-md border border-green-700/30 p-6">
+              <BonsCommandesTab canViewMontants={canViewMontants} />
             </div>
           )}
         </div>

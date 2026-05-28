@@ -97,8 +97,10 @@ export function FacturesOnglets({
               <motion.button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
+                title={tab.label}
+                aria-label={tab.label}
                 className={`
-                  relative flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl
+                  relative flex-1 flex items-center justify-center gap-1 sm:gap-2 px-2 sm:px-4 py-2.5 sm:py-3 rounded-xl
                   transition-all duration-300 font-medium
                   ${activeTab === tab.id
                     ? 'text-white shadow-lg'
@@ -117,10 +119,10 @@ export function FacturesOnglets({
                   />
                 )}
 
-                {/* Contenu de l'onglet */}
-                <div className="relative flex items-center gap-2">
+                {/* Contenu de l'onglet — mobile : icone + badge uniquement | desktop : icone + label + badge */}
+                <div className="relative flex items-center gap-1 sm:gap-2">
                   {tab.icon}
-                  <span className={`${isMobile ? 'text-sm' : 'text-base'}`}>
+                  <span className="hidden sm:inline text-sm md:text-base">
                     {tab.label}
                   </span>
                   {tab.count !== undefined && tab.count > 0 && (
@@ -128,7 +130,7 @@ export function FacturesOnglets({
                       initial={{ scale: 0 }}
                       animate={{ scale: 1 }}
                       className={`
-                        px-2 py-0.5 rounded-full text-xs font-bold
+                        px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-bold
                         ${activeTab === tab.id
                           ? 'bg-white/20 text-white'
                           : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
