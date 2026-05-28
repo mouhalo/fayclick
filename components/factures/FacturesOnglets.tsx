@@ -8,13 +8,13 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FileText, CreditCard, FileCheck, TrendingUp, Calendar } from 'lucide-react';
+import { FileText, CreditCard, FileCheck, Package, TrendingUp, Calendar } from 'lucide-react';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { useTranslations } from '@/hooks/useTranslations';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { toBcp47 } from '@/lib/format-locale';
 
-type TabId = 'factures' | 'paiements' | 'proformas';
+type TabId = 'factures' | 'paiements' | 'proformas' | 'bonsCommandes';
 
 interface TabData {
   id: TabId;
@@ -29,20 +29,26 @@ interface FacturesOngletsProps {
   facturesContent: React.ReactNode;
   paiementsContent: React.ReactNode;
   proformasContent?: React.ReactNode;
+  bonsCommandesContent?: React.ReactNode;
   facturesCount?: number;
   paiementsCount?: number;
   proformasCount?: number;
+  bonsCommandesCount?: number;
   showProformas?: boolean;
+  showBonsCommandes?: boolean;
 }
 
 export function FacturesOnglets({
   facturesContent,
   paiementsContent,
   proformasContent,
+  bonsCommandesContent,
   facturesCount = 0,
   paiementsCount = 0,
   proformasCount = 0,
-  showProformas = false
+  bonsCommandesCount = 0,
+  showProformas = false,
+  showBonsCommandes = false
 }: FacturesOngletsProps) {
   const [activeTab, setActiveTab] = useState<TabId>('factures');
   const { isMobile } = useBreakpoint();
@@ -70,6 +76,13 @@ export function FacturesOnglets({
       icon: <FileCheck className="w-4 h-4 sm:w-5 sm:h-5" />,
       count: proformasCount,
       color: 'from-amber-500 to-amber-600'
+    }] : []),
+    ...(showBonsCommandes ? [{
+      id: 'bonsCommandes' as TabId,
+      label: 'Bons de Commande',
+      icon: <Package className="w-4 h-4 sm:w-5 sm:h-5" />,
+      count: bonsCommandesCount,
+      color: 'from-sky-500 to-sky-600'
     }] : [])
   ];
 
@@ -141,7 +154,13 @@ export function FacturesOnglets({
           exit={{ opacity: 0, y: -20 }}
           transition={{ duration: 0.3 }}
         >
-          {activeTab === 'factures' ? facturesContent : activeTab === 'paiements' ? paiementsContent : proformasContent}
+          {activeTab === 'factures'
+            ? facturesContent
+            : activeTab === 'paiements'
+            ? paiementsContent
+            : activeTab === 'proformas'
+            ? proformasContent
+            : bonsCommandesContent}
         </motion.div>
       </AnimatePresence>
 

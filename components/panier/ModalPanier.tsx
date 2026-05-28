@@ -7,13 +7,16 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   X, ShoppingCart, Trash2, Plus, Minus,
   Calculator, CreditCard, User, XCircle
 } from 'lucide-react';
-import { usePanierStore } from '@/stores/panierStore';
+import { usePanierStore, type InfosClient } from '@/stores/panierStore';
+import { usePanierProformaStore } from '@/stores/panierProformaStore';
+import { usePanierBonCommandeStore } from '@/stores/panierBonCommandeStore';
+import { useDocumentMode } from '@/contexts/DocumentModeContext';
 import { factureService } from '@/services/facture.service';
 import { useToast } from '@/components/ui/Toast';
 import { useFactureSuccessStore } from '@/hooks/useFactureSuccess';
@@ -22,13 +25,81 @@ import { Client } from '@/types/client';
 import { useTranslations } from '@/hooks/useTranslations';
 
 export function ModalPanier() {
+  // Mode actif (facture / proforma / bonCommande) partage avec PanierSidePanel + page Produits
+  const { mode: documentMode } = useDocumentMode();
+
+  // 3 stores : lecture conditionnelle selon mode actif (adapter minimaliste)
+  const facturePanier = usePanierStore();
+  const proformaPanier = usePanierProformaStore();
+  const bcPanier = usePanierBonCommandeStore();
+
+  // isModalOpen + setModalOpen restent globalement sur le store facture
+  // (le toggle de la modal est declenche depuis StatusBarPanier qui regarde le store facture).
+  const isModalOpen = facturePanier.isModalOpen;
+  const setModalOpen = facturePanier.setModalOpen;
+
+  // Adapter : lit le store actif pour articles / montants / actions.
+  // Le mobile ne donne pas acces au dropdown 3 modes — si l'utilisateur a switche
+  // sur Proforma/BC depuis le panel desktop, on l'affiche correctement ici et on
+  // bloque la commande mobile (creation BC/Proforma necessite UI dediee).
+  const adapter = useMemo(() => {
+    if (documentMode === 'proforma') {
+      const m = proformaPanier.getMontantsProforma();
+      return {
+        articles: proformaPanier.articles,
+        infosClient: proformaPanier.infosClient,
+        remise: proformaPanier.remise,
+        montants: m,
+        updateQuantity: proformaPanier.updateQuantity,
+        removeArticle: proformaPanier.removeArticle,
+        clearPanier: proformaPanier.clearPanier,
+        updateInfosClient: proformaPanier.updateInfosClient,
+        updateRemise: proformaPanier.updateRemise,
+      };
+    }
+    if (documentMode === 'bonCommande') {
+      const m = bcPanier.getMontantsBonCommande();
+      const f = bcPanier.infosFournisseur;
+      return {
+        articles: bcPanier.articles,
+        // Adapter "infosClient" depuis fournisseur pour eviter de casser l'UI mobile.
+        // La modale mobile bloquera la commande BC (cf. handleCommander).
+        infosClient: {
+          id_client: f.id_fournisseur,
+          nom_client_payeur: f.nom_fournisseur,
+          tel_client: f.tel_fournisseur,
+        },
+        remise: bcPanier.remise,
+        montants: m,
+        updateQuantity: bcPanier.updateQuantity,
+        removeArticle: bcPanier.removeArticle,
+        clearPanier: bcPanier.clearPanier,
+        // En mode BC, l'utilisateur doit passer par le panel desktop pour le fournisseur.
+        // updateInfosClient devient un no-op cote modal mobile (typage aligne sur le store facture).
+        updateInfosClient: (_infos: InfosClient) => { /* no-op : utiliser panel desktop */ },
+        updateRemise: bcPanier.updateRemise,
+      };
+    }
+    // Mode facture (defaut)
+    const m = facturePanier.getMontantsFacture();
+    return {
+      articles: facturePanier.articles,
+      infosClient: facturePanier.infosClient,
+      remise: facturePanier.remise,
+      montants: m,
+      updateQuantity: facturePanier.updateQuantity,
+      removeArticle: facturePanier.removeArticle,
+      clearPanier: facturePanier.clearPanier,
+      updateInfosClient: facturePanier.updateInfosClient,
+      updateRemise: facturePanier.updateRemise,
+    };
+  }, [documentMode, facturePanier, proformaPanier, bcPanier]);
+
   const {
     articles, infosClient, remise,
-    isModalOpen, setModalOpen,
     updateQuantity, removeArticle, clearPanier,
     updateInfosClient, updateRemise,
-    getMontantsFacture
-  } = usePanierStore();
+  } = adapter;
 
   const t = useTranslations('panier');
   const { showToast } = useToast();
@@ -45,7 +116,7 @@ export function ModalPanier() {
   });
   const [remiseInput, setRemiseInput] = useState<number>(0);
 
-  const montants = getMontantsFacture();
+  const montants = adapter.montants;
   const sousTotal = montants.sous_total;
 
   // Changer le mode de remise et persister dans localStorage
@@ -92,6 +163,12 @@ export function ModalPanier() {
   const handleSelectClient = (client: Partial<Client> & { nom_client: string; tel_client: string }) => {
     console.log('[PANIER] Client selectionne:', client);
 
+    if (documentMode === 'bonCommande') {
+      // Selection client pas applicable en mode BC (necessite un fournisseur)
+      showToast('warning', 'Mode bon de commande', 'Selectionnez un fournisseur via le panier desktop.');
+      return;
+    }
+
     updateInfosClient({
       id_client: client.id_client,
       nom_client_payeur: client.nom_client,
@@ -122,6 +199,19 @@ export function ModalPanier() {
       // Validation minimale
       if (articles.length === 0) {
         showToast('error', 'Erreur', 'Aucun article dans le panier');
+        return;
+      }
+
+      // Garde mobile : la creation Proforma/BC necessite une UI dediee
+      // (fournisseur, validation client obligatoire) non disponible sur cette modale.
+      // L'utilisateur doit utiliser le panel desktop (PanierSidePanel) pour ces modes.
+      if (documentMode !== 'facture') {
+        const modeLabel = documentMode === 'proforma' ? 'Proforma' : 'Bon de commande';
+        showToast(
+          'warning',
+          `${modeLabel} non disponible sur mobile`,
+          'Utilisez la version desktop (panier flottant) pour creer un ' + modeLabel.toLowerCase() + '.'
+        );
         return;
       }
 

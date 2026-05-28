@@ -267,9 +267,16 @@ export const useProduitsStore = create<ProduitsState>()(
       }),
       
       // Configuration de persistance (panier seulement)
+      // FIX P1 (MAJ-001) : Renomme depuis 'fayclick-panier' qui entrait en collision
+      // avec la cle de persistance de stores/panierStore.ts. La collision provoquait
+      // un ecrasement croise -> perte du panier facture apres reload.
+      // Nouvelle cle : 'fayclick-cache-produits' (semantiquement plus correcte —
+      // ce store cache des produits, pas un panier).
+      // Migration : les utilisateurs ayant des donnees dans l'ancienne cle perdent
+      // ce cache uniquement, qui se reconstruit au prochain fetch (impact nul).
       {
-        name: 'fayclick-panier',
-        partialize: (state) => ({ 
+        name: 'fayclick-cache-produits',
+        partialize: (state) => ({
           panier: {
             items: state.panier.items,
             total: state.panier.total,
