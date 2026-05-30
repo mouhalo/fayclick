@@ -55,6 +55,37 @@ export interface TopClient {
 }
 
 /**
+ * Résumé des marges réalisées sur la période avec variation vs N-1
+ * Source : fonction PG get_inventaire_periodique v2 (clé `resume_marges`)
+ *
+ * Règles métier :
+ * - marge_total : somme des marges brutes réalisées (prorata sur acomptes appliqué), en FCFA entier
+ * - marge_variation : pourcentage de variation vs période précédente
+ *   - null si N-1 = 0 et N > 0 (progression depuis zéro → afficher "—" côté UI)
+ *   - valeur signée sinon (peut être négative ou très grande)
+ */
+export interface ResumeMarges {
+  marge_total: number;
+  marge_variation: number | null;
+}
+
+/**
+ * Point de données pour le graphique d'évolution des marges
+ * Source : fonction PG get_inventaire_periodique v2 (clé `evolution_marges`)
+ *
+ * Invariants garantis par le DBA :
+ * - evolution_marges.length === evolution_ventes.length
+ * - evolution_marges[i].periode === evolution_ventes[i].periode
+ * - evolution_marges[i].label === evolution_ventes[i].label
+ */
+export interface EvolutionMarge {
+  periode: string;       // Identique à evolution_ventes[i].periode (Mon, S23, Jan...)
+  label: string;         // Identique à evolution_ventes[i].label (13/05, ...)
+  marge: number;         // Marge brute réalisée sur le bucket, en FCFA entier
+  nombre_ventes: number; // Nombre de factures encaissées sur le bucket
+}
+
+/**
  * Réponse complète de la fonction get_inventaire
  */
 export interface InventaireData {
@@ -68,6 +99,15 @@ export interface InventaireData {
   evolution_ventes: EvolutionVente[];
   top_articles: TopArticle[];
   top_clients: TopClient[];
+  /**
+   * NOUVEAU v2 — optionnel pour rétrocompatibilité avec d'anciens clients PWA
+   * mis en cache avant le déploiement de la fonction PG v2.
+   */
+  resume_marges?: ResumeMarges;
+  /**
+   * NOUVEAU v2 — optionnel pour rétrocompatibilité. Voir ResumeMarges.
+   */
+  evolution_marges?: EvolutionMarge[];
   timestamp_generation: string;
   error?: string; // Optionnel en cas d'erreur
 }

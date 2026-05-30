@@ -766,6 +766,38 @@
         "11": "Novembre",
         "12": "Décembre"
       }
+    },
+    "margins": {
+      "summary": {
+        "title": "Résumé des marges",
+        "marginTotal": "Marge totale (FCFA)",
+        "marginVariation": "Variation"
+      },
+      "chart": {
+        "title": "Évolution des Marges",
+        "titleWithPeriod": "Évolution des Marges - {period}",
+        "empty": "Aucune donnée de marge disponible",
+        "tooltipMargin": "Marge"
+      },
+      "masked": "***",
+      "naLabel": "—"
+    },
+    "dataTable": {
+      "openButtonLabel": "Afficher les données en tableau",
+      "titleVentes": "Évolution des Ventes",
+      "titleMarges": "Évolution des Marges",
+      "periodSemaine": "Semaine",
+      "periodMois": "Mois",
+      "periodAnnee": "Année",
+      "colPeriode": "Période",
+      "colMontant": "Montant",
+      "colMarge": "Marge",
+      "colNbVentes": "Nb ventes",
+      "totalRow": "Total",
+      "exportCsv": "Exporter CSV",
+      "empty": "Aucune donnée à afficher pour cette période",
+      "exportDisabledCaissier": "Export non autorisé pour votre profil",
+      "exportDisabledEmpty": "Aucune donnée à exporter"
     }
   },
   "clients": {

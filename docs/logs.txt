@@ -1,0 +1,253 @@
+PS D:\React_Prj\fayclick>  npm run kb:build 
+
+> fayclick@2.5.0 kb:build
+> node --experimental-strip-types scripts/kb-builder/orchestrator.ts
+
+(node:29396) ExperimentalWarning: Type Stripping is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+═══════════════════════════════════════════════════════════════
+🚀 KB BUILDER ORCHESTRATOR — FayClick Knowledge Base Generator
+═══════════════════════════════════════════════════════════════
+
+📋 [Orchestrateur] Vérification des variables d'environnement...
+✅ [Orchestrateur] LLM : Ollama qwen2.5:3b (local, http://127.0.0.1:11434)
+⚠️ [Orchestrateur] Ni OPENAI_API_KEY ni OLLAMA_EMBED_MODEL — embedding skippé (Markdown seul)
+✅ [Orchestrateur] Configuration valide — démarrage
+
+⏳ [Orchestrateur] Étape 2/6 : Collecte de données (agents séquentiels)...
+
+🌍 [i18n Agent] Démarrage...
+✅ [i18n Agent] 17 modules extraits
+🔍 [Feature Agent] Démarrage (Ollama qwen3.5)...
+❌ [Feature Agent] Parse error for auth: SyntaxError: Unexpected end of JSON input
+    at JSON.parse (<anonymous>)
+    at runFeatureAgent (file:///D:/React_Prj/fayclick/scripts/kb-builder/agents/feature-agent.ts:100:25)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async buildKB (file:///D:/React_Prj/fayclick/scripts/kb-builder/orchestrator.ts:80:22)
+❌ [Feature Agent] Parse error for produits: SyntaxError: Unexpected end of JSON input
+    at JSON.parse (<anonymous>)
+    at runFeatureAgent (file:///D:/React_Prj/fayclick/scripts/kb-builder/agents/feature-agent.ts:100:25)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async buildKB (file:///D:/React_Prj/fayclick/scripts/kb-builder/orchestrator.ts:80:22)
+❌ [Feature Agent] Parse error for factures: SyntaxError: Unexpected end of JSON input
+    at JSON.parse (<anonymous>)
+    at runFeatureAgent (file:///D:/React_Prj/fayclick/scripts/kb-builder/agents/feature-agent.ts:100:25)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async buildKB (file:///D:/React_Prj/fayclick/scripts/kb-builder/orchestrator.ts:80:22)
+❌ [Feature Agent] Parse error for clients: SyntaxError: Expected property name or '}' in JSON at position 2 (line 1 column 3)
+    at JSON.parse (<anonymous>)
+    at runFeatureAgent (file:///D:/React_Prj/fayclick/scripts/kb-builder/agents/feature-agent.ts:100:25)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async buildKB (file:///D:/React_Prj/fayclick/scripts/kb-builder/orchestrator.ts:80:22)
+❌ [Feature Agent] Parse error for venteflash: SyntaxError: Unexpected end of JSON input
+    at JSON.parse (<anonymous>)
+    at runFeatureAgent (file:///D:/React_Prj/fayclick/scripts/kb-builder/agents/feature-agent.ts:100:25)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async buildKB (file:///D:/React_Prj/fayclick/scripts/kb-builder/orchestrator.ts:80:22)
+❌ [Feature Agent] Parse error for paiements: SyntaxError: Unexpected end of JSON input
+    at JSON.parse (<anonymous>)
+    at runFeatureAgent (file:///D:/React_Prj/fayclick/scripts/kb-builder/agents/feature-agent.ts:100:25)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async buildKB (file:///D:/React_Prj/fayclick/scripts/kb-builder/orchestrator.ts:80:22)
+❌ [Feature Agent] Parse error for abonnements: SyntaxError: Unexpected end of JSON input
+    at JSON.parse (<anonymous>)
+    at runFeatureAgent (file:///D:/React_Prj/fayclick/scripts/kb-builder/agents/feature-agent.ts:100:25)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async buildKB (file:///D:/React_Prj/fayclick/scripts/kb-builder/orchestrator.ts:80:22)
+❌ [Feature Agent] Parse error for live: SyntaxError: Unexpected end of JSON input
+    at JSON.parse (<anonymous>)
+    at runFeatureAgent (file:///D:/React_Prj/fayclick/scripts/kb-builder/agents/feature-agent.ts:100:25)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async buildKB (file:///D:/React_Prj/fayclick/scripts/kb-builder/orchestrator.ts:80:22)
+❌ [Feature Agent] Parse error for kalpe: SyntaxError: Unexpected end of JSON input
+    at JSON.parse (<anonymous>)
+    at runFeatureAgent (file:///D:/React_Prj/fayclick/scripts/kb-builder/agents/feature-agent.ts:100:25)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async buildKB (file:///D:/React_Prj/fayclick/scripts/kb-builder/orchestrator.ts:80:22)
+❌ [Feature Agent] Parse error for parametres: SyntaxError: Expected property name or '}' in JSON at position 2 (line 1 column 3)
+    at JSON.parse (<anonymous>)
+    at runFeatureAgent (file:///D:/React_Prj/fayclick/scripts/kb-builder/agents/feature-agent.ts:100:25)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async buildKB (file:///D:/React_Prj/fayclick/scripts/kb-builder/orchestrator.ts:80:22)
+❌ [Feature Agent] Parse error for proformas: SyntaxError: Unexpected end of JSON input
+    at JSON.parse (<anonymous>)
+    at runFeatureAgent (file:///D:/React_Prj/fayclick/scripts/kb-builder/agents/feature-agent.ts:100:25)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async buildKB (file:///D:/React_Prj/fayclick/scripts/kb-builder/orchestrator.ts:80:22)
+📚 [Docs Agent] Démarrage (Ollama qwen3.5)...
+❌ [Docs Agent] SyntaxError: Expected property name or '}' in JSON at position 4 (line 2 column 3)
+    at JSON.parse (<anonymous>)
+    at runDocsAgent (file:///D:/React_Prj/fayclick/scripts/kb-builder/agents/docs-agent.ts:53:25)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async buildKB (file:///D:/React_Prj/fayclick/scripts/kb-builder/orchestrator.ts:85:18)
+📱 [WhatsApp Agent] Démarrage (Ollama qwen3.5)...
+❌ [WhatsApp Agent] DOMException [AbortError]: This operation was aborted
+    at node:internal/deps/undici/undici:13484:13
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async runWhatsAppAgent (file:///D:/React_Prj/fayclick/scripts/kb-builder/agents/whatsapp-agent.ts:45:17)
+    at async buildKB (file:///D:/React_Prj/fayclick/scripts/kb-builder/orchestrator.ts:90:31)
+
+✅ [Orchestrateur] Collecte terminée en 3277589ms
+   - Features: 11 modules
+   - Docs: 0 décisions
+   - i18n: 17 modules
+   - WhatsApp: 0 templates
+
+⏳ [Orchestrateur] Étape 3/6 : Synthèse Q&A (FAQ Agent)...
+
+
+📚 [FAQ Agent] Démarrage (Ollama qwen3.5) — 11 modules...
+  ⏳ auth...
+  ❌ auth: DOMException [AbortError]: This operation was aborted
+    at node:internal/deps/undici/undici:13484:13
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async generateModuleQA (file:///D:/React_Prj/fayclick/scripts/kb-builder/agents/faq-agent.ts:55:17)
+    at async runFAQAgent (file:///D:/React_Prj/fayclick/scripts/kb-builder/agents/faq-agent.ts:86:18)
+    at async buildKB (file:///D:/React_Prj/fayclick/scripts/kb-builder/orchestrator.ts:123:17)
+  ⏳ produits...
+  ❌ produits: DOMException [AbortError]: This operation was aborted
+    at node:internal/deps/undici/undici:13484:13
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async generateModuleQA (file:///D:/React_Prj/fayclick/scripts/kb-builder/agents/faq-agent.ts:55:17)
+    at async runFAQAgent (file:///D:/React_Prj/fayclick/scripts/kb-builder/agents/faq-agent.ts:86:18)
+    at async buildKB (file:///D:/React_Prj/fayclick/scripts/kb-builder/orchestrator.ts:123:17)
+  ⏳ factures...
+  ❌ factures: DOMException [AbortError]: This operation was aborted
+    at node:internal/deps/undici/undici:13484:13
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async generateModuleQA (file:///D:/React_Prj/fayclick/scripts/kb-builder/agents/faq-agent.ts:55:17)
+    at async runFAQAgent (file:///D:/React_Prj/fayclick/scripts/kb-builder/agents/faq-agent.ts:86:18)
+    at async buildKB (file:///D:/React_Prj/fayclick/scripts/kb-builder/orchestrator.ts:123:17)
+  ⏳ clients...
+  ❌ clients: DOMException [AbortError]: This operation was aborted
+    at node:internal/deps/undici/undici:13484:13
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async generateModuleQA (file:///D:/React_Prj/fayclick/scripts/kb-builder/agents/faq-agent.ts:55:17)
+    at async runFAQAgent (file:///D:/React_Prj/fayclick/scripts/kb-builder/agents/faq-agent.ts:86:18)
+    at async buildKB (file:///D:/React_Prj/fayclick/scripts/kb-builder/orchestrator.ts:123:17)
+  ⏳ venteflash...
+  ❌ venteflash: DOMException [AbortError]: This operation was aborted
+    at node:internal/deps/undici/undici:13484:13
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async generateModuleQA (file:///D:/React_Prj/fayclick/scripts/kb-builder/agents/faq-agent.ts:55:17)
+    at async runFAQAgent (file:///D:/React_Prj/fayclick/scripts/kb-builder/agents/faq-agent.ts:86:18)
+    at async buildKB (file:///D:/React_Prj/fayclick/scripts/kb-builder/orchestrator.ts:123:17)
+  ⏳ paiements...
+  ❌ paiements: DOMException [AbortError]: This operation was aborted
+    at node:internal/deps/undici/undici:13484:13
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async generateModuleQA (file:///D:/React_Prj/fayclick/scripts/kb-builder/agents/faq-agent.ts:55:17)
+    at async runFAQAgent (file:///D:/React_Prj/fayclick/scripts/kb-builder/agents/faq-agent.ts:86:18)
+    at async buildKB (file:///D:/React_Prj/fayclick/scripts/kb-builder/orchestrator.ts:123:17)
+  ⏳ abonnements...
+  ❌ abonnements: DOMException [AbortError]: This operation was aborted
+    at node:internal/deps/undici/undici:13484:13
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async generateModuleQA (file:///D:/React_Prj/fayclick/scripts/kb-builder/agents/faq-agent.ts:55:17)
+    at async runFAQAgent (file:///D:/React_Prj/fayclick/scripts/kb-builder/agents/faq-agent.ts:86:18)
+    at async buildKB (file:///D:/React_Prj/fayclick/scripts/kb-builder/orchestrator.ts:123:17)
+  ⏳ live...
+  ❌ live: DOMException [AbortError]: This operation was aborted
+    at node:internal/deps/undici/undici:13484:13
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async generateModuleQA (file:///D:/React_Prj/fayclick/scripts/kb-builder/agents/faq-agent.ts:55:17)
+    at async runFAQAgent (file:///D:/React_Prj/fayclick/scripts/kb-builder/agents/faq-agent.ts:86:18)
+    at async buildKB (file:///D:/React_Prj/fayclick/scripts/kb-builder/orchestrator.ts:123:17)
+  ⏳ kalpe...
+  ❌ kalpe: DOMException [AbortError]: This operation was aborted
+    at node:internal/deps/undici/undici:13484:13
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async generateModuleQA (file:///D:/React_Prj/fayclick/scripts/kb-builder/agents/faq-agent.ts:55:17)
+    at async runFAQAgent (file:///D:/React_Prj/fayclick/scripts/kb-builder/agents/faq-agent.ts:86:18)
+    at async buildKB (file:///D:/React_Prj/fayclick/scripts/kb-builder/orchestrator.ts:123:17)
+  ⏳ parametres...
+  ❌ parametres: DOMException [AbortError]: This operation was aborted
+    at node:internal/deps/undici/undici:13484:13
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async generateModuleQA (file:///D:/React_Prj/fayclick/scripts/kb-builder/agents/faq-agent.ts:55:17)
+    at async runFAQAgent (file:///D:/React_Prj/fayclick/scripts/kb-builder/agents/faq-agent.ts:86:18)
+    at async buildKB (file:///D:/React_Prj/fayclick/scripts/kb-builder/orchestrator.ts:123:17)
+  ⏳ proformas...
+  ❌ proformas: DOMException [AbortError]: This operation was aborted
+    at node:internal/deps/undici/undici:13484:13
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async generateModuleQA (file:///D:/React_Prj/fayclick/scripts/kb-builder/agents/faq-agent.ts:55:17)
+    at async runFAQAgent (file:///D:/React_Prj/fayclick/scripts/kb-builder/agents/faq-agent.ts:86:18)
+    at async buildKB (file:///D:/React_Prj/fayclick/scripts/kb-builder/orchestrator.ts:123:17)
+
+✨ [FAQ Agent] Terminé — 11 modules traités
+
+✅ [Orchestrateur] Synthèse Q&A terminée en 3300102ms
+   - 11 modules traités
+   - 11 FAQs générées
+   - 0 scripts de support générés
+
+⏳ [Orchestrateur] Étape 4/6 : Assemblage Markdown (docs/kb/*.md)...
+
+
+✅ [Orchestrateur] Assemblage Markdown terminé en 11ms
+   - 11 fichiers .md générés dans docs/kb/
+   - 33 KBDocuments parsés
+
+⏭️  [Orchestrateur] Étape 5/6 skippée : aucun modèle embedding configuré
+
+⏳ [Orchestrateur] Étape 6/6 : Génération du rapport...
+
+✅ BUILD_REPORT.md généré : D:\React_Prj\fayclick\docs\kb\BUILD_REPORT.md
+
+═══════════════════════════════════════════════════════════════
+📊 RÉSUMÉ FINAL
+═══════════════════════════════════════════════════════════════
+
+✅ Status global: 🔴 AVEC AVERTISSEMENTS
+⏱️  Durée totale: 6577.71s
+📦 Modules: 11
+❓ FAQs: 11
+🔧 Scripts: 0
+📄 Documents: 33
+📦 Chunks: 0
+📍 Rapport: docs/kb/BUILD_REPORT.md
+
+═══════════════════════════════════════════════════════════════
+
+⚠️  Modules avec problèmes:
+   ❌ auth
+      - Q&A insuffisant : 1 < 5
+      - Scripts insuffisant : 0 < 2
+   ❌ produits
+      - Q&A insuffisant : 1 < 5
+      - Scripts insuffisant : 0 < 2
+   ❌ factures
+      - Q&A insuffisant : 1 < 5
+      - Scripts insuffisant : 0 < 2
+   ❌ clients
+      - Q&A insuffisant : 1 < 5
+      - Scripts insuffisant : 0 < 2
+   ❌ venteflash
+      - Q&A insuffisant : 1 < 5
+      - Scripts insuffisant : 0 < 2
+   ❌ paiements
+      - Q&A insuffisant : 1 < 5
+      - Scripts insuffisant : 0 < 2
+   ❌ abonnements
+      - Q&A insuffisant : 1 < 5
+      - Scripts insuffisant : 0 < 2
+   ❌ live
+      - Q&A insuffisant : 1 < 5
+      - Scripts insuffisant : 0 < 2
+   ❌ kalpe
+      - Q&A insuffisant : 1 < 5
+      - Scripts insuffisant : 0 < 2
+   ❌ parametres
+      - Q&A insuffisant : 1 < 5
+      - Scripts insuffisant : 0 < 2
+   ❌ proformas
+      - Q&A insuffisant : 1 < 5
+      - Scripts insuffisant : 0 < 2
+
+✅ KB Build terminé avec succès!
+
+
+🔍 [DIAGNOSTIC] Process exit — code: 0
+PS D:\React_Prj\fayclick> ²
