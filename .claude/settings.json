@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__chrome-devtools__list_network_requests",
+      "mcp__chrome-devtools__performance_start_trace",
+      "mcp__chrome-devtools__get_network_request",
+      "mcp__chrome-devtools__list_console_messages",
+      "Bash(cd /c/tmp/pgquery && node -e \" *)",
+      "Read(//c/tmp/pgquery/**)",
+      "Bash(echo \"EXIT:$?\")",
+      "Bash(ls /c/tmp/pgquery/ 2>&1; echo \"---\"; ls /tmp/pgquery/ 2>&1; echo \"---\"; which node; node --version)",
+      "Read(//tmp/**)",
+      "Bash(cat > *)",
+      "Bash(git stash *)",
+      "mcp__chrome-devtools__select_page",
+      "Bash(npx tsc *)",
+      "Bash(Get-ChildItem -Path \"D:\\\\React_Prj\\\\fayclick\" -Recurse -Directory -Name)",
+      "Bash(Select-String \"^\\(contexts|hooks|lib|types|services|components\\)\")",
+      "Bash(Select-Object -Unique)"
+    ],
+    "additionalDirectories": [
+      "C:\\tmp\\pgquery",
+      "\\tmp"
+    ]
+  }
+}

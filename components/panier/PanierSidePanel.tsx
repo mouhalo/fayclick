@@ -41,9 +41,11 @@ import { useToast } from '@/components/ui/Toast';
 import { useFactureSuccessStore } from '@/hooks/useFactureSuccess';
 import { ModalRechercheClient } from './ModalRechercheClient';
 import { ModalImpressionProforma } from '@/components/proformas/ModalImpressionProforma';
+import { ModalImpressionBonCommande } from '@/components/boncommandes/ModalImpressionBonCommande';
 import { ModalGestionFournisseurs } from '@/components/fournisseurs/ModalGestionFournisseurs';
 import { Client } from '@/types/client';
 import { Proforma, ProformaDetail } from '@/types/proforma';
+import { BonCommande, BonCommandeDetail, BonCommandeFournisseurEnrichi } from '@/types/bon-commande';
 import { Fournisseur } from '@/types/fournisseur';
 import { ArticlePanier } from '@/types/produit';
 import { useTranslations } from '@/hooks/useTranslations';
@@ -147,6 +149,14 @@ export function PanierSidePanel({ onSuccess, onClose }: PanierSidePanelProps) {
     proforma: Proforma | null;
     details: ProformaDetail[];
   }>({ isOpen: false, proforma: null, details: [] });
+
+  // Modal impression bon de commande apres creation (FR-024 — workflow miroir proforma)
+  const [modalImpressionBC, setModalImpressionBC] = useState<{
+    isOpen: boolean;
+    bc: BonCommande | null;
+    details: BonCommandeDetail[];
+    fournisseur: BonCommandeFournisseurEnrichi | null;
+  }>({ isOpen: false, bc: null, details: [], fournisseur: null });
 
   // Legacy : ancien checkbox proforma (preserve pour la branche feature flag OFF)
   const [isProformaLegacy, setIsProformaLegacy] = useState(false);
@@ -420,15 +430,34 @@ export function PanierSidePanel({ onSuccess, onClose }: PanierSidePanelProps) {
           { remise: bonCommandePanier.remise }
         );
 
-        if (result.success) {
+        if (result.success && result.id_bon_commande) {
           const numBc = result.num_bc || `BC-${result.id_bon_commande}`;
           const nomFournisseur = fournisseur.nom_fournisseur || '';
-          bonCommandePanier.clearPanier();
-          setRemiseInput(0);
-          onSuccess?.();
-          showToast('success', 'Bon de commande cree', `${numBc} — ${nomFournisseur}`);
+
+          // Recuperation details serveur pour ouvrir le modal d'impression
+          // (pattern miroir proforma — voir bloc MODE PROFORMA ci-dessus)
+          try {
+            const detailsResponse = await bonCommandeService.getBonCommandeDetails(result.id_bon_commande);
+            const bcAvecDetails = detailsResponse.bon_commande;
+
+            bonCommandePanier.clearPanier();
+            setRemiseInput(0);
+            onSuccess?.();
+            showToast('success', 'Bon de commande cree', `${bcAvecDetails.num_bc} — ${bcAvecDetails.nom_fournisseur_snap || nomFournisseur}`);
+            setModalImpressionBC({
+              isOpen: true,
+              bc: bcAvecDetails,
+              details: bcAvecDetails.articles || [],
+              fournisseur: bcAvecDetails.fournisseur || null,
+            });
+          } catch {
+            bonCommandePanier.clearPanier();
+            setRemiseInput(0);
+            onSuccess?.();
+            showToast('success', 'Bon de commande cree', `${numBc} — Impression indisponible, voir l'onglet Bons de commande`);
+          }
         } else {
-          showToast('error', 'Erreur', 'Impossible de creer le bon de commande');
+          showToast('error', 'Erreur', result.message || 'Impossible de creer le bon de commande');
         }
         return;
       }
@@ -921,6 +950,21 @@ export function PanierSidePanel({ onSuccess, onClose }: PanierSidePanelProps) {
           onClose={() => setModalImpressionProforma({ isOpen: false, proforma: null, details: [] })}
           proforma={modalImpressionProforma.proforma}
           details={modalImpressionProforma.details}
+          configFacture={structure?.config_facture}
+          infoFacture={structure?.info_facture}
+          logo={structure?.logo}
+          nomStructure={structure?.nom_structure || ''}
+        />
+      )}
+
+      {/* Modal Impression Bon de Commande (apres creation — FR-024) */}
+      {modalImpressionBC.bc && (
+        <ModalImpressionBonCommande
+          isOpen={modalImpressionBC.isOpen}
+          onClose={() => setModalImpressionBC({ isOpen: false, bc: null, details: [], fournisseur: null })}
+          bonCommande={modalImpressionBC.bc}
+          details={modalImpressionBC.details}
+          fournisseur={modalImpressionBC.fournisseur}
           configFacture={structure?.config_facture}
           infoFacture={structure?.info_facture}
           logo={structure?.logo}

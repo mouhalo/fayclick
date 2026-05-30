@@ -766,6 +766,38 @@
         "11": "Novembre",
         "12": "Décembre"
       }
+    },
+    "margins": {
+      "summary": {
+        "title": "Risubeem benefice yi",
+        "marginTotal": "Benefice bu yepp (FCFA)",
+        "marginVariation": "Coppite"
+      },
+      "chart": {
+        "title": "Yokkute benefice yi",
+        "titleWithPeriod": "Yokkute benefice yi - {period}",
+        "empty": "Amul données benefice",
+        "tooltipMargin": "Benefice"
+      },
+      "masked": "***",
+      "naLabel": "—"
+    },
+    "dataTable": {
+      "openButtonLabel": "Wone donne yi ci tablo",
+      "titleVentes": "Évolution bu njaay yi",
+      "titleMarges": "Évolution bu marge yi",
+      "periodSemaine": "Ayubés",
+      "periodMois": "Weer",
+      "periodAnnee": "At",
+      "colPeriode": "Jamono",
+      "colMontant": "Xaalis",
+      "colMarge": "Marge",
+      "colNbVentes": "Limu njaay",
+      "totalRow": "Mboole",
+      "exportCsv": "Génne CSV",
+      "empty": "Amul donne ci jamono jii",
+      "exportDisabledCaissier": "Génne bi terewul ci sa profil",
+      "exportDisabledEmpty": "Amul donne bu ñu génne"
     }
   },
   "clients": {

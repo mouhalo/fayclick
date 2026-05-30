@@ -1,0 +1,86 @@
+{
+  "_qa_meta": {
+    "test_case": "TC-09",
+    "captured_at": "2026-05-19T21:46:03Z",
+    "structure_id": 1675,
+    "endpoint": "POST http://localhost:3000/api/sql",
+    "query": "SELECT * FROM get_inventaire_periodique(1675, 2026, 0, 21, 0)",
+    "tab": "Semaine",
+    "http_status": 200,
+    "request_body": { "application": "fayclick", "query": "SELECT * FROM get_inventaire_periodique(1675, 2026, 0, 21, 0)" }
+  },
+  "status": "success",
+  "code": "QUERY_SUCCESS",
+  "message": "Requête exécutée. 1 résultat(s).",
+  "timestamp": "2026-05-19T21:46:03.833599Z",
+  "data": {
+    "rows": [
+      {
+        "get_inventaire_periodique": {
+          "success": true,
+          "code": "INVENTAIRE_OK",
+          "structure_id": 1675,
+          "periode": {
+            "type": "semaine",
+            "label": "Semaine 21 - 2026",
+            "annee": 2026,
+            "mois": null,
+            "semaine": 21,
+            "jour": null
+          },
+          "date_debut": "2026-05-18",
+          "date_fin": "2026-05-24",
+          "periode_precedente": {
+            "date_debut": "2026-05-11",
+            "date_fin": "2026-05-17"
+          },
+          "resume_ventes": {
+            "ca_total": 118755,
+            "ca_variation": -42.3,
+            "ventes_total": 57,
+            "ventes_variation": -35.2,
+            "panier_moyen": 2083,
+            "panier_variation": -11,
+            "clients_actifs": 2,
+            "clients_variation": 100
+          },
+          "evolution_ventes": [
+            {"periode":"Mon","label":"18/05","montant":67025,"nombre_ventes":32},
+            {"periode":"Tue","label":"19/05","montant":51730,"nombre_ventes":25},
+            {"periode":"Wed","label":"20/05","montant":0,"nombre_ventes":0},
+            {"periode":"Thu","label":"21/05","montant":0,"nombre_ventes":0},
+            {"periode":"Fri","label":"22/05","montant":0,"nombre_ventes":0},
+            {"periode":"Sat","label":"23/05","montant":0,"nombre_ventes":0},
+            {"periode":"Sun","label":"24/05","montant":0,"nombre_ventes":0}
+          ],
+          "top_articles": [
+            {"rang":1,"nom_produit":"PLAN COMPTABLE PROFESSIONNEL 94777","nom_categorie":"LIVRE","montant_total":15000,"nombre_ventes":3,"quantite_totale":3},
+            {"rang":2,"nom_produit":"PAQUET BOBINE THREMIQUE  5 pieces","nom_categorie":"produit_service","montant_total":10500,"nombre_ventes":1,"quantite_totale":3},
+            {"rang":3,"nom_produit":"RAME PAPIER ROCH","nom_categorie":"PAPETERIE","montant_total":7500,"nombre_ventes":3,"quantite_totale":3},
+            {"rang":4,"nom_produit":"PAQUET ENVELOPPE A4 50 PCS/ MANILE","nom_categorie":"PAPETERIE","montant_total":7500,"nombre_ventes":1,"quantite_totale":3},
+            {"rang":5,"nom_produit":"BRISTOL A4 BRI2000","nom_categorie":"PAPETERIE","montant_total":7500,"nombre_ventes":2,"quantite_totale":3}
+          ],
+          "top_clients": [
+            {"rang":1,"nom_client":"SATEL","tel_client":"338697710","initiales":"S","montant_total":1400,"nombre_factures":1,"statut":"Standard"}
+          ],
+          "resume_marges": {
+            "marge_total": 45357,
+            "marge_variation": -46.2
+          },
+          "evolution_marges": [
+            {"periode":"Mon","label":"18/05","marge":26398,"nombre_ventes":32},
+            {"periode":"Tue","label":"19/05","marge":18959,"nombre_ventes":25},
+            {"periode":"Wed","label":"20/05","marge":0,"nombre_ventes":0},
+            {"periode":"Thu","label":"21/05","marge":0,"nombre_ventes":0},
+            {"periode":"Fri","label":"22/05","marge":0,"nombre_ventes":0},
+            {"periode":"Sat","label":"23/05","marge":0,"nombre_ventes":0},
+            {"periode":"Sun","label":"24/05","marge":0,"nombre_ventes":0}
+          ],
+          "timestamp_generation": "2026-05-19T21:46:03.411177+00:00"
+        }
+      }
+    ],
+    "rowCount": 1,
+    "duration": 1129
+  }
+}
