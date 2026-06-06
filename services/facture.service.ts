@@ -8,7 +8,6 @@ import DatabaseService from './database.service';
 import SecurityService from './security.service';
 import { ArticlePanier } from '@/types/produit';
 import { AjouterAcompteData, AjouterAcompteResponse, ModifierFactureResponse } from '@/types/facture';
-import { tr } from 'zod/locales';
 
 // Exceptions personnalisées pour les factures
 export class FactureApiException extends Error {

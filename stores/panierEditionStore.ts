@@ -204,7 +204,9 @@ export const usePanierEditionStore = create<PanierEditionState>()((set, get) => 
   updateRemise: (remise) => {
     const sousTotal = get().getSousTotal();
     if (remise < 0) return;
-    if (remise > sousTotal) return; // remise > sous-total interdite
+    // Alignement serveur : modifier_facturecom rejette p_mt_remise >= brut
+    // (INVALID_REMISE). On refuse donc remise >= sous-total (net 0 interdit).
+    if (remise >= sousTotal) return;
     set({ remise });
   },
 

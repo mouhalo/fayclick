@@ -128,6 +128,9 @@ export default function VenteFlashPage() {
   const [editionFactureId, setEditionFactureId] = useState<number | null>(null);
   const [showResultatModif, setShowResultatModif] = useState(false);
   const [resultatModif, setResultatModif] = useState<ModifierFactureResponse | null>(null);
+  // HTML du ticket pré-généré au succès (réponse serveur + snapshot articles)
+  // → réimpression immunisée contre le refetch (MAJ-001).
+  const [reprintTicketVF, setReprintTicketVF] = useState<string | null>(null);
 
   /**
    * Charger tous les produits de la structure
@@ -725,6 +728,15 @@ export default function VenteFlashPage() {
     const idFacture = editionState.editFactureId;
     if (!idFacture) return;
 
+    // Capture AVANT l'appel/clearEdition pour la réimpression fiable.
+    const numFactureSnapshot = editionState.numFacture || '';
+    const articlesSnapshot = editionState.articles.map((a) => ({
+      nom_produit: a.nom_produit,
+      quantite: a.quantity,
+      prix: a.prix_applique ?? a.prix_vente,
+      sous_total: (a.prix_applique ?? a.prix_vente) * a.quantity,
+    }));
+
     setEditionSaving(true);
     try {
       const result: ModifierFactureResponse = await factureService.modifierFacture(
@@ -739,6 +751,10 @@ export default function VenteFlashPage() {
         return;
       }
 
+      // Pré-générer le ticket à partir de la RÉPONSE SERVEUR + snapshot articles
+      // (indépendant du refetch ventesJour → pas de race MAJ-001).
+      const reprintTicket = buildReprintTicketVF(result, numFactureSnapshot, articlesSnapshot);
+
       usePanierEditionStore.getState().clearEdition();
       setShowEdition(false);
       setEditionSaving(false);
@@ -748,6 +764,7 @@ export default function VenteFlashPage() {
         showToast('success', t('receipt.modifyNoChange'));
       } else {
         setResultatModif(result);
+        setReprintTicketVF(reprintTicket);
         setShowResultatModif(true);
       }
 
@@ -779,40 +796,41 @@ export default function VenteFlashPage() {
     }
   };
 
-  const handleReprintApresModification = () => {
-    const resultat = resultatModif;
-    if (!resultat || !resultat.id_facture) return;
-
-    const vente = ventesJour.find((v) => v.id_facture === resultat.id_facture);
-    if (!vente) return;
-
+  // Génère le HTML du ticket à partir de la réponse serveur + snapshot articles.
+  // Aucune lecture de ventesJour → immunisé contre le refetch (MAJ-001).
+  const buildReprintTicketVF = (
+    result: ModifierFactureResponse,
+    numFacture: string,
+    articles: Array<{ nom_produit: string; quantite: number; prix: number; sous_total: number }>
+  ): string => {
     const structureDetails = authService.getStructureDetails();
     const currentUser = authService.getUser();
-    const articles = (vente.details || []).map((d: any) => ({
-      nom_produit: d.nom_produit || 'Produit',
-      quantite: d.quantite || 1,
-      prix: d.prix_unitaire || d.prix || 0,
-      sous_total: d.total || d.quantite * (d.prix_unitaire || d.prix || 0),
-    }));
+    const sousTotal = articles.reduce((s, a) => s + a.sous_total, 0);
+    // Montant net = autorité serveur (net_apres) ; fallback sous-total si absent.
+    const montantNet = result.net_apres ?? sousTotal;
 
-    const html = generateTicketHTML({
+    return generateTicketHTML({
       nomStructure: structureDetails?.nom_structure || user?.nom_structure || 'Entreprise',
       logoUrl: structureDetails?.logo || '',
       adresse: structureDetails?.adresse || '',
       telephone: currentUser?.telephone || '',
-      numFacture: vente.num_facture,
-      dateFacture: new Date(vente.date_facture).toLocaleDateString('fr-FR', {
+      numFacture: result.num_facture || numFacture,
+      dateFacture: new Date().toLocaleDateString('fr-FR', {
         day: '2-digit', month: '2-digit', year: 'numeric',
       }),
       nomClient: 'CLIENT_ANONYME',
       articles: articles.length > 0 ? articles : undefined,
-      montantNet: vente.montant_total,
+      montantNet,
       methodePaiement: 'Especes',
       nomCaissier: currentUser?.username || 'Caissier',
       badge: 'PAYE',
     });
+  };
 
-    printViaIframe(html);
+  // Réimpression : imprime le HTML pré-généré au succès (pas de relecture state).
+  const handleReprintApresModification = () => {
+    if (!reprintTicketVF) return;
+    printViaIframe(reprintTicketVF);
   };
 
   /**
@@ -1466,6 +1484,7 @@ export default function VenteFlashPage() {
         onClose={() => {
           setShowResultatModif(false);
           setResultatModif(null);
+          setReprintTicketVF(null);
         }}
         resultat={resultatModif}
         onReprint={handleReprintApresModification}

@@ -1,9 +1,9 @@
-# Schéma BD — Module modification vente du jour v1.1
+# Schéma BD — Module modification vente du jour v1.2
 
 **Date** : 2026-06-06
 **DBA** : dba_master
 **PRD** : `docs/prd-modification-vente-jour-2026-06-06.md`
-**Statut** : Déployé en prod `fayclick_db` — Phase 1a validée
+**Statut** : Déployé en prod `fayclick_db` — Dual E2E validé (REMBOURSEMENT + COMPLEMENT)
 
 ---
 
@@ -112,6 +112,11 @@ Périmètre V1 : Commerce uniquement. Ventes payées (`id_etat=2`) du jour uniqu
 | `INVALID_REMISE` | `p_mt_remise < 0` ou `>= sous-total` |
 | `MODIFICATION_ERROR` | Exception PG inattendue (rollback automatique) |
 
+**Changements v1.2 (CRIT-001 + MIN-003)** :
+
+- **CRIT-001** : Branche REMBOURSEMENT — suppression de l'INSERT `recus_paiement`. La contrainte `CHECK (montant_paye > 0)` est un invariant métier correct : un remboursement n'est pas un encaissement. Piste d'audit complète : `journal_compte` débit + `log_modifications_factures` (ecart_net<0, type=REMBOURSEMENT).
+- **MIN-003** : Baseline `v_ecart := v_net_apres - v_acompte_avant` (au lieu de `v_net_avant`). Immunise contre l'edge `avec_frais=true` où `mt_acompte != net_avant`. Sur commerce (avec_frais=false, toujours) le résultat est identique.
+
 **Exemple d'appel** :
 ```sql
 SELECT modifier_facturecom(218, 154466, 249, '138757-4-500#138759-1-1500', 0);
@@ -164,10 +169,52 @@ Stock = somme des mouvements (confirmé audit Phase 0 — aucun solde caché sur
 
 ---
 
-## Rapport de test E2E (Phase 1a)
+## Rapport de test E2E
+
+### PATH A — REMBOURSEMENT (v1.2)
+
+**Date** : 2026-06-06 20:36 UTC
+**Structure** : 218 — LIBRAIRIE CHEZ KELEFA
+**Facture** : FAC-202606-218-0348 (id=154467)
+
+**Scénario** : P1×2 + P2×1 + P3×1 (brut 3300, net 3300) → P1×2 + P2×1 (brut 2500, net 2500). Retrait P3.
+
+| Critère | Résultat |
+|---|---|
+| type_ajustement=REMBOURSEMENT | OK |
+| monnaie_a_rendre=800 | OK |
+| mt_acompte = net_apres (2500) | OK — acompte=2500.00 |
+| mt_restant = 0 | OK — restant=0.00 |
+| id_etat = 2 (PAYEE) | OK |
+| recus_paiement count INCHANGÉ (1→1) | OK — pas d'INSERT sur CHECK > 0 |
+| journal_compte débit=800, crédit=0 | OK |
+| log ecart_net=-800, type=REMBOURSEMENT | OK — snapshots avant/après cohérents |
+| Stock P3 ENTREE×1 (MODIF-*) | OK — retour stock compensatoire |
+| **TOTAL** | **9/9 assertions PASSED** |
+
+### PATH B — COMPLEMENT (non-régression v1.2)
+
+**Date** : 2026-06-06 20:36 UTC
+**Structure** : 218 — LIBRAIRIE CHEZ KELEFA
+**Facture** : FAC-202606-218-0349 (id=154468)
+
+**Scénario** : P1×1 + P2×1 (brut 1500, net 1500) → P1×2 + P2×1 + P3×1 (brut 3300, net 3300). Ajout P3, P1 qte++.
+
+| Critère | Résultat |
+|---|---|
+| type_ajustement=COMPLEMENT | OK |
+| complement_a_encaisser=1800 | OK |
+| mt_acompte = net_apres (3300) | OK — acompte=3300.00 |
+| mt_restant = 0 | OK |
+| id_etat = 2 (PAYEE) | OK |
+| recus_paiement count +1 (1→2) | OK |
+| journal_compte crédit=1800, débit=0 | OK |
+| log ecart_net=+1800, type=COMPLEMENT | OK |
+| **TOTAL** | **8/8 assertions PASSED** |
+
+### Phase 1a — COMPLEMENT initial (v1.1 — conservé pour référence)
 
 **Date** : 2026-06-06 19:55 UTC
-**Structure** : 218 — LIBRAIRIE CHEZ KELEFA
 **Facture** : FAC-202606-218-0348 (id=154466)
 
 **Scénario** : P1 conservé qte 2→4 / P2 retiré / P3 nouveau qte=1 / remise=0

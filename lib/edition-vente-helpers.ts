@@ -112,28 +112,9 @@ export function reconstruireArticlesDepuisFacture(
   });
 }
 
-/**
- * Construit le payload d'articles au format attendu par `modifier_facturecom` :
- * `"id-qty-prix#"` concaténé, identique à create_facture_complete1.
- *
- * Note : la logique d'absorption de remise par article dans `prix_applique` net
- * est gérée côté service (kader_backend) pour rester cohérente avec createFacture.
- * Ce helper se contente du format brut id-qty-prix.
- *
- * @param articles - Articles de l'édition
- * @returns chaîne "id-qty-prix#id-qty-prix#..."
- */
-export function buildArticlesPayloadEdition(articles: ArticlePanier[]): string {
-  if (!articles || articles.length === 0) return '';
-  return (
-    articles
-      .map(
-        (a) =>
-          `${a.id_produit}-${a.quantity}-${a.prix_applique ?? a.prix_vente}`
-      )
-      .join('#') + '#'
-  );
-}
+// Note : la construction du payload "id-qty-prix#" est gérée côté service
+// (factureService.buildArticlesString, kader_backend) pour garantir UN SEUL
+// format source partagé avec createFacture. Ne PAS dupliquer ici.
 
 /**
  * Détermine l'origine probable d'une vente (PRODUITS vs VENTEFLASH) pour le

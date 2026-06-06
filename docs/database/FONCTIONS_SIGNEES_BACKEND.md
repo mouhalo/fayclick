@@ -6,7 +6,7 @@
 > Toute modification de signature = **breaking change** à coordonner explicitement.
 > Toute nouvelle fonction doit être ajoutée ici avant utilisation en production.
 >
-> Dernière mise à jour : 2026-06-06
+> Dernière mise à jour : 2026-06-06 (v1.2 — modifier_facturecom CRIT-001+MIN-003 fixes)
 
 ---
 
@@ -74,7 +74,7 @@ Statut : stable (bug documenté, non bloquant pour usage nominal)
 
 ---
 
-### `modifier_facturecom` — NOUVEAU 2026-06-06
+### `modifier_facturecom` — 2026-06-06 (v1.2)
 
 ```sql
 modifier_facturecom(
@@ -135,8 +135,8 @@ Conserve `id_facture` et `num_facture`. Vente reste PAYEE (`mt_restant=0`, `id_e
 **Effets de bord** :
 - Écrit dans `detail_facture_com` (UPDATE/DELETE/INSERT)
 - Écrit dans `mouvement_stock` (mouvements compensatoires delta net)
-- Écrit dans `recus_paiement` (ligne COMPLEMENT ou REMBOURSEMENT si ecart != 0)
-- Écrit dans `journal_compte` (ligne crédit ou débit si ecart != 0)
+- Écrit dans `recus_paiement` : UNIQUEMENT si COMPLEMENT (ecart > 0). Pas d'INSERT pour REMBOURSEMENT (CHECK montant_paye > 0 est un invariant correct)
+- Écrit dans `journal_compte` (ligne crédit si COMPLEMENT, débit si REMBOURSEMENT)
 - Écrit dans `log_modifications_factures` (toujours, snapshot avant/après)
 
 **Exemple d'appel** :
@@ -151,8 +151,8 @@ const res = await DatabaseService.executeFunction('modifier_facturecom', [
 const result = typeof res === 'string' ? JSON.parse(res) : res;
 ```
 
-Déployée : 2026-06-06
-Statut : stable — Phase 1a validée (test E2E structure 218)
+Déployée : 2026-06-06 — **v1.2** (CRIT-001 REMBOURSEMENT fix + MIN-003 baseline fix)
+Statut : stable — Dual E2E validé structure 218 (PATH A REMBOURSEMENT 9/9 + PATH B COMPLEMENT 8/8)
 PRD : `docs/prd-modification-vente-jour-2026-06-06.md`
 Dump SQL : `docs/dba/scripts/prod-modifier_facturecom-2026-06-06.sql`
 Doc DBA : `docs/dba/rapport-modifier-facturecom-2026-06-06.md`
