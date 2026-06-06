@@ -116,11 +116,15 @@ export default function FacturesGlassPage() {
     saving: boolean;
   }>({ isOpen: false, facture: null, saving: false });
 
-  // Modal de résultat post-modification (complément / remboursement)
+  // Modal de résultat post-modification (complément / remboursement).
+  // `reprintTicket` est un HTML pré-généré au moment du succès (à partir de la
+  // réponse serveur + articles capturés AVANT clearEdition) → la réimpression ne
+  // dépend JAMAIS du state liste (qui peut être en cours de refetch).
   const [modalResultat, setModalResultat] = useState<{
     isOpen: boolean;
     resultat: ModifierFactureResponse | null;
-  }>({ isOpen: false, resultat: null });
+    reprintTicket: string | null;
+  }>({ isOpen: false, resultat: null, reprintTicket: null });
 
   const [modalConfirmation, setModalConfirmation] = useState<{
     isOpen: boolean;
@@ -424,6 +428,16 @@ export default function FacturesGlassPage() {
     const idFacture = editionState.editFactureId;
     if (!idFacture) return;
 
+    // Capture des données AVANT l'appel/clearEdition (pour la réimpression fiable).
+    const factureEnEdition = modalEdition.facture;
+    const articlesSnapshot = editionState.articles.map((a) => ({
+      nom_produit: a.nom_produit,
+      quantite: a.quantity,
+      prix: a.prix_applique ?? a.prix_vente,
+      sous_total: (a.prix_applique ?? a.prix_vente) * a.quantity,
+    }));
+    const remiseSnapshot = editionState.remise;
+
     setModalEdition((prev) => ({ ...prev, saving: true }));
 
     try {
@@ -441,6 +455,10 @@ export default function FacturesGlassPage() {
         return;
       }
 
+      // Pré-générer le ticket à partir de la RÉPONSE SERVEUR + snapshot articles
+      // (indépendant du refetch liste → pas de race MAJ-001).
+      const reprintTicket = buildReprintTicketHTML(result, factureEnEdition, articlesSnapshot, remiseSnapshot);
+
       // Purge le store d'édition et ferme le modal d'édition.
       usePanierEditionStore.getState().clearEdition();
       setModalEdition({ isOpen: false, facture: null, saving: false });
@@ -449,7 +467,7 @@ export default function FacturesGlassPage() {
       if (result.type_ajustement === 'AUCUN') {
         setToast({ isOpen: true, type: 'success', message: t('toast.modifyNoChange') });
       } else {
-        setModalResultat({ isOpen: true, resultat: result });
+        setModalResultat({ isOpen: true, resultat: result, reprintTicket });
       }
 
       // Rafraîchir la liste + invalider le cache dashboard (KPIs, stock).
@@ -485,42 +503,33 @@ export default function FacturesGlassPage() {
     }
   };
 
-  // Réimpression du reçu mis à jour (même num_facture, badge PAYE) après modification.
-  const handleReprintApresModification = () => {
-    const resultat = modalResultat.resultat;
-    if (!resultat || !resultat.id_facture) return;
-
-    const facture = facturesResponse?.factures.find(
-      (f) => f.facture.id_facture === resultat.id_facture
-    );
-    if (!facture) return;
-
+  // Génère le HTML du ticket à partir de la réponse serveur + snapshot articles.
+  // Aucune lecture du state liste → immunisé contre le refetch (MAJ-001).
+  const buildReprintTicketHTML = (
+    result: ModifierFactureResponse,
+    factureEnEdition: FactureComplete | null,
+    articles: Array<{ nom_produit: string; quantite: number; prix: number; sous_total: number }>,
+    remise: number
+  ): string => {
     const structureDetails = authService.getStructureDetails();
     const currentUser = authService.getUser();
-    const dateFormatee = new Date(facture.facture.date_facture).toLocaleDateString('fr-FR', {
-      day: '2-digit', month: '2-digit', year: 'numeric',
-    });
+    const dateFormatee = new Date(
+      factureEnEdition?.facture.date_facture || Date.now()
+    ).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
-    const articles = (facture.details || []).map((d) => ({
-      nom_produit: d.nom_produit,
-      quantite: d.quantite,
-      prix: d.prix,
-      sous_total: d.sous_total ?? d.prix * d.quantite,
-    }));
+    const sousTotal = articles.reduce((s, a) => s + a.sous_total, 0);
+    // Montant net = autorité serveur (net_apres) ; fallback calcul local si absent.
+    const montantNet = result.net_apres ?? sousTotal - remise;
 
-    const sousTotal = facture.facture.montant || 0;
-    const remise = facture.facture.mt_remise || 0;
-    const montantNet = sousTotal - remise;
-
-    const html = generateTicketHTML({
+    return generateTicketHTML({
       nomStructure: structureDetails?.nom_structure || structure?.nom_structure || 'Entreprise',
       logoUrl: structureDetails?.logo || structure?.logo || '',
       adresse: structureDetails?.adresse || '',
       telephone: currentUser?.telephone || structureDetails?.info_facture?.tel_contact || '',
-      numFacture: facture.facture.num_facture,
+      numFacture: result.num_facture || factureEnEdition?.facture.num_facture || '',
       dateFacture: dateFormatee,
-      nomClient: facture.facture.nom_client || 'Anonyme',
-      telClient: facture.facture.tel_client,
+      nomClient: factureEnEdition?.facture.nom_client || 'Anonyme',
+      telClient: factureEnEdition?.facture.tel_client,
       articles: articles.length > 0 ? articles : undefined,
       sousTotal,
       remise: remise > 0 ? remise : undefined,
@@ -529,8 +538,12 @@ export default function FacturesGlassPage() {
       nomCaissier: currentUser?.username || 'Caissier',
       badge: 'PAYE',
     });
+  };
 
-    printViaIframe(html);
+  // Réimpression : imprime le HTML pré-généré au moment du succès (pas de relecture state).
+  const handleReprintApresModification = () => {
+    if (!modalResultat.reprintTicket) return;
+    printViaIframe(modalResultat.reprintTicket);
   };
 
   // Action pour voir le reçu depuis une carte de facture (factures PAYÉES)
@@ -538,13 +551,23 @@ export default function FacturesGlassPage() {
   const handleVoirRecuFacture = (facture: FactureComplete) => {
     // PRIORITÉ 1: Utiliser recus_paiements si disponible (données réelles)
     if (facture.recus_paiements && facture.recus_paiements.length > 0) {
-      const recu = facture.recus_paiements[0]; // Premier reçu
+      // ⚠️ MAJ-002 (corrigé v1.2 DBA) : NE PAS sommer recus_paiement.
+      // La contrainte CHECK (montant_paye > 0) empêche d'y écrire un remboursement →
+      // après un remboursement, la somme des reçus dépasserait le net réel.
+      // Source de vérité = en-tête facture_com : `mt_acompte` (= net_apres après modif,
+      // mt_restant = 0). Correct dans les 3 cas (complément / remboursement / aucun).
+      // On cible la ligne reçu la PLUS RÉCENTE seulement pour méthode/date/référence.
+      const recus = [...facture.recus_paiements];
+      const recuRecent = recus.reduce((latest, r) =>
+        new Date(r.date_paiement).getTime() >= new Date(latest.date_paiement).getTime() ? r : latest
+      );
+      const montantPaye = facture.facture.mt_acompte ?? recuRecent.montant_paye;
 
-      console.log('🧾 [FACTURES] Affichage reçu depuis recus_paiements:', {
+      console.log('🧾 [FACTURES] Affichage reçu (montant = mt_acompte en-tête):', {
         id_facture: facture.facture.id_facture,
-        numero_recu: recu.numero_recu,
-        methode_paiement: recu.methode_paiement,
-        montant_paye: recu.montant_paye
+        nb_recus: recus.length,
+        mt_acompte: facture.facture.mt_acompte,
+        methode_recente: recuRecent.methode_paiement
       });
 
       setModalRecuGenere({
@@ -552,10 +575,10 @@ export default function FacturesGlassPage() {
         facture: facture,
         paiement: {
           id_facture: facture.facture.id_facture,
-          montant_paye: recu.montant_paye,
-          date_paiement: recu.date_paiement,
-          methode_paiement: recu.methode_paiement,
-          reference_transaction: recu.reference_transaction || recu.numero_recu
+          montant_paye: montantPaye,
+          date_paiement: recuRecent.date_paiement,
+          methode_paiement: recuRecent.methode_paiement,
+          reference_transaction: recuRecent.reference_transaction || recuRecent.numero_recu
         }
       });
       return;
@@ -815,7 +838,7 @@ export default function FacturesGlassPage() {
 
         <ModalResultatModification
           isOpen={modalResultat.isOpen}
-          onClose={() => setModalResultat({ isOpen: false, resultat: null })}
+          onClose={() => setModalResultat({ isOpen: false, resultat: null, reprintTicket: null })}
           resultat={modalResultat.resultat}
           onReprint={handleReprintApresModification}
         />
@@ -1032,7 +1055,7 @@ export default function FacturesGlassPage() {
 
       <ModalResultatModification
         isOpen={modalResultat.isOpen}
-        onClose={() => setModalResultat({ isOpen: false, resultat: null })}
+        onClose={() => setModalResultat({ isOpen: false, resultat: null, reprintTicket: null })}
         resultat={modalResultat.resultat}
         onReprint={handleReprintApresModification}
       />

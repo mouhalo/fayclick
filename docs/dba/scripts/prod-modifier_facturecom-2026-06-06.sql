@@ -1,10 +1,10 @@
 -- ============================================================================
 -- Schéma  : fayclick_db — Module modification vente du jour
--- Version : v1.1
+-- Version : v1.2
 -- Date    : 2026-06-06
 -- DBA     : dba_master
 -- PRD     : docs/prd-modification-vente-jour-2026-06-06.md
--- Branche : feature/modification-vente-jour
+-- Branche : feature/bons-commande-fournisseurs
 --
 -- Description :
 --   Permet à un caissier de modifier les articles et la remise d'une vente
@@ -22,10 +22,28 @@
 --                          recalculer_montant_facture (INSERT/UPDATE/DELETE detail_facture_com)
 --   - Extension : aucune (gen_random_uuid() natif PG 16+)
 --
--- Test E2E validé : 2026-06-06 19:55 UTC, structure 218 (LIBRAIRIE CHEZ KELEFA)
---   Facture FAC-202606-218-0348, scénario P1 conservé qte++, P2 retiré, P3 nouveau
---   Stock delta net P1=SORTIE4 / P2=net0 / P3=SORTIE1 — zéro double-comptage
---   Ledger COMPLEMENT 1000 FCFA, log avant/après cohérents, facture reste PAYEE
+-- Changements v1.2 vs v1.1 :
+--   CRIT-001 fix : chemin REMBOURSEMENT — suppression INSERT recus_paiement
+--     (CHECK montant_paye > 0 est un invariant correct ; un remboursement
+--      n'est pas un encaissement). Piste d'audit : journal_compte débit + log.
+--   MIN-003 fix : baseline v_ecart := v_net_apres - v_acompte_avant
+--     (au lieu de v_net_avant), immunise contre edge avec_frais=true.
+--
+-- Tests E2E validés : 2026-06-06 20:36 UTC, structure 218 (LIBRAIRIE CHEZ KELEFA)
+--
+--   PATH A : REMBOURSEMENT — FAC-202606-218-0348
+--     Scénario : P1×2 + P2×1 + P3×1 (brut 3300) → P1×2 + P2×1 (brut 2500)
+--     ecart=-800, monnaie_a_rendre=800
+--     recus_paiement INCHANGÉ (1→1), journal débit=800
+--     mt_acompte=2500 (=net_apres), mt_restant=0, id_etat=2
+--     Stock P3 ENTREE×1 compensatoire — résultat 9/9 assertions PASSED
+--
+--   PATH B : COMPLEMENT (non-régression) — FAC-202606-218-0349
+--     Scénario : P1×1 + P2×1 (brut 1500) → P1×2 + P2×1 + P3×1 (brut 3300)
+--     ecart=+1800, complement_a_encaisser=1800
+--     recus_paiement +1 (1→2), journal crédit=1800
+--     mt_acompte=3300 (=net_apres), mt_restant=0, id_etat=2
+--     résultat 8/8 assertions PASSED
 -- ============================================================================
 
 -- ─────────────────────────────────────────────────────────────────────────────
@@ -85,7 +103,7 @@ DECLARE
     v_montant_avant         NUMERIC(10,2);
     v_remise_avant          NUMERIC(10,2);
     v_acompte_avant         NUMERIC(10,2);
-    v_net_avant             NUMERIC(10,2);
+    v_net_avant             NUMERIC(10,2);   -- snapshot informatif pour le log uniquement (v1.2)
 
     -- Parsing articles nouveaux
     v_articles_array        TEXT[];
@@ -423,7 +441,11 @@ BEGIN
     WHERE fc.id_facture = pid_facture;
 
     v_net_apres := v_montant_apres - p_mt_remise;
-    v_ecart     := v_net_apres - v_net_avant;
+
+    -- v1.2 — MIN-003 fix : baseline = mt_acompte réellement encaissé (pas net_avant)
+    -- Élimine l'edge avec_frais=true où mt_acompte != net_avant.
+    -- Sur commerce (avec_frais=false, toujours) : résultat identique à v1.1.
+    v_ecart := v_net_apres - v_acompte_avant;
 
     SELECT COALESCE(
         json_agg(json_build_object(
@@ -441,15 +463,20 @@ BEGIN
     -- ══════════════════════════════════════════════════════════════
     -- ÉTAPE 12 : Réconciliation paiement (ledger append-only)
     --
-    --   ecart > 0 → COMPLEMENT  : recus_paiement montant positif
-    --                              journal_compte mt_credit = ecart
-    --   ecart < 0 → REMBOURSEMENT : recus_paiement montant négatif
-    --                                journal_compte mt_debit = |ecart|
-    --   ecart = 0 → AUCUN        : aucune ligne ledger
+    --   ecart > 0 → COMPLEMENT    : recus_paiement montant positif
+    --                                journal_compte mt_credit = ecart
+    --   ecart < 0 → REMBOURSEMENT : journal_compte mt_debit = |ecart| UNIQUEMENT
+    --                                Pas d'INSERT recus_paiement — CHECK (montant_paye > 0)
+    --                                est un invariant correct. Un remboursement n'est pas
+    --                                un encaissement. Piste d'audit : journal_compte +
+    --                                log_modifications_factures (ecart_net<0, type=REMBOURSEMENT).
+    --   ecart = 0 → AUCUN         : aucune ligne ledger
     --
     --   Note : trg_historique_paiement_acompte (AFTER UPDATE facture_com)
     --   s'active seulement si mt_acompte augmente (complément) → correct,
     --   ne génère pas de ligne historique parasite pour remboursement.
+    --
+    -- v1.2 — CRIT-001 fix : branche REMBOURSEMENT sans INSERT recus_paiement
     -- ══════════════════════════════════════════════════════════════
     v_step := 'RECONCILIATION';
 
@@ -480,18 +507,9 @@ BEGIN
 
     ELSIF v_ecart < 0 THEN
         v_type_ajustement := 'REMBOURSEMENT';
-        v_acompte_apres   := v_acompte_avant + v_ecart;
+        v_acompte_apres   := v_acompte_avant + v_ecart;   -- réduit à net_apres
 
-        INSERT INTO public.recus_paiement (
-            id_facture, id_structure, numero_recu,
-            methode_paiement, montant_paye,
-            reference_transaction, numero_telephone
-        ) VALUES (
-            pid_facture, pid_structure, v_num_recu,
-            'CASH', v_ecart,   -- montant négatif = remboursement
-            v_num_recu, v_tel_client
-        );
-
+        -- Pas d'INSERT recus_paiement (CHECK montant_paye > 0 — invariant correct)
         INSERT INTO public.journal_compte (
             date_journal, id_structure, reference_trx,
             mt_credit, mt_debit, uuid_trx, refid_demande
