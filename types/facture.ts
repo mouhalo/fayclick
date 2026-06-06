@@ -192,6 +192,30 @@ export interface AjouterAcompteResponse {
   timestamp_operation: string;
 }
 
+// Type d'ajustement de paiement lors d'une modification de vente du jour
+export type TypeAjustement = 'COMPLEMENT' | 'REMBOURSEMENT' | 'AUCUN';
+
+// Réponse de la fonction PostgreSQL modifier_facturecom
+// ⚠️ Contrat partagé : ce type est propriété du Frontend (fullstack-web-expert).
+// kader_backend (facture.service.ts) DOIT l'importer depuis ici, jamais le redéfinir.
+//
+// `success` + `message` sont TOUJOURS présents. `code` n'est présent que sur échec
+// (DATE_LOCKED, NOT_PAID, INVALID_REMISE, INVOICE_REVERSED, EMPTY_ARTICLES,
+// MODIFICATION_ERROR...). Les champs de réconciliation ne sont présents que sur succès.
+export interface ModifierFactureResponse {
+  success: boolean;                // requis
+  message: string;                 // requis
+  code?: string;                   // présent sur échec serveur
+  id_facture?: number;             // présents uniquement sur succès :
+  num_facture?: string;
+  net_avant?: number;              // Montant net avant modification (brut - remise)
+  net_apres?: number;              // Montant net après modification
+  ecart?: number;                  // net_apres - net_avant (>0 complément, <0 remboursement)
+  type_ajustement?: TypeAjustement;
+  complement_a_encaisser?: number; // > 0 si COMPLEMENT, sinon 0
+  monnaie_a_rendre?: number;       // > 0 si REMBOURSEMENT, sinon 0
+}
+
 // Interface pour les données de partage de facture
 export interface PartageFacture {
   id_structure: number;

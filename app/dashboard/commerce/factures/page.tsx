@@ -32,16 +32,28 @@ import { ModalPartage } from '@/components/factures/ModalPartage';
 import { ModalFacturePrivee } from '@/components/facture/ModalFacturePrivee';
 import { ModalRecuGenere } from '@/components/recu';
 import ModalImpressionDocuments from '@/components/impression/ModalImpressionDocuments';
+import { ModalEditionVente } from '@/components/factures/ModalEditionVente';
+import { ModalResultatModification } from '@/components/factures/ModalResultatModification';
 import { ModalConfirmation } from '@/components/ui/ModalConfirmation';
 import { ModalSuppressionAdmin } from '@/components/ui/ModalSuppressionAdmin';
 import { Toast } from '@/components/ui/Toast';
 import { factureListService } from '@/services/facture-list.service';
 import { facturePriveeService } from '@/services/facture-privee.service';
+import { factureService } from '@/services/facture.service';
+import { produitsService } from '@/services/produits.service';
 import { recuService } from '@/services/recu.service';
+import { dashboardService } from '@/services/dashboard.service';
+import { usePanierEditionStore } from '@/stores/panierEditionStore';
+import {
+  reconstruireArticlesDepuisFacture,
+  deduireOrigineVente,
+} from '@/lib/edition-vente-helpers';
+import { generateTicketHTML, printViaIframe } from '@/lib/generate-ticket-html';
 import {
   GetMyFactureResponse,
   FactureComplete,
-  FiltresFactures
+  FiltresFactures,
+  ModifierFactureResponse
 } from '@/types/facture';
 
 export default function FacturesGlassPage() {
@@ -96,6 +108,19 @@ export default function FacturesGlassPage() {
     isOpen: boolean;
     facture: FactureComplete | null;
   }>({ isOpen: false, facture: null });
+
+  // Modal d'édition d'une vente payée du jour (panier d'édition isolé)
+  const [modalEdition, setModalEdition] = useState<{
+    isOpen: boolean;
+    facture: FactureComplete | null;
+    saving: boolean;
+  }>({ isOpen: false, facture: null, saving: false });
+
+  // Modal de résultat post-modification (complément / remboursement)
+  const [modalResultat, setModalResultat] = useState<{
+    isOpen: boolean;
+    resultat: ModifierFactureResponse | null;
+  }>({ isOpen: false, resultat: null });
 
   const [modalConfirmation, setModalConfirmation] = useState<{
     isOpen: boolean;
@@ -347,6 +372,167 @@ export default function FacturesGlassPage() {
     setModalImpression({ isOpen: true, facture });
   };
 
+  // ─── Modification d'une vente payée du jour (panier d'édition isolé) ───
+
+  // Ouvre le modal d'édition : reconstruit les articles depuis facture.details
+  // (déjà chargé) + niveau_stock COURANT.
+  // ⚠️ La page Factures ne charge pas les produits et le produitsStore ne persiste
+  // que le panier → on DOIT charger la liste produits ici pour disposer du stock réel,
+  // sinon toutes les lignes seraient marquées « stock inconnu » (augmentation bloquée).
+  const handleModifierFacture = async (facture: FactureComplete) => {
+    try {
+      const resp = await produitsService.getListeProduits();
+      const produits = resp.success ? resp.data : [];
+      const lookupProduit = (id: number) => produits.find((p) => p.id_produit === id);
+
+      const articles = reconstruireArticlesDepuisFacture(
+        facture.details || [],
+        lookupProduit
+      );
+
+      if (articles.length === 0) {
+        setToast({ isOpen: true, type: 'error', message: t('toast.modifyError') });
+        return;
+      }
+
+      const origine = deduireOrigineVente(facture.facture.nom_client, 'FACTURES');
+
+      usePanierEditionStore.getState().startEdition({
+        idFacture: facture.facture.id_facture,
+        numFacture: facture.facture.num_facture,
+        origine,
+        articles,
+        remiseOrigine: facture.facture.mt_remise || 0,
+      });
+
+      setModalEdition({ isOpen: true, facture, saving: false });
+    } catch (err) {
+      console.error('Erreur préparation édition facture:', err);
+      setToast({ isOpen: true, type: 'error', message: t('toast.modifyError') });
+    }
+  };
+
+  // Ferme l'édition et purge le store dédié (jamais de résidu).
+  const handleCloseEdition = () => {
+    usePanierEditionStore.getState().clearEdition();
+    setModalEdition({ isOpen: false, facture: null, saving: false });
+  };
+
+  // Valide la modification → appelle modifier_facturecom (service kader_backend).
+  const handleSaveEdition = async () => {
+    const editionState = usePanierEditionStore.getState();
+    const idFacture = editionState.editFactureId;
+    if (!idFacture) return;
+
+    setModalEdition((prev) => ({ ...prev, saving: true }));
+
+    try {
+      const result: ModifierFactureResponse = await factureService.modifierFacture(
+        idFacture,
+        editionState.articles,
+        editionState.remise
+      );
+
+      // Échec serveur (garde-fou date, non payée, remise invalide, etc.)
+      if (!result.success) {
+        const messageErreur = mapModificationErrorCode(result.code, result.message);
+        setToast({ isOpen: true, type: 'error', message: messageErreur });
+        setModalEdition((prev) => ({ ...prev, saving: false }));
+        return;
+      }
+
+      // Purge le store d'édition et ferme le modal d'édition.
+      usePanierEditionStore.getState().clearEdition();
+      setModalEdition({ isOpen: false, facture: null, saving: false });
+
+      // Selon le type d'ajustement : modal résultat ou toast simple.
+      if (result.type_ajustement === 'AUCUN') {
+        setToast({ isOpen: true, type: 'success', message: t('toast.modifyNoChange') });
+      } else {
+        setModalResultat({ isOpen: true, resultat: result });
+      }
+
+      // Rafraîchir la liste + invalider le cache dashboard (KPIs, stock).
+      // La liste produits est re-fetchée à chaque ouverture d'édition (pas de cache stale).
+      if (user?.id_structure) {
+        dashboardService.clearCacheForStructure(user.id_structure);
+      }
+      await loadFactures(currentPage);
+    } catch (err) {
+      console.error('Erreur modification facture:', err);
+      setToast({
+        isOpen: true,
+        type: 'error',
+        message: err instanceof Error ? err.message : t('toast.modifyError'),
+      });
+      setModalEdition((prev) => ({ ...prev, saving: false }));
+    }
+  };
+
+  // Mappe un code d'erreur serveur vers un message i18n.
+  const mapModificationErrorCode = (code?: string, fallback?: string): string => {
+    switch (code) {
+      case 'DATE_LOCKED':
+        return t('toast.dateLocked');
+      case 'NOT_PAID':
+        return t('toast.notPaid');
+      case 'INVALID_REMISE':
+        return t('toast.invalidRemise');
+      case 'EMPTY_ARTICLES':
+        return t('toast.emptyArticles');
+      default:
+        return fallback || t('toast.modifyError');
+    }
+  };
+
+  // Réimpression du reçu mis à jour (même num_facture, badge PAYE) après modification.
+  const handleReprintApresModification = () => {
+    const resultat = modalResultat.resultat;
+    if (!resultat || !resultat.id_facture) return;
+
+    const facture = facturesResponse?.factures.find(
+      (f) => f.facture.id_facture === resultat.id_facture
+    );
+    if (!facture) return;
+
+    const structureDetails = authService.getStructureDetails();
+    const currentUser = authService.getUser();
+    const dateFormatee = new Date(facture.facture.date_facture).toLocaleDateString('fr-FR', {
+      day: '2-digit', month: '2-digit', year: 'numeric',
+    });
+
+    const articles = (facture.details || []).map((d) => ({
+      nom_produit: d.nom_produit,
+      quantite: d.quantite,
+      prix: d.prix,
+      sous_total: d.sous_total ?? d.prix * d.quantite,
+    }));
+
+    const sousTotal = facture.facture.montant || 0;
+    const remise = facture.facture.mt_remise || 0;
+    const montantNet = sousTotal - remise;
+
+    const html = generateTicketHTML({
+      nomStructure: structureDetails?.nom_structure || structure?.nom_structure || 'Entreprise',
+      logoUrl: structureDetails?.logo || structure?.logo || '',
+      adresse: structureDetails?.adresse || '',
+      telephone: currentUser?.telephone || structureDetails?.info_facture?.tel_contact || '',
+      numFacture: facture.facture.num_facture,
+      dateFacture: dateFormatee,
+      nomClient: facture.facture.nom_client || 'Anonyme',
+      telClient: facture.facture.tel_client,
+      articles: articles.length > 0 ? articles : undefined,
+      sousTotal,
+      remise: remise > 0 ? remise : undefined,
+      montantNet,
+      methodePaiement: 'Especes',
+      nomCaissier: currentUser?.username || 'Caissier',
+      badge: 'PAYE',
+    });
+
+    printViaIframe(html);
+  };
+
   // Action pour voir le reçu depuis une carte de facture (factures PAYÉES)
   // Utilise recus_paiements si disponible (depuis get_my_factures1), sinon fallback
   const handleVoirRecuFacture = (facture: FactureComplete) => {
@@ -498,6 +684,7 @@ export default function FacturesGlassPage() {
           onDeleteFacture={handleDeleteFacture}
           onImprimer={handleImprimer}
           onVoirRecu={handleVoirRecuFacture}
+          onModifier={handleModifierFacture}
           onViewRecu={handleViewRecu}
           onDownloadRecu={handleDownloadRecu}
           onShowCoffreModal={() => setShowCoffreModal(true)}
@@ -619,6 +806,20 @@ export default function FacturesGlassPage() {
           />
         )}
 
+        <ModalEditionVente
+          isOpen={modalEdition.isOpen}
+          onClose={handleCloseEdition}
+          onSave={handleSaveEdition}
+          saving={modalEdition.saving}
+        />
+
+        <ModalResultatModification
+          isOpen={modalResultat.isOpen}
+          onClose={() => setModalResultat({ isOpen: false, resultat: null })}
+          resultat={modalResultat.resultat}
+          onReprint={handleReprintApresModification}
+        />
+
         <Toast
           isVisible={toast.isOpen}
           onClose={() => setToast({ ...toast, isOpen: false })}
@@ -674,6 +875,7 @@ export default function FacturesGlassPage() {
         onVoirRecu={handleVoirRecuFacture}
         onImprimer={comptePrive ? handleImprimer : undefined}
         onSupprimer={handleDeleteFacture}
+        onModifier={handleModifierFacture}
         userProfileId={user?.id_profil}
         comptePrive={comptePrive}
         canViewMontants={canViewMontants}
@@ -820,6 +1022,20 @@ export default function FacturesGlassPage() {
           loading={modalSuppressionAdmin.loading}
         />
       )}
+
+      <ModalEditionVente
+        isOpen={modalEdition.isOpen}
+        onClose={handleCloseEdition}
+        onSave={handleSaveEdition}
+        saving={modalEdition.saving}
+      />
+
+      <ModalResultatModification
+        isOpen={modalResultat.isOpen}
+        onClose={() => setModalResultat({ isOpen: false, resultat: null })}
+        resultat={modalResultat.resultat}
+        onReprint={handleReprintApresModification}
+      />
 
         {/* Toast notifications */}
         <Toast
