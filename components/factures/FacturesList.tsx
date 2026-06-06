@@ -20,6 +20,7 @@ interface FacturesListProps {
   onVoirRecu?: (facture: FactureComplete) => void;
   onImprimer?: (facture: FactureComplete) => void;
   onSupprimer?: (facture: FactureComplete) => void;
+  onModifier?: (facture: FactureComplete) => void;
   userProfileId?: number; // ID du profil utilisateur (1 = ADMIN)
   comptePrive?: boolean;
   /** Si false, remplace les montants par *** (caissier) */
@@ -74,6 +75,7 @@ export const FacturesList = ({
   onVoirRecu,
   onImprimer,
   onSupprimer,
+  onModifier,
   userProfileId,
   comptePrive = false,
   canViewMontants = true
@@ -160,6 +162,7 @@ export const FacturesList = ({
               onVoirRecu={onVoirRecu}
               onImprimer={onImprimer}
               onSupprimer={onSupprimer}
+              onModifier={onModifier}
               delay={index * 0.05} // Délai plus court pour la fluidité
               userProfileId={userProfileId}
               comptePrive={comptePrive}

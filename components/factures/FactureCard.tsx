@@ -7,11 +7,12 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Eye, Receipt, CreditCard, Trash2, Printer } from 'lucide-react';
+import { Eye, Receipt, CreditCard, Trash2, Printer, Pencil } from 'lucide-react';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { FactureComplete } from '@/types/facture';
 import { formatAmount, formatDate, cn } from '@/lib/utils';
 import { useTranslations } from '@/hooks/useTranslations';
+import { isFactureModifiableAujourdhui } from '@/lib/edition-vente-helpers';
 
 interface FactureCardProps {
   facture: FactureComplete;
@@ -21,6 +22,8 @@ interface FactureCardProps {
   onVoirRecu?: (facture: FactureComplete) => void;
   onImprimer?: (facture: FactureComplete) => void;
   onSupprimer?: (facture: FactureComplete) => void;
+  /** Modifier une vente PAYÉE du jour (réouverture panier d'édition isolé) */
+  onModifier?: (facture: FactureComplete) => void;
   delay?: number;
   userProfileId?: number; // ID du profil utilisateur (1 = ADMIN)
   comptePrive?: boolean;
@@ -36,6 +39,7 @@ export const FactureCard = ({
   onVoirRecu,
   onImprimer,
   onSupprimer,
+  onModifier,
   delay = 0,
   userProfileId,
   comptePrive = false,
@@ -50,6 +54,12 @@ export const FactureCard = ({
   // Déterminer si le bouton supprimer doit être affiché
   // ⚠️ SÉCURITÉ : Seul l'ADMIN peut supprimer des factures (payées ou impayées)
   const shouldShowDeleteButton = onSupprimer && isAdmin;
+
+  // Bouton « Modifier » : visible UNIQUEMENT si vente PAYÉE du jour (confort UI).
+  // Le serveur reste l'autorité (garde-fou date côté PostgreSQL).
+  const shouldShowModifyButton =
+    !!onModifier &&
+    isFactureModifiableAujourdhui(factureData.date_facture, factureData.libelle_etat);
 
   // Vérification de sécurité pour éviter les erreurs de rendu
   if (!factureData) {
@@ -183,6 +193,20 @@ export const FactureCard = ({
                 <Eye className="w-3 h-3 sm:w-4 sm:h-4" />
                 <span className="hidden xs:inline">{t('card.view')}</span>
               </button>
+
+              {shouldShowModifyButton && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onModifier!(facture);
+                  }}
+                  className="flex-1 py-1.5 sm:py-2 bg-sky-500/20 rounded-md sm:rounded-lg text-sky-100 text-xs sm:text-sm hover:bg-sky-500/30 transition-colors flex items-center justify-center gap-1"
+                  title={t('card.modifyTitle')}
+                >
+                  <Pencil className="w-3 h-3 sm:w-4 sm:h-4" />
+                  <span className="hidden xs:inline">{t('card.modify')}</span>
+                </button>
+              )}
 
               {shouldShowDeleteButton && (
                 <button

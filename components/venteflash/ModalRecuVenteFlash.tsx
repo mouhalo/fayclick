@@ -8,7 +8,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CheckCircle, Printer, MessageCircle, X, Share2 } from 'lucide-react';
+import { CheckCircle, Printer, MessageCircle, X, Share2, Pencil } from 'lucide-react';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { authService } from '@/services/auth.service';
 import { generateTicketHTML, printViaIframe } from '@/lib/generate-ticket-html';
@@ -32,6 +32,10 @@ interface ModalRecuVenteFlashProps {
   monnaieARendre?: number;
   dateVente?: Date;
   detailFacture?: DetailProduit[];
+  /** Déclenche l'édition de cette vente (panier d'édition isolé). Met le timer en pause. */
+  onModifier?: () => void;
+  /** true si la vente est modifiable aujourd'hui (PAYEE + date du jour) */
+  modifiable?: boolean;
 }
 
 export function ModalRecuVenteFlash({
@@ -43,7 +47,9 @@ export function ModalRecuVenteFlash({
   methodePaiement,
   monnaieARendre = 0,
   dateVente = new Date(),
-  detailFacture = []
+  detailFacture = [],
+  onModifier,
+  modifiable = false
 }: ModalRecuVenteFlashProps) {
   const { isMobile, isMobileLarge } = useBreakpoint();
   const isCompact = isMobile || isMobileLarge;
@@ -280,8 +286,27 @@ export function ModalRecuVenteFlash({
             )}
           </div>
 
+          {/* Bouton Modifier (vente PAYÉE du jour) — pleine largeur */}
+          {modifiable && onModifier && (
+            <div className="px-3 pt-2">
+              <motion.button
+                whileTap={{ scale: 0.97 }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setTimerPaused(true);
+                  if (timerRef.current) clearInterval(timerRef.current);
+                  onModifier();
+                }}
+                className="w-full flex items-center justify-center gap-2 py-2.5 bg-sky-50 hover:bg-sky-100 rounded-xl transition-colors"
+              >
+                <Pencil className="w-4 h-4 text-sky-600" />
+                <span className="text-xs font-medium text-sky-700">{t('receipt.btnModify')}</span>
+              </motion.button>
+            </div>
+          )}
+
           {/* Actions 3x1 */}
-          <div className="p-3 pt-0 grid grid-cols-3 gap-2">
+          <div className="p-3 pt-2 grid grid-cols-3 gap-2">
             <motion.button
               whileTap={{ scale: 0.95 }}
               onClick={handlePrint}

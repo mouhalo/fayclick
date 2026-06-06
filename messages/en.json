@@ -1001,7 +1001,13 @@
       "adminDeleteSuccess": "Paid invoice deleted by administrator",
       "adminOnlyForPaid": "Only an administrator can delete a paid invoice",
       "downloadStarted": "Receipt download started",
-      "downloadError": "Unable to download receipt: {error}"
+      "downloadError": "Unable to download receipt: {error}",
+      "modifyNoChange": "Sale updated (no payment adjustment)",
+      "modifyError": "Unable to edit the sale",
+      "dateLocked": "Only today's sales can be edited",
+      "notPaid": "Only paid sales can be edited",
+      "invalidRemise": "The discount cannot exceed the subtotal",
+      "emptyArticles": "At least one item is required"
     },
     "tabs": {
       "invoices": "Invoices",
@@ -1070,7 +1076,40 @@
       "printTitle": "Print a document",
       "receipt": "Receipt",
       "receiptTitle": "View payment receipt",
+      "modify": "Edit",
+      "modifyTitle": "Edit today's sale",
       "adminOnly": "🔒 Deletion reserved to Administrator"
+    },
+    "edition": {
+      "title": "Edit sale",
+      "badge": "Sale {num}",
+      "searchPlaceholder": "Add an item...",
+      "stockLabel": "Stock: {count}",
+      "stockError": "Insufficient stock for {name}",
+      "stockUnknown": "Unknown stock for {name} — cannot increase",
+      "stockUnknownBadge": "unknown stock",
+      "emptyWarning": "At least one item is required. To cancel the sale, use deletion.",
+      "remiseLabel": "Global discount",
+      "subtotal": "Subtotal",
+      "remise": "Discount",
+      "net": "Net amount",
+      "complementPreview": "Extra to collect",
+      "refundPreview": "Change to give back",
+      "decrease": "Decrease quantity",
+      "increase": "Increase quantity",
+      "removeArticle": "Remove item",
+      "cancel": "Cancel",
+      "save": "Save changes",
+      "saving": "Saving...",
+      "result": {
+        "complementTitle": "Extra to collect",
+        "complementLabel": "Additional amount to receive (cash)",
+        "refundTitle": "Change to give back",
+        "refundLabel": "Amount to refund to the customer",
+        "stillPaid": "Sale {num} still paid",
+        "reprint": "Reprint receipt",
+        "close": "Done"
+      }
     },
     "table": {
       "invoice": "Invoice",
@@ -1412,11 +1451,18 @@
       "btnTicket": "Ticket",
       "btnWhatsapp": "WhatsApp",
       "btnClose": "Close",
+      "btnModify": "Edit sale",
       "autoClose": "Closing in {count}s - Click to cancel",
       "methodCash": "Cash",
       "methodOM": "Orange Money",
       "methodWave": "Wave",
-      "anonymous": "ANONYMOUS"
+      "anonymous": "ANONYMOUS",
+      "modifyNoChange": "Sale updated (no payment adjustment)",
+      "modifyError": "Unable to edit the sale",
+      "modifyDateLocked": "Only today's sales can be edited",
+      "modifyNotPaid": "Only paid sales can be edited",
+      "modifyInvalidRemise": "The discount cannot exceed the subtotal",
+      "modifyEmptyArticles": "At least one item is required"
     },
     "refresh": {
       "title": "Refreshing...",

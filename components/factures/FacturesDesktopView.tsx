@@ -23,8 +23,10 @@ import {
   ChevronRight,
   ArrowUpDown,
   Loader,
+  Pencil,
 } from 'lucide-react';
 import DashboardSidebar from '@/components/dashboard/DashboardSidebar';
+import { isFactureModifiableAujourdhui } from '@/lib/edition-vente-helpers';
 import { ListePaiements } from '@/components/factures/ListePaiements';
 import { ProformasTab } from '@/components/proformas/ProformasTab';
 import { BonsCommandesTab } from '@/components/boncommandes';
@@ -62,6 +64,7 @@ interface FacturesDesktopViewProps {
   onDeleteFacture: (f: FactureComplete) => void;
   onImprimer: (f: FactureComplete) => void;
   onVoirRecu: (f: FactureComplete) => void;
+  onModifier: (f: FactureComplete) => void;
   onViewRecu: (p: any) => void;
   onDownloadRecu: (p: any) => void;
   // Sidebar handlers
@@ -96,6 +99,7 @@ export default function FacturesDesktopView({
   onDeleteFacture,
   onImprimer,
   onVoirRecu,
+  onModifier,
   onViewRecu,
   onDownloadRecu,
   onShowCoffreModal,
@@ -616,6 +620,17 @@ export default function FacturesDesktopView({
                                         <Receipt className="w-4 h-4" />
                                       </button>
                                     )
+                                  )}
+
+                                  {/* Modifier (vente PAYÉE du jour) */}
+                                  {isFactureModifiableAujourdhui(f.date_facture, f.libelle_etat) && (
+                                    <button
+                                      onClick={(e) => { e.stopPropagation(); onModifier(fc); }}
+                                      className="w-8 h-8 rounded-lg bg-sky-50 hover:bg-sky-100 flex items-center justify-center text-sky-600 transition-colors"
+                                      title={t('card.modifyTitle')}
+                                    >
+                                      <Pencil className="w-4 h-4" />
+                                    </button>
                                   )}
 
                                   {/* Payer si impayee */}

@@ -26,9 +26,20 @@ import { PanierVFTabs } from '@/components/venteflash/PanierVFTabs';
 import { ModalRecuGenere } from '@/components/recu/ModalRecuGenere';
 import { ModalRecuVenteFlash } from '@/components/venteflash/ModalRecuVenteFlash';
 import { ModalRefresh } from '@/components/venteflash/ModalRefresh';
+import { ModalEditionVente } from '@/components/factures/ModalEditionVente';
+import { ModalResultatModification } from '@/components/factures/ModalResultatModification';
 import MainMenu from '@/components/layout/MainMenu';
 import { useSalesRules } from '@/hooks/useSalesRules';
 import { useTranslations } from '@/hooks/useTranslations';
+import { usePanierEditionStore } from '@/stores/panierEditionStore';
+import { factureService } from '@/services/facture.service';
+import { dashboardService } from '@/services/dashboard.service';
+import {
+  reconstruireArticlesDepuisFacture,
+  isFactureModifiableAujourdhui,
+} from '@/lib/edition-vente-helpers';
+import { generateTicketHTML, printViaIframe } from '@/lib/generate-ticket-html';
+import { ModifierFactureResponse, DetailFacture } from '@/types/facture';
 
 export default function VenteFlashPage() {
   const router = useRouter();
@@ -103,12 +114,20 @@ export default function VenteFlashPage() {
     dateVente: Date;
     detailFacture: Array<{
       id_detail?: number;
+      id_produit?: number;
       nom_produit: string;
       quantite: number;
       prix: number;
       sous_total: number;
     }>;
   } | null>(null);
+
+  // États édition d'une vente payée du jour (panier d'édition isolé)
+  const [showEdition, setShowEdition] = useState(false);
+  const [editionSaving, setEditionSaving] = useState(false);
+  const [editionFactureId, setEditionFactureId] = useState<number | null>(null);
+  const [showResultatModif, setShowResultatModif] = useState(false);
+  const [resultatModif, setResultatModif] = useState<ModifierFactureResponse | null>(null);
 
   /**
    * Charger tous les produits de la structure
@@ -618,8 +637,10 @@ export default function VenteFlashPage() {
     }
 
     // Mapper les détails de la vente au format attendu par le modal
+    // ⚠️ On conserve id_produit pour la modification (jamais de match par nom).
     const detailFacture = (vente.details || []).map((d: any) => ({
       id_detail: d.id_detail,
+      id_produit: d.id_produit,
       nom_produit: d.nom_produit || 'Produit',
       quantite: d.quantite || 1,
       prix: d.prix_unitaire || d.prix || 0,
@@ -638,6 +659,160 @@ export default function VenteFlashPage() {
       detailFacture
     });
     setShowRecuTicket(true);
+  };
+
+  // ─── Modification d'une vente payée du jour (depuis le reçu VenteFlash) ───
+
+  // Ouvre l'édition isolée à partir des détails de la vente affichée dans le reçu.
+  const handleModifierVente = (
+    idFacture: number,
+    numFacture: string,
+    dateVente: Date,
+    detailFacture: Array<{ id_detail?: number; id_produit?: number; nom_produit: string; quantite: number; prix: number; sous_total: number }>
+  ) => {
+    // Lookup stock courant depuis la liste produits locale (déjà chargée sur la page VF).
+    const lookupProduit = (id: number) => produits.find((p) => p.id_produit === id);
+
+    // Reconstruit des DetailFacture à partir du détail du reçu.
+    // ⚠️ On utilise l'id_produit RÉEL porté par vente.details (jamais de match par nom)
+    // pour ne jamais envoyer id_produit=0 dans la mutation financière.
+    const details: DetailFacture[] = detailFacture.map((d, i) => ({
+      id_detail: d.id_detail ?? i,
+      id_facture: idFacture,
+      date_facture: dateVente.toISOString(),
+      nom_produit: d.nom_produit,
+      cout_revient: 0,
+      quantite: d.quantite,
+      prix: d.prix,
+      marge: 0,
+      id_produit: d.id_produit ?? 0,
+      sous_total: d.sous_total,
+    }));
+
+    // Garde-fou : aucune ligne sans id_produit valide → on bloque (corruption évitée).
+    if (details.some((d) => !d.id_produit || d.id_produit <= 0)) {
+      showToast('error', t('receipt.modifyError'));
+      return;
+    }
+
+    const articles = reconstruireArticlesDepuisFacture(details, lookupProduit);
+    if (articles.length === 0) {
+      showToast('error', t('receipt.modifyError'));
+      return;
+    }
+
+    usePanierEditionStore.getState().startEdition({
+      idFacture,
+      numFacture,
+      origine: 'VENTEFLASH',
+      articles,
+      remiseOrigine: 0,
+    });
+
+    setEditionFactureId(idFacture);
+    setShowRecuTicket(false);
+    setShowEdition(true);
+  };
+
+  const handleCloseEdition = () => {
+    usePanierEditionStore.getState().clearEdition();
+    setShowEdition(false);
+    setEditionFactureId(null);
+  };
+
+  const handleSaveEdition = async () => {
+    const editionState = usePanierEditionStore.getState();
+    const idFacture = editionState.editFactureId;
+    if (!idFacture) return;
+
+    setEditionSaving(true);
+    try {
+      const result: ModifierFactureResponse = await factureService.modifierFacture(
+        idFacture,
+        editionState.articles,
+        editionState.remise
+      );
+
+      if (!result.success) {
+        showToast('error', mapModificationErrorCode(result.code, result.message));
+        setEditionSaving(false);
+        return;
+      }
+
+      usePanierEditionStore.getState().clearEdition();
+      setShowEdition(false);
+      setEditionSaving(false);
+      setEditionFactureId(null);
+
+      if (result.type_ajustement === 'AUCUN') {
+        showToast('success', t('receipt.modifyNoChange'));
+      } else {
+        setResultatModif(result);
+        setShowResultatModif(true);
+      }
+
+      // Invalider le cache dashboard et recharger les données VF.
+      if (user?.id_structure) {
+        dashboardService.clearCacheForStructure(user.id_structure);
+      }
+      await loadProduits();
+      await loadVentesJour();
+    } catch (err) {
+      console.error('Erreur modification vente:', err);
+      showToast('error', err instanceof Error ? err.message : t('receipt.modifyError'));
+      setEditionSaving(false);
+    }
+  };
+
+  const mapModificationErrorCode = (code?: string, fallback?: string): string => {
+    switch (code) {
+      case 'DATE_LOCKED':
+        return t('receipt.modifyDateLocked');
+      case 'NOT_PAID':
+        return t('receipt.modifyNotPaid');
+      case 'INVALID_REMISE':
+        return t('receipt.modifyInvalidRemise');
+      case 'EMPTY_ARTICLES':
+        return t('receipt.modifyEmptyArticles');
+      default:
+        return fallback || t('receipt.modifyError');
+    }
+  };
+
+  const handleReprintApresModification = () => {
+    const resultat = resultatModif;
+    if (!resultat || !resultat.id_facture) return;
+
+    const vente = ventesJour.find((v) => v.id_facture === resultat.id_facture);
+    if (!vente) return;
+
+    const structureDetails = authService.getStructureDetails();
+    const currentUser = authService.getUser();
+    const articles = (vente.details || []).map((d: any) => ({
+      nom_produit: d.nom_produit || 'Produit',
+      quantite: d.quantite || 1,
+      prix: d.prix_unitaire || d.prix || 0,
+      sous_total: d.total || d.quantite * (d.prix_unitaire || d.prix || 0),
+    }));
+
+    const html = generateTicketHTML({
+      nomStructure: structureDetails?.nom_structure || user?.nom_structure || 'Entreprise',
+      logoUrl: structureDetails?.logo || '',
+      adresse: structureDetails?.adresse || '',
+      telephone: currentUser?.telephone || '',
+      numFacture: vente.num_facture,
+      dateFacture: new Date(vente.date_facture).toLocaleDateString('fr-FR', {
+        day: '2-digit', month: '2-digit', year: 'numeric',
+      }),
+      nomClient: 'CLIENT_ANONYME',
+      articles: articles.length > 0 ? articles : undefined,
+      montantNet: vente.montant_total,
+      methodePaiement: 'Especes',
+      nomCaissier: currentUser?.username || 'Caissier',
+      badge: 'PAYE',
+    });
+
+    printViaIframe(html);
   };
 
   /**
@@ -1262,8 +1437,39 @@ export default function VenteFlashPage() {
           methodePaiement={recuTicketData.methodePaiement}
           dateVente={recuTicketData.dateVente}
           detailFacture={recuTicketData.detailFacture}
+          modifiable={
+            recuTicketData.methodePaiement === 'CASH' &&
+            isFactureModifiableAujourdhui(recuTicketData.dateVente, 'PAYEE')
+          }
+          onModifier={() =>
+            handleModifierVente(
+              recuTicketData.idFacture,
+              recuTicketData.numFacture,
+              recuTicketData.dateVente,
+              recuTicketData.detailFacture
+            )
+          }
         />
       )}
+
+      {/* Modal édition d'une vente payée du jour (isolé) */}
+      <ModalEditionVente
+        isOpen={showEdition}
+        onClose={handleCloseEdition}
+        onSave={handleSaveEdition}
+        saving={editionSaving}
+      />
+
+      {/* Modal résultat post-modification */}
+      <ModalResultatModification
+        isOpen={showResultatModif}
+        onClose={() => {
+          setShowResultatModif(false);
+          setResultatModif(null);
+        }}
+        resultat={resultatModif}
+        onReprint={handleReprintApresModification}
+      />
 
       {/* Menu Principal */}
       <MainMenu

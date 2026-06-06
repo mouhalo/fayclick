@@ -206,14 +206,29 @@ ALTER TABLE transactions_wallet SET (autovacuum_vacuum_scale_factor = 0.05);
 
 ---
 
-## 📝 Historique des Modifications
+### 5. FONCTIONS_SIGNEES_BACKEND.md
+
+**Contrat d'interface DBA → kader_backend**
+
+Contenu :
+- Liste exhaustive des fonctions PostgreSQL exposées au backend Node.js/Python
+- Signatures précises (paramètres + types de retour)
+- Codes d'erreur et effets de bord documentés
+- Historique de déploiement et statut de chaque fonction
+
+Utilisation : Référence obligatoire avant tout appel `DatabaseService.executeFunction()`.
+Toute modification de signature = breaking change à coordonner avec dba_master.
+
+---
+
+## Historique des Modifications
 
 | Date | Version | Modifications |
 |------|---------|---------------|
 | 2026-01-21 | 1.0 | Création initiale de la documentation complète |
+| 2026-06-06 | 1.1 | Ajout FONCTIONS_SIGNEES_BACKEND.md — contrat d'interface DBA/backend. Déploiement modifier_facturecom + log_modifications_factures (module modification vente du jour). |
 
 ---
 
-**Maintenu par**: DBA PostgreSQL Expert
-**Contact**: (Ajouter email/contact DBA)
-**Dernière révision**: 2026-01-21
+**Maintenu par**: dba_master
+**Dernière révision**: 2026-06-06

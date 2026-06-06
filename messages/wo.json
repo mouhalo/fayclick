@@ -1001,7 +1001,13 @@
       "adminDeleteSuccess": "Facture bi payee na far ko administrateur bi",
       "adminOnlyForPaid": "Administrateur rekk mën na far facture bu payee",
       "downloadStarted": "Téléchargement u reçu tàmbali na",
-      "downloadError": "Mënoñu télécharger reçu bi : {error}"
+      "downloadError": "Mënoñu télécharger reçu bi : {error}",
+      "modifyNoChange": "Njaay bi soppi nañu ko (amul soppi ci fay bi)",
+      "modifyError": "Mënoñu soppi njaay bi",
+      "dateLocked": "Njaay yu tey rekk ñoo mën a soppi",
+      "notPaid": "Njaay yu payee rekk ñoo mën a soppi",
+      "invalidRemise": "Remise bi mënul weesu sous-total bi",
+      "emptyArticles": "Am na lu mën a néew benn marchandise"
     },
     "tabs": {
       "invoices": "Facture",
@@ -1070,7 +1076,40 @@
       "printTitle": "Imprimé ab document",
       "receipt": "Reçu",
       "receiptTitle": "Xool reçu u paiement",
+      "modify": "Soppi",
+      "modifyTitle": "Soppi njaay bu tey",
       "adminOnly": "🔒 Far bi, Administrateur rekk"
+    },
+    "edition": {
+      "title": "Soppi njaay bi",
+      "badge": "Njaay {num}",
+      "searchPlaceholder": "Yokk ab marchandise...",
+      "stockLabel": "Stock : {count}",
+      "stockError": "Stock bi doyul ngir {name}",
+      "stockUnknown": "Stock bi xamuñu ko ngir {name} — mënuñu yokk",
+      "stockUnknownBadge": "stock xamuñu",
+      "emptyWarning": "Am na lu mën a néew benn marchandise. Ngir neenal njaay bi, jëfandikoo far bi.",
+      "remiseLabel": "Remise bu mag",
+      "subtotal": "Sous-total",
+      "remise": "Remise",
+      "net": "Xaalis bu set",
+      "complementPreview": "Lu war a yokk ci fay",
+      "refundPreview": "Weccit bu war a delloo",
+      "decrease": "Wàññi limu",
+      "increase": "Yokk limu",
+      "removeArticle": "Dindi marchandise bi",
+      "cancel": "Bàyyi",
+      "save": "Denc soppi yi",
+      "saving": "Mu ngi denc...",
+      "result": {
+        "complementTitle": "Lu war a yokk ci fay",
+        "complementLabel": "Xaalis bu yokk bu war a jot (espèces)",
+        "refundTitle": "Weccit bu war a delloo",
+        "refundLabel": "Xaalis bu war a delloo client bi",
+        "stillPaid": "Njaay {num} fay na ba tey",
+        "reprint": "Imprimé reçu bi att",
+        "close": "Pare"
+      }
     },
     "table": {
       "invoice": "Facture",
@@ -1412,11 +1451,18 @@
       "btnTicket": "Ticket",
       "btnWhatsapp": "WhatsApp",
       "btnClose": "Tëj",
+      "btnModify": "Soppi njaay bi",
       "autoClose": "Tëj ci {count}s - Tappal ngir bañ",
       "methodCash": "Xaalis ci loxo",
       "methodOM": "Orange Money",
       "methodWave": "Wave",
-      "anonymous": "AMUL TUR"
+      "anonymous": "AMUL TUR",
+      "modifyNoChange": "Njaay bi soppi nañu ko (amul soppi ci fay bi)",
+      "modifyError": "Mënoñu soppi njaay bi",
+      "modifyDateLocked": "Njaay yu tey rekk ñoo mën a soppi",
+      "modifyNotPaid": "Njaay yu payee rekk ñoo mën a soppi",
+      "modifyInvalidRemise": "Remise bi mënul weesu sous-total bi",
+      "modifyEmptyArticles": "Am na lu mën a néew benn marchandise"
     },
     "refresh": {
       "title": "Àngi refresh...",

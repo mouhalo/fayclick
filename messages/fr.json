@@ -1001,7 +1001,13 @@
       "adminDeleteSuccess": "Facture payée supprimée par administrateur",
       "adminOnlyForPaid": "Seul un administrateur peut supprimer une facture payée",
       "downloadStarted": "Téléchargement du reçu démarré",
-      "downloadError": "Impossible de télécharger le reçu : {error}"
+      "downloadError": "Impossible de télécharger le reçu : {error}",
+      "modifyNoChange": "Vente modifiée (aucun ajustement de paiement)",
+      "modifyError": "Impossible de modifier la vente",
+      "dateLocked": "Seules les ventes du jour sont modifiables",
+      "notPaid": "Seules les ventes payées sont modifiables",
+      "invalidRemise": "La remise ne peut pas dépasser le sous-total",
+      "emptyArticles": "Au moins un article est requis"
     },
     "tabs": {
       "invoices": "Factures",
@@ -1070,7 +1076,40 @@
       "printTitle": "Imprimer un document",
       "receipt": "Reçu",
       "receiptTitle": "Voir le reçu de paiement",
+      "modify": "Modifier",
+      "modifyTitle": "Modifier la vente du jour",
       "adminOnly": "🔒 Suppression réservée à l'Administrateur"
+    },
+    "edition": {
+      "title": "Modifier la vente",
+      "badge": "Vente {num}",
+      "searchPlaceholder": "Ajouter un article...",
+      "stockLabel": "Stock : {count}",
+      "stockError": "Stock insuffisant pour {name}",
+      "stockUnknown": "Stock inconnu pour {name} — augmentation impossible",
+      "stockUnknownBadge": "stock inconnu",
+      "emptyWarning": "Au moins un article est requis. Pour annuler la vente, utilisez la suppression.",
+      "remiseLabel": "Remise globale",
+      "subtotal": "Sous-total",
+      "remise": "Remise",
+      "net": "Montant net",
+      "complementPreview": "Complément à encaisser",
+      "refundPreview": "Monnaie à rendre",
+      "decrease": "Diminuer la quantité",
+      "increase": "Augmenter la quantité",
+      "removeArticle": "Retirer l'article",
+      "cancel": "Annuler",
+      "save": "Enregistrer les modifications",
+      "saving": "Enregistrement...",
+      "result": {
+        "complementTitle": "Complément à encaisser",
+        "complementLabel": "Montant supplémentaire à percevoir (espèces)",
+        "refundTitle": "Monnaie à rendre",
+        "refundLabel": "Montant à restituer au client",
+        "stillPaid": "Vente {num} toujours payée",
+        "reprint": "Réimprimer le reçu",
+        "close": "Terminé"
+      }
     },
     "table": {
       "invoice": "Facture",
@@ -1412,11 +1451,18 @@
       "btnTicket": "Ticket",
       "btnWhatsapp": "WhatsApp",
       "btnClose": "Fermer",
+      "btnModify": "Modifier la vente",
       "autoClose": "Fermeture dans {count}s - Cliquez pour annuler",
       "methodCash": "Espèces",
       "methodOM": "Orange Money",
       "methodWave": "Wave",
-      "anonymous": "ANONYME"
+      "anonymous": "ANONYME",
+      "modifyNoChange": "Vente modifiée (aucun ajustement de paiement)",
+      "modifyError": "Impossible de modifier la vente",
+      "modifyDateLocked": "Seules les ventes du jour sont modifiables",
+      "modifyNotPaid": "Seules les ventes payées sont modifiables",
+      "modifyInvalidRemise": "La remise ne peut pas dépasser le sous-total",
+      "modifyEmptyArticles": "Au moins un article est requis"
     },
     "refresh": {
       "title": "Rafraîchissement en cours...",
