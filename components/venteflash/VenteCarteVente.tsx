@@ -9,28 +9,41 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  ChevronDown, ChevronUp, Trash2, FileText, Receipt
+  ChevronDown, ChevronUp, Trash2, FileText, Receipt, Pencil
 } from 'lucide-react';
 import { VenteFlash, DetailVente } from '@/types/venteflash.types';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import { useTranslations } from '@/hooks/useTranslations';
+import { isFactureModifiableAujourdhui } from '@/lib/edition-vente-helpers';
 
 interface VenteCarteVenteProps {
   vente: VenteFlash;
   onDelete?: (id_facture: number) => void;
   onViewReceipt?: (id_facture: number) => void;
   onViewInvoice?: (id_facture: number) => void;
+  /** Modifier une vente PAYÉE du jour (réutilise le flux d'édition existant) */
+  onModifier?: (id_facture: number) => void;
 }
 
 export function VenteCarteVente({
   vente,
   onDelete,
   onViewReceipt,
-  onViewInvoice
+  onViewInvoice,
+  onModifier
 }: VenteCarteVenteProps) {
   const { isAdmin } = useUserProfile();
   const t = useTranslations('venteFlash');
   const [isExpanded, setIsExpanded] = useState(false);
+
+  // Bouton « Modifier » visible uniquement si vente PAYÉE du jour (confort UI ;
+  // le serveur reste l'autorité via le garde-fou date côté PostgreSQL).
+  // VenteFlash = encaissement immédiat → la vente est payée si rien n'est impayé.
+  const estPayee = (vente.montant_impaye ?? 0) <= 0;
+  const libelleEtat = estPayee ? 'PAYEE' : 'IMPAYEE';
+  const shouldShowModifyButton =
+    !!onModifier &&
+    isFactureModifiableAujourdhui(vente.date_facture, libelleEtat);
 
   // Utiliser directement les détails passés dans vente (déjà chargés avec la facture)
   const details = vente.details || [];
@@ -123,6 +136,26 @@ export function VenteCarteVente({
           {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
           {t('saleCard.details')}
         </motion.button>
+
+        {/* Bouton Modifier (vente PAYÉE du jour) */}
+        {shouldShowModifyButton && (
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={(e) => {
+              e.stopPropagation();
+              onModifier!(vente.id_facture);
+            }}
+            className="
+              flex items-center gap-1 px-3 py-1.5 rounded-lg
+              bg-sky-100 text-sky-700 hover:bg-sky-200
+              text-sm font-medium transition-colors
+            "
+          >
+            <Pencil className="w-4 h-4" />
+            {t('receipt.btnModify')}
+          </motion.button>
+        )}
 
         {/* Bouton Supprimer (Admin uniquement) */}
         {isAdmin && onDelete && (

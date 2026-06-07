@@ -717,6 +717,33 @@ export default function VenteFlashPage() {
     setShowEdition(true);
   };
 
+  // Adaptateur : « Modifier » depuis la carte « Ventes du jour ».
+  // Retrouve la vente par id et délègue au flux d'édition EXISTANT (handleModifierVente),
+  // en mappant vente.details (DetailVente) vers le format attendu (id_produit RÉEL conservé).
+  const handleModifierVenteDepuisCarte = (idFacture: number) => {
+    const vente = ventesJour.find((v) => v.id_facture === idFacture);
+    if (!vente) {
+      showToast('error', t('receipt.modifyError'));
+      return;
+    }
+
+    const detailFacture = (vente.details || []).map((d) => ({
+      id_detail: d.id_detail,
+      id_produit: d.id_produit,
+      nom_produit: d.nom_produit,
+      quantite: d.quantite,
+      prix: d.prix_unitaire,
+      sous_total: d.total,
+    }));
+
+    handleModifierVente(
+      vente.id_facture,
+      vente.num_facture,
+      new Date(vente.date_facture),
+      detailFacture
+    );
+  };
+
   const handleCloseEdition = () => {
     usePanierEditionStore.getState().clearEdition();
     setShowEdition(false);
@@ -1193,6 +1220,7 @@ export default function VenteFlashPage() {
           isLoading={isLoadingVentes}
           onDeleteVente={handleDeleteVente}
           onViewReceipt={handleViewReceipt}
+          onModifier={handleModifierVenteDepuisCarte}
         />
       </div>
 

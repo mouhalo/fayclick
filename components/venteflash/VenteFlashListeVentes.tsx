@@ -17,6 +17,8 @@ interface VenteFlashListeVentesProps {
   onDeleteVente?: (id_facture: number) => void;
   onViewReceipt?: (id_facture: number) => void;
   onViewInvoice?: (id_facture: number) => void;
+  /** Modifier une vente PAYÉE du jour (réutilise le flux d'édition existant) */
+  onModifier?: (id_facture: number) => void;
 }
 
 export function VenteFlashListeVentes({
@@ -24,7 +26,8 @@ export function VenteFlashListeVentes({
   isLoading = false,
   onDeleteVente,
   onViewReceipt,
-  onViewInvoice
+  onViewInvoice,
+  onModifier
 }: VenteFlashListeVentesProps) {
   const t = useTranslations('venteFlash');
 
@@ -85,6 +88,7 @@ export function VenteFlashListeVentes({
               onDelete={onDeleteVente}
               onViewReceipt={onViewReceipt}
               onViewInvoice={onViewInvoice}
+              onModifier={onModifier}
             />
           </motion.div>
         ))}
