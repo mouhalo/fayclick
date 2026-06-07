@@ -1474,6 +1474,7 @@ export default function VenteFlashPage() {
       <ModalEditionVente
         isOpen={showEdition}
         onClose={handleCloseEdition}
+        produits={produits}
         onSave={handleSaveEdition}
         saving={editionSaving}
       />

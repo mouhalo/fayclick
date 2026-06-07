@@ -55,6 +55,7 @@ import {
   FiltresFactures,
   ModifierFactureResponse
 } from '@/types/facture';
+import { Produit } from '@/types/produit';
 
 export default function FacturesGlassPage() {
   const router = useRouter();
@@ -109,12 +110,14 @@ export default function FacturesGlassPage() {
     facture: FactureComplete | null;
   }>({ isOpen: false, facture: null });
 
-  // Modal d'édition d'une vente payée du jour (panier d'édition isolé)
+  // Modal d'édition d'une vente payée du jour (panier d'édition isolé).
+  // `produits` = liste complète fetchée à l'ouverture (recherche client + stock courant).
   const [modalEdition, setModalEdition] = useState<{
     isOpen: boolean;
     facture: FactureComplete | null;
+    produits: Produit[];
     saving: boolean;
-  }>({ isOpen: false, facture: null, saving: false });
+  }>({ isOpen: false, facture: null, produits: [], saving: false });
 
   // Modal de résultat post-modification (complément / remboursement).
   // `reprintTicket` est un HTML pré-généré au moment du succès (à partir de la
@@ -409,7 +412,9 @@ export default function FacturesGlassPage() {
         remiseOrigine: facture.facture.mt_remise || 0,
       });
 
-      setModalEdition({ isOpen: true, facture, saving: false });
+      // On conserve la liste produits fetchée → passée au modal pour la recherche
+      // client (nom + code-barres + scan), pas de re-fetch interne.
+      setModalEdition({ isOpen: true, facture, produits, saving: false });
     } catch (err) {
       console.error('Erreur préparation édition facture:', err);
       setToast({ isOpen: true, type: 'error', message: t('toast.modifyError') });
@@ -419,7 +424,7 @@ export default function FacturesGlassPage() {
   // Ferme l'édition et purge le store dédié (jamais de résidu).
   const handleCloseEdition = () => {
     usePanierEditionStore.getState().clearEdition();
-    setModalEdition({ isOpen: false, facture: null, saving: false });
+    setModalEdition({ isOpen: false, facture: null, produits: [], saving: false });
   };
 
   // Valide la modification → appelle modifier_facturecom (service kader_backend).
@@ -461,7 +466,7 @@ export default function FacturesGlassPage() {
 
       // Purge le store d'édition et ferme le modal d'édition.
       usePanierEditionStore.getState().clearEdition();
-      setModalEdition({ isOpen: false, facture: null, saving: false });
+      setModalEdition({ isOpen: false, facture: null, produits: [], saving: false });
 
       // Selon le type d'ajustement : modal résultat ou toast simple.
       if (result.type_ajustement === 'AUCUN') {
@@ -832,6 +837,7 @@ export default function FacturesGlassPage() {
         <ModalEditionVente
           isOpen={modalEdition.isOpen}
           onClose={handleCloseEdition}
+          produits={modalEdition.produits}
           onSave={handleSaveEdition}
           saving={modalEdition.saving}
         />
@@ -1049,6 +1055,7 @@ export default function FacturesGlassPage() {
       <ModalEditionVente
         isOpen={modalEdition.isOpen}
         onClose={handleCloseEdition}
+        produits={modalEdition.produits}
         onSave={handleSaveEdition}
         saving={modalEdition.saving}
       />

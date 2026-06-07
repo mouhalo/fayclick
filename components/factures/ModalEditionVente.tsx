@@ -3,7 +3,8 @@
  *
  * - Branché sur le store DÉDIÉ `panierEditionStore` (isolation totale, voir store).
  * - Validation stock PAR DELTA (gérée dans le store).
- * - Ajout d'article via recherche produit (réutilise produitsService.searchProduits).
+ * - Ajout d'article via la barre de recherche PARTAGÉE `RechercheProduitBar`
+ *   (même recherche que VenteFlash : nom + code-barres + scan caméra + douchette).
  * - Affiche l'écart prévisionnel live (complément à encaisser / monnaie à rendre).
  *
  * Le bouton « Enregistrer » délègue au parent via onSave (qui appelle
@@ -12,19 +13,20 @@
 
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Plus, Minus, Trash2, Search, Loader2, Save, AlertTriangle } from 'lucide-react';
-import { useBreakpoint } from '@/hooks/useBreakpoint';
+import { X, Plus, Minus, Trash2, Save, AlertTriangle, Package, Loader2 } from 'lucide-react';
 import { useTranslations } from '@/hooks/useTranslations';
 import { usePanierEditionStore } from '@/stores/panierEditionStore';
-import { produitsService } from '@/services/produits.service';
+import { RechercheProduitBar } from '@/components/shared/RechercheProduitBar';
 import { Produit } from '@/types/produit';
 import { formatAmount } from '@/lib/utils';
 
 interface ModalEditionVenteProps {
   isOpen: boolean;
   onClose: () => void;
+  /** Liste complète des produits (pour la recherche client + stock courant) */
+  produits: Produit[];
   /** Appelé au clic « Enregistrer ». Le parent exécute modifierFacture(...). */
   onSave: () => Promise<void>;
   /** true pendant l'appel modifierFacture (désactive les actions) */
@@ -34,11 +36,12 @@ interface ModalEditionVenteProps {
 export function ModalEditionVente({
   isOpen,
   onClose,
+  produits,
   onSave,
   saving,
 }: ModalEditionVenteProps) {
-  const { isMobile } = useBreakpoint();
   const t = useTranslations('invoices');
+  const tVF = useTranslations('venteFlash');
 
   const {
     numFacture,
@@ -54,40 +57,13 @@ export function ModalEditionVente({
     getEcartPrevisionnel,
   } = usePanierEditionStore();
 
-  const [searchTerm, setSearchTerm] = useState('');
-  const [searchResults, setSearchResults] = useState<Produit[]>([]);
-  const [searching, setSearching] = useState(false);
   const [stockWarning, setStockWarning] = useState<string>('');
-  const searchTimerRef = useRef<NodeJS.Timeout | null>(null);
+  // Matches multiples (même code-barres) → modal de sélection (fond blanc)
+  const [barcodeMatches, setBarcodeMatches] = useState<Produit[]>([]);
 
   const montants = getMontantsFacture();
   const ecart = getEcartPrevisionnel();
   const sousTotal = getSousTotal();
-
-  // Recherche produit avec debounce 300ms
-  useEffect(() => {
-    if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
-    const terme = searchTerm.trim();
-    if (terme.length < 2) {
-      setSearchResults([]);
-      setSearching(false);
-      return;
-    }
-    setSearching(true);
-    searchTimerRef.current = setTimeout(async () => {
-      try {
-        const results = await produitsService.searchProduits(terme);
-        setSearchResults(results.slice(0, 8));
-      } catch {
-        setSearchResults([]);
-      } finally {
-        setSearching(false);
-      }
-    }, 300);
-    return () => {
-      if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
-    };
-  }, [searchTerm]);
 
   // Message de stock insuffisant temporaire
   const flashStockWarning = useCallback((msg: string) => {
@@ -121,14 +97,18 @@ export function ModalEditionVente({
     }
   };
 
+  // Ajout via la barre de recherche → passe par la validation DELTA du store
+  // (addNewArticle incrémente si déjà présent, sinon ajoute une ligne). INCHANGÉ.
   const handleAddProduct = (produit: Produit) => {
     const ok = addNewArticle(produit, 1);
     if (!ok) {
       flashStockWarning(t('edition.stockError', { name: produit.nom_produit }));
-      return;
     }
-    setSearchTerm('');
-    setSearchResults([]);
+  };
+
+  // Plusieurs produits partagent le même code-barres → modal de sélection
+  const handleMultipleMatches = (matches: Produit[]) => {
+    setBarcodeMatches(matches);
   };
 
   const handleRemiseChange = (value: string) => {
@@ -181,44 +161,16 @@ export function ModalEditionVente({
 
           {/* Corps scrollable */}
           <div className="flex-1 overflow-y-auto p-4 space-y-4">
-            {/* Recherche / ajout d'article */}
-            <div className="relative">
-              <div className="flex items-center gap-2 bg-gray-100 rounded-xl px-3 py-2">
-                <Search className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                <input
-                  type="text"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder={t('edition.searchPlaceholder')}
-                  disabled={saving}
-                  className="flex-1 bg-transparent outline-none text-sm text-gray-800 placeholder:text-gray-400"
-                />
-                {searching && <Loader2 className="w-4 h-4 text-gray-400 animate-spin" />}
-              </div>
-
-              {searchResults.length > 0 && (
-                <div className="absolute z-10 left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-56 overflow-y-auto">
-                  {searchResults.map((p) => (
-                    <button
-                      key={p.id_produit}
-                      onClick={() => handleAddProduct(p)}
-                      className="w-full flex items-center justify-between gap-2 px-3 py-2 hover:bg-indigo-50 transition-colors text-left"
-                    >
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium text-gray-800 truncate">
-                          {p.nom_produit}
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          {formatAmount(p.prix_vente)} ·{' '}
-                          {t('edition.stockLabel', { count: p.niveau_stock ?? 0 })}
-                        </p>
-                      </div>
-                      <Plus className="w-4 h-4 text-indigo-500 flex-shrink-0" />
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
+            {/* Recherche / ajout d'article — barre PARTAGÉE (nom + code-barres + scan) */}
+            <RechercheProduitBar
+              produits={produits}
+              onAddToPanier={handleAddProduct}
+              onMultipleMatches={handleMultipleMatches}
+              placeholder={t('edition.searchPlaceholder')}
+              variant="modal"
+              scanContext="ajout-produit"
+              disabled={saving}
+            />
 
             {/* Avertissement stock */}
             {stockWarning && (
@@ -378,6 +330,90 @@ export function ModalEditionVente({
           </div>
         </motion.div>
       </motion.div>
+
+      {/* Modal de sélection — plusieurs produits partagent le même code-barres */}
+      {barcodeMatches.length > 0 && (
+        <div
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-[140] p-4"
+          onClick={() => setBarcodeMatches([])}
+        >
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0, y: 20 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            exit={{ scale: 0.9, opacity: 0, y: 20 }}
+            className="bg-white rounded-2xl p-5 max-w-md w-full shadow-2xl max-h-[80vh] overflow-hidden flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 bg-orange-100 rounded-xl flex items-center justify-center">
+                <Package className="w-5 h-5 text-orange-600" />
+              </div>
+              <div>
+                <h3 className="font-bold text-slate-900">{tVF('barcodeModal.title')}</h3>
+                <p className="text-sm text-slate-500">
+                  {tVF('barcodeModal.subtitle', { count: barcodeMatches.length })}
+                </p>
+              </div>
+            </div>
+
+            <div className="overflow-y-auto flex-1 space-y-2">
+              {barcodeMatches.map((produit) => {
+                const stock = produit.niveau_stock || 0;
+                const enRupture = stock <= 0;
+                return (
+                  <button
+                    key={produit.id_produit}
+                    onClick={() => {
+                      setBarcodeMatches([]);
+                      handleAddProduct(produit);
+                    }}
+                    disabled={enRupture}
+                    className={`w-full text-left p-3 rounded-xl border-2 transition-all ${
+                      enRupture
+                        ? 'border-slate-200 bg-slate-50 opacity-50 cursor-not-allowed'
+                        : 'border-slate-200 hover:border-indigo-400 hover:bg-indigo-50 active:scale-[0.98]'
+                    }`}
+                  >
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1 min-w-0 mr-2">
+                        <p className="font-semibold text-slate-900 truncate">{produit.nom_produit}</p>
+                        <p className="text-xs text-slate-500 mt-0.5">
+                          {produit.nom_categorie || tVF('barcodeModal.noCategory')}
+                        </p>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <p className="font-bold text-indigo-700">
+                          {(produit.prix_vente || 0).toLocaleString('fr-FR')} F
+                        </p>
+                        <p
+                          className={`text-xs mt-0.5 ${
+                            enRupture
+                              ? 'text-red-500 font-semibold'
+                              : stock <= 5
+                              ? 'text-orange-500'
+                              : 'text-slate-500'
+                          }`}
+                        >
+                          {enRupture
+                            ? tVF('barcodeModal.outOfStock')
+                            : tVF('barcodeModal.stockLabel', { count: stock })}
+                        </p>
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+
+            <button
+              onClick={() => setBarcodeMatches([])}
+              className="mt-4 w-full px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-medium transition-colors"
+            >
+              {tVF('barcodeModal.cancel')}
+            </button>
+          </motion.div>
+        </div>
+      )}
     </AnimatePresence>
   );
 }
