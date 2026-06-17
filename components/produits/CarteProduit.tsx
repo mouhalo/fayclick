@@ -45,6 +45,8 @@ interface CarteProduitProps {
   onToggleSelect?: (id_produit: number) => void;
   /** Callback vente externe (ouvre modal quantité dans le parent) */
   onVendreClick?: (produit: Produit) => void;
+  /** Autorise l'ajout d'articles épuisés (mode Proforma/Bon de Commande) — défaut false (Facture) */
+  allowOutOfStock?: boolean;
 }
 
 export function CarteProduit({
@@ -56,7 +58,8 @@ export function CarteProduit({
   selectionMode = false,
   isSelected = false,
   onToggleSelect,
-  onVendreClick
+  onVendreClick,
+  allowOutOfStock = false
 }: CarteProduitProps) {
   const [quantity, setQuantity] = useState(1);
   const { addArticle } = usePanierStore();
@@ -318,7 +321,7 @@ export function CarteProduit({
           e.stopPropagation();
           handleAddToCart();
         }}
-        disabled={niveauStock === 0 || quantity > niveauStock}
+        disabled={!allowOutOfStock && (niveauStock === 0 || quantity > niveauStock)}
         className="w-full bg-emerald-500 text-white py-4 px-4 rounded-xl font-semibold text-lg hover:bg-emerald-600 transition-all duration-300 flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
       >
         <ShoppingCart className="w-5 h-5" />

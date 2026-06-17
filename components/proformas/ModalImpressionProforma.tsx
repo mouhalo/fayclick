@@ -131,6 +131,7 @@ export function ModalImpressionProforma({
           : `${remiseArtPct.toFixed(2)}%`)
         : '—';
       return `<tr>
+          <td style="padding:3px 6px;border-bottom:1px solid #eee;font-size:11px;color:#555;">${prod?.code_barre || '—'}</td>
           <td style="padding:3px 6px;border-bottom:1px solid #eee;font-size:11px;">${d.nom_produit}</td>
           <td style="padding:3px 6px;border-bottom:1px solid #eee;text-align:center;font-size:11px;">${d.quantite}</td>
           <td style="padding:3px 6px;border-bottom:1px solid #eee;text-align:right;font-size:11px;">${prixOrigine.toLocaleString('fr-FR')}</td>
@@ -164,6 +165,7 @@ export function ModalImpressionProforma({
   <table>
     <thead>
       <tr style="background:#f0f0f0;">
+        <th style="padding:4px 6px;text-align:left;font-size:11px;border-bottom:2px solid #333;">Réf.</th>
         <th style="padding:4px 6px;text-align:left;font-size:11px;border-bottom:2px solid #333;">Désignation</th>
         <th style="padding:4px 6px;text-align:center;font-size:11px;border-bottom:2px solid #333;">Qté</th>
         <th style="padding:4px 6px;text-align:right;font-size:11px;border-bottom:2px solid #333;">P.U.</th>
@@ -177,24 +179,24 @@ export function ModalImpressionProforma({
     <tfoot>
       ${proforma.mt_remise > 0 ? `
       <tr>
-        <td colspan="4" style="padding:3px 6px;text-align:right;font-size:11px;">Sous-total :</td>
+        <td colspan="5" style="padding:3px 6px;text-align:right;font-size:11px;">Sous-total :</td>
         <td style="padding:3px 6px;text-align:right;font-size:11px;">${proforma.montant.toLocaleString('fr-FR')} FCFA</td>
       </tr>
       <tr>
-        <td colspan="4" style="padding:3px 6px;text-align:right;font-size:11px;color:#e65100;">Remise globale :</td>
+        <td colspan="5" style="padding:3px 6px;text-align:right;font-size:11px;color:#e65100;">Remise globale :</td>
         <td style="padding:3px 6px;text-align:right;font-size:11px;color:#e65100;">−${proforma.mt_remise.toLocaleString('fr-FR')} FCFA</td>
       </tr>` : ''}
       <tr class="total-row">
-        <td colspan="4" style="padding:6px;text-align:right;font-size:13px;">${avecTva ? 'TOTAL HT:' : 'TOTAL:'}</td>
+        <td colspan="5" style="padding:6px;text-align:right;font-size:13px;">${avecTva ? 'TOTAL HT:' : 'TOTAL:'}</td>
         <td style="padding:6px;text-align:right;font-size:13px;">${proforma.montant_net.toLocaleString('fr-FR')} FCFA</td>
       </tr>
       ${avecTva ? `
       <tr>
-        <td colspan="4" style="padding:3px 6px;text-align:right;font-size:11px;">TVA (${tauxTva}%):</td>
+        <td colspan="5" style="padding:3px 6px;text-align:right;font-size:11px;">TVA (${tauxTva}%):</td>
         <td style="padding:3px 6px;text-align:right;font-size:11px;">${Math.round(proforma.montant_net * tauxTva / 100).toLocaleString('fr-FR')} FCFA</td>
       </tr>
       <tr style="border-top:2px solid #333;">
-        <td colspan="4" style="padding:6px;text-align:right;font-size:13px;font-weight:bold;">TOTAL TTC:</td>
+        <td colspan="5" style="padding:6px;text-align:right;font-size:13px;font-weight:bold;">TOTAL TTC:</td>
         <td style="padding:6px;text-align:right;font-size:13px;font-weight:bold;">${Math.round(proforma.montant_net * (1 + tauxTva / 100)).toLocaleString('fr-FR')} FCFA</td>
       </tr>` : ''}
     </tfoot>

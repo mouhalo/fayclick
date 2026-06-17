@@ -143,8 +143,13 @@ export default function ModalImpressionDocuments({
     const totalQte = details.reduce((sum, d) => sum + d.quantite, 0);
 
     const articlesHtml = details.map(d => {
+      // Lookup produit (catalogue) — sert au code-barres (colonne Réf.) pour tous les
+      // documents, et au prix d'origine (reconstitution remise) pour les factures.
+      const prod = produitsForLookup.find(p => p.id_produit === d.id_produit);
+      const refCell = `<td style="padding:3px 6px;border-bottom:1px solid #eee;font-size:11px;color:#555;">${prod?.code_barre || '—'}</td>`;
       if (isBL) {
         return `<tr>
+          ${refCell}
           <td style="padding:3px 6px;border-bottom:1px solid #eee;font-size:11px;">${d.nom_produit}</td>
           <td style="padding:3px 6px;border-bottom:1px solid #eee;text-align:center;font-size:11px;">${d.quantite}</td>
         </tr>`;
@@ -152,7 +157,6 @@ export default function ModalImpressionDocuments({
       if (isFacture) {
         // Lookup prix d'origine pour reconstituer la remise par article
         // (le service facture absorbe la remise par article dans d.prix net)
-        const prod = produitsForLookup.find(p => p.id_produit === d.id_produit);
         const prixOrigine = prod?.prix_vente && prod.prix_vente > d.prix
           ? prod.prix_vente
           : d.prix;
@@ -165,6 +169,7 @@ export default function ModalImpressionDocuments({
             : `${remiseArtPct.toFixed(2)}%`)
           : '—';
         return `<tr>
+          ${refCell}
           <td style="padding:3px 6px;border-bottom:1px solid #eee;font-size:11px;">${d.nom_produit}</td>
           <td style="padding:3px 6px;border-bottom:1px solid #eee;text-align:center;font-size:11px;">${d.quantite}</td>
           <td style="padding:3px 6px;border-bottom:1px solid #eee;text-align:right;font-size:11px;">${prixOrigine.toLocaleString('fr-FR')}</td>
@@ -172,8 +177,9 @@ export default function ModalImpressionDocuments({
           <td style="padding:3px 6px;border-bottom:1px solid #eee;text-align:right;font-size:11px;font-weight:bold;">${d.sous_total.toLocaleString('fr-FR')}</td>
         </tr>`;
       }
-      // BR (et proforma legacy via ce modal) : layout 4 colonnes inchangé
+      // BR (et proforma legacy via ce modal) : layout inchangé + colonne Réf.
       return `<tr>
+          ${refCell}
           <td style="padding:3px 6px;border-bottom:1px solid #eee;font-size:11px;">${d.nom_produit}</td>
           <td style="padding:3px 6px;border-bottom:1px solid #eee;text-align:center;font-size:11px;">${d.quantite}</td>
           <td style="padding:3px 6px;border-bottom:1px solid #eee;text-align:right;font-size:11px;">${d.prix.toLocaleString('fr-FR')}</td>
@@ -181,7 +187,7 @@ export default function ModalImpressionDocuments({
         </tr>`;
     }).join('');
 
-    const colCount = isBL ? 2 : (isFacture ? 5 : 4);
+    const colCount = isBL ? 3 : (isFacture ? 6 : 5);
 
     return `<!DOCTYPE html>
 <html><head><meta charset="utf-8"><title>${title}${isProforma ? '' : ` ${f.num_facture}`}</title>
@@ -208,6 +214,7 @@ export default function ModalImpressionDocuments({
   <table>
     <thead>
       <tr style="background:#f0f0f0;">
+        <th style="padding:4px 6px;text-align:left;font-size:11px;border-bottom:2px solid #333;">Réf.</th>
         <th style="padding:4px 6px;text-align:left;font-size:11px;border-bottom:2px solid #333;">Désignation</th>
         <th style="padding:4px 6px;text-align:center;font-size:11px;border-bottom:2px solid #333;">Qté</th>
         ${isBL ? '' : `<th style="padding:4px 6px;text-align:right;font-size:11px;border-bottom:2px solid #333;">P.U.</th>
@@ -221,7 +228,7 @@ export default function ModalImpressionDocuments({
     ${isBL ? `
     <tfoot>
       <tr class="total-row">
-        <td style="padding:8px 6px;font-size:13px;font-weight:bold;">Total articles livrés</td>
+        <td colspan="2" style="padding:8px 6px;font-size:13px;font-weight:bold;">Total articles livrés</td>
         <td style="padding:8px 6px;text-align:center;font-size:15px;font-weight:bold;">${totalQte}</td>
       </tr>
     </tfoot>` : `
