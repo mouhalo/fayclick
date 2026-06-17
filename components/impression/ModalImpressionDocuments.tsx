@@ -7,7 +7,7 @@ import { FactureComplete } from '@/types/facture';
 import { ConfigFacture, InfoFacture } from '@/types/auth';
 import { Produit } from '@/types/produit';
 import { produitsService } from '@/services/produits.service';
-import { formatAmount, formatDate } from '@/lib/utils';
+import { formatAmount, formatDate, escapeHtml } from '@/lib/utils';
 
 type DocumentType = 'facture' | 'proforma' | 'bl' | 'br';
 type FormatType = 'personnalise' | 'standard';
@@ -146,11 +146,12 @@ export default function ModalImpressionDocuments({
       // Lookup produit (catalogue) — sert au code-barres (colonne Réf.) pour tous les
       // documents, et au prix d'origine (reconstitution remise) pour les factures.
       const prod = produitsForLookup.find(p => p.id_produit === d.id_produit);
-      const refCell = `<td style="padding:3px 6px;border-bottom:1px solid #eee;font-size:11px;color:#555;">${prod?.code_barre || '—'}</td>`;
+      const refCell = `<td style="padding:3px 6px;border-bottom:1px solid #eee;font-size:11px;color:#555;">${escapeHtml(prod?.code_barre) || '—'}</td>`;
+      const nomProduit = escapeHtml(d.nom_produit);
       if (isBL) {
         return `<tr>
           ${refCell}
-          <td style="padding:3px 6px;border-bottom:1px solid #eee;font-size:11px;">${d.nom_produit}</td>
+          <td style="padding:3px 6px;border-bottom:1px solid #eee;font-size:11px;">${nomProduit}</td>
           <td style="padding:3px 6px;border-bottom:1px solid #eee;text-align:center;font-size:11px;">${d.quantite}</td>
         </tr>`;
       }
@@ -170,7 +171,7 @@ export default function ModalImpressionDocuments({
           : '—';
         return `<tr>
           ${refCell}
-          <td style="padding:3px 6px;border-bottom:1px solid #eee;font-size:11px;">${d.nom_produit}</td>
+          <td style="padding:3px 6px;border-bottom:1px solid #eee;font-size:11px;">${nomProduit}</td>
           <td style="padding:3px 6px;border-bottom:1px solid #eee;text-align:center;font-size:11px;">${d.quantite}</td>
           <td style="padding:3px 6px;border-bottom:1px solid #eee;text-align:right;font-size:11px;">${prixOrigine.toLocaleString('fr-FR')}</td>
           <td style="padding:3px 6px;border-bottom:1px solid #eee;text-align:center;font-size:11px;color:#e65100;">${remiseDisplay}</td>
@@ -180,7 +181,7 @@ export default function ModalImpressionDocuments({
       // BR (et proforma legacy via ce modal) : layout inchangé + colonne Réf.
       return `<tr>
           ${refCell}
-          <td style="padding:3px 6px;border-bottom:1px solid #eee;font-size:11px;">${d.nom_produit}</td>
+          <td style="padding:3px 6px;border-bottom:1px solid #eee;font-size:11px;">${nomProduit}</td>
           <td style="padding:3px 6px;border-bottom:1px solid #eee;text-align:center;font-size:11px;">${d.quantite}</td>
           <td style="padding:3px 6px;border-bottom:1px solid #eee;text-align:right;font-size:11px;">${d.prix.toLocaleString('fr-FR')}</td>
           <td style="padding:3px 6px;border-bottom:1px solid #eee;text-align:right;font-size:11px;font-weight:bold;">${d.sous_total.toLocaleString('fr-FR')}</td>
@@ -190,7 +191,7 @@ export default function ModalImpressionDocuments({
     const colCount = isBL ? 3 : (isFacture ? 6 : 5);
 
     return `<!DOCTYPE html>
-<html><head><meta charset="utf-8"><title>${title}${isProforma ? '' : ` ${f.num_facture}`}</title>
+<html><head><meta charset="utf-8"><title>${title}${isProforma ? '' : ` ${escapeHtml(f.num_facture)}`}</title>
 <style>
   @page { size: A4; margin: 15mm; }
   body { font-family: Arial, sans-serif; font-size: 12px; font-weight: bold; color: #333; margin: 0; padding: 20px; }
@@ -203,11 +204,11 @@ export default function ModalImpressionDocuments({
   <div class="title">${title}</div>
   <div style="display:flex;justify-content:space-between;margin-bottom:12px;">
     <div>
-      <div style="font-size:11px;"><strong>Client:</strong> ${f.nom_client}</div>
-      <div style="font-size:11px;"><strong>Tél:</strong> ${f.tel_client}</div>
+      <div style="font-size:11px;"><strong>Client:</strong> ${escapeHtml(f.nom_client)}</div>
+      <div style="font-size:11px;"><strong>Tél:</strong> ${escapeHtml(f.tel_client)}</div>
     </div>
     <div style="text-align:right;">
-      ${isProforma ? '' : `<div style="font-size:11px;"><strong>N°:</strong> ${f.num_facture}</div>`}
+      ${isProforma ? '' : `<div style="font-size:11px;"><strong>N°:</strong> ${escapeHtml(f.num_facture)}</div>`}
       <div style="font-size:11px;"><strong>Date:</strong> ${formatDate(f.date_facture)}</div>
     </div>
   </div>
