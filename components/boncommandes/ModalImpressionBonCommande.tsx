@@ -21,7 +21,7 @@ import {
 } from '@/types/bon-commande';
 import { Produit } from '@/types/produit';
 import { produitsService } from '@/services/produits.service';
-import { formatDate } from '@/lib/utils';
+import { formatDate, escapeHtml } from '@/lib/utils';
 import { BonCommandeStatusBadge } from './BonCommandeStatusBadge';
 
 type FormatType = 'personnalise' | 'standard';
@@ -130,8 +130,8 @@ export function ModalImpressionBonCommande({
         const prod = produitsForLookup.find((p) => p.id_produit === d.id_produit);
         return `<tr>
           <td style="padding:3px 6px;border-bottom:1px solid #eee;text-align:center;font-size:11px;">${d.quantite}</td>
-          <td style="padding:3px 6px;border-bottom:1px solid #eee;font-size:11px;color:#555;">${prod?.code_barre || '—'}</td>
-          <td style="padding:3px 6px;border-bottom:1px solid #eee;font-size:11px;">${d.nom_produit_snap}</td>
+          <td style="padding:3px 6px;border-bottom:1px solid #eee;font-size:11px;color:#555;">${escapeHtml(prod?.code_barre) || '—'}</td>
+          <td style="padding:3px 6px;border-bottom:1px solid #eee;font-size:11px;">${escapeHtml(d.nom_produit_snap)}</td>
           <td style="padding:3px 6px;border-bottom:1px solid #eee;text-align:right;font-size:11px;">${d.cout_revient.toLocaleString('fr-FR')}</td>
           <td style="padding:3px 6px;border-bottom:1px solid #eee;text-align:center;font-size:11px;">—</td>
           <td style="padding:3px 6px;border-bottom:1px solid #eee;text-align:right;font-size:11px;font-weight:bold;">${totalLigne.toLocaleString('fr-FR')}</td>
@@ -141,14 +141,16 @@ export function ModalImpressionBonCommande({
 
     const sousTotal = bonCommande.montant_net + (bonCommande.mt_remise || 0);
 
-    // Bloc fournisseur
-    const nomFournisseur =
-      fournisseur?.nom_fournisseur || bonCommande.nom_fournisseur_snap || '—';
-    const telFournisseur =
-      fournisseur?.tel_fournisseur || bonCommande.tel_fournisseur_snap || '';
-    const emailFournisseur = fournisseur?.email_fournisseur || '';
-    const adresseFournisseur = fournisseur?.adresse || '';
-    const nineaFournisseur = fournisseur?.ninea || '';
+    // Bloc fournisseur (échappé : champs libres saisis par l'utilisateur)
+    const nomFournisseur = escapeHtml(
+      fournisseur?.nom_fournisseur || bonCommande.nom_fournisseur_snap || '—'
+    );
+    const telFournisseur = escapeHtml(
+      fournisseur?.tel_fournisseur || bonCommande.tel_fournisseur_snap || ''
+    );
+    const emailFournisseur = escapeHtml(fournisseur?.email_fournisseur || '');
+    const adresseFournisseur = escapeHtml(fournisseur?.adresse || '');
+    const nineaFournisseur = escapeHtml(fournisseur?.ninea || '');
 
     return `<!DOCTYPE html>
 <html><head><meta charset="utf-8"><title>BON DE COMMANDE</title>
@@ -180,13 +182,13 @@ export function ModalImpressionBonCommande({
       ${nineaFournisseur ? `<div style="font-size:10px;color:#64748b;">NINEA: ${nineaFournisseur}</div>` : ''}
     </div>
     <div style="text-align:right;min-width:160px;">
-      <div style="font-size:11px;"><strong>N°:</strong> ${bonCommande.num_bc}</div>
+      <div style="font-size:11px;"><strong>N°:</strong> ${escapeHtml(bonCommande.num_bc)}</div>
       <div style="font-size:11px;"><strong>Date:</strong> ${formatDate(bonCommande.date_bon_commande)}</div>
       <div style="margin-top:6px;"><span class="badge-statut badge-${bonCommande.libelle_etat}">${bonCommande.libelle_etat}</span></div>
     </div>
   </div>
 
-  ${bonCommande.description ? `<div style="font-size:11px;margin-bottom:8px;padding:6px 8px;background:#f8fafc;border-left:3px solid #0ea5e9;"><strong>Description :</strong> ${bonCommande.description}</div>` : ''}
+  ${bonCommande.description ? `<div style="font-size:11px;margin-bottom:8px;padding:6px 8px;background:#f8fafc;border-left:3px solid #0ea5e9;"><strong>Description :</strong> ${escapeHtml(bonCommande.description)}</div>` : ''}
 
   <table>
     <thead>

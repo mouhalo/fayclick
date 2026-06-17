@@ -21,6 +21,25 @@ export function formatAmount(amount: number): string {
 }
 
 /**
+ * Échapper les caractères HTML pour interpolation sûre dans un template d'impression.
+ * À utiliser sur tout champ d'origine utilisateur/catalogue (nom produit, code-barres,
+ * description, fournisseur...) inséré dans un HTML généré (innerHTML / iframe doc.write).
+ * Évite l'injection XSS via des données saisies (ex. nom de produit piégé).
+ */
+export function escapeHtml(value: unknown): string {
+  if (value === null || value === undefined) return '';
+  return String(value).replace(/[&<>"']/g, (c) => {
+    switch (c) {
+      case '&': return '&amp;';
+      case '<': return '&lt;';
+      case '>': return '&gt;';
+      case '"': return '&quot;';
+      default: return '&#39;';
+    }
+  });
+}
+
+/**
  * Formater une date au format français
  */
 export function formatDate(date: string | Date): string {
