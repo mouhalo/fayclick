@@ -13,7 +13,7 @@ import { ConfigFacture, InfoFacture } from '@/types/auth';
 import { Proforma, ProformaDetail } from '@/types/proforma';
 import { Produit } from '@/types/produit';
 import { produitsService } from '@/services/produits.service';
-import { formatDate } from '@/lib/utils';
+import { formatDate, escapeHtml } from '@/lib/utils';
 
 type FormatType = 'personnalise' | 'standard';
 
@@ -131,8 +131,8 @@ export function ModalImpressionProforma({
           : `${remiseArtPct.toFixed(2)}%`)
         : '—';
       return `<tr>
-          <td style="padding:3px 6px;border-bottom:1px solid #eee;font-size:11px;color:#555;">${prod?.code_barre || '—'}</td>
-          <td style="padding:3px 6px;border-bottom:1px solid #eee;font-size:11px;">${d.nom_produit}</td>
+          <td style="padding:3px 6px;border-bottom:1px solid #eee;font-size:11px;color:#555;">${escapeHtml(prod?.code_barre) || '—'}</td>
+          <td style="padding:3px 6px;border-bottom:1px solid #eee;font-size:11px;">${escapeHtml(d.nom_produit)}</td>
           <td style="padding:3px 6px;border-bottom:1px solid #eee;text-align:center;font-size:11px;">${d.quantite}</td>
           <td style="padding:3px 6px;border-bottom:1px solid #eee;text-align:right;font-size:11px;">${prixOrigine.toLocaleString('fr-FR')}</td>
           <td style="padding:3px 6px;border-bottom:1px solid #eee;text-align:center;font-size:11px;color:#e65100;">${remiseDisplay}</td>
@@ -154,11 +154,11 @@ export function ModalImpressionProforma({
   <div class="title">FACTURE PROFORMA</div>
   <div style="display:flex;justify-content:space-between;margin-bottom:12px;">
     <div>
-      <div style="font-size:11px;"><strong>Client:</strong> ${proforma.nom_client}</div>
-      <div style="font-size:11px;"><strong>Tél:</strong> ${proforma.tel_client}</div>
+      <div style="font-size:11px;"><strong>Client:</strong> ${escapeHtml(proforma.nom_client)}</div>
+      <div style="font-size:11px;"><strong>Tél:</strong> ${escapeHtml(proforma.tel_client)}</div>
     </div>
     <div style="text-align:right;">
-      <div style="font-size:11px;"><strong>N°:</strong> ${proforma.num_proforma}</div>
+      <div style="font-size:11px;"><strong>N°:</strong> ${escapeHtml(proforma.num_proforma)}</div>
       <div style="font-size:11px;"><strong>Date:</strong> ${formatDate(proforma.date_proforma)}</div>
     </div>
   </div>
