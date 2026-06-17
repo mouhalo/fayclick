@@ -47,6 +47,8 @@ interface CarteProduitReduitProps {
   onToggleSelect?: (id_produit: number) => void;
   /** Callback vente externe (ouvre modal quantité dans le parent) */
   onVendreClick?: (produit: Produit) => void;
+  /** Autorise l'ajout d'articles épuisés (mode Proforma/Bon de Commande) — défaut false (Facture) */
+  allowOutOfStock?: boolean;
 }
 
 export function CarteProduitReduit({
@@ -59,7 +61,8 @@ export function CarteProduitReduit({
   selectionMode = false,
   isSelected = false,
   onToggleSelect,
-  onVendreClick
+  onVendreClick,
+  allowOutOfStock = false
 }: CarteProduitReduitProps) {
   const { addArticle, articles } = usePanierStore();
   const { success: showSuccessToast } = useToast();
@@ -342,17 +345,17 @@ export function CarteProduitReduit({
           </motion.button>
         </div>
 
-        {/* Bouton Vendre */}
+        {/* Bouton Vendre — stock bloquant uniquement en mode Facture (allowOutOfStock=false) */}
         <motion.button
-          whileHover={{ scale: stockDisponible > 0 ? 1.02 : 1 }}
-          whileTap={{ scale: stockDisponible > 0 ? 0.98 : 1 }}
+          whileHover={{ scale: (allowOutOfStock || stockDisponible > 0) ? 1.02 : 1 }}
+          whileTap={{ scale: (allowOutOfStock || stockDisponible > 0) ? 0.98 : 1 }}
           onClick={(e) => {
             e.stopPropagation();
             handleVendre();
           }}
-          disabled={stockDisponible <= 0}
+          disabled={!allowOutOfStock && stockDisponible <= 0}
           className={`w-full py-1.5 rounded-lg font-semibold text-[11px] flex items-center justify-center gap-1.5 transition-all ${
-            stockDisponible <= 0
+            (!allowOutOfStock && stockDisponible <= 0)
               ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
               : 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-sm hover:shadow-md'
           }`}

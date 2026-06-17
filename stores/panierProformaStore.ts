@@ -61,19 +61,15 @@ export const usePanierProformaStore = create<PanierProformaStore>()(
       remise: 0,
 
       // Actions articles
+      // NB : un proforma est un devis — AUCUNE verification de stock ici.
+      // Le stock n'est controle qu'a la facturation (conversion proforma -> facture).
       addArticle: (produit, quantity = 1, prixApplique?) => {
         const articles = get().articles;
-        const stockDisponible = produit.niveau_stock || 0;
         const existingIndex = articles.findIndex(a => a.id_produit === produit.id_produit);
 
         if (existingIndex !== -1) {
-          // Produit deja dans le panier - augmenter quantite
+          // Produit deja dans le panier - augmenter quantite (sans cap stock)
           const newQuantity = articles[existingIndex].quantity + quantity;
-
-          // Verifier stock disponible
-          if (newQuantity > stockDisponible) {
-            return; // Stock insuffisant
-          }
 
           const updatedArticles = [...articles];
           updatedArticles[existingIndex] = {
@@ -84,11 +80,7 @@ export const usePanierProformaStore = create<PanierProformaStore>()(
 
           set({ articles: updatedArticles });
         } else {
-          // Nouveau produit
-          if (stockDisponible < quantity) {
-            return; // Stock insuffisant
-          }
-
+          // Nouveau produit (sans cap stock)
           const nouvelArticle: ArticlePanier = {
             ...produit,
             quantity,
@@ -127,12 +119,7 @@ export const usePanierProformaStore = create<PanierProformaStore>()(
         const articles = get().articles;
         const updatedArticles = articles.map(article => {
           if (article.id_produit === id_produit) {
-            // Verifier stock disponible
-            const stockDisponible = article.niveau_stock || 0;
-            if (quantity > stockDisponible) {
-              return article; // Garder l'ancienne quantite
-            }
-
+            // Proforma = devis : pas de cap stock
             return {
               ...article,
               quantity
