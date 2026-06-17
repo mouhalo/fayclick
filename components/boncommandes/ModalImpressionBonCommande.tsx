@@ -10,7 +10,7 @@
 
 'use client';
 
-import { useRef } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Printer, Sparkles, File } from 'lucide-react';
 import { ConfigFacture, InfoFacture } from '@/types/auth';
@@ -19,6 +19,8 @@ import {
   BonCommandeDetail,
   BonCommandeFournisseurEnrichi,
 } from '@/types/bon-commande';
+import { Produit } from '@/types/produit';
+import { produitsService } from '@/services/produits.service';
 import { formatDate } from '@/lib/utils';
 import { BonCommandeStatusBadge } from './BonCommandeStatusBadge';
 
@@ -48,6 +50,15 @@ export function ModalImpressionBonCommande({
   nomStructure,
 }: Props) {
   const printFrameRef = useRef<HTMLIFrameElement>(null);
+  const [produits, setProduits] = useState<Produit[]>([]);
+
+  // Charger le catalogue produits pour renseigner la colonne Réf. (code-barres) par id_produit
+  useEffect(() => {
+    if (!isOpen) return;
+    produitsService.getListeProduits()
+      .then(res => setProduits(res.data || []))
+      .catch(() => setProduits([]));
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -78,7 +89,7 @@ export function ModalImpressionBonCommande({
     return `<div style="display:flex;width:100%;">${cells}</div>`;
   };
 
-  const generateBCHTML = (format: FormatType): string => {
+  const generateBCHTML = (format: FormatType, produitsForLookup: Produit[]): string => {
     const useCustom = format === 'personnalise' && configFacture;
 
     // En-tête
@@ -116,8 +127,10 @@ export function ModalImpressionBonCommande({
     const articlesHtml = details
       .map((d) => {
         const totalLigne = d.sous_total ?? d.cout_revient * d.quantite;
+        const prod = produitsForLookup.find((p) => p.id_produit === d.id_produit);
         return `<tr>
           <td style="padding:3px 6px;border-bottom:1px solid #eee;text-align:center;font-size:11px;">${d.quantite}</td>
+          <td style="padding:3px 6px;border-bottom:1px solid #eee;font-size:11px;color:#555;">${prod?.code_barre || '—'}</td>
           <td style="padding:3px 6px;border-bottom:1px solid #eee;font-size:11px;">${d.nom_produit_snap}</td>
           <td style="padding:3px 6px;border-bottom:1px solid #eee;text-align:right;font-size:11px;">${d.cout_revient.toLocaleString('fr-FR')}</td>
           <td style="padding:3px 6px;border-bottom:1px solid #eee;text-align:center;font-size:11px;">—</td>
@@ -179,6 +192,7 @@ export function ModalImpressionBonCommande({
     <thead>
       <tr style="background:#f0f9ff;">
         <th style="padding:4px 6px;text-align:center;font-size:11px;border-bottom:2px solid #075985;width:60px;">Qté</th>
+        <th style="padding:4px 6px;text-align:left;font-size:11px;border-bottom:2px solid #075985;">Réf.</th>
         <th style="padding:4px 6px;text-align:left;font-size:11px;border-bottom:2px solid #075985;">Désignation</th>
         <th style="padding:4px 6px;text-align:right;font-size:11px;border-bottom:2px solid #075985;">P.U. Achat</th>
         <th style="padding:4px 6px;text-align:center;font-size:11px;border-bottom:2px solid #075985;width:70px;">Remise</th>
@@ -193,17 +207,17 @@ export function ModalImpressionBonCommande({
         bonCommande.mt_remise > 0
           ? `
       <tr>
-        <td colspan="4" style="padding:3px 6px;text-align:right;font-size:11px;">Sous-total :</td>
+        <td colspan="5" style="padding:3px 6px;text-align:right;font-size:11px;">Sous-total :</td>
         <td style="padding:3px 6px;text-align:right;font-size:11px;">${sousTotal.toLocaleString('fr-FR')} FCFA</td>
       </tr>
       <tr>
-        <td colspan="4" style="padding:3px 6px;text-align:right;font-size:11px;color:#e65100;">Remise globale :</td>
+        <td colspan="5" style="padding:3px 6px;text-align:right;font-size:11px;color:#e65100;">Remise globale :</td>
         <td style="padding:3px 6px;text-align:right;font-size:11px;color:#e65100;">−${bonCommande.mt_remise.toLocaleString('fr-FR')} FCFA</td>
       </tr>`
           : ''
       }
       <tr class="total-row">
-        <td colspan="4" style="padding:6px;text-align:right;font-size:13px;">TOTAL HT :</td>
+        <td colspan="5" style="padding:6px;text-align:right;font-size:13px;">TOTAL HT :</td>
         <td style="padding:6px;text-align:right;font-size:13px;">${bonCommande.montant_net.toLocaleString('fr-FR')} FCFA</td>
       </tr>
     </tfoot>
@@ -217,8 +231,19 @@ export function ModalImpressionBonCommande({
 </body></html>`;
   };
 
-  const handlePrint = (format: FormatType) => {
-    const html = generateBCHTML(format);
+  const handlePrint = async (format: FormatType) => {
+    // Garantir que le catalogue est chargé avant impression (sinon colonne Réf. vide)
+    let prods = produits;
+    if (prods.length === 0) {
+      try {
+        const res = await produitsService.getListeProduits();
+        prods = res.data || [];
+        setProduits(prods);
+      } catch {
+        prods = [];
+      }
+    }
+    const html = generateBCHTML(format, prods);
     const iframe = printFrameRef.current;
     if (!iframe) return;
     const doc = iframe.contentDocument || iframe.contentWindow?.document;

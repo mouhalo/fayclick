@@ -374,26 +374,28 @@ export function ModalPanier() {
                             value={article.quantity}
                             onChange={(e) => {
                               const val = parseInt(e.target.value);
-                              if (!isNaN(val) && val >= 1 && val <= (article.niveau_stock || 0)) {
+                              // Stock bloquant uniquement en Facture (proforma/BC : quantite libre)
+                              const maxQty = documentMode !== 'facture' ? 999999 : (article.niveau_stock || 0);
+                              if (!isNaN(val) && val >= 1 && val <= maxQty) {
                                 handleUpdateQuantity(article.id_produit, val);
                               }
                             }}
                             onFocus={(e) => e.target.select()}
                             min={1}
-                            max={article.niveau_stock || 0}
+                            max={documentMode !== 'facture' ? 999999 : (article.niveau_stock || 0)}
                             className="w-12 h-7 text-center font-semibold text-sm border border-gray-300 rounded-lg focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-300 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                           />
                           <button
                             onClick={() => handleUpdateQuantity(article.id_produit, article.quantity + 1)}
                             className="w-6 h-6 bg-white rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-50 transition-colors"
-                            disabled={article.quantity >= (article.niveau_stock || 0)}
+                            disabled={documentMode === 'facture' && article.quantity >= (article.niveau_stock || 0)}
                           >
                             <Plus className="w-3 h-3" />
                           </button>
                         </div>
                       </div>
 
-                      {article.quantity >= (article.niveau_stock || 0) && (
+                      {documentMode === 'facture' && article.quantity >= (article.niveau_stock || 0) && (
                         <div className="mt-1 text-[10px] text-orange-600 bg-orange-50 px-1.5 py-0.5 rounded">
                           Stock maximum atteint
                         </div>
