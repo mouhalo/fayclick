@@ -750,28 +750,29 @@ export function PanierSidePanel({ onSuccess, onClose }: PanierSidePanelProps) {
                                 value={article.quantity}
                                 onChange={(e) => {
                                   const val = parseInt(e.target.value);
-                                  // En mode BC : pas de cap stock (on commande pour reapprovisionner)
-                                  const maxQty = documentMode === 'bonCommande' ? 999999 : (article.niveau_stock || 0);
+                                  // Stock bloquant uniquement en Facture. Proforma (devis) et BC
+                                  // (reappro) autorisent une quantite au-dela du stock.
+                                  const maxQty = documentMode !== 'facture' ? 999999 : (article.niveau_stock || 0);
                                   if (!isNaN(val) && val >= 1 && val <= maxQty) {
                                     handleUpdateQuantity(article.id_produit, val);
                                   }
                                 }}
                                 onFocus={(e) => e.target.select()}
                                 min={1}
-                                max={documentMode === 'bonCommande' ? 999999 : (article.niveau_stock || 0)}
+                                max={documentMode !== 'facture' ? 999999 : (article.niveau_stock || 0)}
                                 className="w-10 h-6 text-center font-semibold text-xs border border-gray-300 rounded-md focus:outline-none focus:border-blue-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                               />
                               <button
                                 onClick={() => handleUpdateQuantity(article.id_produit, article.quantity + 1)}
                                 className="w-6 h-6 bg-white rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-50 transition-colors"
-                                disabled={documentMode !== 'bonCommande' && article.quantity >= (article.niveau_stock || 0)}
+                                disabled={documentMode === 'facture' && article.quantity >= (article.niveau_stock || 0)}
                               >
                                 <Plus className="w-3 h-3" />
                               </button>
                             </div>
                           </div>
 
-                          {documentMode !== 'bonCommande' && article.quantity >= (article.niveau_stock || 0) && (
+                          {documentMode === 'facture' && article.quantity >= (article.niveau_stock || 0) && (
                             <div className="mt-1 text-[10px] text-orange-600 bg-orange-50 px-1.5 py-0.5 rounded">
                               Stock maximum atteint
                             </div>
@@ -1284,24 +1285,26 @@ function PanierSidePanelLegacy({
                               type="number" value={article.quantity}
                               onChange={(e) => {
                                 const val = parseInt(e.target.value);
-                                if (!isNaN(val) && val >= 1 && val <= (article.niveau_stock || 0)) {
+                                // Stock bloquant uniquement en Facture (proforma/BC : quantite libre)
+                                const maxQty = documentMode !== 'facture' ? 999999 : (article.niveau_stock || 0);
+                                if (!isNaN(val) && val >= 1 && val <= maxQty) {
                                   handleUpdateQuantity(article.id_produit, val);
                                 }
                               }}
                               onFocus={(e) => e.target.select()}
-                              min={1} max={article.niveau_stock || 0}
+                              min={1} max={documentMode !== 'facture' ? 999999 : (article.niveau_stock || 0)}
                               className="w-10 h-6 text-center font-semibold text-xs border border-gray-300 rounded-md focus:outline-none focus:border-blue-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                             />
                             <button
                               onClick={() => handleUpdateQuantity(article.id_produit, article.quantity + 1)}
                               className="w-6 h-6 bg-white rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-50 transition-colors"
-                              disabled={article.quantity >= (article.niveau_stock || 0)}
+                              disabled={documentMode === 'facture' && article.quantity >= (article.niveau_stock || 0)}
                             >
                               <Plus className="w-3 h-3" />
                             </button>
                           </div>
                         </div>
-                        {article.quantity >= (article.niveau_stock || 0) && (
+                        {documentMode === 'facture' && article.quantity >= (article.niveau_stock || 0) && (
                           <div className="mt-1 text-[10px] text-orange-600 bg-orange-50 px-1.5 py-0.5 rounded">Stock maximum atteint</div>
                         )}
                         <div className="flex items-center justify-between mt-1.5">

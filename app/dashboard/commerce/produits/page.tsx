@@ -392,8 +392,9 @@ export default function ProduitsCommercePage() {
   // Callback commun : ouvrir modal quantité ou fiche édition selon le mode
   const handleBarcodeProductSelected = (produit: Produit) => {
     if (modeVente) {
+      // Stock bloquant uniquement en mode Facture (proforma/BC : articles epuises autorises)
       const stock = produit.niveau_stock || 0;
-      if (stock <= 0) {
+      if (documentMode === 'facture' && stock <= 0) {
         showToast('error', t('toasts.noStock'), t('toasts.noStockMsg', { name: produit.nom_produit }));
         setSearchTerm('');
         lastModeVenteTrigger.current = '';
@@ -1048,8 +1049,10 @@ export default function ProduitsCommercePage() {
       return;
     }
 
+    // Le stock n'est bloquant qu'en mode Facture. Proforma (devis) et Bon de Commande
+    // autorisent les articles epuises (controle stock reporte a la facturation/reception).
     const stock = produit.niveau_stock || 0;
-    if (stock <= 0) {
+    if (documentMode === 'facture' && stock <= 0) {
       showToast('error', t('toasts.noStock'), t('toasts.noStockAvailable'));
       return;
     }
@@ -1094,6 +1097,7 @@ export default function ProduitsCommercePage() {
           isSelected={isAdmin ? selectedIds.has(produit.id_produit) : false}
           onToggleSelect={isAdmin ? toggleSelection : undefined}
           onVendreClick={handleVendreClick}
+          allowOutOfStock={documentMode !== 'facture'}
         />
       );
     }
@@ -1112,6 +1116,7 @@ export default function ProduitsCommercePage() {
         isSelected={isAdmin ? selectedIds.has(produit.id_produit) : false}
         onToggleSelect={isAdmin ? toggleSelection : undefined}
         onVendreClick={handleVendreClick}
+        allowOutOfStock={documentMode !== 'facture'}
       />
     );
   };
@@ -1627,8 +1632,8 @@ export default function ProduitsCommercePage() {
                   <motion.button whileTap={{ scale: 0.9 }} onClick={() => setModeVenteQuantity(q => Math.max(1, q - 1))} className="w-12 h-12 rounded-xl bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition-colors">
                     <Minus className="w-5 h-5 text-slate-700" />
                   </motion.button>
-                  <input ref={quantityInputRef} type="number" value={modeVenteQuantity} onChange={(e) => { const val = parseInt(e.target.value) || 1; setModeVenteQuantity(Math.min(Math.max(1, val), modeVenteProduit.niveau_stock || 1)); }} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleModeVenteConfirm(); } }} className="w-20 h-12 text-center text-2xl font-bold text-slate-900 border-2 border-slate-200 rounded-xl focus:outline-none focus:border-green-400" min={1} max={modeVenteProduit.niveau_stock || 1} />
-                  <motion.button whileTap={{ scale: 0.9 }} onClick={() => setModeVenteQuantity(q => Math.min(q + 1, modeVenteProduit.niveau_stock || 1))} className="w-12 h-12 rounded-xl bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition-colors">
+                  <input ref={quantityInputRef} type="number" value={modeVenteQuantity} onChange={(e) => { const val = parseInt(e.target.value) || 1; setModeVenteQuantity(Math.min(Math.max(1, val), (documentMode === 'facture' ? (modeVenteProduit.niveau_stock || 1) : 999999))); }} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleModeVenteConfirm(); } }} className="w-20 h-12 text-center text-2xl font-bold text-slate-900 border-2 border-slate-200 rounded-xl focus:outline-none focus:border-green-400" min={1} max={(documentMode === 'facture' ? (modeVenteProduit.niveau_stock || 1) : 999999)} />
+                  <motion.button whileTap={{ scale: 0.9 }} onClick={() => setModeVenteQuantity(q => Math.min(q + 1, (documentMode === 'facture' ? (modeVenteProduit.niveau_stock || 1) : 999999)))} className="w-12 h-12 rounded-xl bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition-colors">
                     <Plus className="w-5 h-5 text-slate-700" />
                   </motion.button>
                 </div>
@@ -1663,7 +1668,7 @@ export default function ProduitsCommercePage() {
                     const stock = produit.niveau_stock || 0;
                     const enRupture = stock <= 0;
                     return (
-                      <button key={produit.id_produit} onClick={() => { setShowBarcodeSelectionModal(false); setBarcodeMatches([]); handleBarcodeProductSelected(produit); }} disabled={modeVente && enRupture} className={`w-full text-left p-3 rounded-xl border-2 transition-all ${modeVente && enRupture ? 'border-slate-200 bg-slate-50 opacity-50 cursor-not-allowed' : 'border-slate-200 hover:border-green-400 hover:bg-green-50 active:scale-[0.98]'}`}>
+                      <button key={produit.id_produit} onClick={() => { setShowBarcodeSelectionModal(false); setBarcodeMatches([]); handleBarcodeProductSelected(produit); }} disabled={documentMode === 'facture' && modeVente && enRupture} className={`w-full text-left p-3 rounded-xl border-2 transition-all ${documentMode === 'facture' && modeVente && enRupture ? 'border-slate-200 bg-slate-50 opacity-50 cursor-not-allowed' : 'border-slate-200 hover:border-green-400 hover:bg-green-50 active:scale-[0.98]'}`}>
                         <div className="flex justify-between items-start">
                           <div className="flex-1 min-w-0 mr-2"><p className="font-semibold text-slate-900 truncate">{produit.nom_produit}</p><p className="text-xs text-slate-500 mt-0.5">{produit.nom_categorie || t('barcodeModal.noCategory')}</p></div>
                           <div className="text-right shrink-0"><p className="font-bold text-green-700">{(produit.prix_vente || 0).toLocaleString('fr-FR')} F</p><p className={`text-xs mt-0.5 ${enRupture ? 'text-red-500 font-semibold' : stock <= 5 ? 'text-orange-500' : 'text-slate-500'}`}>{enRupture ? t('barcodeModal.outOfStock') : t('barcodeModal.stockLabel', { count: stock })}</p></div>
@@ -2286,7 +2291,7 @@ export default function ProduitsCommercePage() {
                   value={modeVenteQuantity}
                   onChange={(e) => {
                     const val = parseInt(e.target.value) || 1;
-                    setModeVenteQuantity(Math.min(Math.max(1, val), modeVenteProduit.niveau_stock || 1));
+                    setModeVenteQuantity(Math.min(Math.max(1, val), (documentMode === 'facture' ? (modeVenteProduit.niveau_stock || 1) : 999999)));
                   }}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
@@ -2296,12 +2301,12 @@ export default function ProduitsCommercePage() {
                   }}
                   className="w-20 h-12 text-center text-2xl font-bold text-slate-900 border-2 border-slate-200 rounded-xl focus:outline-none focus:border-green-400"
                   min={1}
-                  max={modeVenteProduit.niveau_stock || 1}
+                  max={(documentMode === 'facture' ? (modeVenteProduit.niveau_stock || 1) : 999999)}
                 />
 
                 <motion.button
                   whileTap={{ scale: 0.9 }}
-                  onClick={() => setModeVenteQuantity(q => Math.min(q + 1, modeVenteProduit.niveau_stock || 1))}
+                  onClick={() => setModeVenteQuantity(q => Math.min(q + 1, (documentMode === 'facture' ? (modeVenteProduit.niveau_stock || 1) : 999999)))}
                   className="w-12 h-12 rounded-xl bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition-colors"
                 >
                   <Plus className="w-5 h-5 text-slate-700" />
@@ -2378,9 +2383,9 @@ export default function ProduitsCommercePage() {
                         setBarcodeMatches([]);
                         handleBarcodeProductSelected(produit);
                       }}
-                      disabled={modeVente && enRupture}
+                      disabled={documentMode === 'facture' && modeVente && enRupture}
                       className={`w-full text-left p-3 rounded-xl border-2 transition-all ${
-                        modeVente && enRupture
+                        documentMode === 'facture' && modeVente && enRupture
                           ? 'border-slate-200 bg-slate-50 opacity-50 cursor-not-allowed'
                           : 'border-slate-200 hover:border-green-400 hover:bg-green-50 active:scale-[0.98]'
                       }`}
