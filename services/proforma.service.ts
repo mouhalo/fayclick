@@ -82,17 +82,17 @@ class ProformaService {
       const escapedDesc = (clientInfo.description || `Proforma ${articles.length} article(s)`).replace(/'/g, "''");
       const escapedTel = clientInfo.tel_client.replace(/'/g, "''");
 
-      // La fonction PostgreSQL reconstitue montant = p_montant + p_remise
-      // Il faut donc passer montant_net (sousTotal - remise), pas sousTotal brut
-      const montantNet = sousTotal - remise;
-
+      // Parité avec facture.service.ts : create_proforma stocke montant = p_montant
+      // tel quel et calcule montant_net = p_montant - p_mt_remise. On envoie donc
+      // sousTotal (brut, après absorption des remises par ligne dans prix_applique)
+      // et la remise globale séparément. Surtout PAS sousTotal - remise (double décote).
       const query = `SELECT * FROM create_proforma(
         ${user.id_structure},
         '${new Date().toISOString().split('T')[0]}',
         '${escapedTel}',
         '${escapedNom}',
         '${escapedDesc}',
-        ${montantNet},
+        ${sousTotal},
         '${articlesString}',
         ${remise},
         ${user.id ?? 0}
@@ -213,10 +213,11 @@ class ProformaService {
       const telClient = clientInfo?.tel_client ? `'${clientInfo.tel_client.replace(/'/g, "''")}'` : 'NULL';
       const nomClient = clientInfo?.nom_client_payeur ? `'${clientInfo.nom_client_payeur.replace(/'/g, "''")}'` : 'NULL';
       const description = clientInfo?.description !== undefined ? `'${clientInfo.description.replace(/'/g, "''")}'` : 'NULL';
-      // La fonction PostgreSQL reconstitue montant = p_montant + p_remise
-      // Il faut donc passer montant_net (montant - remise), pas le montant brut
-      const remiseVal = montants?.remise ?? 0;
-      const montant = montants?.montant !== undefined ? `${montants.montant - remiseVal}` : 'NULL';
+      // Parité avec facture.service.ts : edit_proforma stocke montant = p_montant
+      // tel quel puis recalcule montant_net = montant - mt_remise. On envoie donc
+      // le montant brut (montants.montant = sousTotalNet du composant, après absorption
+      // des remises par ligne) et la remise globale séparément. PAS de soustraction ici.
+      const montant = montants?.montant !== undefined ? `${montants.montant}` : 'NULL';
       const remise = montants?.remise !== undefined ? `${montants.remise}` : 'NULL';
       const idEtat = nouveauStatut !== undefined ? `${nouveauStatut}` : 'NULL';
 
