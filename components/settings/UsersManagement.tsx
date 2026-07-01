@@ -7,7 +7,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Users, Phone, Shield, Edit3, X, Save, Loader2, Trash2, AlertTriangle } from 'lucide-react';
+import { Users, Phone, Shield, Edit3, X, Save, Loader2, Trash2, AlertTriangle, Key } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useHasRight } from '@/hooks/useRights';
 import UsersService from '@/services/users.service';
@@ -18,6 +18,7 @@ import {
   formatUserDate
 } from '@/types/users';
 import ModalDroitsUtilisateur from './ModalDroitsUtilisateur';
+import ModalConfirmResetPassword from '@/components/admin/ModalConfirmResetPassword';
 
 interface EditingUser {
   id: number;
@@ -56,6 +57,14 @@ export default function UsersManagement({ onShowMessage, maxCaissiers }: UsersMa
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDroitsModal, setShowDroitsModal] = useState(false);
   const [droitsUser, setDroitsUser] = useState<UtilisateurData | null>(null);
+  const [showResetPasswordModal, setShowResetPasswordModal] = useState(false);
+  const [resetPasswordUser, setResetPasswordUser] = useState<{
+    id: number;
+    username: string;
+    login: string;
+    telephone: string;
+    nomStructure: string;
+  } | null>(null);
 
   // Récupération des utilisateurs
   const loadUsers = useCallback(async () => {
@@ -249,6 +258,18 @@ export default function UsersManagement({ onShowMessage, maxCaissiers }: UsersMa
     setUserToDelete(null);
   };
 
+  // Ouvrir le modal de réinitialisation du mot de passe
+  const handleOpenResetPassword = (userData: UtilisateurData) => {
+    setResetPasswordUser({
+      id: userData.id,
+      username: userData.username,
+      login: userData.login || `${userData.telephone}${loginSuffix}`,
+      telephone: userData.telephone,
+      nomStructure: userData.structure?.nom_structure || '',
+    });
+    setShowResetPasswordModal(true);
+  };
+
   if (!canManageUsers) {
     return (
       <div className="p-8 text-center">
@@ -415,6 +436,13 @@ export default function UsersManagement({ onShowMessage, maxCaissiers }: UsersMa
                   title="Modifier l'utilisateur"
                 >
                   <Edit3 className="h-5 w-5" />
+                </button>
+                <button
+                  onClick={() => handleOpenResetPassword(userData)}
+                  className="p-2 text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
+                  title="Réinitialiser le mot de passe"
+                >
+                  <Key className="h-5 w-5" />
                 </button>
                 <button
                   onClick={() => handleOpenDeleteModal(userData)}
@@ -838,6 +866,20 @@ export default function UsersManagement({ onShowMessage, maxCaissiers }: UsersMa
             onRightsUpdated={loadUsers}
           />
         )}
+
+        {/* Modal de réinitialisation du mot de passe */}
+        <ModalConfirmResetPassword
+          isOpen={showResetPasswordModal}
+          onClose={() => {
+            setShowResetPasswordModal(false);
+            setResetPasswordUser(null);
+          }}
+          idUtilisateur={resetPasswordUser?.id ?? null}
+          username={resetPasswordUser?.username ?? ''}
+          login={resetPasswordUser?.login ?? ''}
+          nomStructure={resetPasswordUser?.nomStructure ?? ''}
+          telephone={resetPasswordUser?.telephone ?? ''}
+        />
       </AnimatePresence>
     </div>
   );
