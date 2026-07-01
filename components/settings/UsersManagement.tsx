@@ -13,6 +13,7 @@ import { useHasRight } from '@/hooks/useRights';
 import UsersService from '@/services/users.service';
 import {
   UtilisateurData,
+  UserProfilIds,
   isAdmin,
   getUserInitials,
   formatUserDate
@@ -269,9 +270,11 @@ export default function UsersManagement({ onShowMessage, maxCaissiers }: UsersMa
     );
   }
 
-  // Séparer admin et caissiers
+  // Séparer admin et caissiers — les représentants sont exclus (ils ont leur propre onglet)
   const adminUser = users.find(u => isAdmin(u));
-  const caissiers = users.filter(u => !isAdmin(u));
+  const caissiers = users.filter(
+    u => !isAdmin(u) && u.profil.id_profil !== UserProfilIds.REPRESENTANT
+  );
   const MAX_CAISSIERS = maxCaissiers ?? 2;
   const limiteAtteinte = caissiers.length >= MAX_CAISSIERS;
 

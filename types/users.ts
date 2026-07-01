@@ -148,7 +148,8 @@ export interface AddEditUserResponse {
  */
 export const UserProfilIds = {
   ADMIN: 1,
-  CAISSIER: 9
+  CAISSIER: 9,
+  REPRESENTANT: 10
 } as const;
 
 /**
