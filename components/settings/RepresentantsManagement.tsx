@@ -216,8 +216,9 @@ export function RepresentantsManagement({
           <div className="flex-1">
             <p className="text-sm font-semibold text-orange-800">Limite maximale atteinte</p>
             <p className="text-xs text-orange-700 mt-1">
-              Vous avez atteint la limite de {MAX_REPS} représentants pour votre abonnement. Pour
-              en ajouter un nouveau, suspendez ou supprimez un représentant existant.
+              Vous avez atteint la limite de {MAX_REPS} représentants pour votre abonnement.
+              Une augmentation de votre quota est nécessaire pour en ajouter davantage
+              (la suspension d&apos;un représentant ne libère pas de place).
             </p>
           </div>
         </div>
