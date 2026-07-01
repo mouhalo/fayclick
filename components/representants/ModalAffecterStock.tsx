@@ -55,6 +55,11 @@ interface ModalAffecterStockProps {
 
 type ModalMode = 'list' | 'affecter';
 
+interface EditingAction {
+  aff: AffectationData;
+  action: 'PRIX' | 'RETOUR';
+}
+
 interface AffecterFormState {
   id_produit: number;
   produit_label: string;
@@ -97,6 +102,13 @@ export function ModalAffecterStock({
   const [searchProduit, setSearchProduit] = useState('');
   const [showPicker, setShowPicker] = useState(false);
   const [pageProduits, setPageProduits] = useState(1); // pagination 50/page
+
+  // Action inline (remplace window.prompt) : modifier prix / retourner stock
+  const [editingAction, setEditingAction] = useState<EditingAction | null>(null);
+  const [actionValue, setActionValue] = useState('');
+  const [actionMotif, setActionMotif] = useState('');
+  const [actionSaving, setActionSaving] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   const loadStock = useCallback(async () => {
     if (!representant?.id_representant) return;
@@ -169,6 +181,10 @@ export function ModalAffecterStock({
       setMode('list');
       setForm(DEFAULT_FORM);
       setFormError(null);
+      setEditingAction(null);
+      setActionValue('');
+      setActionMotif('');
+      setActionError(null);
       loadStock();
       // Pré-charger les produits en arrière-plan (UX : si admin clique
       // "Affecter un produit", la liste est déjà prête)
@@ -178,12 +194,16 @@ export function ModalAffecterStock({
   }, [isOpen, representant]);
 
   const handleClose = () => {
-    if (saving) return;
+    if (saving || actionSaving) return;
     setMode('list');
     setForm(DEFAULT_FORM);
     setFormError(null);
     setShowPicker(false);
     setSearchProduit('');
+    setEditingAction(null);
+    setActionValue('');
+    setActionMotif('');
+    setActionError(null);
     onClose();
   };
 
@@ -256,71 +276,97 @@ export function ModalAffecterStock({
     }
   };
 
-  const handleModifierPrix = async (aff: AffectationData) => {
-    if (!user?.id) return;
-    const nouveauPrixStr = window.prompt(
-      `Nouveau prix imposé pour "${aff.nom_produit}" (FCFA) :\nPrix actuel : ${aff.prix_vente_rep}`,
-      String(aff.prix_vente_rep)
-    );
-    if (!nouveauPrixStr) return;
-    const nouveauPrix = Number(nouveauPrixStr);
-    if (isNaN(nouveauPrix) || nouveauPrix <= 0) {
-      toast.error('Prix invalide');
-      return;
-    }
-    const motif = window.prompt('Motif de la modification (optionnel) :', '');
-
-    try {
-      const res = await affectationService.modifierPrix({
-        id_affectation: aff.id_affectation,
-        nouveau_prix: nouveauPrix,
-        motif: motif || undefined,
-        id_admin: user.id,
-      });
-      if (res.success) {
-        toast.success(res.message || 'Prix modifié');
-        loadStock();
-      } else {
-        toast.error(res.message || 'Erreur lors de la modification');
-      }
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Erreur');
-    }
+  // Ouvre le panneau inline "Modifier le prix" pour une affectation donnée
+  const openModifierPrix = (aff: AffectationData) => {
+    setEditingAction({ aff, action: 'PRIX' });
+    setActionValue(String(aff.prix_vente_rep));
+    setActionMotif('');
+    setActionError(null);
   };
 
-  const handleRetour = async (aff: AffectationData) => {
-    if (!user?.id) return;
-    const qtyStr = window.prompt(
-      `Quantité à retourner pour "${aff.nom_produit}" :\nStock chez le rep : ${aff.quantite_restante}`,
-      String(aff.quantite_restante)
-    );
-    if (!qtyStr) return;
-    const qty = Number(qtyStr);
-    if (isNaN(qty) || qty <= 0 || qty > aff.quantite_restante) {
-      toast.error(`Quantité invalide (doit être entre 1 et ${aff.quantite_restante})`);
-      return;
-    }
-    const motif = window.prompt('Motif du retour (obligatoire, ex: invendu, fin contrat) :');
-    if (!motif || motif.trim().length < 3) {
-      toast.error('Le motif est obligatoire (3 caractères min)');
+  // Ouvre le panneau inline "Retourner du stock" pour une affectation donnée
+  const openRetour = (aff: AffectationData) => {
+    setEditingAction({ aff, action: 'RETOUR' });
+    setActionValue(String(aff.quantite_restante));
+    setActionMotif('');
+    setActionError(null);
+  };
+
+  const resetActionState = () => {
+    setEditingAction(null);
+    setActionValue('');
+    setActionMotif('');
+    setActionError(null);
+  };
+
+  const handleCancelAction = () => {
+    if (actionSaving) return;
+    resetActionState();
+  };
+
+  const handleConfirmAction = async () => {
+    if (!editingAction || !user?.id) return;
+    const { aff, action } = editingAction;
+    setActionError(null);
+
+    if (action === 'PRIX') {
+      const nouveauPrix = Number(actionValue);
+      if (isNaN(nouveauPrix) || nouveauPrix <= 0) {
+        setActionError('Prix invalide');
+        return;
+      }
+      setActionSaving(true);
+      try {
+        const res = await affectationService.modifierPrix({
+          id_affectation: aff.id_affectation,
+          nouveau_prix: nouveauPrix,
+          motif: actionMotif.trim() || undefined,
+          id_admin: user.id,
+        });
+        if (res.success) {
+          toast.success(res.message || 'Prix modifié');
+          resetActionState();
+          loadStock();
+        } else {
+          setActionError(res.message || 'Erreur lors de la modification');
+        }
+      } catch (err) {
+        setActionError(err instanceof Error ? err.message : 'Erreur inattendue');
+      } finally {
+        setActionSaving(false);
+      }
       return;
     }
 
+    // action === 'RETOUR'
+    const qty = Number(actionValue);
+    if (isNaN(qty) || qty <= 0 || qty > aff.quantite_restante) {
+      setActionError(`Quantité invalide (doit être entre 1 et ${aff.quantite_restante})`);
+      return;
+    }
+    if (!actionMotif || actionMotif.trim().length < 3) {
+      setActionError('Le motif est obligatoire (3 caractères min)');
+      return;
+    }
+    setActionSaving(true);
     try {
       const res = await affectationService.retirerStock({
         id_affectation: aff.id_affectation,
         quantite: qty,
-        motif: motif.trim(),
+        motif: actionMotif.trim(),
         id_admin: user.id,
       });
       if (res.success) {
         toast.success(res.message || 'Stock retourné au stock global');
+        resetActionState();
         loadStock();
       } else {
-        toast.error(res.message || 'Erreur lors du retour');
+        setActionError(res.message || 'Erreur lors du retour');
       }
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Erreur');
+      setActionError(err instanceof Error ? err.message : 'Erreur inattendue');
+    } finally {
+      setActionSaving(false);
     }
   };
 
@@ -411,17 +457,31 @@ export function ModalAffecterStock({
           {/* Contenu — selon mode */}
           <div className="flex-1 overflow-y-auto">
             {mode === 'list' ? (
-              <ListView
-                stock={stock}
-                loading={loadingStock}
-                error={stockError}
-                onRetry={loadStock}
-                onModifierPrix={handleModifierPrix}
-                onRetour={handleRetour}
-                totalProduits={totalProduits}
-                totalValeur={totalValeur}
-                nbStockBas={nbStockBas}
-              />
+              editingAction ? (
+                <ActionPanel
+                  editingAction={editingAction}
+                  value={actionValue}
+                  onValueChange={setActionValue}
+                  motif={actionMotif}
+                  onMotifChange={setActionMotif}
+                  error={actionError}
+                  saving={actionSaving}
+                  onCancel={handleCancelAction}
+                  onConfirm={handleConfirmAction}
+                />
+              ) : (
+                <ListView
+                  stock={stock}
+                  loading={loadingStock}
+                  error={stockError}
+                  onRetry={loadStock}
+                  onModifierPrix={openModifierPrix}
+                  onRetour={openRetour}
+                  totalProduits={totalProduits}
+                  totalValeur={totalValeur}
+                  nbStockBas={nbStockBas}
+                />
+              )
             ) : (
               <FormView
                 form={form}
@@ -444,7 +504,8 @@ export function ModalAffecterStock({
             )}
           </div>
 
-          {/* Footer */}
+          {/* Footer — masqué pendant l'édition inline (ActionPanel a ses propres boutons) */}
+          {!editingAction && (
           <div className="p-4 border-t border-gray-200 flex items-center gap-3 flex-shrink-0">
             {mode === 'list' ? (
               <>
@@ -495,6 +556,7 @@ export function ModalAffecterStock({
               </>
             )}
           </div>
+          )}
         </motion.div>
       </motion.div>
     </AnimatePresence>
@@ -692,6 +754,150 @@ function ListView({
             </motion.div>
           );
         })}
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+
+interface ActionPanelProps {
+  editingAction: EditingAction;
+  value: string;
+  onValueChange: (v: string) => void;
+  motif: string;
+  onMotifChange: (v: string) => void;
+  error: string | null;
+  saving: boolean;
+  onCancel: () => void;
+  onConfirm: () => void;
+}
+
+/**
+ * Panneau inline remplaçant les anciens window.prompt() pour :
+ *   - "Modifier le prix imposé" (action = 'PRIX')
+ *   - "Retourner du stock" (action = 'RETOUR')
+ */
+function ActionPanel({
+  editingAction,
+  value,
+  onValueChange,
+  motif,
+  onMotifChange,
+  error,
+  saving,
+  onCancel,
+  onConfirm,
+}: ActionPanelProps) {
+  const { aff, action } = editingAction;
+  const isPrix = action === 'PRIX';
+
+  const numValue = Number(value);
+  const valueValid = isPrix
+    ? !isNaN(numValue) && numValue > 0
+    : !isNaN(numValue) && numValue > 0 && numValue <= aff.quantite_restante;
+  const motifValid = isPrix ? true : motif.trim().length >= 3;
+  const canConfirm = valueValid && motifValid && !saving;
+
+  return (
+    <div className="p-4 space-y-4">
+      <div className="flex items-center gap-2 text-gray-800">
+        {isPrix ? (
+          <Edit3 className="w-4 h-4 text-fuchsia-600" />
+        ) : (
+          <RotateCcw className="w-4 h-4 text-red-500" />
+        )}
+        <h3 className="font-semibold">
+          {isPrix ? 'Modifier le prix imposé' : 'Retourner du stock'}
+        </h3>
+      </div>
+
+      <p className="text-sm text-gray-600">
+        Produit :{' '}
+        <span className="font-medium text-gray-900">
+          {aff.nom_produit || `Produit #${aff.id_produit}`}
+        </span>
+      </p>
+      {isPrix ? (
+        <p className="text-xs text-gray-500">
+          Prix actuel : {aff.prix_vente_rep.toLocaleString('fr-FR')} FCFA
+        </p>
+      ) : (
+        <p className="text-xs text-gray-500">
+          Stock chez le rep : {aff.quantite_restante.toLocaleString('fr-FR')}
+        </p>
+      )}
+
+      {error && (
+        <div className="flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+          <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" />
+          <p className="text-sm text-red-700">{error}</p>
+        </div>
+      )}
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          {isPrix
+            ? 'Nouveau prix imposé (FCFA) *'
+            : `Quantité à retourner (max ${aff.quantite_restante}) *`}
+        </label>
+        <input
+          type="number"
+          min={1}
+          max={isPrix ? undefined : aff.quantite_restante}
+          value={value}
+          onChange={(e) => onValueChange(e.target.value)}
+          disabled={saving}
+          autoFocus
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-fuchsia-500 focus:ring-1 focus:ring-fuchsia-500"
+          placeholder={isPrix ? 'Ex: 1500' : 'Ex: 5'}
+        />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          {isPrix ? 'Motif (optionnel)' : 'Motif (obligatoire, 3 caractères min) *'}
+        </label>
+        <textarea
+          rows={2}
+          value={motif}
+          onChange={(e) => onMotifChange(e.target.value)}
+          maxLength={200}
+          disabled={saving}
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-fuchsia-500 focus:ring-1 focus:ring-fuchsia-500 resize-none"
+          placeholder={
+            isPrix ? 'Ex: Ajustement tarif saisonnier' : 'Ex: invendu, fin contrat'
+          }
+        />
+      </div>
+
+      <div className="flex items-center gap-3 pt-2">
+        <button
+          type="button"
+          onClick={onCancel}
+          disabled={saving}
+          className="flex-1 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium transition-colors disabled:opacity-50"
+        >
+          Annuler
+        </button>
+        <button
+          type="button"
+          onClick={onConfirm}
+          disabled={!canConfirm}
+          className="flex-1 py-2.5 bg-gradient-to-r from-fuchsia-500 to-purple-600 hover:from-fuchsia-600 hover:to-purple-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+        >
+          {saving ? (
+            <>
+              <Loader2 className="w-4 h-4 animate-spin" />
+              <span>Enregistrement…</span>
+            </>
+          ) : (
+            <>
+              <Save className="w-4 h-4" />
+              <span>Confirmer</span>
+            </>
+          )}
+        </button>
       </div>
     </div>
   );
