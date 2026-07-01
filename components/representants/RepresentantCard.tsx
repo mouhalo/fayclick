@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { MapPin, Phone, Wallet, Pause, Play, KeyRound, Edit3, Mail } from 'lucide-react';
+import { MapPin, Phone, Wallet, Pause, Play, KeyRound, Edit3, Mail, Package } from 'lucide-react';
 import { RepresentantData, getStatutRepresentant } from '@/types/representant';
 
 interface RepresentantCardProps {
@@ -11,6 +11,7 @@ interface RepresentantCardProps {
   onSuspendre?: (rep: RepresentantData) => void;
   onReactiver?: (rep: RepresentantData) => void;
   onResetPwd?: (rep: RepresentantData) => void;
+  onAffecterStock?: (rep: RepresentantData) => void;
 }
 
 const STATUT_STYLES: Record<string, string> = {
@@ -54,6 +55,7 @@ export function RepresentantCard({
   onSuspendre,
   onReactiver,
   onResetPwd,
+  onAffecterStock,
 }: RepresentantCardProps) {
   const statut = getStatutRepresentant(representant);
   const estActifReseau = representant.actif && representant.actif_reseau;
@@ -158,6 +160,17 @@ export function RepresentantCard({
 
         {/* Actions */}
         <div className="flex flex-col gap-1.5 flex-shrink-0">
+          {onAffecterStock && (
+            <button
+              type="button"
+              onClick={() => onAffecterStock(representant)}
+              className="p-2 rounded-lg bg-fuchsia-50 hover:bg-fuchsia-100 text-fuchsia-600 transition-colors"
+              title="Gérer le stock affecté"
+              aria-label="Gérer le stock affecté"
+            >
+              <Package className="h-4 w-4" />
+            </button>
+          )}
           {onEdit && (
             <button
               type="button"

@@ -25,6 +25,7 @@ import { RepresentantData } from '@/types/representant';
 import RepresentantCard from '@/components/representants/RepresentantCard';
 import ModalCreerRepresentant from '@/components/representants/ModalCreerRepresentant';
 import ModalPasswordRevealRep from '@/components/representants/ModalPasswordRevealRep';
+import ModalAffecterStock from '@/components/representants/ModalAffecterStock';
 
 interface RepresentantsManagementProps {
   onShowMessage?: (message: string, type: 'success' | 'error') => void;
@@ -47,6 +48,7 @@ export function RepresentantsManagement({
   const [resetPwdRep, setResetPwdRep] = useState<RepresentantData | null>(null);
   const [confirmSuspendRep, setConfirmSuspendRep] = useState<RepresentantData | null>(null);
   const [suspending, setSuspending] = useState(false);
+  const [stockRep, setStockRep] = useState<RepresentantData | null>(null);
 
   const MAX_REPS = maxRepresentants ?? 5;
   const limiteAtteinte = representants.length >= MAX_REPS;
@@ -148,6 +150,10 @@ export function RepresentantsManagement({
 
   const handleCreateSuccess = () => {
     loadRepresentants();
+  };
+
+  const handleAffecterStock = (rep: RepresentantData) => {
+    setStockRep(rep);
   };
 
   // Filtrage local par recherche (defensive : si PG renvoie non-array, on garde [])
@@ -276,6 +282,7 @@ export function RepresentantsManagement({
               onSuspendre={handleSuspendre}
               onReactiver={handleReactiver}
               onResetPwd={handleResetPwd}
+              onAffecterStock={handleAffecterStock}
             />
           ))}
         </div>
@@ -306,6 +313,16 @@ export function RepresentantsManagement({
           onSuccess={loadRepresentants}
         />
       )}
+
+      {/* Modal gestion stock affecté (affectation/retour/modif prix) */}
+      <ModalAffecterStock
+        isOpen={!!stockRep}
+        onClose={() => {
+          setStockRep(null);
+          loadRepresentants();
+        }}
+        representant={stockRep}
+      />
 
       {/* Confirmation de suspension (remplace window.confirm) */}
       <AnimatePresence>
