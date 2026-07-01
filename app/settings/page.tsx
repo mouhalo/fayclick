@@ -24,7 +24,8 @@ import {
   Tag,
   FileText,
   ChevronDown,
-  Percent
+  Percent,
+  Network
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
@@ -35,6 +36,7 @@ import { StructureDetails, CompleteAuthData, InfoFacture, ConfigFacture } from '
 import LogoUpload from '@/components/ui/LogoUpload';
 import { UploadResult, UploadProgress } from '@/types/upload.types';
 import UsersManagement from '@/components/settings/UsersManagement';
+import RepresentantsManagement from '@/components/settings/RepresentantsManagement';
 import CategoriesManagement from '@/components/settings/CategoriesManagement';
 import FactureLayoutEditor from '@/components/settings/FactureLayoutEditor';
 import ModalPaiementAbonnement from '@/components/subscription/ModalPaiementAbonnement';
@@ -76,6 +78,9 @@ interface RawStructureData {
   actif: boolean;
   // État abonnement depuis get_une_structure() - objet complet avec jours_restants
   etat_abonnement?: EtatAbonnement | null;
+  // Réseau Distribution (Stage A) - flag + limite représentants
+  compte_distributeur?: boolean;
+  nb_reps_max?: number;
   [key: string]: unknown;
 }
 
@@ -84,7 +89,7 @@ interface AddEditStructureResponse {
   [key: string]: unknown;
 }
 
-type TabId = 'general' | 'wallets' | 'users' | 'sales' | 'categories' | 'subscription';
+type TabId = 'general' | 'wallets' | 'users' | 'representants' | 'sales' | 'categories' | 'subscription';
 
 // Règles de vente stockées en localStorage
 interface SalesRules {
@@ -157,16 +162,26 @@ const TABS_CONFIG = [
     gradient: 'from-orange-500 to-amber-600',
     iconColor: 'text-orange-600'
   },
-  { 
-    id: 'users' as TabId, 
-    label: 'Utilisateurs', 
-    icon: Users, 
+  {
+    id: 'users' as TabId,
+    label: 'Utilisateurs',
+    icon: Users,
     color: 'green',
     gradient: 'from-green-500 to-emerald-600',
     iconColor: 'text-green-600'
   },
-  { 
-    id: 'sales' as TabId, 
+  {
+    // Onglet conditionnel — visible uniquement si structure.compte_distributeur=true
+    id: 'representants' as TabId,
+    label: 'Représentants',
+    icon: Network,
+    color: 'fuchsia',
+    gradient: 'from-fuchsia-500 to-purple-600',
+    iconColor: 'text-fuchsia-600',
+    requiresCompteDistributeur: true,
+  },
+  {
+    id: 'sales' as TabId,
     label: 'Règles Ventes', 
     icon: TrendingUp, 
     color: 'orange',
@@ -722,7 +737,13 @@ export default function StructureEditPage() {
         {/* Navigation onglets intégrée dans le header */}
         <div className="px-4 pb-2">
           <div className="flex gap-1 p-1 bg-white/10 backdrop-blur-sm rounded-xl">
-            {TABS_CONFIG.map((tab, index) => {
+            {TABS_CONFIG.filter((tab) => {
+              // Onglet Représentants visible uniquement si compte_distributeur activé
+              if ('requiresCompteDistributeur' in tab && tab.requiresCompteDistributeur) {
+                return currentStructureData?.compte_distributeur === true;
+              }
+              return true;
+            }).map((tab, index) => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
               
@@ -1008,6 +1029,14 @@ export default function StructureEditPage() {
               {/* Onglet Gestion utilisateurs */}
               {activeTab === 'users' && (
                 <UsersManagement onShowMessage={showPopMessage} maxCaissiers={currentStructureData?.nombre_caisse_max ?? 2} />
+              )}
+
+              {/* Onglet Représentants — visible uniquement si compte_distributeur=true */}
+              {activeTab === 'representants' && currentStructureData?.compte_distributeur && (
+                <RepresentantsManagement
+                  onShowMessage={showPopMessage}
+                  maxRepresentants={currentStructureData?.nb_reps_max ?? 5}
+                />
               )}
 
               {/* Onglet Règles ventes */}
