@@ -380,6 +380,33 @@ class RepresentantService {
     };
   }
 
+  /**
+   * Normalise une réponse d'opération pour que les champs métier
+   * (new_password, password_initial, id_representant, …) soient TOUJOURS
+   * exposés sous `data`, que la fonction PG renvoie :
+   *   - du JSON nested : { success, message, data: { new_password } }
+   *   - une TABLE plate : { success, message, new_password }  (via SELECT *)
+   * Sans ceci, les consommateurs qui lisent `res.data?.new_password` échouaient
+   * silencieusement quand la fonction renvoie une TABLE plate (bug reset MDP rep).
+   */
+  private liftToData(o: Record<string, unknown>): RepresentantOperationResponse {
+    if (o.data && typeof o.data === 'object') {
+      return {
+        success: o.success !== false,
+        message: typeof o.message === 'string' ? o.message : '',
+        data: o.data as RepresentantOperationResponse['data'],
+      };
+    }
+    const { success, message, ...rest } = o;
+    return {
+      success: success !== false,
+      message: typeof message === 'string' ? message : '',
+      data: Object.keys(rest).length
+        ? (rest as RepresentantOperationResponse['data'])
+        : undefined,
+    };
+  }
+
   private parseOperationResponse(
     results: unknown,
     fnName: string
@@ -394,13 +421,13 @@ class RepresentantService {
       const raw = first[fnName];
       const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
       if (parsed && typeof parsed === 'object') {
-        return parsed as RepresentantOperationResponse;
+        return this.liftToData(parsed as Record<string, unknown>);
       }
     }
 
-    // Cas B : la fonction retourne directement les champs (TABLE)
+    // Cas B : la fonction retourne directement les champs (TABLE plate ou nested)
     if ('success' in first || 'message' in first) {
-      return first as unknown as RepresentantOperationResponse;
+      return this.liftToData(first);
     }
 
     return { success: false, message: 'Format de réponse non reconnu' };
