@@ -1,6 +1,6 @@
 // Service Worker FayClick V2 - PWA Complète
 // Version: 2.8.0 - 2026-02-01 - Intégration add_acompte_facture1 + photo produit
-// Build: 2026-06-17 - Proforma stock non bloquant + colonne Réf. (code-barres) états A4
+// Build: 2026-07-02T10:57:08.002Z - Force upload fix for ftp-deploy size comparison bug
 // Build: 2026-02-01T21:12:32.816Z
 
 const CACHE_NAME = 'fayclick-v3.1-cache-20260617';
