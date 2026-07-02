@@ -390,6 +390,17 @@ export class AuthService {
         const userData = extractSingleDataFromResult<UserCredentialsResult>(results[0]);
         
         if (userData && userData.actif) {
+          // Cast élargi pour accéder aux champs spécifiques au profil REPRESENTANT
+          // (mode_encaissement, id_localite, nom_rep, prenom_rep, email_rep, actif_reseau)
+          // qui peuvent être absents du retour PG pour les autres profils — d'où le cast
+          const ud = userData as UserCredentialsResult & {
+            mode_encaissement?: 'WALLET_STRUCTURE' | 'LIBRE';
+            id_localite?: number;
+            nom_rep?: string;
+            prenom_rep?: string;
+            email_rep?: string;
+            actif_reseau?: boolean;
+          };
           // Les données correspondent déjà exactement à l'interface User !
           const user: User = {
             id: userData.id,
@@ -421,9 +432,19 @@ export class AuthService {
               id: 1, // Default - pas retourné par la fonction
               nom: 'Zone par défaut'
             },
-            mode: 'standard' // Default - pas retourné par la fonction
+            mode: 'standard', // Default - pas retourné par la fonction
+            // Champs spécifiques REPRESENTANT (Réseau Distribution)
+            // Lus s'ils existent dans le retour PG, undefined sinon (défensif)
+            ...(ud.nom_profil === 'REPRESENTANT' && {
+              mode_encaissement: ud.mode_encaissement,
+              id_localite: ud.id_localite,
+              nom_rep: ud.nom_rep,
+              prenom_rep: ud.prenom_rep,
+              email_rep: ud.email_rep,
+              actif_reseau: ud.actif_reseau,
+            })
           };
-          
+
           const loginResponse: LoginResponse = {
             token: this.generateSessionToken(user),
             user: user
