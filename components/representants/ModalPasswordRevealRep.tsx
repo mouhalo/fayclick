@@ -52,13 +52,21 @@ export function ModalPasswordRevealRep({
 
   /**
    * Fermeture sécurisée : bloquée pendant l'appel API, nettoie le MDP du state.
+   *
+   * ⚠️ onSuccess (recharge la liste parent) est appelé ICI, à la fermeture, et
+   * NON juste après le reset : le parent RepresentantsManagement fait un early
+   * return <Spinner> pendant isLoading, ce qui démonterait ce modal et effacerait
+   * l'étape « succès » + le MDP avant que l'admin ne le voie. On recharge donc
+   * seulement une fois le MDP révélé puis fermé. (Même pattern que ModalCreerRepresentant.)
    */
   const handleClose = () => {
     if (resetting) return;
+    const didReset = step === 'success';
     setNewPassword('');
     setStep('confirm');
     setResetting(false);
     onClose();
+    if (didReset) onSuccess?.();
   };
 
   const handleBackdropClick = () => {
@@ -84,7 +92,8 @@ export function ModalPasswordRevealRep({
         setNewPassword(res.data.new_password);
         setStep('success');
         toast.success(res.message || 'Mot de passe réinitialisé');
-        onSuccess?.();
+        // NB : onSuccess() est déféré à handleClose (voir commentaire) — le
+        // déclencher ici rechargerait la liste et démonterait ce modal (perte du MDP).
       } else {
         toast.error(res.message || 'Impossible de réinitialiser le mot de passe');
         setResetting(false);
