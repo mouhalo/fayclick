@@ -65,6 +65,13 @@ export interface User {
     [key: string]: unknown;
   };
   mode?: string;
+  // Champs spécifiques au profil REPRESENTANT (Réseau Distribution)
+  mode_encaissement?: 'WALLET_STRUCTURE' | 'LIBRE';
+  id_localite?: number;
+  nom_rep?: string;
+  prenom_rep?: string;
+  email_rep?: string;
+  actif_reseau?: boolean;
 }
 
 export interface LoginResponse {
@@ -240,7 +247,8 @@ export const USER_ROUTES = {
   ADMIN: '/dashboard/admin',
   SYSTEM: '/dashboard/admin',
   'ADMIN SYSTEM': '/dashboard/admin',
-  'SYSTEME': '/dashboard/admin'
+  'SYSTEME': '/dashboard/admin',
+  REPRESENTANT: '/dashboard/representant'
 } as const;
 
 // Fonction pour obtenir la route de redirection
@@ -253,6 +261,14 @@ export function getUserRedirectRoute(user: User): string {
     id_structure: user.id_structure,
     id_groupe: user.id_groupe
   });
+
+  // PRIORITÉ 0: Profil REPRESENTANT → espace dédié (Réseau Distribution)
+  // Doit primer sur type_structure car un représentant est rattaché à une
+  // structure COMMERCIALE mais ne doit JAMAIS voir le dashboard admin commerce.
+  if (user.nom_profil === 'REPRESENTANT') {
+    console.log('Redirecting to /dashboard/representant (profil REPRESENTANT)');
+    return USER_ROUTES.REPRESENTANT;
+  }
 
   // PRIORITÉ 1: Toujours vérifier d'abord le type_structure pour la redirection
   if (user.type_structure) {
