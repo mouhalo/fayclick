@@ -180,8 +180,6 @@ export default function DashboardRepresentantPage() {
               label="Nouvelle vente"
               color="from-fuchsia-500 to-purple-600"
               primary
-              disabled
-              comingSoon
             />
             <ActionButton
               href="/dashboard/representant/stock"
