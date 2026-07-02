@@ -164,12 +164,6 @@ export default function DashboardRepresentantPage() {
               <p className="text-xs text-orange-700 mt-0.5">
                 Demandez un réapprovisionnement à votre administrateur.
               </p>
-              <Link
-                href="/dashboard/representant/stock"
-                className="inline-block mt-1 text-xs font-semibold text-orange-700 underline"
-              >
-                Voir les détails →
-              </Link>
             </div>
           </motion.div>
         )}
@@ -186,12 +180,16 @@ export default function DashboardRepresentantPage() {
               label="Nouvelle vente"
               color="from-fuchsia-500 to-purple-600"
               primary
+              disabled
+              comingSoon
             />
             <ActionButton
               href="/dashboard/representant/stock"
               icon={<Package className="w-6 h-6" />}
               label="Mon stock"
               color="from-purple-500 to-indigo-600"
+              disabled
+              comingSoon
             />
             <ActionButton
               href="/dashboard/representant/factures"
@@ -206,6 +204,8 @@ export default function DashboardRepresentantPage() {
               icon={<Wallet className="w-6 h-6" />}
               label="Reversements"
               color="from-orange-500 to-amber-600"
+              disabled
+              comingSoon
             />
           </div>
         </section>
@@ -216,12 +216,6 @@ export default function DashboardRepresentantPage() {
             <h2 className="text-xs font-bold text-gray-500 uppercase tracking-wide">
               Mon stock (top 3)
             </h2>
-            <Link
-              href="/dashboard/representant/stock"
-              className="text-xs font-semibold text-fuchsia-600 hover:text-fuchsia-700"
-            >
-              Voir tout →
-            </Link>
           </div>
 
           {loading ? (
