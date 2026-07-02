@@ -9,9 +9,8 @@
  *
  * Cf. docs/specs/SPEC_FRONTEND_RESEAU_DISTRIBUTION.md
  *
- * Note (Stage B3.1) : les sous-espaces stock/vente/reversements ne sont
- * pas encore implémentés — les cartes de navigation existent déjà pour
- * préparer le terrain, "Mes factures" reste désactivé (à venir).
+ * Note (Stage B3.4) : stock/vente/reversements sont implémentés.
+ * "Mes factures" reste désactivé (à venir).
  */
 
 'use client';
@@ -200,8 +199,6 @@ export default function DashboardRepresentantPage() {
               icon={<Wallet className="w-6 h-6" />}
               label="Reversements"
               color="from-orange-500 to-amber-600"
-              disabled
-              comingSoon
             />
           </div>
         </section>
