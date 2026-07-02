@@ -1379,7 +1379,10 @@
     "salesList": {
       "empty": "Amul jaay tëy",
       "emptyHint": "Jaay yu bés bi dinañu feeñ fii",
-      "titleWithCount": "Jaay yu bés bi ({count})"
+      "titleWithCount": "Jaay yu bés bi ({count})",
+      "titleWithDate": "Jaay yu {date} bi ({count})",
+      "date": "Bés",
+      "cashierFallback": "Keesu"
     },
     "saleCard": {
       "details": "Détails",

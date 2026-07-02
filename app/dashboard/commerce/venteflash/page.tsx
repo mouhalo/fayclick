@@ -31,6 +31,7 @@ import { ModalResultatModification } from '@/components/factures/ModalResultatMo
 import MainMenu from '@/components/layout/MainMenu';
 import { useSalesRules } from '@/hooks/useSalesRules';
 import { useTranslations } from '@/hooks/useTranslations';
+import { useUserProfile } from '@/hooks/useUserProfile';
 import { usePanierEditionStore } from '@/stores/panierEditionStore';
 import { factureService } from '@/services/facture.service';
 import { dashboardService } from '@/services/dashboard.service';
@@ -49,6 +50,9 @@ export default function VenteFlashPage() {
   const salesRules = useSalesRules();
   const { isDesktop: isDesktopBase, isDesktopLarge } = useBreakpoint();
   const isDesktop = isDesktopBase || isDesktopLarge;
+  // ADMIN (id_profil === 1) : voit TOUTES les ventes + sélecteur de date.
+  // CAISSIER : ne voit que SES ventes, date figée à aujourd'hui.
+  const { isAdmin } = useUserProfile();
 
   // Store multi-panier (desktop uniquement)
   const multiStore = usePanierVFMultiStore();
@@ -70,6 +74,11 @@ export default function VenteFlashPage() {
   // États des données
   const [produits, setProduits] = useState<Produit[]>([]);
   const [ventesJour, setVentesJour] = useState<VenteFlash[]>([]);
+  // Date consultée (format YYYY-MM-DD). Défaut = aujourd'hui.
+  // Seul l'ADMIN peut la modifier via le sélecteur de date.
+  const [selectedDate, setSelectedDate] = useState<string>(
+    () => new Date().toISOString().split('T')[0]
+  );
   const [stats, setStats] = useState<VenteFlashStats>({
     nb_ventes: 0,
     total_ventes: 0,
@@ -162,20 +171,28 @@ export default function VenteFlashPage() {
   }, [user]);
 
   /**
-   * Charger les factures du mois en cours
-   * Utilise get_my_factures1 avec filtrage par année/mois pour optimiser les performances
+   * Charger les ventes de la date consultée (selectedDate).
+   * Utilise get_my_factures1 filtré par année/mois (perf) puis affine sur la date exacte.
+   *
+   * Isolation par caissier : un CAISSIER ne voit que SES ventes (id_utilisateur === user.id) ;
+   * un ADMIN voit TOUTES les ventes de la structure. Les stats suivent la liste filtrée.
    */
   const loadVentesJour = useCallback(async () => {
     if (!user) return;
 
     setIsLoadingVentes(true);
     try {
-      const currentDate = new Date();
-      const annee = currentDate.getFullYear();
-      const mois = currentDate.getMonth() + 1;
+      // Année/mois dérivés de la date consultée (ADMIN peut changer selectedDate ;
+      // CAISSIER reste sur aujourd'hui).
+      const [yStr, mStr] = selectedDate.split('-');
+      const annee = parseInt(yStr, 10);
+      const mois = parseInt(mStr, 10);
 
       const query = `SELECT * FROM get_my_factures1(${user.id_structure}, ${annee}, ${mois}, 0)`;
       const results = await database.query(query, 30000);
+
+      // Toujours recalculé (même vide) → aucune donnée périmée au changement de date.
+      let ventesFormatees: VenteFlash[] = [];
 
       if (results && results.length > 0) {
         const response = results[0].get_my_factures1;
@@ -201,93 +218,103 @@ export default function VenteFlashPage() {
           facturesData = parsedResponse;
         }
 
-        if (facturesData.length > 0) {
-          const today = new Date().toISOString().split('T')[0];
+        // Ne conserver que les factures de la date consultée
+        const ventesCible = facturesData.filter((item: unknown) => {
+          const facture = item as Record<string, unknown>;
+          const dateFacture = (facture.date_facture as string) || (facture.date as string) || '';
+          if (!dateFacture) return false;
+          const factureDate = new Date(dateFacture).toISOString().split('T')[0];
+          return factureDate === selectedDate;
+        });
 
-          const ventesAujourdhui = facturesData.filter((item: unknown) => {
-            const facture = item as Record<string, unknown>;
-            const dateFacture = (facture.date_facture as string) || (facture.date as string) || '';
-            if (!dateFacture) return false;
-            const factureDate = new Date(dateFacture).toISOString().split('T')[0];
-            return factureDate === today;
-          });
+        ventesFormatees = ventesCible.map((item: unknown) => {
+          const f = item as Record<string, unknown>;
+          // Le champ réel côté BD est `nom_utilisateur` (username, ex. "CAISSE2").
+          // On n'attribue JAMAIS le nom du caissier CONNECTÉ à une vente d'autrui :
+          // libellé neutre si absent ou sentinelle historique "agent_saisie".
+          const nomUtilisateur = (f.nom_utilisateur as string) || (f.nom_caissier as string) || '';
+          const nomCaissier = nomUtilisateur && nomUtilisateur !== 'agent_saisie'
+            ? nomUtilisateur
+            : t('salesList.cashierFallback');
 
-          const ventesFormatees: VenteFlash[] = ventesAujourdhui.map((item: unknown) => {
-            const f = item as Record<string, unknown>;
-            const nomCaissier = (f.nom_caissier as string) ||
-                               (user.nom && user.prenom ? `${user.prenom} ${user.nom}` : user.login);
+          const montantTotal = (f.montant as number) || (f.montant_total as number) || 0;
+          const montantPaye = (f.mt_acompte as number) || (f.montant_paye as number) || 0;
+          const montantImpaye = (f.mt_restant as number) || (f.montant_impaye as number) || 0;
+          const modePaiement = (f.mode_paiement as string) || (f.libelle_etat as string) || 'ESPECES';
 
-            const montantTotal = (f.montant as number) || (f.montant_total as number) || 0;
-            const montantPaye = (f.mt_acompte as number) || (f.montant_paye as number) || 0;
-            const montantImpaye = (f.mt_restant as number) || (f.montant_impaye as number) || 0;
-            const modePaiement = (f.mode_paiement as string) || (f.libelle_etat as string) || 'ESPECES';
-
-            const detailsArray = Array.isArray(f.details) ? f.details : [];
-            const detailsFormates: DetailVente[] = detailsArray.map((item: unknown) => {
-              const d = item as Record<string, unknown>;
-              return {
-                id_detail: d.id_detail as number,
-                id_produit: d.id_produit as number,
-                nom_produit: (d.nom_produit as string) || '',
-                quantite: (d.quantite as number) || 0,
-                prix_unitaire: (d.prix as number) || 0,
-                total: (d.sous_total as number) || 0
-              };
-            });
-
-            // Extraire les reçus de paiement si présents
-            const recusArray = Array.isArray(f.recus_paiements) ? f.recus_paiements : [];
-            const recusFormates: RecuPaiement[] = recusArray.map((item: unknown) => {
-              const r = item as Record<string, unknown>;
-              return {
-                id_recu: r.id_recu as number,
-                id_facture: r.id_facture as number,
-                numero_recu: (r.numero_recu as string) || '',
-                methode_paiement: (r.methode_paiement as string) || 'espèces',
-                montant_paye: (r.montant_paye as number) || 0,
-                reference_transaction: (r.reference_transaction as string) || undefined,
-                telephone_client: (r.telephone_client as string) || undefined,
-                date_paiement: (r.date_paiement as string) || ''
-              };
-            });
-
+          const detailsArray = Array.isArray(f.details) ? f.details : [];
+          const detailsFormates: DetailVente[] = detailsArray.map((item: unknown) => {
+            const d = item as Record<string, unknown>;
             return {
-              id_facture: f.id_facture as number,
-              num_facture: (f.num_facture as string) || '',
-              date_facture: (f.date_facture as string) || '',
-              montant_total: montantTotal,
-              montant_paye: montantPaye,
-              montant_impaye: montantImpaye,
-              mt_remise: (f.mt_remise as number) || 0,
-              mode_paiement: modePaiement,
-              nom_client: (f.nom_client as string) || 'CLIENT ANONYME',
-              tel_client: (f.tel_client as string) || '',
-              nom_caissier: nomCaissier,
-              id_utilisateur: f.id_utilisateur as number,
-              statut: (f.libelle_etat as string) || (f.statut as string) || '',
-              details: detailsFormates,
-              recus_paiements: recusFormates.length > 0 ? recusFormates : undefined
+              id_detail: d.id_detail as number,
+              id_produit: d.id_produit as number,
+              nom_produit: (d.nom_produit as string) || '',
+              quantite: (d.quantite as number) || 0,
+              prix_unitaire: (d.prix as number) || 0,
+              total: (d.sous_total as number) || 0
             };
           });
 
-          setVentesJour(ventesFormatees);
+          // Extraire les reçus de paiement si présents
+          const recusArray = Array.isArray(f.recus_paiements) ? f.recus_paiements : [];
+          const recusFormates: RecuPaiement[] = recusArray.map((item: unknown) => {
+            const r = item as Record<string, unknown>;
+            return {
+              id_recu: r.id_recu as number,
+              id_facture: r.id_facture as number,
+              numero_recu: (r.numero_recu as string) || '',
+              methode_paiement: (r.methode_paiement as string) || 'espèces',
+              montant_paye: (r.montant_paye as number) || 0,
+              reference_transaction: (r.reference_transaction as string) || undefined,
+              telephone_client: (r.telephone_client as string) || undefined,
+              date_paiement: (r.date_paiement as string) || ''
+            };
+          });
 
-          const statsCalculees: VenteFlashStats = {
-            nb_ventes: ventesFormatees.length,
-            total_ventes: ventesFormatees.reduce((sum, v) => sum + v.montant_total, 0),
-            ca_jour: ventesFormatees.reduce((sum, v) => sum + v.montant_paye, 0),
-            total_remises: ventesFormatees.reduce((sum, v) => sum + (v.mt_remise || 0), 0)
+          return {
+            id_facture: f.id_facture as number,
+            num_facture: (f.num_facture as string) || '',
+            date_facture: (f.date_facture as string) || '',
+            montant_total: montantTotal,
+            montant_paye: montantPaye,
+            montant_impaye: montantImpaye,
+            mt_remise: (f.mt_remise as number) || 0,
+            mode_paiement: modePaiement,
+            nom_client: (f.nom_client as string) || 'CLIENT ANONYME',
+            tel_client: (f.tel_client as string) || '',
+            nom_caissier: nomCaissier,
+            id_utilisateur: f.id_utilisateur as number,
+            statut: (f.libelle_etat as string) || (f.statut as string) || '',
+            details: detailsFormates,
+            recus_paiements: recusFormates.length > 0 ? recusFormates : undefined
           };
-
-          setStats(statsCalculees);
-        }
+        });
       }
+
+      // Isolation par caissier : ADMIN → toutes les ventes ; CAISSIER → uniquement les siennes.
+      const ventesVisibles = isAdmin
+        ? ventesFormatees
+        : ventesFormatees.filter((v) => v.id_utilisateur === user.id);
+
+      // Dédoublonnage défensif par id_facture (évite tout doublon d'affichage).
+      const ventesUniques = Array.from(
+        new Map(ventesVisibles.map((v) => [v.id_facture, v])).values()
+      );
+
+      setVentesJour(ventesUniques);
+
+      setStats({
+        nb_ventes: ventesUniques.length,
+        total_ventes: ventesUniques.reduce((sum, v) => sum + v.montant_total, 0),
+        ca_jour: ventesUniques.reduce((sum, v) => sum + v.montant_paye, 0),
+        total_remises: ventesUniques.reduce((sum, v) => sum + (v.mt_remise || 0), 0)
+      });
     } catch (error) {
       console.error('❌ [VF] Erreur chargement ventes:', error instanceof Error ? error.message : error);
     } finally {
       setIsLoadingVentes(false);
     }
-  }, [user]);
+  }, [user, selectedDate, isAdmin, t]);
 
   /**
    * Charger UNE SEULE facture par son ID et l'ajouter aux ventes du jour
@@ -338,8 +365,11 @@ export default function VenteFlashPage() {
 
       // Formater la facture (même logique que loadVentesJour)
       const f = factureData;
-      const nomCaissier = (f.nom_caissier as string) ||
-                         (user.nom && user.prenom ? `${user.prenom} ${user.nom}` : user.login);
+      // Champ réel BD = `nom_utilisateur` ; libellé neutre si absent/sentinelle (jamais le nom du caissier connecté).
+      const nomUtilisateur = (f.nom_utilisateur as string) || (f.nom_caissier as string) || '';
+      const nomCaissier = nomUtilisateur && nomUtilisateur !== 'agent_saisie'
+        ? nomUtilisateur
+        : t('salesList.cashierFallback');
 
       const montantTotal = (f.montant as number) || (f.montant_total as number) || 0;
       const montantPaye = (f.mt_acompte as number) || (f.montant_paye as number) || 0;
@@ -417,7 +447,7 @@ export default function VenteFlashPage() {
       console.error(`❌ [VF] Erreur chargement facture #${idFacture}:`, error);
       return null;
     }
-  }, [user]);
+  }, [user, t]);
 
   // Vérification authentification
   useEffect(() => {
@@ -449,11 +479,14 @@ export default function VenteFlashPage() {
 
   // Charger produits au montage
   useEffect(() => {
-    if (user) {
-      loadProduits();
-      loadVentesJour();
-    }
-  }, [user, loadProduits, loadVentesJour]);
+    if (user) loadProduits();
+  }, [user, loadProduits]);
+
+  // Charger les ventes au montage et à chaque changement de date consultée
+  // (loadVentesJour dépend de selectedDate → rechargement automatique).
+  useEffect(() => {
+    if (user) loadVentesJour();
+  }, [user, loadVentesJour]);
 
   // Auto-focus sur le champ quantité quand le modal s'ouvre
   useEffect(() => {
@@ -1221,6 +1254,9 @@ export default function VenteFlashPage() {
           onDeleteVente={handleDeleteVente}
           onViewReceipt={handleViewReceipt}
           onModifier={handleModifierVenteDepuisCarte}
+          isAdmin={isAdmin}
+          selectedDate={selectedDate}
+          onDateChange={setSelectedDate}
         />
       </div>
 
