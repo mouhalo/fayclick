@@ -55,7 +55,12 @@ function mapErrorCode(code?: string, fallbackMessage?: string): string {
 
 export default function ReversementsRepPage() {
   const { user } = useAuth();
-  const isLibre = user?.mode_encaissement === 'LIBRE';
+  // ⚠️ `mode_encaissement` n'est pas toujours peuplé au login (check_user_credentials
+  // ne le renvoie pas). On gate donc en « fail-open » : on affiche/charge sauf si le
+  // rep est EXPLICITEMENT WALLET_STRUCTURE. La sécurité réelle vient de getSolde
+  // (vue LIBRE-only), du bouton désactivé si solde_du<=0, et de la validation backend
+  // (declarer_reversement rejette les non-LIBRE avec REP_INVALIDE_OU_MAUVAIS_MODE).
+  const isLibre = user?.mode_encaissement !== 'WALLET_STRUCTURE';
 
   const [reversements, setReversements] = useState<ReversementData[]>([]);
   const [solde, setSolde] = useState<SoldeReversementRep | null>(null);
