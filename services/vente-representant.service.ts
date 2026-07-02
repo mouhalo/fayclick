@@ -101,7 +101,19 @@ class VenteRepresentantService {
   private buildArticlesString(articles: ArticleVenteRep[]): string {
     return (
       articles
-        .map((a) => `${a.id_produit}-${a.quantite}-${a.prix}`)
+        .map((a) => {
+          // Coercition + rejet NaN : garantit que la chaîne SQL ne contient
+          // que des valeurs numériques (défense-en-profondeur SQLi).
+          const id = Number(a.id_produit);
+          const qty = Number(a.quantite);
+          const prix = Number(a.prix);
+          if (![id, qty, prix].every(Number.isFinite)) {
+            throw new Error(
+              `Article invalide (valeurs non numériques): ${JSON.stringify(a)}`
+            );
+          }
+          return `${id}-${qty}-${prix}`;
+        })
         .join('#') + '#'
     );
   }
@@ -110,7 +122,10 @@ class VenteRepresentantService {
     if (!params.date_facture) {
       throw new Error('Date de facture manquante');
     }
-    if (!params.id_structure || !params.id_representant) {
+    if (
+      !Number.isFinite(Number(params.id_structure)) ||
+      !Number.isFinite(Number(params.id_representant))
+    ) {
       throw new Error('Structure ou représentant invalide');
     }
     if (!params.articles || params.articles.length === 0) {
@@ -128,8 +143,16 @@ class VenteRepresentantService {
       }
     }
 
-    const mode = params.mode_paiement || 'CASH';
-    const mtAcompte = params.mt_acompte ?? 0;
+    // Whitelist du mode de paiement (défense-en-profondeur : mode interpolé en SQL)
+    const MODES_AUTORISES = ['CASH', 'OM', 'WAVE', 'FREE'] as const;
+    const mode = MODES_AUTORISES.includes(
+      params.mode_paiement as (typeof MODES_AUTORISES)[number]
+    )
+      ? params.mode_paiement!
+      : 'CASH';
+    const mtAcompte = Number.isFinite(Number(params.mt_acompte))
+      ? Number(params.mt_acompte)
+      : 0;
 
     const articlesString = this.buildArticlesString(params.articles);
 
