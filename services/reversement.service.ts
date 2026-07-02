@@ -46,10 +46,13 @@ class ReversementService {
   // ────────────────────────────────────────────────────────────
 
   async declarer(params: DeclarerReversementParams): Promise<ReversementOperationResponse> {
-    if (!params.id_representant || params.id_representant <= 0) {
+    // Coercition numérique + rejet non-fini (défense-en-profondeur SQLi)
+    const idRep = Number(params.id_representant);
+    const montant = Number(params.montant);
+    if (!Number.isFinite(idRep) || idRep <= 0) {
       throw new Error('Identifiant représentant invalide');
     }
-    if (!params.montant || params.montant <= 0) {
+    if (!Number.isFinite(montant) || montant <= 0) {
       throw new Error('Le montant doit être strictement positif');
     }
     if (!MODES_PAIEMENT_VALIDES.includes(params.mode_paiement)) {
@@ -58,8 +61,8 @@ class ReversementService {
 
     // ⚠️ Pas de p_id_structure : declarer_reversement le dérive côté serveur
     const query = `SELECT * FROM declarer_reversement(
-      ${params.id_representant},
-      ${params.montant},
+      ${idRep},
+      ${montant},
       '${params.mode_paiement}',
       ${this.esc(params.reference_transaction)},
       ${this.esc(params.commentaire)}
