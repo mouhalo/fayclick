@@ -188,8 +188,6 @@ export default function DashboardRepresentantPage() {
               icon={<Package className="w-6 h-6" />}
               label="Mon stock"
               color="from-purple-500 to-indigo-600"
-              disabled
-              comingSoon
             />
             <ActionButton
               href="/dashboard/representant/factures"
@@ -216,6 +214,14 @@ export default function DashboardRepresentantPage() {
             <h2 className="text-xs font-bold text-gray-500 uppercase tracking-wide">
               Mon stock (top 3)
             </h2>
+            {stockPreview.length > 0 && (
+              <Link
+                href="/dashboard/representant/stock"
+                className="text-xs font-semibold text-fuchsia-600 hover:text-fuchsia-700"
+              >
+                Voir tout →
+              </Link>
+            )}
           </div>
 
           {loading ? (
