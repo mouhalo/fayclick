@@ -91,6 +91,7 @@ export function ModalPasswordRevealRep({
         // ⚠️ Stockage en mémoire uniquement, jamais persisté ni loggé
         setNewPassword(res.data.new_password);
         setStep('success');
+        setResetting(false); // ⚠️ sinon handleClose (if resetting return) bloque « Fermer »
         toast.success(res.message || 'Mot de passe réinitialisé');
         // NB : onSuccess() est déféré à handleClose (voir commentaire) — le
         // déclencher ici rechargerait la liste et démonterait ce modal (perte du MDP).
