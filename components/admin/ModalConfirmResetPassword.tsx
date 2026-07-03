@@ -127,6 +127,7 @@ export function ModalConfirmResetPassword({
         // ⚠️ Stockage en mémoire uniquement, NEVER persist
         setNewPassword(response.new_password);
         setStep('success');
+        setResetting(false); // ⚠️ sinon handleClose (if resetting return) bloque « Fermer »
         toast.success('Mot de passe réinitialisé');
       } else {
         // Reste à l'étape 1 pour permettre la réessai
