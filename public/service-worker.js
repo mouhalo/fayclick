@@ -1,10 +1,10 @@
 // Service Worker FayClick V2 - PWA Complète
 // Version: 2.8.0 - 2026-02-01 - Intégration add_acompte_facture1 + photo produit
-// Build: 2026-06-17 - Proforma stock non bloquant + colonne Réf. (code-barres) états A4
+// Build: 2026-07-03 - Reset MDP caissier (Settings) + fix affichage MDP représentant (bump cache)
 // Build: 2026-02-01T21:12:32.816Z
 
-const CACHE_NAME = 'fayclick-v3.1-cache-20260617';
-const DYNAMIC_CACHE_NAME = 'fayclick-v3.1-dynamic-20260617';
+const CACHE_NAME = 'fayclick-v3.2-cache-20260703';
+const DYNAMIC_CACHE_NAME = 'fayclick-v3.2-dynamic-20260703';
 const OFFLINE_PAGE_URL = '/offline';
 
 // Nom de l'IndexedDB pour les requêtes en attente (Background Sync)
