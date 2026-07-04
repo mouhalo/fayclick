@@ -212,6 +212,7 @@ The project is in Phase 2 development with:
 - ✅ **Configurateur modèle facture** drag & drop avec aperçu live (compte_prive uniquement)
 - ✅ **Dashboard Commerce Desktop** avec données réelles PostgreSQL (KPIs, graphique semaine, top articles/clients, factures, dépenses, stats globales)
 - ✅ **Masquage montants CAISSIER** sur dashboard desktop (CA, panier moyen, valeur stock, factures, top produits/clients, dépenses → ***)
+- ✅ **Isolation ventes par caissier (Vente Flash)** — 2 couches : filtre UI (`id_utilisateur === user.id`, ADMIN voit tout + datepicker) **et** filtre serveur SQL (`get_my_factures1(..., pid_utilisateur)`). Un CAISSIER ne voit QUE ses ventes à l'écran et ne peut pas lire celles des collègues via l'API.
 
 ### Production Environment
 - **Live URL**: https://v2.fayclick.net
@@ -343,6 +344,12 @@ Tous les services suivent un pattern singleton avec gestion d'erreurs centralis�
 ```sql
 -- Clients
 SELECT * FROM get_list_clients(pid_structure, ptel_client);
+
+-- Liste factures / ventes (Vente Flash) — RETURNS json
+-- ⚠️ 5e param pid_utilisateur (isolation caissier) : 0/NULL = voir tout (ADMIN, rétro-compat 4-args),
+--    >0 = ne retourne QUE les factures id_utilisateur = pid_utilisateur (CAISSIER ne voit que les siennes).
+SELECT * FROM get_my_factures1(pid_structure, pannee, pmois, pid_facture DEFAULT 0, pid_utilisateur DEFAULT 0);
+-- Front : const pidUtilisateur = isAdmin ? 0 : user.id;
 
 -- Droits utilisateur
 SELECT * FROM get_mes_droits(pid_structure, pid_profil);
@@ -744,6 +751,7 @@ const response = typeof rawResponse === 'string'
 - ✅ **config_facture** : Remplacement complet (pas de merge), layout = `{ header: { gauche, centre, droite }, footer: { ... } }`
 - ✅ **info_facture** : Merge côté serveur (COALESCE champ par champ)
 - ✅ **Dashboard desktop montants** : Toujours passer `canViewCA` aux sous-composants (WeeklyBarChart, TopProducts, TopClients, RecentInvoices) et afficher `***` si false
+- ✅ **Isolation caissier Vente Flash** : DEUX couches obligatoires. (1) SQL serveur — passer `pid_utilisateur = isAdmin ? 0 : user.id` à `get_my_factures1` (sinon un caissier lit les ventes des collègues via l'API). (2) Filtre client `id_utilisateur === user.id` en défense-en-profondeur. `isAdmin` via `useUserProfile()` (id_profil===1). Ne JAMAIS se contenter du filtre client seul pour de l'isolation de données
 - ✅ **DatabaseService import** : Utiliser directement `DatabaseService.executeFunction()` (l'import est l'instance, pas la classe)
 - ✅ **WeeklyBarChart montants** : Afficher les montants à l'intérieur des barres (texte vertical blanc `writing-mode: vertical-rl`), jamais au-dessus (chevauchement titre). Afficher seulement si `heightPct > 12`
 - ✅ **tsconfig** : `moduleResolution: "bundler"` (pas `"node"`, déprécié TS 7.0), pas de `baseUrl` (les alias `@/*` via `paths` suffisent)
