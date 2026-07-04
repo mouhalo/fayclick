@@ -188,7 +188,11 @@ export default function VenteFlashPage() {
       const annee = parseInt(yStr, 10);
       const mois = parseInt(mStr, 10);
 
-      const query = `SELECT * FROM get_my_factures1(${user.id_structure}, ${annee}, ${mois}, 0)`;
+      // Isolation SQL (sécurité) : un CAISSIER ne reçoit QUE ses ventes du serveur
+      // (pid_utilisateur = user.id) ; ADMIN reçoit tout (pid_utilisateur = 0).
+      // Le filtre client plus bas reste en défense-en-profondeur.
+      const pidUtilisateur = isAdmin ? 0 : user.id;
+      const query = `SELECT * FROM get_my_factures1(${user.id_structure}, ${annee}, ${mois}, 0, ${pidUtilisateur})`;
       const results = await database.query(query, 30000);
 
       // Toujours recalculé (même vide) → aucune donnée périmée au changement de date.
