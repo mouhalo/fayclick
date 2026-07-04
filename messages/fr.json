@@ -1379,7 +1379,10 @@
     "salesList": {
       "empty": "Aucune vente aujourd'hui",
       "emptyHint": "Les ventes de la journée apparaîtront ici",
-      "titleWithCount": "Ventes du jour ({count})"
+      "titleWithCount": "Ventes du jour ({count})",
+      "titleWithDate": "Ventes du {date} ({count})",
+      "date": "Date",
+      "cashierFallback": "Caissier"
     },
     "saleCard": {
       "details": "Détails",

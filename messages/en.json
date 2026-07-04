@@ -1379,7 +1379,10 @@
     "salesList": {
       "empty": "No sales today",
       "emptyHint": "Today's sales will appear here",
-      "titleWithCount": "Today's sales ({count})"
+      "titleWithCount": "Today's sales ({count})",
+      "titleWithDate": "Sales of {date} ({count})",
+      "date": "Date",
+      "cashierFallback": "Cashier"
     },
     "saleCard": {
       "details": "Details",
