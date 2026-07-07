@@ -358,8 +358,27 @@ export function PanierSidePanel({ onSuccess, onClose }: PanierSidePanelProps) {
         }
 
         const client = proformaPanier.infosClient;
+        // Absorption des remises PAR LIGNE dans prix_applique (net) avant envoi, car
+        // createProforma est pass-through et n'absorbe pas (contrairement à createFacture).
+        // Logique mode-aware identique à facture.service.ts (articlesAvecPrixNet) : en mode F
+        // remise_article est un MONTANT, converti en % de ligne pour application unitaire.
+        const remiseMode = (typeof window !== 'undefined' && localStorage.getItem('vf_remise_mode')) || '%';
+        const articlesProformaNet = proformaPanier.articles.map(art => {
+          const prixOrigine = art.prix_applique ?? art.prix_vente;
+          const remiseArt = art.remise_article || 0;
+          if (remiseArt === 0) return { ...art, prix_applique: prixOrigine };
+          let pctEquivalent = 0;
+          if (remiseMode === '%') {
+            pctEquivalent = Math.max(0, Math.min(100, remiseArt));
+          } else {
+            const lineBrut = prixOrigine * art.quantity;
+            pctEquivalent = lineBrut > 0 ? Math.min(100, (remiseArt / lineBrut) * 100) : 0;
+          }
+          const prixNet = Math.round(prixOrigine * (1 - pctEquivalent / 100));
+          return { ...art, prix_applique: prixNet };
+        });
         const result = await proformaService.createProforma(
-          proformaPanier.articles,
+          articlesProformaNet,
           {
             nom_client_payeur: client.nom_client_payeur || '',
             tel_client: client.tel_client || '',
