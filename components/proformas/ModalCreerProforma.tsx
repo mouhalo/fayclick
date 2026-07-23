@@ -243,12 +243,14 @@ export function ModalCreerProforma({
     try {
       // Option A : remises par ligne absorbées dans prix_applique net.
       // La remise envoyée au backend = remise globale uniquement (la part par ligne
-      // est déjà soustraite via prix_applique).
+      // est déjà soustraite via prix_applique). remise_article est remis à 0 car ici
+      // sa sémantique est toujours en % (indépendante de vf_remise_mode) — sinon
+      // proforma.service.absorberRemisesArticles() appliquerait une double décote.
       const articlesAEnvoyer = articles.map(art => {
         const prixOrigine = art.prix_applique ?? art.prix_vente;
         const remisePct = art.remise_article || 0;
         const prixNet = Math.round(prixOrigine * (1 - remisePct / 100));
-        return { ...art, prix_applique: prixNet };
+        return { ...art, prix_applique: prixNet, remise_article: 0 };
       });
 
       if (editMode && proformaToEdit) {
