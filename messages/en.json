@@ -351,6 +351,8 @@
     "tableUnitPrice": "Unit price",
     "tableTotal": "Total",
     "productCode": "Code: {id}",
+    "subtotal": "Subtotal:",
+    "discount": "Discount:",
     "grandTotal": "Grand Total:",
     "pricesHidden": "Prices are hidden. Click \"Show prices\" to view them.",
     "linkCopied": "Link copied to clipboard!",
