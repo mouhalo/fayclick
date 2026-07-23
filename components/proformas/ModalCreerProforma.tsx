@@ -114,11 +114,15 @@ export function ModalCreerProforma({
     // Convertir details proforma en articles + reconstituer la remise par ligne
     // En option A, le prix_unitaire stocké en BD est le prix net (après remise article).
     // On retrouve le prix d'origine via allProduits pour déduire le % de remise.
+    // Arrondi à 2 décimales (pas à l'entier) : sur petits prix, le % effectif n'est
+    // pas entier (ex. 32 F − 12% → net 28 F = 12,5% effectif). Afficher 13% serait
+    // faux et un re-enregistrement dériverait ; 12,5% est exact et stable au re-save
+    // (32 × (1 − 0.125) = 28 pile).
     const arts = proformaDetails.map(d => {
       const prod = allProduits.find(p => p.id_produit === d.id_produit);
       const prixOrigine = prod?.prix_vente ?? d.prix_unitaire;
       const remisePct = prixOrigine > d.prix_unitaire
-        ? Math.round(((prixOrigine - d.prix_unitaire) / prixOrigine) * 100)
+        ? Math.round(((prixOrigine - d.prix_unitaire) / prixOrigine) * 10000) / 100
         : 0;
       return {
         id_produit: d.id_produit,
@@ -434,6 +438,7 @@ export function ModalCreerProforma({
                             placeholder="0"
                             min={0}
                             max={100}
+                            step={0.01}
                             className="w-16 px-2 py-1 bg-white border border-gray-200 rounded-md text-xs text-right focus:ring-2 focus:ring-amber-500 focus:border-transparent"
                           />
                           <span className="text-xs text-gray-500">%</span>
