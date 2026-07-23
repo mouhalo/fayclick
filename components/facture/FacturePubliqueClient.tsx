@@ -674,12 +674,33 @@ export default function FacturePubliqueClient({ token }: FacturePubliqueClientPr
                     </tbody>
                     {showPrices && (
                       <tfoot>
+                        {/* Remise globale : montant = brut (Σ lignes), net à payer = montant − mt_remise */}
+                        {facture.facture.mt_remise > 0 && (
+                          <>
+                            <tr className="border-t-2 border-gray-300">
+                              <td colSpan={3} className={`text-right py-2 px-3 font-medium text-gray-700 ${screenType === 'mobile' ? 'text-xs' : 'text-sm'}`}>
+                                {t('subtotal')}
+                              </td>
+                              <td className={`text-right py-2 px-3 font-medium text-gray-700 ${screenType === 'mobile' ? 'text-xs' : 'text-sm'}`}>
+                                {formatMontant(facture.facture.montant)}
+                              </td>
+                            </tr>
+                            <tr>
+                              <td colSpan={3} className={`text-right py-2 px-3 font-medium text-orange-600 ${screenType === 'mobile' ? 'text-xs' : 'text-sm'}`}>
+                                {t('discount')}
+                              </td>
+                              <td className={`text-right py-2 px-3 font-medium text-orange-600 ${screenType === 'mobile' ? 'text-xs' : 'text-sm'}`}>
+                                -{formatMontant(facture.facture.mt_remise)}
+                              </td>
+                            </tr>
+                          </>
+                        )}
                         <tr className="border-t-2 border-gray-300 bg-gradient-to-r from-green-50 to-emerald-50">
                           <td colSpan={3} className={`text-right py-3 px-3 font-bold text-gray-900 ${screenType === 'mobile' ? 'text-sm' : 'text-base'}`}>
                             {t('grandTotal')}
                           </td>
                           <td className={`text-right py-3 px-3 font-bold text-green-600 ${screenType === 'mobile' ? 'text-base' : 'text-lg'}`}>
-                            {formatMontant(facture.facture.montant)}
+                            {formatMontant(facture.facture.montant - (facture.facture.mt_remise || 0))}
                           </td>
                         </tr>
                       </tfoot>
