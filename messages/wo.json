@@ -351,6 +351,8 @@
     "tableUnitPrice": "Njëg Unité",
     "tableTotal": "Total",
     "productCode": "Code : {id}",
+    "subtotal": "Sous-total :",
+    "discount": "Wàññi :",
     "grandTotal": "Total Yépp :",
     "pricesHidden": "Njëg yi dañu leen nëbb. Tappal ci « Wone njëg yi » ngir gis leen.",
     "linkCopied": "Lien copie nañu ko ci presse-papier !",
