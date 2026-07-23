@@ -452,6 +452,19 @@ export function ModalFactureSuccess() {
     };
   };
 
+  // Totaux d'impression cohérents avec les lignes affichées.
+  // Les remises par article sont absorbées dans les prix BD (montant = net lignes),
+  // alors que les articles pré-chargés du panier sont aux prix d'origine : la remise
+  // affichée doit donc être reconstituée = Σ lignes affichées − montant net
+  // (chemin pré-chargé → remises article + globale ; chemin BD → remise globale seule).
+  const computeTotauxImpression = () => {
+    const montantNet = (factureDetails?.montant || 0) - (factureDetails?.mt_remise || 0);
+    const sousTotalLignes = factureArticles.reduce((s, a) => s + (a.sous_total || 0), 0);
+    const sousTotal = sousTotalLignes > 0 ? sousTotalLignes : (factureDetails?.montant || 0);
+    const remise = Math.max(0, sousTotal - montantNet);
+    return { sousTotal, remise, montantNet };
+  };
+
   // Imprimer la facture format A4
   const handlePrintFacture = () => {
     if (!factureDetails) return;
@@ -462,11 +475,9 @@ export function ModalFactureSuccess() {
       weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
     });
 
-    const sousTotal = factureDetails.montant || 0;
-    const remise = factureDetails.mt_remise || 0;
+    const { sousTotal, remise, montantNet } = computeTotauxImpression();
     const acompte = factureDetails.mt_acompte || 0;
     const restant = factureDetails.mt_restant || 0;
-    const montantNet = sousTotal - remise;
 
     // URL absolue pour le filigrane
     const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
@@ -738,11 +749,9 @@ export function ModalFactureSuccess() {
       day: '2-digit', month: '2-digit', year: 'numeric'
     });
 
-    const sousTotal = factureDetails.montant || 0;
-    const remise = factureDetails.mt_remise || 0;
+    const { sousTotal, remise, montantNet } = computeTotauxImpression();
     const acompte = factureDetails.mt_acompte || 0;
     const restant = factureDetails.mt_restant || 0;
-    const montantNet = sousTotal - remise;
 
     const html = generateTicketHTML({
       nomStructure: structure?.nom_structure || 'Entreprise',
