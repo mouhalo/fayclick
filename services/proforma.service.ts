@@ -17,6 +17,19 @@ import {
   ProformaActionResponse,
 } from '@/types/proforma';
 
+/**
+ * Article après absorption de la remise par ligne, augmenté des champs de
+ * transport Phase 2 (internes au service, non persistés sur le type métier) :
+ *  - _pctEmis         : % à émettre dans le string (valeur saisie en mode %, sinon
+ *                       % équivalent arrondi 2 déc). undefined = pas de remise émise.
+ *  - _prixOrigineEmis : prix unitaire avant remise, figé à l'émission.
+ * Ces champs guident le join conditionnel 3/5 champs (articleToString).
+ */
+type ArticlePanierEmis = ArticlePanier & {
+  _pctEmis?: number;
+  _prixOrigineEmis?: number;
+};
+
 export class ProformaApiException extends Error {
   constructor(message: string, public statusCode: number = 500, public originalError?: unknown) {
     super(message);
@@ -47,16 +60,40 @@ class ProformaService {
    * Absorbe la remise par article dans prix_applique net, comme facture.service.ts
    * (logique byte-identique) : prix net = prix × (1 - remise%/100), arrondi.
    * En mode F (FCFA), remise_article est un montant de ligne converti en % équivalent.
-   * Les articles retournés ont remise_article = 0 (déjà absorbée) — un appelant qui
-   * pré-absorbe lui-même (ModalCreerProforma) doit passer remise_article = 0 pour
-   * éviter une double décote.
+   *
+   * Canal explicite Phase 2 (prioritaire) : si l'appelant fournit déjà remise_pct
+   * (% saisi exact) ET remise_article = 0 (prix déjà net), on émet ces valeurs
+   * telles quelles dans le string (5 champs) — c'est tout l'intérêt du chantier :
+   * voir « 12 » à l'édition plutôt qu'un % équivalent reconstitué (« 12,5 »).
+   * Sinon on absorbe la remise_article classique et on calcule _pctEmis/_prixOrigineEmis
+   * pour l'émission 5 champs (fallback panier classique).
+   *
+   * Les articles retournés ont toujours remise_article = 0 (déjà absorbée ou déjà nette).
    */
-  private absorberRemisesArticles(articles: ArticlePanier[]): ArticlePanier[] {
+  private absorberRemisesArticles(articles: ArticlePanier[]): ArticlePanierEmis[] {
     const remiseMode = (typeof window !== 'undefined' && localStorage.getItem('vf_remise_mode')) || '%';
     return articles.map(art => {
       const prixOrigine = art.prix_applique ?? art.prix_vente;
       const remiseArt = art.remise_article || 0;
-      if (remiseArt === 0) return { ...art, prix_applique: prixOrigine };
+      // Canal explicite : % saisi déjà fourni, prix déjà net → on transmet tel quel.
+      if (art.remise_pct !== undefined && remiseArt === 0) {
+        return {
+          ...art,
+          prix_applique: prixOrigine,
+          remise_article: 0,
+          _pctEmis: art.remise_pct,
+          _prixOrigineEmis: art.prix_origine ?? prixOrigine,
+        };
+      }
+      if (remiseArt === 0) {
+        return {
+          ...art,
+          prix_applique: prixOrigine,
+          remise_article: 0,
+          _pctEmis: undefined as number | undefined,
+          _prixOrigineEmis: undefined as number | undefined,
+        };
+      }
       let pctEquivalent = 0;
       if (remiseMode === '%') {
         pctEquivalent = Math.max(0, Math.min(100, remiseArt));
@@ -66,7 +103,16 @@ class ProformaService {
         pctEquivalent = lineBrut > 0 ? Math.min(100, (remiseArt / lineBrut) * 100) : 0;
       }
       const prixNet = Math.round(prixOrigine * (1 - pctEquivalent / 100));
-      return { ...art, prix_applique: prixNet, remise_article: 0 };
+      // % émis = valeur saisie en mode %, sinon % équivalent arrondi 2 déc
+      // (séparateur décimal POINT garanti par String(Number) à l'interpolation).
+      const pctEmis = Math.round(pctEquivalent * 100) / 100;
+      return {
+        ...art,
+        prix_applique: prixNet,
+        remise_article: 0,
+        _pctEmis: pctEmis,
+        _prixOrigineEmis: prixOrigine,
+      };
     });
   }
 
@@ -104,9 +150,16 @@ class ProformaService {
         throw new ProformaApiException('La remise ne peut pas etre superieure au sous-total', 400);
       }
 
-      // Format articles string: "id-qty-prix#id-qty-prix#" (prix nets)
+      // Format articles string: "id-qty-prix[-remise_pct[-prix_origine]]#" (prix nets)
+      // Join conditionnel 3/5 champs : on n'émet remise_pct/prix_origine que si une
+      // remise a été saisie (Phase 2). Backward-compatible avec les parsers 3-champs.
       const articlesString = articlesNet
-        .map(article => `${article.id_produit}-${article.quantity}-${article.prix_applique ?? article.prix_vente}`)
+        .map(article => {
+          const base = `${article.id_produit}-${article.quantity}-${article.prix_applique ?? article.prix_vente}`;
+          return article._pctEmis !== undefined && article._pctEmis > 0
+            ? `${base}-${article._pctEmis}-${article._prixOrigineEmis}`
+            : base;
+        })
         .join('#') + '#';
 
       const escapedNom = clientInfo.nom_client_payeur.replace(/'/g, "''");
@@ -258,8 +311,15 @@ class ProformaService {
       let montantCalcule: number | undefined = montants?.montant;
       if (articles && articles.length > 0) {
         const articlesNet = this.absorberRemisesArticles(articles);
+        // Join conditionnel 3/5 champs (parité createProforma) — on n'émet les champs
+        // remise que si une remise a été saisie. Backward-compatible avec 3-champs.
         const str = articlesNet
-          .map(a => `${a.id_produit}-${a.quantity}-${a.prix_applique ?? a.prix_vente}`)
+          .map(a => {
+            const base = `${a.id_produit}-${a.quantity}-${a.prix_applique ?? a.prix_vente}`;
+            return a._pctEmis !== undefined && a._pctEmis > 0
+              ? `${base}-${a._pctEmis}-${a._prixOrigineEmis}`
+              : base;
+          })
           .join('#') + '#';
         articlesStr = `'${str}'`;
         if (montantCalcule === undefined) {
