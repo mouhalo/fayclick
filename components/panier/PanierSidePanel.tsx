@@ -371,18 +371,23 @@ export function PanierSidePanel({ onSuccess, onClose }: PanierSidePanelProps) {
           try {
             const detailsResponse = await proformaService.getProformaDetails(result.id_proforma);
             const now = new Date().toISOString();
+            // BD = source de vérité pour les montants : les détails imprimés sont aux
+            // prix nets BD (remises article absorbées) — les montants du store (bruts
+            // + remises agrégées) divergeraient des lignes et étiquetteraient les
+            // remises article en « Remise globale ».
+            const pBD = detailsResponse.proforma;
             const proformaData: Proforma = {
               id_proforma: result.id_proforma,
-              num_proforma: result.num_proforma || `PRO-${result.id_proforma}`,
+              num_proforma: pBD?.num_proforma || result.num_proforma || `PRO-${result.id_proforma}`,
               nom_client: client.nom_client_payeur || '',
               tel_client: client.tel_client || '',
               description: '',
-              date_proforma: now,
+              date_proforma: pBD?.date_proforma || now,
               date_creation: now,
               date_modification: now,
-              montant: montants.sous_total,
-              mt_remise: montants.remise,
-              montant_net: montants.montant_net,
+              montant: pBD?.montant ?? montants.montant_net,
+              mt_remise: pBD?.mt_remise ?? 0,
+              montant_net: pBD?.montant_net ?? montants.montant_net,
               id_etat: 1,
               libelle_etat: 'BROUILLON',
               id_structure: 0,
@@ -868,7 +873,9 @@ export function PanierSidePanel({ onSuccess, onClose }: PanierSidePanelProps) {
                 </div>
                 {montants.remise > 0 && (
                   <div className="flex justify-between text-sm text-green-600">
-                    <span>{remiseMode === '%' ? t('discountWithPct', { pct: remiseInput }) : t('discountColon')}</span>
+                    {/* Le % n'a de sens que si toute la remise vient de la saisie globale
+                        (sinon le total inclut des remises par article au % différent) */}
+                    <span>{remiseMode === '%' && adapter.remise === montants.remise ? t('discountWithPct', { pct: remiseInput }) : t('discountColon')}</span>
                     <span>-{montants.remise.toLocaleString('fr-FR')} F</span>
                   </div>
                 )}
@@ -1107,16 +1114,18 @@ function PanierSidePanelLegacy({
           try {
             const detailsResponse = await proformaService.getProformaDetails(result.id_proforma);
             const now = new Date().toISOString();
+            // BD = source de vérité pour les montants (cf. bloc desktop plus haut)
+            const pBD = detailsResponse.proforma;
             const proformaData: Proforma = {
               id_proforma: result.id_proforma,
-              num_proforma: result.num_proforma || `PRO-${result.id_proforma}`,
+              num_proforma: pBD?.num_proforma || result.num_proforma || `PRO-${result.id_proforma}`,
               nom_client: infosClient.nom_client_payeur || '',
               tel_client: infosClient.tel_client || '',
               description: '',
-              date_proforma: now, date_creation: now, date_modification: now,
-              montant: montants.sous_total,
-              mt_remise: montants.remise,
-              montant_net: montants.montant_net,
+              date_proforma: pBD?.date_proforma || now, date_creation: now, date_modification: now,
+              montant: pBD?.montant ?? montants.montant_net,
+              mt_remise: pBD?.mt_remise ?? 0,
+              montant_net: pBD?.montant_net ?? montants.montant_net,
               id_etat: 1, libelle_etat: 'BROUILLON',
               id_structure: 0, id_utilisateur: 0, id_facture_liee: null,
               nb_articles: articles.length,
@@ -1375,7 +1384,8 @@ function PanierSidePanelLegacy({
                 </div>
                 {montants.remise > 0 && (
                   <div className="flex justify-between text-sm text-green-600">
-                    <span>{remiseMode === '%' ? t('discountWithPct', { pct: remiseInput }) : t('discountColon')}</span>
+                    {/* % affiché seulement si toute la remise vient de la saisie globale */}
+                    <span>{remiseMode === '%' && remise === montants.remise ? t('discountWithPct', { pct: remiseInput }) : t('discountColon')}</span>
                     <span>-{montants.remise.toLocaleString('fr-FR')} F</span>
                   </div>
                 )}
