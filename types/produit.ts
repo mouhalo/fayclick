@@ -57,6 +57,10 @@ export interface ArticlePanier extends Produit {
   quantity: number;
   prix_applique?: number; // Prix choisi (public ou gros) - si absent, utilise prix_vente
   remise_article?: number; // Pourcentage de remise par article (0-100, défaut 0)
+  /** % saisi à transmettre tel quel en BD (prioritaire sur remise_article à l'émission) */
+  remise_pct?: number;
+  /** Prix d'origine à transmettre tel quel en BD */
+  prix_origine?: number;
 }
 
 // Statistiques de la structure pour les produits
