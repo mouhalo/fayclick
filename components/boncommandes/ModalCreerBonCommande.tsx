@@ -36,6 +36,7 @@ import { ModalGestionFournisseurs } from '@/components/fournisseurs/ModalGestion
 import type { Fournisseur } from '@/types/fournisseur';
 import { Produit, ArticlePanier } from '@/types/produit';
 import { BonCommande, BonCommandeComplete } from '@/types/bon-commande';
+import { numOrNull } from '@/lib/numeric-utils';
 import { formatAmount } from '@/lib/utils';
 
 interface ModalCreerBonCommandeProps {
@@ -142,14 +143,18 @@ export function ModalCreerBonCommande({
     // Pour BC, prixOrigine = cout_revient (fallback prix_vente) — différent de proforma
     const arts: ArticlePanier[] = (bc.articles || []).map((d) => {
       const prod = allProduits.find((p) => p.id_produit === d.id_produit);
+      // Persisté (Phase 2) : % saisi exact + prix d'origine figé (cout_revient avant remise).
+      // Fallback (lignes historiques) : reconstitution lookup catalogue, arrondi entier.
       const prixOrigine =
-        prod?.cout_revient && prod.cout_revient > 0
+        numOrNull(d.prix_origine) ??
+        (prod?.cout_revient && prod.cout_revient > 0
           ? prod.cout_revient
-          : prod?.prix_vente ?? d.cout_revient;
+          : prod?.prix_vente ?? d.cout_revient);
       const remisePct =
-        prixOrigine > d.cout_revient
+        numOrNull(d.remise_pct) ??
+        (prixOrigine > d.cout_revient
           ? Math.round(((prixOrigine - d.cout_revient) / prixOrigine) * 100)
-          : 0;
+          : 0);
 
       return {
         id_produit: d.id_produit,
