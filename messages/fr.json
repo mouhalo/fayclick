@@ -351,6 +351,8 @@
     "tableUnitPrice": "Prix Unit.",
     "tableTotal": "Total",
     "productCode": "Code : {id}",
+    "subtotal": "Sous-total :",
+    "discount": "Remise :",
     "grandTotal": "Total Général :",
     "pricesHidden": "Les prix sont masqués. Cliquez sur « Afficher les prix » pour les consulter.",
     "linkCopied": "Lien copié dans le presse-papier !",
