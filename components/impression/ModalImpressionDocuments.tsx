@@ -8,6 +8,7 @@ import { ConfigFacture, InfoFacture } from '@/types/auth';
 import { Produit } from '@/types/produit';
 import { produitsService } from '@/services/produits.service';
 import { formatAmount, formatDate, escapeHtml } from '@/lib/utils';
+import { numOrNull } from '@/lib/numeric-utils';
 
 type DocumentType = 'facture' | 'proforma' | 'bl' | 'br';
 type FormatType = 'personnalise' | 'standard';
@@ -160,14 +161,12 @@ export default function ModalImpressionDocuments({
         </tr>`;
       }
       if (isFacture) {
-        // Lookup prix d'origine pour reconstituer la remise par article
+        // Persisté (Phase 2) prioritaire ; fallback lookup catalogue pour l'historique
         // (le service facture absorbe la remise par article dans d.prix net)
-        const prixOrigine = prod?.prix_vente && prod.prix_vente > d.prix
-          ? prod.prix_vente
-          : d.prix;
-        const remiseArtPct = prixOrigine > 0
-          ? ((prixOrigine - d.prix) / prixOrigine) * 100
-          : 0;
+        const pctBD = numOrNull(d.remise_pct);
+        const origineBD = numOrNull(d.prix_origine);
+        const prixOrigine = origineBD ?? (prod?.prix_vente && prod.prix_vente > d.prix ? prod.prix_vente : d.prix);
+        const remiseArtPct = pctBD ?? (prixOrigine > 0 ? ((prixOrigine - d.prix) / prixOrigine) * 100 : 0);
         const remiseDisplay = remiseArtPct > 0.5
           ? (Math.abs(remiseArtPct - Math.round(remiseArtPct)) < 0.5
             ? `${Math.round(remiseArtPct)}%`
