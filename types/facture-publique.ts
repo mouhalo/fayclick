@@ -13,6 +13,10 @@ export interface DetailFacturePublique {
   marge: number;
   id_produit: number;
   sous_total: number;
+  /** % de remise par ligne persisté (Phase 1 BD) — null/absent sur lignes historiques */
+  remise_pct?: number | null;
+  /** Prix unitaire avant remise, figé à la vente — null/absent sur lignes historiques */
+  prix_origine?: number | null;
 }
 
 export interface ResumeFacture {
