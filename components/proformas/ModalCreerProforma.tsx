@@ -21,6 +21,7 @@ import { Client } from '@/types/client';
 import { Produit, ArticlePanier } from '@/types/produit';
 import { Proforma, ProformaDetail } from '@/types/proforma';
 import { formatAmount } from '@/lib/utils';
+import { numOrNull } from '@/lib/numeric-utils';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface ModalCreerProformaProps {
@@ -111,19 +112,24 @@ export function ModalCreerProforma({
     setRemiseInput(proformaToEdit.mt_remise);
     setRemiseMode('F');
 
-    // Convertir details proforma en articles + reconstituer la remise par ligne
-    // En option A, le prix_unitaire stocké en BD est le prix net (après remise article).
-    // On retrouve le prix d'origine via allProduits pour déduire le % de remise.
-    // Arrondi à 2 décimales (pas à l'entier) : sur petits prix, le % effectif n'est
-    // pas entier (ex. 32 F − 12% → net 28 F = 12,5% effectif). Afficher 13% serait
-    // faux et un re-enregistrement dériverait ; 12,5% est exact et stable au re-save
-    // (32 × (1 − 0.125) = 28 pile).
+    // Convertir details proforma en articles + reconstituer la remise par ligne.
+    // Priorité à la valeur PERSISTÉE (Phase 2) : remise_pct et prix_origine sont
+    // désormais stockés en BD (canal explicite 5 champs) → on affiche le % SAISI
+    // exact (« 12 », pas « 12,5 » reconstitué).
+    // Fallback (lignes historiques sans persistance) : reconstitution lookup catalogue
+    // à partir du prix net stocké, arrondi 2 décimales (sur petits prix, le % effectif
+    // n'est pas entier — ex. 32 F −12% → net 28 F = 12,5% effectif ; 12,5% est exact
+    // et stable au re-save : 32 × (1 − 0,125) = 28 pile).
     const arts = proformaDetails.map(d => {
+      const pctBD = numOrNull(d.remise_pct);
+      const origineBD = numOrNull(d.prix_origine);
       const prod = allProduits.find(p => p.id_produit === d.id_produit);
-      const prixOrigine = prod?.prix_vente ?? d.prix_unitaire;
-      const remisePct = prixOrigine > d.prix_unitaire
+      // Persisté (Phase 2) : % saisi exact + prix d'origine figé à la vente.
+      // Fallback (lignes historiques) : reconstitution lookup catalogue, 2 décimales.
+      const prixOrigine = origineBD ?? (prod?.prix_vente ?? d.prix_unitaire);
+      const remisePct = pctBD ?? (prixOrigine > d.prix_unitaire
         ? Math.round(((prixOrigine - d.prix_unitaire) / prixOrigine) * 10000) / 100
-        : 0;
+        : 0);
       return {
         id_produit: d.id_produit,
         nom_produit: d.nom_produit,
@@ -250,11 +256,21 @@ export function ModalCreerProforma({
       // est déjà soustraite via prix_applique). remise_article est remis à 0 car ici
       // sa sémantique est toujours en % (indépendante de vf_remise_mode) — sinon
       // proforma.service.absorberRemisesArticles() appliquerait une double décote.
+      // Canal explicite Phase 2 : on transmet aussi le % SAISI (et le prix d'origine)
+      // pour qu'il soit persisté tel quel en BD, et réaffiché à l'édition plutôt qu'un
+      // % équivalent reconstitué (le « 12,5 » du PO, qui doit redevenir « 12 »).
       const articlesAEnvoyer = articles.map(art => {
         const prixOrigine = art.prix_applique ?? art.prix_vente;
         const remisePct = art.remise_article || 0;
         const prixNet = Math.round(prixOrigine * (1 - remisePct / 100));
-        return { ...art, prix_applique: prixNet, remise_article: 0 };
+        return {
+          ...art,
+          prix_applique: prixNet,
+          remise_article: 0,
+          // Canal explicite Phase 2 : le service émet ce % tel quel (5 champs)
+          remise_pct: remisePct > 0 ? Math.round(remisePct * 100) / 100 : undefined,
+          prix_origine: remisePct > 0 ? prixOrigine : undefined,
+        };
       });
 
       if (editMode && proformaToEdit) {

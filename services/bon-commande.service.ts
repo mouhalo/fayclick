@@ -78,11 +78,32 @@ class BonCommandeService {
   }
 
   /**
-   * Convertit un ArticlePanier en chaine "id-qty-cout"
+   * Convertit un ArticlePanier en chaine "id-qty-prix" ou "id-qty-prix-pct-origine".
    * Utilise prix_applique (resolu par le store avec fallback cout_revient -> prix_vente).
+   *
+   * Specifique BC vs facture/proforma : l'absorption de la remise par ligne est
+   * deja realisee cote ModalCreerBonCommande.handleSubmit (prix_applique recu =
+   * prix NET), ET remise_article n'y est PAS remis a 0. On peut donc lire le %
+   * saisi directement via remise_article et reconstituer le prix d'origine avant
+   * remise a partir du prix net recu (= prix de base : cout_revient ou prix edite).
+   *
+   * Phase 2 remise ligne : format 5 champs quand une remise est presente, sinon
+   * format 3 champs (retro-compatible). Equivalences notationnelles :
+   *   _pctEmis          = remise_article clamp [0;100], arrondi 2 decimales (point)
+   *   _prixOrigineEmis  = cout_revient (prix de base) avant remise = prixNet/(1-pct)
    */
   private articleToString(article: ArticlePanier): string {
     const prix = article.prix_applique ?? article.cout_revient ?? article.prix_vente ?? 0;
+    const remiseArt = article.remise_article || 0;
+
+    // Join conditionnel 3/5 champs : on n'emet les champs 4-5 que si une remise
+    // est presente ET qu'on peut reconstituer un prix d'origine coherent (>0,
+    // pct < 100 pour eviter une division par zero).
+    if (remiseArt > 0 && prix > 0 && remiseArt < 100) {
+      const _pctEmis = Math.round(Math.max(0, Math.min(100, remiseArt)) * 100) / 100;
+      const _prixOrigineEmis = Math.round(prix / (1 - remiseArt / 100));
+      return `${article.id_produit}-${article.quantity}-${prix}-${_pctEmis}-${_prixOrigineEmis}`;
+    }
     return `${article.id_produit}-${article.quantity}-${prix}`;
   }
 
