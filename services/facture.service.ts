@@ -98,18 +98,23 @@ class FactureService {
       const articlesAvecPrixNet = articles.map(art => {
         const prixOrigine = art.prix_applique ?? art.prix_vente;
         const remiseArt = art.remise_article || 0;
-        if (remiseArt === 0) return { ...art, prix_applique: prixOrigine };
+        // Canal explicite (ModalCreerProforma & co) : % saisi déjà fourni, prix déjà net
+        if (art.remise_pct !== undefined && remiseArt === 0) {
+          return { ...art, prix_applique: prixOrigine, _pctEmis: art.remise_pct, _prixOrigineEmis: art.prix_origine ?? prixOrigine };
+        }
+        if (remiseArt === 0) return { ...art, prix_applique: prixOrigine, _pctEmis: undefined as number | undefined, _prixOrigineEmis: undefined as number | undefined };
         let pctEquivalent = 0;
         if (remiseMode === '%') {
           pctEquivalent = Math.max(0, Math.min(100, remiseArt));
         } else {
           // Mode F : remiseArt est un montant total (prix × qty × pct/100 pré-calculé)
-          // On convertit en % de la ligne pour application unitaire
           const lineBrut = prixOrigine * art.quantity;
           pctEquivalent = lineBrut > 0 ? Math.min(100, (remiseArt / lineBrut) * 100) : 0;
         }
         const prixNet = Math.round(prixOrigine * (1 - pctEquivalent / 100));
-        return { ...art, prix_applique: prixNet };
+        // % émis = valeur saisie en mode %, sinon % équivalent arrondi 2 déc (séparateur point garanti par String(Number))
+        const pctEmis = Math.round(pctEquivalent * 100) / 100;
+        return { ...art, prix_applique: prixNet, _pctEmis: pctEmis, _prixOrigineEmis: prixOrigine };
       });
 
       // sousTotal recalculé à partir des prix nets (après remises par article)
@@ -148,9 +153,14 @@ class FactureService {
       };
 
       // Approche senior: une seule requête atomique avec stored procedure
-      // Construire le string des articles au format "id-qty-prix#" (prix net après remise article)
+      // Construire le string des articles au format "id-qty-prix[-remise_pct[-prix_origine]]#"
       const articlesString = articlesAvecPrixNet
-        .map(article => `${article.id_produit}-${article.quantity}-${article.prix_applique ?? article.prix_vente}`)
+        .map(article => {
+          const base = `${article.id_produit}-${article.quantity}-${article.prix_applique ?? article.prix_vente}`;
+          return article._pctEmis !== undefined && article._pctEmis > 0
+            ? `${base}-${article._pctEmis}-${article._prixOrigineEmis}`
+            : base;
+        })
         .join('#') + '#';
 
       SecurityService.secureLog('log', 'Création facture via stored procedure', {
@@ -477,22 +487,32 @@ class FactureService {
     const articlesAvecPrixNet = articles.map(art => {
       const prixOrigine = art.prix_applique ?? art.prix_vente;
       const remiseArt = art.remise_article || 0;
-      if (remiseArt === 0) return { ...art, prix_applique: prixOrigine };
+      // Canal explicite (ModalCreerProforma & co) : % saisi déjà fourni, prix déjà net
+      if (art.remise_pct !== undefined && remiseArt === 0) {
+        return { ...art, prix_applique: prixOrigine, _pctEmis: art.remise_pct, _prixOrigineEmis: art.prix_origine ?? prixOrigine };
+      }
+      if (remiseArt === 0) return { ...art, prix_applique: prixOrigine, _pctEmis: undefined as number | undefined, _prixOrigineEmis: undefined as number | undefined };
       let pctEquivalent = 0;
       if (remiseMode === '%') {
         pctEquivalent = Math.max(0, Math.min(100, remiseArt));
       } else {
         // Mode F : remiseArt est un montant total (prix × qty × pct/100 pré-calculé)
-        // On convertit en % de la ligne pour application unitaire
         const lineBrut = prixOrigine * art.quantity;
         pctEquivalent = lineBrut > 0 ? Math.min(100, (remiseArt / lineBrut) * 100) : 0;
       }
       const prixNet = Math.round(prixOrigine * (1 - pctEquivalent / 100));
-      return { ...art, prix_applique: prixNet };
+      // % émis = valeur saisie en mode %, sinon % équivalent arrondi 2 déc (séparateur point garanti par String(Number))
+      const pctEmis = Math.round(pctEquivalent * 100) / 100;
+      return { ...art, prix_applique: prixNet, _pctEmis: pctEmis, _prixOrigineEmis: prixOrigine };
     });
 
     return articlesAvecPrixNet
-      .map(article => `${article.id_produit}-${article.quantity}-${article.prix_applique ?? article.prix_vente}`)
+      .map(article => {
+        const base = `${article.id_produit}-${article.quantity}-${article.prix_applique ?? article.prix_vente}`;
+        return article._pctEmis !== undefined && article._pctEmis > 0
+          ? `${base}-${article._pctEmis}-${article._prixOrigineEmis}`
+          : base;
+      })
       .join('#') + '#';
   }
 
@@ -565,14 +585,18 @@ class FactureService {
       const articlesString = this.buildArticlesString(articles);
 
       // 2. Validation stricte du format de la chaîne d'articles.
-      // Format généré : "id_produit-quantity-prix#" répété, terminé par '#'.
-      //  - id_produit : entier (\d+)
-      //  - quantity   : entier ou décimal (\d+(\.\d+)?) — la BD stocke quantite en `real`
-      //  - prix       : prix_applique arrondi via Math.round → entier, mais on tolère
-      //                 le décimal par prudence (fallback prix_vente sans arrondi)
+      // Format généré : "id_produit-quantity-prix[-remise_pct[-prix_origine]]#" répété,
+      // terminé par '#'. 3 à 5 champs par token (Phase 2 remise ligne).
+      //  - id_produit   : entier (\d+)
+      //  - quantity     : entier ou décimal (\d+(\.\d+)?) — la BD stocke quantite en `real`
+      //  - prix         : prix_applique arrondi via Math.round → entier, mais on tolère
+      //                   le décimal par prudence (fallback prix_vente sans arrondi)
+      //  - remise_pct   : optionnel, décimal (\d+(\.\d+)?) — séparateur point garanti
+      //  - prix_origine : optionnel, décimal (\d+(\.\d+)?)
       // Cette regex interdit espaces, lettres, quotes → toute évasion de la chaîne
       // quotée est impossible.
-      const articlesStringPattern = /^(\d+-\d+(\.\d+)?-\d+(\.\d+)?#)+$/;
+      // Format: id-qty-prix[-remise_pct[-prix_origine]]# — 3 à 5 champs par token (Phase 2 remise ligne)
+      const articlesStringPattern = /^(\d+-\d+(\.\d+)?-\d+(\.\d+)?(-\d+(\.\d+)?(-\d+(\.\d+)?)?)?#)+$/;
       if (!articlesStringPattern.test(articlesString)) {
         throw new FactureApiException('Format articles invalide', 400);
       }
