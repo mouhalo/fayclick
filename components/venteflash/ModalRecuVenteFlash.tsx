@@ -125,6 +125,12 @@ export function ModalRecuVenteFlash({
   const handlePrint = () => {
     setTimerPaused(true);
 
+    // Remise globale reconstituée : les lignes sont aux prix nets des remises
+    // par article, mais brutes de la remise globale (montantTotal = net encaissé).
+    // Sans sousTotal/remise, le ticket affichait un TOTAL ≠ Σ lignes sans explication.
+    const sousTotalLignes = detailFacture.reduce((s, item) => s + (item.sous_total || 0), 0);
+    const remiseGlobale = Math.max(0, sousTotalLignes - montantTotal);
+
     const structureDetails = authService.getStructureDetails();
     const html = generateTicketHTML({
       nomStructure,
@@ -135,6 +141,8 @@ export function ModalRecuVenteFlash({
       dateFacture: `${formatDate(dateVente)} ${formatTime(dateVente)}`,
       nomClient: 'CLIENT_ANONYME',
       articles: detailFacture.length > 0 ? detailFacture : undefined,
+      sousTotal: sousTotalLignes > 0 ? sousTotalLignes : undefined,
+      remise: remiseGlobale > 0 ? remiseGlobale : undefined,
       montantNet: montantTotal,
       methodePaiement: getMethodeLabel(),
       monnaieARendre: monnaieARendre > 0 ? monnaieARendre : undefined,
@@ -156,12 +164,16 @@ export function ModalRecuVenteFlash({
         ).join('\n') + '\n'
       : '';
 
+    const sousTotalLignes = detailFacture.reduce((s, item) => s + (item.sous_total || 0), 0);
+    const remiseGlobale = Math.max(0, sousTotalLignes - montantTotal);
+
     const message = encodeURIComponent(
       `🧾 *REÇU DE PAIEMENT*\n\n` +
       `📍 ${nomStructure}\n` +
       `📋 Facture: ${numFacture}\n` +
       `📅 ${formatDate(dateVente)} à ${formatTime(dateVente)}\n` +
       detailsText +
+      `${remiseGlobale > 0 ? `\n🎁 Remise: -${remiseGlobale.toLocaleString('fr-FR')} F` : ''}` +
       `\n💰 *TOTAL: ${montantTotal.toLocaleString('fr-FR')} FCFA*\n` +
       `💳 Paiement: ${getMethodeLabel()}\n\n` +
       `Merci de votre confiance ! 🙏`
