@@ -250,11 +250,21 @@ export function ModalCreerProforma({
       // est déjà soustraite via prix_applique). remise_article est remis à 0 car ici
       // sa sémantique est toujours en % (indépendante de vf_remise_mode) — sinon
       // proforma.service.absorberRemisesArticles() appliquerait une double décote.
+      // Canal explicite Phase 2 : on transmet aussi le % SAISI (et le prix d'origine)
+      // pour qu'il soit persisté tel quel en BD, et réaffiché à l'édition plutôt qu'un
+      // % équivalent reconstitué (le « 12,5 » du PO, qui doit redevenir « 12 »).
       const articlesAEnvoyer = articles.map(art => {
         const prixOrigine = art.prix_applique ?? art.prix_vente;
         const remisePct = art.remise_article || 0;
         const prixNet = Math.round(prixOrigine * (1 - remisePct / 100));
-        return { ...art, prix_applique: prixNet, remise_article: 0 };
+        return {
+          ...art,
+          prix_applique: prixNet,
+          remise_article: 0,
+          // Canal explicite Phase 2 : le service émet ce % tel quel (5 champs)
+          remise_pct: remisePct > 0 ? Math.round(remisePct * 100) / 100 : undefined,
+          prix_origine: remisePct > 0 ? prixOrigine : undefined,
+        };
       });
 
       if (editMode && proformaToEdit) {
