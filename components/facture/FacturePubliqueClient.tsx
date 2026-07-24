@@ -255,10 +255,10 @@ export default function FacturePubliqueClient({ token }: FacturePubliqueClientPr
       console.log('📋 [FACTURE-PUBLIQUE] Résultat enregistrement:', result);
 
       if (result.success) {
-        console.log('✅ [FACTURE-PUBLIQUE] Paiement + reçu enregistrés par add_acompte_facture1:', result.data);
+        console.log('✅ [FACTURE-PUBLIQUE] Paiement + reçu enregistrés par add_acompte_facture:', result.data);
         setPaymentSuccess(true);
 
-        // Le reçu est créé automatiquement par add_acompte_facture1 côté BD
+        // Le reçu est créé automatiquement par add_acompte_facture côté BD
         // Rediriger vers la page reçu public après 2.5s
         const recuUrl = recuService.generateUrlPartage(
           facture.facture.id_structure,
