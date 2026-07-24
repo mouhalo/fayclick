@@ -211,7 +211,7 @@ class OnlineSellerService {
    * Appelée APRÈS confirmation du paiement wallet (COMPLETED)
    *
    * Étape 1 : create_facture_online() - Crée la facture impayée avec les détails
-   * Étape 2 : add_acompte_facture1() - Enregistre le paiement + journal + reçu
+   * Étape 2 : add_acompte_facture() - Enregistre le paiement + journal + reçu
    */
   async createFactureOnline(params: CreateFactureOnlineParams): Promise<CreateFactureOnlineResult> {
     try {
@@ -241,7 +241,7 @@ class OnlineSellerService {
       // Format articles_string : "id_produit-quantite-prix#"
       const articlesString = `${params.id_produit}-${params.quantite}-${prixUnitaire}#`;
 
-      // Étape 1 : Créer la facture (impayée, le paiement sera géré par add_acompte_facture1)
+      // Étape 1 : Créer la facture (impayée, le paiement sera géré par add_acompte_facture)
       const createQuery = `
         SELECT * FROM create_facture_online(
           '${new Date().toISOString().split('T')[0]}',
@@ -284,7 +284,7 @@ class OnlineSellerService {
       // Étape 2 : Enregistrer le paiement + créer le reçu en une seule requête
       const modePaiement = params.mode_paiement;
       const acompteQuery = `
-        SELECT * FROM add_acompte_facture1(
+        SELECT * FROM add_acompte_facture(
           ${params.id_structure},
           ${idFacture},
           ${params.montant},
@@ -304,7 +304,7 @@ class OnlineSellerService {
         console.log('✅ [ONLINE-SELLER] Paiement + reçu enregistrés:', acompteData);
       }
 
-      // num_facture vient de add_acompte_facture1 → facture.num_facture
+      // num_facture vient de add_acompte_facture → facture.num_facture
       const numFacture = acompteData?.facture?.num_facture || `FAC-${idFacture}`;
 
       return {
@@ -352,7 +352,7 @@ class OnlineSellerService {
         .map(a => `${a.id_produit}-${a.quantite}-${a.prix_vente}`)
         .join('#') + '#';
 
-      // Étape 1 : Créer la facture (impayée, le paiement sera géré par add_acompte_facture1)
+      // Étape 1 : Créer la facture (impayée, le paiement sera géré par add_acompte_facture)
       const createQuery = `
         SELECT * FROM create_facture_online(
           '${new Date().toISOString().split('T')[0]}',
@@ -389,7 +389,7 @@ class OnlineSellerService {
       // Étape 2 : Enregistrer le paiement + créer le reçu en une seule requête
       const modePaiement = params.mode_paiement;
       const acompteQuery = `
-        SELECT * FROM add_acompte_facture1(
+        SELECT * FROM add_acompte_facture(
           ${params.id_structure},
           ${facture.id_facture},
           ${params.montant_total},
@@ -489,7 +489,7 @@ class OnlineSellerService {
   async registerPaymentOnline(params: RegisterPaymentParams): Promise<CreateFactureOnlineResult> {
     try {
       const acompteQuery = `
-        SELECT * FROM add_acompte_facture1(
+        SELECT * FROM add_acompte_facture(
           ${params.id_structure},
           ${params.id_facture},
           ${params.montant},
