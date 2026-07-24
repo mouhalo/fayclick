@@ -136,6 +136,10 @@ export default function ModalImpressionDocuments({
 
     const isProforma = docType === 'proforma';
 
+    // Convention : f.montant = BRUT = Σ lignes (les remises par article sont déjà
+    // absorbées dans les prix des lignes) ; le net à payer = montant − mt_remise.
+    const montantNet = f.montant - (f.mt_remise || 0);
+
     // BL = uniquement désignation + qté, pas de prix
     const isBL = docType === 'bl';
     // Colonne Remise uniquement pour les factures (BR conserve son layout actuel)
@@ -237,7 +241,7 @@ export default function ModalImpressionDocuments({
       ${f.mt_remise > 0 ? `
       <tr>
         <td colspan="${colCount - 1}" style="padding:3px 6px;text-align:right;font-size:11px;">Sous-total${isFacture ? ' (après remises article)' : ''}:</td>
-        <td style="padding:3px 6px;text-align:right;font-size:11px;">${(f.montant + f.mt_remise).toLocaleString('fr-FR')} FCFA</td>
+        <td style="padding:3px 6px;text-align:right;font-size:11px;">${f.montant.toLocaleString('fr-FR')} FCFA</td>
       </tr>
       <tr>
         <td colspan="${colCount - 1}" style="padding:3px 6px;text-align:right;font-size:11px;color:#e65100;">Remise${isFacture ? ' globale' : ''}:</td>
@@ -245,16 +249,16 @@ export default function ModalImpressionDocuments({
       </tr>` : ''}
       <tr class="total-row">
         <td colspan="${colCount - 1}" style="padding:6px;text-align:right;font-size:13px;">${avecTva ? 'TOTAL HT:' : 'TOTAL:'}</td>
-        <td style="padding:6px;text-align:right;font-size:13px;">${f.montant.toLocaleString('fr-FR')} FCFA</td>
+        <td style="padding:6px;text-align:right;font-size:13px;">${montantNet.toLocaleString('fr-FR')} FCFA</td>
       </tr>
       ${avecTva ? `
       <tr>
         <td colspan="${colCount - 1}" style="padding:3px 6px;text-align:right;font-size:11px;">TVA (${tauxTva}%):</td>
-        <td style="padding:3px 6px;text-align:right;font-size:11px;">${Math.round(f.montant * tauxTva / 100).toLocaleString('fr-FR')} FCFA</td>
+        <td style="padding:3px 6px;text-align:right;font-size:11px;">${Math.round(montantNet * tauxTva / 100).toLocaleString('fr-FR')} FCFA</td>
       </tr>
       <tr style="border-top:2px solid #333;">
         <td colspan="${colCount - 1}" style="padding:6px;text-align:right;font-size:13px;font-weight:bold;">TOTAL TTC:</td>
-        <td style="padding:6px;text-align:right;font-size:13px;font-weight:bold;">${Math.round(f.montant * (1 + tauxTva / 100)).toLocaleString('fr-FR')} FCFA</td>
+        <td style="padding:6px;text-align:right;font-size:13px;font-weight:bold;">${Math.round(montantNet * (1 + tauxTva / 100)).toLocaleString('fr-FR')} FCFA</td>
       </tr>` : ''}
     </tfoot>`}
   </table>
