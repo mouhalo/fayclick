@@ -72,6 +72,10 @@ export interface BonCommandeDetail {
   quantite: number;
   cout_revient: number;                  // Prix d'achat unitaire fige (>= 0)
   sous_total: number;                    // Calcule cote PG : quantite * cout_revient
+  /** % de remise par ligne persisté (Phase 1 BD) — null/absent sur lignes historiques */
+  remise_pct?: number | null;
+  /** Prix unitaire avant remise, figé à la vente — null/absent sur lignes historiques */
+  prix_origine?: number | null;
 }
 
 // =============================================================================

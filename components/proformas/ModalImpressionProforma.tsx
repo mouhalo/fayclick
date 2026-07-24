@@ -14,6 +14,7 @@ import { Proforma, ProformaDetail } from '@/types/proforma';
 import { Produit } from '@/types/produit';
 import { produitsService } from '@/services/produits.service';
 import { formatDate, escapeHtml } from '@/lib/utils';
+import { numOrNull } from '@/lib/numeric-utils';
 
 type FormatType = 'personnalise' | 'standard';
 
@@ -117,14 +118,13 @@ export function ModalImpressionProforma({
     //   remise_article = (prix_origine - prix_unitaire_BD) / prix_origine × 100
     // La remise globale (proforma.mt_remise) est affichée séparément dans le tfoot
     const articlesHtml = details.map(d => {
+      const pctBD = numOrNull(d.remise_pct);
+      const origineBD = numOrNull(d.prix_origine);
       const prod = produitsForLookup.find(p => p.id_produit === d.id_produit);
-      const prixOrigine = prod?.prix_vente && prod.prix_vente > d.prix_unitaire
-        ? prod.prix_vente
-        : d.prix_unitaire;
+      // Persisté (Phase 2) prioritaire ; fallback lookup catalogue pour l'historique
+      const prixOrigine = origineBD ?? (prod?.prix_vente && prod.prix_vente > d.prix_unitaire ? prod.prix_vente : d.prix_unitaire);
       const totalLigne = d.prix_unitaire * d.quantite;
-      const remiseArtPct = prixOrigine > 0
-        ? ((prixOrigine - d.prix_unitaire) / prixOrigine) * 100
-        : 0;
+      const remiseArtPct = pctBD ?? (prixOrigine > 0 ? ((prixOrigine - d.prix_unitaire) / prixOrigine) * 100 : 0);
       const remiseDisplay = remiseArtPct > 0.5
         ? (Math.abs(remiseArtPct - Math.round(remiseArtPct)) < 0.5
           ? `${Math.round(remiseArtPct)}%`
