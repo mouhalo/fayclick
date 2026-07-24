@@ -6,7 +6,92 @@
 > Toute modification de signature = **breaking change** à coordonner explicitement.
 > Toute nouvelle fonction doit être ajoutée ici avant utilisation en production.
 >
-> Dernière mise à jour : 2026-06-06 (v1.2 — modifier_facturecom CRIT-001+MIN-003 fixes)
+> Dernière mise à jour : 2026-07-24 (Phase 1 — Persistance remise par ligne — **EXÉCUTÉE EN PROD**)
+
+---
+
+## ✅ CHANTIER PHASE 1 — Persistance remise par ligne (24/07/2026) — EXÉCUTÉ
+
+**Statut : DÉPLOYÉ EN PRODUCTION** sur `fayclick_db` le 24/07/2026 par `dba_master` (exécution directe,
+psql absent du poste PO). COMMIT confirmé, 21 tests fonctionnels PASS (voir
+`RAPPORT_PHASE1_REMISE_LIGNE.md` §12 Exécution). **Aucun breaking change** de signature — le format
+`articles_string` ci-dessous est disponible immédiatement, le front peut commencer à émettre les
+champs 4-5 dès maintenant (rétro-compat 3-champs garantie, testée).
+
+**Déviation notable vs script initial** : l'ÉTAPE 3 (vue `list_detailventes`) plaçait
+`remise_pct`/`prix_origine` entre `prix` et `marge`, ce que `CREATE OR REPLACE VIEW` interdit
+(réordonnancement de colonne). Corrigé en ajoutant les 2 colonnes en **fin** de liste (après
+`description`). Détail dans `RAPPORT_PHASE1_REMISE_LIGNE.md` §12.2.
+
+### Changement d'interface (NON breaking sur les signatures)
+
+Les **signatures de toutes les fonctions ci-dessous restent strictement identiques**.
+Le changement porte uniquement sur le **format du paramètre `p_articles_string`** qui accepte
+désormais **2 champs optionnels supplémentaires** :
+
+| Format | Exemple | Sémantique |
+|---|---|---|
+| 3 champs (rétro-compat) | `"4682-3-176#"` | Inchangé — `remise_pct=NULL, prix_origine=NULL` |
+| 4 champs | `"4682-3-176-12.5#"` | Remise ligne persistée (`12.5%`) |
+| 5 champs | `"4682-3-176-12.5-200#"` | Ligne autoporteuse (`prix_origine=200`) |
+
+### ⚠️ Contrat fort côté `kader_backend`
+
+- **Séparateur de champs** : `-` (tiret). **Séparateur décimal : `.` (point)**, jamais `,`.
+  Le cast `::NUMERIC` échouerait sur une virgule (erreur SQLSTATE 22P02).
+- Lignes 2-champs ou 6+ champs **rejetées** (`NOT BETWEEN 3 AND 5`).
+- Lignes mixtes autorisées dans la même facture : `"4682-3-176-12.5-200#887-2-25000#"`.
+- `prix_origine` est **informatif** (prix public avant remise). Aucune CHECK sur la relation
+  `prix_origine >= prix` (permet la vente en gros où `prix > prix_origine` public).
+
+### Fonctions impactées (14 surcharges au total)
+
+Colonne **Vérifié** : ✅ = exécutée réellement en base (BEGIN...ROLLBACK) le 24/07/2026 avec
+assertions sur le JSON retourné et les lignes insérées. ⚠️ = `CREATE OR REPLACE` appliqué et
+syntaxiquement valide (le script complet a COMMIT sans erreur), mais **non exercée au runtime** —
+à tester avant de bâtir dessus côté front si le module correspondant est mis en chantier.
+
+| # | Fonction | Surcharges | Changement | Vérifié |
+|---|---|---|---|---|
+| 1 | `create_proforma` | 1 | garde `3..5` + INSERT étendu proforma_details | ✅ |
+| 2 | `edit_proforma` | 1 | garde + lecture 4-5 + re-INSERT étendu | ⚠️ |
+| 3 | `convert_proforma_to_facture` | 1 | propagation string 5-champs | ✅ |
+| 4 | `create_facture_complete1` (varchar) | 1 | garde `3..5` + INSERT étendu | ✅ (3/4/5 champs + CHECK reject) |
+| 5 | `create_facture_complete1` (text) | 1 | idem (R1 élevé — 2 surcharges conservées) | ✅ (identité TEXT confirmée distincte) |
+| 6 | `create_facture_complete` (ancien) | 1 | idem (patché par sécurité) | ⚠️ |
+| 7 | `create_facture_online` | 1 | idem | ⚠️ |
+| 8 | `create_bon_commande` | 1 | garde `3..5` + INSERT étendu bon_commande_details | ✅ (structure 218) |
+| 9 | `edit_bon_commande` | 1 | idem | ✅ (structure 218, retro-compat 3 champs) |
+| 10 | `add_new_devis_complet` | 1 | garde + INSERT étendu detail_devis | ⚠️ |
+| 11 | `maj_devis` | 1 | idem | ⚠️ |
+| 12 | `modifier_facturecom` | 1 | garde + UPDATE/INSERT étendus + log audit étendu | ✅ |
+| 13 | `rechercher_multifacturecom` | 1 | 2 `json_build_object` +`remise_pct`/`prix_origine` | ✅ |
+| 14 | `get_my_factures1` | 1 | 2 `json_build_object` +`remise_pct`/`prix_origine` (via vue) | ✅ |
+
+### Colonnes ajoutées (4 tables)
+
+```sql
+-- Toutes NULL par défaut (préserve l'historique 548k lignes)
+ALTER TABLE detail_facture_com   ADD COLUMN remise_pct NUMERIC(5,2),  ADD COLUMN prix_origine NUMERIC(10,2);
+ALTER TABLE proforma_details     ADD COLUMN remise_pct NUMERIC(5,2),  ADD COLUMN prix_origine NUMERIC(10,2);
+ALTER TABLE bon_commande_details ADD COLUMN remise_pct NUMERIC(5,2),  ADD COLUMN prix_origine NUMERIC(10,2);
+ALTER TABLE detail_devis         ADD COLUMN remise_pct NUMERIC(5,2),  ADD COLUMN prix_origine NUMERIC(10,2);
+```
+
+CHECK `remise_pct IS NULL OR (remise_pct BETWEEN 0 AND 100)` sur les 4 tables.
+
+### Affichage : `get_proforma_details` auto-exposé
+
+`get_proforma_details(p_id_proforma, p_id_structure) RETURNS json` — expose **automatiquement**
+les 2 nouvelles colonnes via `row_to_json(proforma_details)` (aucun patch requis).
+
+### Références
+
+- Script SQL : `docs/database/PATCH_PHASE1_REMISE_LIGNE.sql`
+- Rollback : `docs/database/99_rollback_phase1_remise_ligne.sql`
+- Backup pre-exec : `docs/database/backup_phase1_pre_execution.sh`
+- Rapport : `docs/database/RAPPORT_PHASE1_REMISE_LIGNE.md`
+- Rapport Phase 0 : `docs/database/PLAN_PHASE0_PERSISTANCE_REMISE_LIGNE.md`
 
 ---
 
