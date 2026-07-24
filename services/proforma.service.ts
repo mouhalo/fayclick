@@ -44,6 +44,33 @@ class ProformaService {
   }
 
   /**
+   * Absorbe la remise par article dans prix_applique net, comme facture.service.ts
+   * (logique byte-identique) : prix net = prix × (1 - remise%/100), arrondi.
+   * En mode F (FCFA), remise_article est un montant de ligne converti en % équivalent.
+   * Les articles retournés ont remise_article = 0 (déjà absorbée) — un appelant qui
+   * pré-absorbe lui-même (ModalCreerProforma) doit passer remise_article = 0 pour
+   * éviter une double décote.
+   */
+  private absorberRemisesArticles(articles: ArticlePanier[]): ArticlePanier[] {
+    const remiseMode = (typeof window !== 'undefined' && localStorage.getItem('vf_remise_mode')) || '%';
+    return articles.map(art => {
+      const prixOrigine = art.prix_applique ?? art.prix_vente;
+      const remiseArt = art.remise_article || 0;
+      if (remiseArt === 0) return { ...art, prix_applique: prixOrigine };
+      let pctEquivalent = 0;
+      if (remiseMode === '%') {
+        pctEquivalent = Math.max(0, Math.min(100, remiseArt));
+      } else {
+        // Mode F : remiseArt est un montant total de ligne (prix × qty × pct/100 pré-calculé)
+        const lineBrut = prixOrigine * art.quantity;
+        pctEquivalent = lineBrut > 0 ? Math.min(100, (remiseArt / lineBrut) * 100) : 0;
+      }
+      const prixNet = Math.round(prixOrigine * (1 - pctEquivalent / 100));
+      return { ...art, prix_applique: prixNet, remise_article: 0 };
+    });
+  }
+
+  /**
    * Creer une nouvelle proforma
    */
   async createProforma(
@@ -63,8 +90,12 @@ class ProformaService {
         throw new ProformaApiException('Client obligatoire pour une proforma', 400);
       }
 
-      // Calcul du montant total
-      const sousTotal = articles.reduce((total, article) => {
+      // Remises par article absorbées dans les prix nets (parité facture.service.ts) ;
+      // sans cette absorption, remise_article était perdue en BD (surfacturation).
+      const articlesNet = this.absorberRemisesArticles(articles);
+
+      // Montant total calculé sur les prix nets (après remises par article)
+      const sousTotal = articlesNet.reduce((total, article) => {
         return total + ((article.prix_applique ?? article.prix_vente) * article.quantity);
       }, 0);
 
@@ -73,8 +104,8 @@ class ProformaService {
         throw new ProformaApiException('La remise ne peut pas etre superieure au sous-total', 400);
       }
 
-      // Format articles string: "id-qty-prix#id-qty-prix#"
-      const articlesString = articles
+      // Format articles string: "id-qty-prix#id-qty-prix#" (prix nets)
+      const articlesString = articlesNet
         .map(article => `${article.id_produit}-${article.quantity}-${article.prix_applique ?? article.prix_vente}`)
         .join('#') + '#';
 
@@ -217,17 +248,25 @@ class ProformaService {
       // tel quel puis recalcule montant_net = montant - mt_remise. On envoie donc
       // le montant brut (montants.montant = sousTotalNet du composant, après absorption
       // des remises par ligne) et la remise globale séparément. PAS de soustraction ici.
-      const montant = montants?.montant !== undefined ? `${montants.montant}` : 'NULL';
       const remise = montants?.remise !== undefined ? `${montants.remise}` : 'NULL';
       const idEtat = nouveauStatut !== undefined ? `${nouveauStatut}` : 'NULL';
 
+      // Remises par article absorbées dans les prix nets (parité createProforma).
+      // Si articles fournis sans montant explicite, le montant est recalculé sur
+      // les prix nets pour garder l'invariant montant = Σ lignes.
       let articlesStr = 'NULL';
+      let montantCalcule: number | undefined = montants?.montant;
       if (articles && articles.length > 0) {
-        const str = articles
+        const articlesNet = this.absorberRemisesArticles(articles);
+        const str = articlesNet
           .map(a => `${a.id_produit}-${a.quantity}-${a.prix_applique ?? a.prix_vente}`)
           .join('#') + '#';
         articlesStr = `'${str}'`;
+        if (montantCalcule === undefined) {
+          montantCalcule = articlesNet.reduce((t, a) => t + ((a.prix_applique ?? a.prix_vente) * a.quantity), 0);
+        }
       }
+      const montant = montantCalcule !== undefined ? `${montantCalcule}` : 'NULL';
 
       const query = `SELECT * FROM edit_proforma(
         ${idProforma},
