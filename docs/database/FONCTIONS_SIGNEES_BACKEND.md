@@ -23,6 +23,37 @@ champs 4-5 dès maintenant (rétro-compat 3-champs garantie, testée).
 (réordonnancement de colonne). Corrigé en ajoutant les 2 colonnes en **fin** de liste (après
 `description`). Détail dans `RAPPORT_PHASE1_REMISE_LIGNE.md` §12.2.
 
+### ✅ Addendum Phase 1B — get_my_factures / get_my_factures_filtered / sweep — EXÉCUTÉ (par le PO)
+
+`get_my_factures1`, `rechercher_multifacturecom`, `get_my_factures`, `get_my_factures_filtered`
+(2 surcharges) et `get_client_facture_details` exposent désormais tous `remise_pct`/`prix_origine`
+dans leur JSON `details`. **Exécuté et vérifié par le PO** (579 ms, COMMIT confirmé) — plus de
+blocage sur ce périmètre. `get_list_clients` fait partie du même commit mais n'a pas été vérifiée
+explicitement (à confirmer avant chantier front dédié). Détail complet :
+`RAPPORT_PHASE1_REMISE_LIGNE.md` §13.
+
+### ⚠️ Addendum Phase 1C — Unification add_acompte_facture / fix mutation add_acompte_facture1 — PRÉPARÉ, PAS ENCORE EXÉCUTÉ
+
+**Bug actif découvert** : `add_acompte_facture1` mute encore `facture_com.montant` (`SET montant =
+montant - mt_remise`) à chaque appel — dérive cumulative sur toute facture remisée payée en
+plusieurs fois via `facture-publique.service.ts` (paiement lien public) ou
+`online-seller.service.ts` (catalogue public/panier/paiement différé). `add_acompte_facture` (v0)
+est saine depuis le 2026-07-23 mais n'avait pas la fonctionnalité de notification multi-utilisateurs
+de la v1.
+
+**Décision PO** : `add_acompte_facture` devient LA version de référence (logique montant saine +
+notifications fusionnées de v1), `add_acompte_facture1` reçoit un fix minimal identique en attendant
+la bascule du front. **Signature 7 paramètres inchangée pour les 2, contrat JSON strictement
+identique avant/après** (voir `RAPPORT_PHASE1_REMISE_LIGNE.md` §14.4 pour le détail des clés).
+Patch prêt : `docs/database/PATCH_PHASE1C_ADD_ACOMPTE_UNIFIE.sql` + script d'exécution/vérification
+`C:/tmp/pgquery/remise_14_apply_patch1c.js`. **Non exécuté à ce jour** — `add_acompte_facture1`
+continue de muter `montant` tant que ce patch n'est pas appliqué. Détail complet :
+`RAPPORT_PHASE1_REMISE_LIGNE.md` §14.
+
+**Action front à prévoir après exécution** : remplacer les appels `add_acompte_facture1` par
+`add_acompte_facture` dans `facture-publique.service.ts` et `online-seller.service.ts` (×3) — même
+signature, aucun changement d'appel nécessaire côté paramètres.
+
 ### Changement d'interface (NON breaking sur les signatures)
 
 Les **signatures de toutes les fonctions ci-dessous restent strictement identiques**.
