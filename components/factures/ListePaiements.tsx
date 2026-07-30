@@ -13,11 +13,13 @@ import {
   FileText,
   TrendingUp,
   CheckCircle,
-  AlertCircle,
-  Smartphone,
-  DollarSign
+  AlertCircle
 } from 'lucide-react';
 import { recuService } from '@/services/recu.service';
+import {
+  MODES_PAIEMENT_META,
+  normalizeMethodePaiement
+} from '@/lib/payment-methods';
 import { useAuth } from '@/contexts/AuthContext';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -67,6 +69,7 @@ export function ListePaiements({
 }: ListePaiementsProps) {
   const { user } = useAuth();
   const t = useTranslations('invoices');
+  const tPayment = useTranslations('paymentReport');
   const { locale } = useLanguage();
   const dateLocale = locale === 'en' ? enUS : fr;
 
@@ -154,9 +157,10 @@ export function ListePaiements({
       const matchTel = !filtres.tel_client ||
         paiement.tel_client.includes(filtres.tel_client);
 
-      // Filtre par méthode
+      // Filtre par méthode : comparaison sur le mode NORMALISÉ, sinon
+      // sélectionner « Orange Money » manquerait les reçus stockés en 'OM'.
       const matchMethod = !filtres.methode_paiement ||
-        paiement.methode_paiement === filtres.methode_paiement;
+        normalizeMethodePaiement(paiement.methode_paiement) === filtres.methode_paiement;
 
       // Filtre par date
       const matchDate = (!filtres.periode?.debut || new Date(paiement.date_paiement) >= new Date(filtres.periode.debut)) &&
@@ -179,7 +183,8 @@ export function ListePaiements({
           comparison = a.nom_client.localeCompare(b.nom_client);
           break;
         case 'methode':
-          comparison = a.methode_paiement.localeCompare(b.methode_paiement);
+          comparison = normalizeMethodePaiement(a.methode_paiement)
+            .localeCompare(normalizeMethodePaiement(b.methode_paiement));
           break;
       }
 
@@ -200,36 +205,24 @@ export function ListePaiements({
     setCurrentPage(1);
   }, [filtres]);
 
-  // Méthodes de paiement avec icônes et couleurs
+  /**
+   * Libellé, icône et couleur d'un mode de paiement.
+   *
+   * Passe systématiquement par `normalizeMethodePaiement()` : la table de
+   * correspondance littérale précédente ne connaissait que les slugs minuscules
+   * écrits par le front, si bien que les reçus enregistrés côté serveur ('OM',
+   * 'WAVE'...) retombaient tous sur le libellé « Espèces ».
+   */
   const getMethodeInfo = (methode: string) => {
-    const methodes: Record<string, { label: string; icon: React.ReactNode; color: string }> = {
-      'orange-money': {
-        label: t('payments.methodLabelOm'),
-        icon: <Smartphone className="w-4 h-4" />,
-        color: 'from-orange-500 to-orange-600'
-      },
-      'wave': {
-        label: t('payments.methodLabelWave'),
-        icon: <Smartphone className="w-4 h-4" />,
-        color: 'from-blue-500 to-blue-600'
-      },
-      'free-money': {
-        label: t('payments.methodLabelFree'),
-        icon: <Smartphone className="w-4 h-4" />,
-        color: 'from-green-500 to-green-600'
-      },
-      'espèces': {
-        label: t('payments.methodLabelCash'),
-        icon: <DollarSign className="w-4 h-4" />,
-        color: 'from-gray-500 to-gray-600'
-      },
-      'CASH': {
-        label: t('payments.methodLabelCash'),
-        icon: <DollarSign className="w-4 h-4" />,
-        color: 'from-gray-500 to-gray-600'
-      }
+    const mode = normalizeMethodePaiement(methode);
+    const meta = MODES_PAIEMENT_META[mode];
+    const Icon = meta.icon;
+
+    return {
+      label: tPayment(meta.labelKey),
+      icon: <Icon className="w-4 h-4" />,
+      color: meta.gradient
     };
-    return methodes[methode] || methodes['espèces'];
   };
 
   if (loading) {
