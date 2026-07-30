@@ -1858,5 +1858,35 @@
     "insights": "Insights",
     "settings": "Paramètres",
     "logout": "Génn"
+  },
+  "paymentReport": {
+    "title": "Encaissement yi ci mode",
+    "subtitle": "Séddale u paiement yi ñu jot",
+    "mode": "Mode",
+    "count": "Limu paiement",
+    "amount": "Montant",
+    "total": "Total",
+    "period": "Période",
+    "print": "Imprimer",
+    "exportCsv": "Export CSV",
+    "loading": "Di yebbi encaissement yi...",
+    "empty": "Amul encaissement ci période bi",
+    "error": "Mënuñu yebbi encaissement yi",
+    "listCapNote": "{count} paiement yi gën a bees",
+    "dateFrom": "Dale ci",
+    "dateTo": "Ba ci",
+    "modes": {
+      "cash": "Espèces",
+      "om": "Orange Money",
+      "wave": "Wave",
+      "free": "Free Money",
+      "other": "Yeneen"
+    },
+    "presets": {
+      "today": "Bés bi",
+      "week": "7 fan",
+      "month": "Weer wi",
+      "custom": "Tànneef"
+    }
   }
 }

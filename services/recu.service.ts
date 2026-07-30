@@ -6,6 +6,17 @@
 import { RecuDetails, RecuGenere } from '@/types/recu';
 import { WalletType } from '@/components/facture/ModalPaiementWalletNew';
 import DatabaseService from './database.service';
+import type {
+  EncaissementParMode,
+  RapportEncaissements,
+} from '@/types/rapport-encaissements';
+import {
+  MODES_PAIEMENT_PRINCIPAUX,
+  type ModePaiementNormalise,
+} from '@/lib/payment-methods';
+
+/** Format attendu pour les bornes de période transmises à PostgreSQL. */
+const FORMAT_DATE_ISO = /^\d{4}-\d{2}-\d{2}$/;
 
 // Fonction utilitaire pour convertir les types de wallet
 function convertWalletType(wallet: string): string {
@@ -48,6 +59,8 @@ export interface HistoriqueRecusParams {
   date_debut?: string;
   date_fin?: string;
   limite?: number;
+  /** 0 = toute la structure (ADMIN), > 0 = les reçus de ce seul caissier */
+  id_utilisateur?: number;
 }
 
 class RecuService {
@@ -339,26 +352,43 @@ class RecuService {
   /**
    * Récupérer l'historique des reçus pour une structure
    * Utilise la fonction PostgreSQL get_historic_recu()
+   *
+   * Isolation par caissier : `id_utilisateur = 0` retourne les reçus de toute
+   * la structure (ADMIN) ; une valeur > 0 restreint à ce seul utilisateur.
+   *
+   * Les 5 arguments sont TOUJOURS passés explicitement. La surcharge à 4
+   * arguments a été conservée côté base pour rétro-compatibilité : en omettre
+   * un rendrait la résolution de surcharge ambiguë, comme déjà rencontré
+   * ailleurs dans le projet.
    */
   async getHistoriqueRecus(params: HistoriqueRecusParams): Promise<RecuGenere[]> {
+    const { id_structure, date_debut, date_fin, limite = 50, id_utilisateur = 0 } = params;
+
+    // Les dates partent en interpolation SQL : on refuse tout ce qui n'est pas
+    // une date ISO stricte plutôt que de concaténer une chaîne arbitraire.
+    if (date_debut && !FORMAT_DATE_ISO.test(date_debut)) {
+      throw new Error(`Date de début invalide (format attendu YYYY-MM-DD) : ${date_debut}`);
+    }
+    if (date_fin && !FORMAT_DATE_ISO.test(date_fin)) {
+      throw new Error(`Date de fin invalide (format attendu YYYY-MM-DD) : ${date_fin}`);
+    }
+
+    const pidUtilisateur = Number(id_utilisateur) || 0;
+
     try {
-      const { id_structure, date_debut, date_fin, limite = 50 } = params;
+      // Sans bornes de dates, on passe NULL/NULL : la fonction retombe alors sur
+      // son comportement « toute période », sans faire varier le nombre d'args.
+      const bornes = date_debut && date_fin ? `'${date_debut}', '${date_fin}'` : 'NULL, NULL';
+      const requete = `SELECT public.get_historic_recu(${id_structure}, ${bornes}, ${limite}, ${pidUtilisateur})`;
 
-      // Construire l'appel dynamiquement selon les paramètres fournis
-      let requete: string;
-
-      if (date_debut && date_fin) {
-        // Avec filtre de date + limite
-        requete = `SELECT public.get_historic_recu(${id_structure}, '${date_debut}', '${date_fin}', ${limite})`;
-      } else if (limite !== 50) {
-        // Sans date mais avec limite personnalisée - passer les dates vides
-        requete = `SELECT public.get_historic_recu(${id_structure}, NULL, NULL, ${limite})`;
-      } else {
-        // Appel simple avec juste id_structure (utilise défauts PostgreSQL)
-        requete = `SELECT public.get_historic_recu(${id_structure})`;
-      }
-
-      console.log('🧾 [RECU-SERVICE] Appel get_historic_recu:', { id_structure, date_debut, date_fin, limite, requete });
+      console.log('🧾 [RECU-SERVICE] Appel get_historic_recu:', {
+        id_structure,
+        date_debut,
+        date_fin,
+        limite,
+        id_utilisateur: pidUtilisateur,
+        requete
+      });
 
       const result = await this.executerRequete(requete);
 
@@ -394,6 +424,121 @@ class RecuService {
       console.error('❌ [RECU-SERVICE] Erreur historique reçus:', error);
       throw new Error(error instanceof Error ? error.message : 'Erreur lors de la récupération de l\'historique');
     }
+  }
+
+  /**
+   * Rapport des encaissements agrégés par mode de paiement sur une période.
+   *
+   * Utilise la fonction PostgreSQL `get_rapport_encaissements()`, TOUJOURS
+   * appelée avec ses 4 arguments positionnels : le projet a déjà rencontré des
+   * résolutions de surcharge ambiguës en omettant des paramètres par défaut.
+   *
+   * Isolation par caissier : `idUtilisateur = 0` agrège toute la structure
+   * (ADMIN) ; une valeur > 0 restreint aux encaissements de ce seul utilisateur.
+   *
+   * Le service garantit à l'appelant que CASH, OM, WAVE et FREE sont toujours
+   * présents dans `modes` (complétés à zéro si absents du retour SQL), afin que
+   * l'UI puisse afficher un wallet resté sans encaissement plutôt que de faire
+   * disparaître sa carte. `AUTRES` n'est conservé que s'il est non nul.
+   *
+   * @param idStructure - ID de la structure
+   * @param dateDebut - Borne basse incluse, format `YYYY-MM-DD`
+   * @param dateFin - Borne haute incluse, format `YYYY-MM-DD`
+   * @param idUtilisateur - 0 = tous (ADMIN), > 0 = un caissier précis
+   */
+  async getRapportEncaissements(
+    idStructure: number,
+    dateDebut: string,
+    dateFin: string,
+    idUtilisateur: number = 0
+  ): Promise<RapportEncaissements> {
+    // Les dates partent en interpolation SQL : on refuse tout ce qui n'est pas
+    // une date ISO stricte plutôt que de concaténer une chaîne arbitraire.
+    if (!FORMAT_DATE_ISO.test(dateDebut) || !FORMAT_DATE_ISO.test(dateFin)) {
+      throw new Error(`Dates invalides (format attendu YYYY-MM-DD) : ${dateDebut} → ${dateFin}`);
+    }
+
+    const pidStructure = Number(idStructure);
+    const pidUtilisateur = Number(idUtilisateur) || 0;
+
+    if (!Number.isFinite(pidStructure) || pidStructure <= 0) {
+      throw new Error(`ID structure invalide : ${idStructure}`);
+    }
+
+    try {
+      const requete = `SELECT public.get_rapport_encaissements(${pidStructure}, '${dateDebut}', '${dateFin}', ${pidUtilisateur})`;
+
+      console.log('💰 [RECU-SERVICE] Appel get_rapport_encaissements:', {
+        idStructure: pidStructure,
+        dateDebut,
+        dateFin,
+        idUtilisateur: pidUtilisateur
+      });
+
+      const result = await this.executerRequete(requete);
+
+      let functionResponse: Partial<RapportEncaissements> | null = null;
+
+      if (result?.datas && result.datas.length > 0) {
+        const rawResult = result.datas[0];
+        const jsonData = rawResult.get_rapport_encaissements ?? Object.values(rawResult)[0];
+
+        // PostgreSQL peut renvoyer une chaîne JSON ou un objet déjà parsé.
+        if (typeof jsonData === 'string') {
+          try {
+            functionResponse = JSON.parse(jsonData);
+          } catch {
+            console.error('❌ [RECU-SERVICE] Erreur parsing JSON get_rapport_encaissements');
+          }
+        } else if (jsonData && typeof jsonData === 'object') {
+          functionResponse = jsonData as Partial<RapportEncaissements>;
+        }
+      }
+
+      const modesRetournes = Array.isArray(functionResponse?.modes) ? functionResponse.modes : [];
+
+      return {
+        periode: functionResponse?.periode ?? { date_debut: dateDebut, date_fin: dateFin },
+        id_utilisateur: functionResponse?.id_utilisateur ?? pidUtilisateur,
+        modes: this.completerModesManquants(modesRetournes),
+        total: functionResponse?.total ?? { nb_paiements: 0, montant_total: 0 }
+      };
+
+    } catch (error: unknown) {
+      console.error('❌ [RECU-SERVICE] Erreur rapport encaissements:', error);
+      throw new Error(
+        error instanceof Error ? error.message : 'Erreur lors de la récupération des encaissements'
+      );
+    }
+  }
+
+  /**
+   * Complète les modes principaux absents du retour SQL avec des compteurs à
+   * zéro, dans un ordre d'affichage stable (CASH, OM, WAVE, FREE, puis AUTRES).
+   * `AUTRES` (bucket legacy) n'est conservé que s'il porte des encaissements.
+   */
+  private completerModesManquants(modes: EncaissementParMode[]): EncaissementParMode[] {
+    const parMode = new Map<ModePaiementNormalise, EncaissementParMode>();
+
+    for (const entree of modes) {
+      if (!entree?.mode) continue;
+      parMode.set(entree.mode, {
+        mode: entree.mode,
+        nb_paiements: Number(entree.nb_paiements) || 0,
+        montant_total: Number(entree.montant_total) || 0
+      });
+    }
+
+    const resultat: EncaissementParMode[] = MODES_PAIEMENT_PRINCIPAUX.map(
+      (mode) => parMode.get(mode) ?? { mode, nb_paiements: 0, montant_total: 0 }
+    );
+
+    const autres = parMode.get('AUTRES');
+    if (autres && (autres.nb_paiements > 0 || autres.montant_total > 0)) {
+      resultat.push(autres);
+    }
+
+    return resultat;
   }
 
   /**
@@ -448,54 +593,6 @@ class RecuService {
     return `https://fayclick.com/facture?token=${params}`;
   }
 
-  /**
-   * Statistiques des reçus pour une structure
-   */
-  async getStatistiquesRecus(idStructure: number, periode: string = '30'): Promise<{
-    total_recus: number;
-    montant_total: number;
-    methodes_populaires: Array<{methode: string; count: number}>;
-  }> {
-    try {
-      // Requête pour les statistiques générales
-      const requeteStats = `
-        SELECT
-          COUNT(*) as total_recus,
-          SUM(montant_paye) as montant_total
-        FROM public.recus_paiement
-        WHERE id_structure = ${idStructure}
-          AND date_paiement >= NOW() - INTERVAL '${periode} days'
-      `;
-
-      // Requête pour les méthodes populaires
-      const requeteMethodes = `
-        SELECT
-          methode_paiement as methode,
-          COUNT(*) as count
-        FROM public.recus_paiement
-        WHERE id_structure = ${idStructure}
-          AND date_paiement >= NOW() - INTERVAL '${periode} days'
-        GROUP BY methode_paiement
-        ORDER BY count DESC
-        LIMIT 5
-      `;
-
-      const [statsResult, methodesResult] = await Promise.all([
-        this.executerRequete(requeteStats),
-        this.executerRequete(requeteMethodes)
-      ]);
-
-      return {
-        total_recus: statsResult?.datas?.[0]?.total_recus || 0,
-        montant_total: statsResult?.datas?.[0]?.montant_total || 0,
-        methodes_populaires: methodesResult?.datas || []
-      };
-
-    } catch (error: unknown) {
-      console.error('❌ [RECU-SERVICE] Erreur statistiques reçus:', error);
-      throw new Error(error instanceof Error ? error.message : 'Erreur lors de la récupération des statistiques');
-    }
-  }
 }
 
 // Export de l'instance singleton
