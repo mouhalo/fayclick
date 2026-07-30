@@ -20,6 +20,7 @@ import { useToast } from '@/components/ui/Toast';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { VenteFlashHeader, VenteFlashHeaderRef } from '@/components/venteflash/VenteFlashHeader';
 import { VenteFlashStatsCards } from '@/components/venteflash/VenteFlashStatsCards';
+import { VenteFlashEncaissementsCards } from '@/components/venteflash/VenteFlashEncaissementsCards';
 import { VenteFlashListeVentes } from '@/components/venteflash/VenteFlashListeVentes';
 import { PanierVenteFlashInline } from '@/components/venteflash/PanierVenteFlashInline';
 import { PanierVFTabs } from '@/components/venteflash/PanierVFTabs';
@@ -32,6 +33,15 @@ import MainMenu from '@/components/layout/MainMenu';
 import { useSalesRules } from '@/hooks/useSalesRules';
 import { useTranslations } from '@/hooks/useTranslations';
 import { useUserProfile } from '@/hooks/useUserProfile';
+import { useHasRight } from '@/hooks/useRights';
+import { recuService } from '@/services/recu.service';
+import { normalizeMethodePaiement, MODES_PAIEMENT_PRINCIPAUX } from '@/lib/payment-methods';
+import type { EncaissementParMode } from '@/types/rapport-encaissements';
+import {
+  generateEncaissementsFragmentHTML,
+  RAPPORT_ENCAISSEMENTS_STYLES,
+  type RapportEncaissementsLabels,
+} from '@/lib/generate-rapport-encaissements-html';
 import { usePanierEditionStore } from '@/stores/panierEditionStore';
 import { factureService } from '@/services/facture.service';
 import { dashboardService } from '@/services/dashboard.service';
@@ -42,9 +52,43 @@ import {
 import { generateTicketHTML, printViaIframe } from '@/lib/generate-ticket-html';
 import { ModifierFactureResponse, DetailFacture } from '@/types/facture';
 
+/**
+ * Repli client : agrège les encaissements à partir des reçus déjà chargés,
+ * quand l'appel à get_rapport_encaissements() échoue au moment d'imprimer.
+ *
+ * Les méthodes brutes des reçus passent par normalizeMethodePaiement(), miroir
+ * de la normalisation SQL — sans quoi 'OM' et 'orange-money' compteraient comme
+ * deux modes distincts. Les modes principaux sont toujours présents (à zéro le
+ * cas échéant) pour que le tableau imprimé garde la même forme.
+ */
+function agregerEncaissementsDepuisVentes(ventes: VenteFlash[]): EncaissementParMode[] {
+  const parMode = new Map<string, EncaissementParMode>();
+
+  for (const mode of MODES_PAIEMENT_PRINCIPAUX) {
+    parMode.set(mode, { mode, nb_paiements: 0, montant_total: 0 });
+  }
+
+  for (const vente of ventes) {
+    for (const recu of vente.recus_paiements ?? []) {
+      const mode = normalizeMethodePaiement(recu.methode_paiement);
+      const courant = parMode.get(mode) ?? { mode, nb_paiements: 0, montant_total: 0 };
+      courant.nb_paiements += 1;
+      courant.montant_total += Number(recu.montant_paye) || 0;
+      parMode.set(mode, courant);
+    }
+  }
+
+  const autres = parMode.get('AUTRES');
+  return [
+    ...MODES_PAIEMENT_PRINCIPAUX.map((mode) => parMode.get(mode)!),
+    ...(autres && autres.nb_paiements > 0 ? [autres] : []),
+  ];
+}
+
 export default function VenteFlashPage() {
   const router = useRouter();
   const t = useTranslations('venteFlash');
+  const tPayment = useTranslations('paymentReport');
   const { showToast, ToastComponent } = useToast();
   const { addArticle, getTotalItems, clearPanier } = usePanierStore();
   const salesRules = useSalesRules();
@@ -53,6 +97,9 @@ export default function VenteFlashPage() {
   // ADMIN (id_profil === 1) : voit TOUTES les ventes + sélecteur de date.
   // CAISSIER : ne voit que SES ventes, date figée à aujourd'hui.
   const { isAdmin } = useUserProfile();
+  // Droit « VOIR CHIFFRE D'AFFAIRE » : conditionne l'affichage des MONTANTS
+  // d'encaissement (les compteurs de paiements restent visibles).
+  const canViewMontants = useHasRight("VOIR CHIFFRE D'AFFAIRE");
 
   // Store multi-panier (desktop uniquement)
   const multiStore = usePanierVFMultiStore();
@@ -86,9 +133,13 @@ export default function VenteFlashPage() {
     total_remises: 0
   });
 
+  // Encaissements de la date consultée, agrégés par mode de paiement.
+  const [encaissements, setEncaissements] = useState<EncaissementParMode[]>([]);
+
   // États de chargement
   const [isLoadingProduits, setIsLoadingProduits] = useState(true);
   const [isLoadingVentes, setIsLoadingVentes] = useState(true);
+  const [isLoadingEncaissements, setIsLoadingEncaissements] = useState(true);
 
   // État pour le modal de refresh
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -100,6 +151,8 @@ export default function VenteFlashPage() {
   const [vfPrixType, setVfPrixType] = useState<'public' | 'gros'>('public');
   const quantityInputRef = useRef<HTMLInputElement>(null);
   const headerRef = useRef<VenteFlashHeaderRef>(null);
+  // Garde-fou anti double-impression du rapport (l'appel est asynchrone).
+  const printingRapportRef = useRef(false);
 
   // États sélection code-barres multiples
   const [barcodeMatches, setBarcodeMatches] = useState<Produit[]>([]);
@@ -321,6 +374,38 @@ export default function VenteFlashPage() {
   }, [user, selectedDate, isAdmin, t]);
 
   /**
+   * Charger les encaissements de la date consultée, agrégés par mode de paiement.
+   *
+   * Volontairement SÉPARÉ de loadVentesJour : le chemin de chargement des ventes
+   * reste inchangé, et cet agrégat (~10 ms côté PostgreSQL) n'alourdit pas la
+   * requête get_my_factures1 qui est, elle, coûteuse.
+   *
+   * Isolation par caissier identique à celle des ventes : un CAISSIER ne reçoit
+   * du serveur que SES encaissements (pid_utilisateur = user.id).
+   */
+  const loadEncaissements = useCallback(async () => {
+    if (!user) return;
+
+    setIsLoadingEncaissements(true);
+    try {
+      const pidUtilisateur = isAdmin ? 0 : user.id;
+      const rapport = await recuService.getRapportEncaissements(
+        user.id_structure,
+        selectedDate,
+        selectedDate,
+        pidUtilisateur
+      );
+      setEncaissements(rapport.modes);
+    } catch (error) {
+      console.error('❌ [VF] Erreur chargement encaissements:', error instanceof Error ? error.message : error);
+      // Pas de toast : l'écran reste utilisable sans ce bloc secondaire.
+      setEncaissements([]);
+    } finally {
+      setIsLoadingEncaissements(false);
+    }
+  }, [user, selectedDate, isAdmin]);
+
+  /**
    * Charger UNE SEULE facture par son ID et l'ajouter aux ventes du jour
    * Optimisation : évite de recharger toutes les factures après chaque vente
    * Utilise get_my_factures1(id_structure, année, 0, id_facture) pour récupérer recus_paiements
@@ -492,6 +577,11 @@ export default function VenteFlashPage() {
     if (user) loadVentesJour();
   }, [user, loadVentesJour]);
 
+  // Encaissements par mode : même cycle que les ventes (montage + changement de date).
+  useEffect(() => {
+    if (user) loadEncaissements();
+  }, [user, loadEncaissements]);
+
   // Auto-focus sur le champ quantité quand le modal s'ouvre
   useEffect(() => {
     if (showQuantityModal && quantityInputRef.current) {
@@ -516,7 +606,8 @@ export default function VenteFlashPage() {
     try {
       await Promise.all([
         loadProduits(),
-        loadVentesJour()
+        loadVentesJour(),
+        loadEncaissements()
       ]);
     } catch (error) {
       console.error('❌ [VF] Erreur rafraîchissement:', error);
@@ -524,7 +615,7 @@ export default function VenteFlashPage() {
       clearTimeout(safetyTimeout);
       setTimeout(() => setIsRefreshing(false), 1000);
     }
-  }, [loadProduits, loadVentesJour]);
+  }, [loadProduits, loadVentesJour, loadEncaissements]);
 
   /**
    * Ouvrir le modal de quantité avant d'ajouter au panier
@@ -616,6 +707,7 @@ export default function VenteFlashPage() {
         if (parsedResponse.success) {
           showToast('success', t('toasts.deleteSuccess'), t('toasts.deleteSuccessMsg'));
           loadVentesJour();
+          loadEncaissements();
         } else {
           showToast('error', t('toasts.error'), parsedResponse.message || t('toasts.deleteForbidden'));
         }
@@ -838,6 +930,7 @@ export default function VenteFlashPage() {
       }
       await loadProduits();
       await loadVentesJour();
+      await loadEncaissements();
     } catch (err) {
       console.error('Erreur modification vente:', err);
       showToast('error', err instanceof Error ? err.message : t('receipt.modifyError'));
@@ -898,9 +991,26 @@ export default function VenteFlashPage() {
   };
 
   /**
-   * Imprimer le rapport des ventes du jour
+   * Imprimer le rapport des ventes du jour.
+   *
+   * Asynchrone depuis l'ajout de la section « Encaissements par mode » : le
+   * garde-fou `printingRapportRef` empêche qu'un second appui pendant l'appel
+   * réseau ne déclenche deux impressions.
    */
-  const handlePrintRapport = () => {
+  const handlePrintRapport = async () => {
+    if (printingRapportRef.current) return;
+    printingRapportRef.current = true;
+
+    try {
+      await imprimerRapport();
+    } finally {
+      printingRapportRef.current = false;
+    }
+  };
+
+  const imprimerRapport = async () => {
+    if (!user) return;
+
     // Regrouper les articles identiques et totaliser
     const produitsGroupes = new Map<string, {
       nom_produit: string;
@@ -944,6 +1054,57 @@ export default function VenteFlashPage() {
     // Sous-total brut = somme des lignes (sans remises) — doit égaler total_ventes + total_remises
     const sousTotalBrut = detailsVentes.reduce((sum, d) => sum + d.total, 0);
 
+    // Encaissements par mode : agrégat serveur, avec repli sur les reçus déjà
+    // chargés. Un échec ici ne doit JAMAIS empêcher l'impression du rapport.
+    let encaissementsRapport: EncaissementParMode[];
+    try {
+      const rapport = await recuService.getRapportEncaissements(
+        user.id_structure,
+        selectedDate,
+        selectedDate,
+        isAdmin ? 0 : user.id
+      );
+      encaissementsRapport = rapport.modes;
+    } catch (error) {
+      console.warn('⚠️ [VF] Encaissements indisponibles, repli sur agrégation locale:', error);
+      encaissementsRapport = agregerEncaissementsDepuisVentes(ventesJour);
+    }
+
+    const totalEncaissements = encaissementsRapport.reduce(
+      (acc, e) => ({
+        nb_paiements: acc.nb_paiements + e.nb_paiements,
+        montant_total: acc.montant_total + e.montant_total,
+      }),
+      { nb_paiements: 0, montant_total: 0 }
+    );
+
+    const labelsEncaissements: RapportEncaissementsLabels = {
+      title: tPayment('title'),
+      mode: tPayment('mode'),
+      count: tPayment('count'),
+      amount: tPayment('amount'),
+      total: tPayment('total'),
+      empty: tPayment('empty'),
+      modes: {
+        CASH: tPayment('modes.cash'),
+        OM: tPayment('modes.om'),
+        WAVE: tPayment('modes.wave'),
+        FREE: tPayment('modes.free'),
+        AUTRES: tPayment('modes.other'),
+      },
+    };
+
+    const sectionEncaissements = generateEncaissementsFragmentHTML({
+      rapport: {
+        periode: { date_debut: selectedDate, date_fin: selectedDate },
+        id_utilisateur: isAdmin ? 0 : user.id,
+        modes: encaissementsRapport,
+        total: totalEncaissements,
+      },
+      labels: labelsEncaissements,
+      canViewMontants,
+    });
+
     // Date du rapport = date CONSULTÉE, pas la date du jour : un ADMIN peut
     // imprimer une journée passée via le datepicker.
     // `T00:00:00` force une lecture en minuit LOCAL — `new Date('2026-07-29')`
@@ -975,6 +1136,7 @@ export default function VenteFlashPage() {
           tr:nth-child(even) { background: #f9f9f9; }
           .footer { margin-top: 40px; text-align: center; color: #666; font-size: 12px; border-top: 1px solid #ddd; padding-top: 20px; }
           .caissier { font-weight: bold; color: #059669; margin-top: 10px; }
+          ${RAPPORT_ENCAISSEMENTS_STYLES}
           @media print {
             body { padding: 0; }
             .no-print { display: none; }
@@ -1008,6 +1170,8 @@ export default function VenteFlashPage() {
             <div class="stat-label" style="font-weight: bold;">${t('report.netTotal')}</div>
           </div>
         </div>
+
+        ${sectionEncaissements}
 
         <h2 style="color: #059669; margin-top: 30px;">${t('report.sectionTitle', { count: detailsVentes.length })}</h2>
         <table>
@@ -1203,6 +1367,11 @@ export default function VenteFlashPage() {
               multiStore.closePanier(multiStore.activePanierId);
             }
 
+            // La vente est ajoutée localement (0 appel API), mais la répartition
+            // par mode vient d'un agrégat serveur : on la recharge (requête légère,
+            // ~10 ms) plutôt que de la recalculer et risquer une divergence.
+            loadEncaissements();
+
             console.log(`✅ [VF] Vente ajoutée localement (0 API call) | #${venteData.num_facture} | ${venteData.montant_total} FCFA`);
           };
 
@@ -1252,6 +1421,13 @@ export default function VenteFlashPage() {
         <VenteFlashStatsCards
           stats={stats}
           isLoading={isLoadingVentes}
+        />
+
+        {/* Section 3b: Encaissements par mode de paiement */}
+        <VenteFlashEncaissementsCards
+          encaissements={encaissements}
+          isLoading={isLoadingEncaissements}
+          canViewMontants={canViewMontants}
         />
 
         {/* Section 3: Liste des ventes */}
