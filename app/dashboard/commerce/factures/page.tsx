@@ -12,6 +12,7 @@ import { AlertCircle, Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { authService } from '@/services/auth.service';
 import { useHasRight } from '@/hooks/useRights';
+import { useUserProfile } from '@/hooks/useUserProfile';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { useTranslations } from '@/hooks/useTranslations';
 import { GlassHeader } from '@/components/ui/GlassHeader';
@@ -62,6 +63,7 @@ export default function FacturesGlassPage() {
   const { user, structure } = useAuth();
   const t = useTranslations('invoices');
   const canViewMontants = useHasRight("VOIR CHIFFRE D'AFFAIRE");
+  const { isAdmin } = useUserProfile();
 
   // Hook responsive pour switch mobile/desktop
   const { isDesktop, isDesktopLarge, isTablet } = useBreakpoint();
@@ -196,9 +198,12 @@ export default function FacturesGlassPage() {
 
       // Charger paiements count seulement au premier chargement
       if (loading) {
+        // Même périmètre que la liste affichée dans l'onglet : un caissier ne
+        // doit pas voir un compteur qui annonce les reçus de ses collègues.
         const paiements = await recuService.getHistoriqueRecus({
           id_structure: user.id_structure!,
-          limite: 100
+          limite: 100,
+          id_utilisateur: isAdmin ? 0 : user.id
         });
         setPaiementsCount(paiements.length);
       }
@@ -211,7 +216,7 @@ export default function FacturesGlassPage() {
       setLoading(false);
       setIsRefreshing(false);
     }
-  }, [user, buildFiltresDB, loading]);
+  }, [user, buildFiltresDB, loading, isAdmin]);
 
   // Rafraîchir les données (page courante)
   const handleRefresh = async () => {

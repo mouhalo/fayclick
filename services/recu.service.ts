@@ -59,6 +59,8 @@ export interface HistoriqueRecusParams {
   date_debut?: string;
   date_fin?: string;
   limite?: number;
+  /** 0 = toute la structure (ADMIN), > 0 = les reçus de ce seul caissier */
+  id_utilisateur?: number;
 }
 
 class RecuService {
@@ -350,26 +352,43 @@ class RecuService {
   /**
    * Récupérer l'historique des reçus pour une structure
    * Utilise la fonction PostgreSQL get_historic_recu()
+   *
+   * Isolation par caissier : `id_utilisateur = 0` retourne les reçus de toute
+   * la structure (ADMIN) ; une valeur > 0 restreint à ce seul utilisateur.
+   *
+   * Les 5 arguments sont TOUJOURS passés explicitement. La surcharge à 4
+   * arguments a été conservée côté base pour rétro-compatibilité : en omettre
+   * un rendrait la résolution de surcharge ambiguë, comme déjà rencontré
+   * ailleurs dans le projet.
    */
   async getHistoriqueRecus(params: HistoriqueRecusParams): Promise<RecuGenere[]> {
+    const { id_structure, date_debut, date_fin, limite = 50, id_utilisateur = 0 } = params;
+
+    // Les dates partent en interpolation SQL : on refuse tout ce qui n'est pas
+    // une date ISO stricte plutôt que de concaténer une chaîne arbitraire.
+    if (date_debut && !FORMAT_DATE_ISO.test(date_debut)) {
+      throw new Error(`Date de début invalide (format attendu YYYY-MM-DD) : ${date_debut}`);
+    }
+    if (date_fin && !FORMAT_DATE_ISO.test(date_fin)) {
+      throw new Error(`Date de fin invalide (format attendu YYYY-MM-DD) : ${date_fin}`);
+    }
+
+    const pidUtilisateur = Number(id_utilisateur) || 0;
+
     try {
-      const { id_structure, date_debut, date_fin, limite = 50 } = params;
+      // Sans bornes de dates, on passe NULL/NULL : la fonction retombe alors sur
+      // son comportement « toute période », sans faire varier le nombre d'args.
+      const bornes = date_debut && date_fin ? `'${date_debut}', '${date_fin}'` : 'NULL, NULL';
+      const requete = `SELECT public.get_historic_recu(${id_structure}, ${bornes}, ${limite}, ${pidUtilisateur})`;
 
-      // Construire l'appel dynamiquement selon les paramètres fournis
-      let requete: string;
-
-      if (date_debut && date_fin) {
-        // Avec filtre de date + limite
-        requete = `SELECT public.get_historic_recu(${id_structure}, '${date_debut}', '${date_fin}', ${limite})`;
-      } else if (limite !== 50) {
-        // Sans date mais avec limite personnalisée - passer les dates vides
-        requete = `SELECT public.get_historic_recu(${id_structure}, NULL, NULL, ${limite})`;
-      } else {
-        // Appel simple avec juste id_structure (utilise défauts PostgreSQL)
-        requete = `SELECT public.get_historic_recu(${id_structure})`;
-      }
-
-      console.log('🧾 [RECU-SERVICE] Appel get_historic_recu:', { id_structure, date_debut, date_fin, limite, requete });
+      console.log('🧾 [RECU-SERVICE] Appel get_historic_recu:', {
+        id_structure,
+        date_debut,
+        date_fin,
+        limite,
+        id_utilisateur: pidUtilisateur,
+        requete
+      });
 
       const result = await this.executerRequete(requete);
 
