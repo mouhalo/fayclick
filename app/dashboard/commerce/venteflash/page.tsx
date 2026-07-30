@@ -1102,6 +1102,13 @@ export default function VenteFlashPage() {
         total: totalEncaissements,
       },
       labels: labelsEncaissements,
+      // ⚠️ LIMITE CONNUE : ce masquage ne protège que CETTE section. Le reste du
+      // document (stat-cards CA/remises/total, tableau des produits avec prix
+      // unitaires) est imprimé en clair pour tous les profils — comportement
+      // préexistant, hors périmètre de cette branche. Tant qu'il n'est pas
+      // traité, un caissier voit malgré tout le CA du jour sur le rapport
+      // imprimé : le `***` ci-dessous n'est donc PAS une garantie de
+      // confidentialité. À reprendre avec VenteFlashStatsCards.
       canViewMontants,
     });
 
