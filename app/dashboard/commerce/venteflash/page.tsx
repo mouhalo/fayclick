@@ -944,8 +944,11 @@ export default function VenteFlashPage() {
     // Sous-total brut = somme des lignes (sans remises) — doit égaler total_ventes + total_remises
     const sousTotalBrut = detailsVentes.reduce((sum, d) => sum + d.total, 0);
 
-    // Créer le contenu HTML du rapport
-    const dateJour = new Date().toLocaleDateString('fr-FR', {
+    // Date du rapport = date CONSULTÉE, pas la date du jour : un ADMIN peut
+    // imprimer une journée passée via le datepicker.
+    // `T00:00:00` force une lecture en minuit LOCAL — `new Date('2026-07-29')`
+    // serait interprété en UTC et afficherait la veille selon le fuseau.
+    const dateJour = new Date(`${selectedDate}T00:00:00`).toLocaleDateString('fr-FR', {
       weekday: 'long',
       year: 'numeric',
       month: 'long',

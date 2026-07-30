@@ -14,6 +14,11 @@ interface FiltresPaiements {
   periode?: { debut: string; fin: string };
   nom_client?: string;
   tel_client?: string;
+  /**
+   * Mode de paiement NORMALISÉ (CASH | OM | WAVE | FREE | AUTRES), à comparer
+   * au résultat de `normalizeMethodePaiement()` et non à la valeur brute :
+   * un même wallet est stocké sous plusieurs graphies en base.
+   */
   methode_paiement?: string;
   sortBy?: 'date' | 'montant' | 'client' | 'methode';
   sortOrder?: 'asc' | 'desc';
@@ -250,10 +255,11 @@ export function FilterHeaderPaiementsGlass({
                 "
               >
                 <option value="TOUS">Toutes</option>
-                <option value="orange-money">OM</option>
-                <option value="wave">Wave</option>
-                <option value="free-money">Free</option>
-                <option value="espèces">Espèces</option>
+                <option value="CASH">Espèces</option>
+                <option value="OM">Orange Money</option>
+                <option value="WAVE">Wave</option>
+                <option value="FREE">Free Money</option>
+                <option value="AUTRES">Autres</option>
               </select>
             </div>
 
