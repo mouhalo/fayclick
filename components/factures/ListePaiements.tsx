@@ -56,7 +56,6 @@ interface Paiement {
 
 interface FiltresPaiements {
   searchTerm?: string;
-  periode?: { debut: string; fin: string };
   nom_client?: string;
   tel_client?: string;
   methode_paiement?: string;
@@ -222,12 +221,11 @@ export function ListePaiements({
     if (!valeur) return;
     setBornes((actuelles) => {
       const suivantes = { ...actuelles, [champ]: valeur };
-      // Garde-fou : une borne de fin antérieure au début produirait une période
-      // vide côté SQL sans que l'utilisateur comprenne pourquoi.
+      // Garde-fou : des bornes croisées produiraient une période vide côté SQL
+      // sans que l'utilisateur comprenne pourquoi. On ramène alors les deux
+      // bornes sur la date qu'il vient de choisir (période d'un seul jour).
       if (suivantes.debut > suivantes.fin) {
-        return champ === 'debut'
-          ? { debut: valeur, fin: valeur }
-          : { debut: valeur, fin: valeur };
+        return { debut: valeur, fin: valeur };
       }
       return suivantes;
     });
@@ -256,11 +254,9 @@ export function ListePaiements({
       const matchMethod = !filtres.methode_paiement ||
         normalizeMethodePaiement(paiement.methode_paiement) === filtres.methode_paiement;
 
-      // Filtre par date
-      const matchDate = (!filtres.periode?.debut || new Date(paiement.date_paiement) >= new Date(filtres.periode.debut)) &&
-        (!filtres.periode?.fin || new Date(paiement.date_paiement) <= new Date(filtres.periode.fin));
-
-      return matchSearch && matchClient && matchTel && matchMethod && matchDate;
+      // Plus de filtre de date ici : la période est appliquée par la requête
+      // serveur (bornes du sélecteur), pas re-filtrée sur les lignes chargées.
+      return matchSearch && matchClient && matchTel && matchMethod;
     })
     .sort((a, b) => {
       const { sortBy = 'date', sortOrder = 'desc' } = filtres;
@@ -545,8 +541,14 @@ export function ListePaiements({
         />
       </div>
 
-      {/* Zone de contenu : chargement / erreur / vide / liste */}
-      {loading ? (
+      {/*
+        Zone de contenu : chargement / erreur / vide / liste.
+        Le plein écran de chargement est réservé au PREMIER chargement : lors
+        d'un refresh manuel, la liste précédente reste affichée (le bouton
+        refresh porte déjà son propre indicateur) plutôt que de faire clignoter
+        toute la zone.
+      */}
+      {loading && !isRefreshing ? (
         <div className="flex items-center justify-center min-h-[300px]">
           <div className="text-center space-y-4">
             <Loader2 className="w-10 h-10 animate-spin text-emerald-500 mx-auto" />
