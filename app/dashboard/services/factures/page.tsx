@@ -10,6 +10,7 @@ import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { AlertCircle, Loader, Printer } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useUserProfile } from '@/hooks/useUserProfile';
 import { GlassHeader } from '@/components/ui/GlassHeader';
 import { StatsCardsFacturesGlass } from '@/components/services-factures/StatsCardsFacturesGlass';
 import { FilterHeaderGlass } from '@/components/services-factures/FilterHeaderGlass';
@@ -35,6 +36,7 @@ import {
 export default function FacturesPrestatairesPage() {
   const router = useRouter();
   const { user } = useAuth();
+  const { isAdmin } = useUserProfile();
 
   // États principaux
   const [facturesResponse, setFacturesResponse] = useState<GetMyFactureResponse | null>(null);
@@ -97,10 +99,12 @@ export default function FacturesPrestatairesPage() {
       const response = await factureListService.getMyFactures();
       setFacturesResponse(response);
 
-      // Charger aussi le nombre de paiements
+      // Charger aussi le nombre de paiements — même périmètre que la liste
+      // affichée dans l'onglet, sinon le compteur la contredirait pour un caissier.
       const paiements = await recuService.getHistoriqueRecus({
         id_structure: user.id_structure!,
-        limite: 100
+        limite: 100,
+        id_utilisateur: isAdmin ? 0 : user.id
       });
       setPaiementsCount(paiements.length);
 
@@ -111,7 +115,7 @@ export default function FacturesPrestatairesPage() {
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [user, isAdmin]);
 
   // Rafraîchir les données
   const handleRefresh = async () => {

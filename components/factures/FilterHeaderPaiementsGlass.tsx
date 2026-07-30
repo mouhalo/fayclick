@@ -11,9 +11,13 @@ import { Search, Filter, X, ChevronDown, RefreshCw } from 'lucide-react';
 
 interface FiltresPaiements {
   searchTerm?: string;
-  periode?: { debut: string; fin: string };
   nom_client?: string;
   tel_client?: string;
+  /**
+   * Mode de paiement NORMALISÉ (CASH | OM | WAVE | FREE | AUTRES), à comparer
+   * au résultat de `normalizeMethodePaiement()` et non à la valeur brute :
+   * un même wallet est stocké sous plusieurs graphies en base.
+   */
   methode_paiement?: string;
   sortBy?: 'date' | 'montant' | 'client' | 'methode';
   sortOrder?: 'asc' | 'desc';
@@ -32,7 +36,6 @@ export function FilterHeaderPaiementsGlass({
 }: FilterHeaderPaiementsGlassProps) {
   // États des filtres
   const [searchTerm, setSearchTerm] = useState('');
-  const [periode, setPeriode] = useState({ debut: '', fin: '' });
   const [nomClient, setNomClient] = useState('');
   const [telClient, setTelClient] = useState('');
   const [methodePaiement, setMethodePaiement] = useState<string>('TOUS');
@@ -47,7 +50,6 @@ export function FilterHeaderPaiementsGlass({
     const timer = setTimeout(() => {
       const filtres: FiltresPaiements = {
         searchTerm: searchTerm || undefined,
-        periode: periode.debut && periode.fin ? periode : undefined,
         nom_client: nomClient || undefined,
         tel_client: telClient || undefined,
         methode_paiement: methodePaiement !== 'TOUS' ? methodePaiement : undefined,
@@ -59,12 +61,11 @@ export function FilterHeaderPaiementsGlass({
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [searchTerm, periode, nomClient, telClient, methodePaiement, sortBy, sortOrder, onFiltersChange]);
+  }, [searchTerm, nomClient, telClient, methodePaiement, sortBy, sortOrder, onFiltersChange]);
 
   // Reset des filtres
   const resetFilters = () => {
     setSearchTerm('');
-    setPeriode({ debut: '', fin: '' });
     setNomClient('');
     setTelClient('');
     setMethodePaiement('TOUS');
@@ -73,7 +74,7 @@ export function FilterHeaderPaiementsGlass({
     setShowAdvancedFilters(false);
   };
 
-  const hasActiveFilters = searchTerm || periode.debut || nomClient || telClient || methodePaiement !== 'TOUS';
+  const hasActiveFilters = searchTerm || nomClient || telClient || methodePaiement !== 'TOUS';
 
   return (
     <div className="space-y-3">
@@ -166,34 +167,13 @@ export function FilterHeaderPaiementsGlass({
         className="overflow-hidden"
       >
         <div className="space-y-3 sm:space-y-4 pt-2">
-          {/* Période */}
-          <div className="space-y-1.5 sm:space-y-2">
-            <label className="block text-xs sm:text-sm font-medium text-emerald-100">Période</label>
-            <div className="flex space-x-1.5 sm:space-x-2">
-              <input
-                type="date"
-                value={periode.debut}
-                onChange={(e) => setPeriode(prev => ({ ...prev, debut: e.target.value }))}
-                className="
-                  flex-1 py-1.5 sm:py-2 px-2 sm:px-3 text-xs sm:text-sm rounded-md sm:rounded-lg
-                  bg-white/80 border border-gray-200 text-gray-800
-                  focus:bg-white focus:border-green-400 focus:outline-none focus:ring-2 focus:ring-green-200
-                  transition-all duration-200
-                "
-              />
-              <input
-                type="date"
-                value={periode.fin}
-                onChange={(e) => setPeriode(prev => ({ ...prev, fin: e.target.value }))}
-                className="
-                  flex-1 py-1.5 sm:py-2 px-2 sm:px-3 text-xs sm:text-sm rounded-md sm:rounded-lg
-                  bg-white/80 border border-gray-200 text-gray-800
-                  focus:bg-white focus:border-green-400 focus:outline-none focus:ring-2 focus:ring-green-200
-                  transition-all duration-200
-                "
-              />
-            </div>
-          </div>
+          {/*
+            Les champs de période ont été retirés d'ici : la période est
+            désormais choisie en haut de l'onglet Paiements et REQUÊTE le serveur.
+            Deux contrôles de période concurrents auraient donné une liste vide
+            sans explication dès que les deux plages ne se recouvraient pas
+            (celui-ci ne filtrait que les lignes déjà chargées).
+          */}
 
           {/* Filtres sur 2 colonnes */}
           <div className="grid grid-cols-2 gap-2 sm:gap-4">
@@ -250,10 +230,11 @@ export function FilterHeaderPaiementsGlass({
                 "
               >
                 <option value="TOUS">Toutes</option>
-                <option value="orange-money">OM</option>
-                <option value="wave">Wave</option>
-                <option value="free-money">Free</option>
-                <option value="espèces">Espèces</option>
+                <option value="CASH">Espèces</option>
+                <option value="OM">Orange Money</option>
+                <option value="WAVE">Wave</option>
+                <option value="FREE">Free Money</option>
+                <option value="AUTRES">Autres</option>
               </select>
             </div>
 
