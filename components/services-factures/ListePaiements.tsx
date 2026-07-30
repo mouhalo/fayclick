@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { recuService } from '@/services/recu.service';
 import { useAuth } from '@/contexts/AuthContext';
+import { useUserProfile } from '@/hooks/useUserProfile';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { FilterHeaderPaiementsGlass } from './FilterHeaderPaiementsGlass';
@@ -60,6 +61,7 @@ export function ListePaiements({
   onDownloadRecu
 }: ListePaiementsProps) {
   const { user } = useAuth();
+  const { isAdmin } = useUserProfile();
 
   const [paiements, setPaiements] = useState<Paiement[]>([]);
   const [loading, setLoading] = useState(true);
@@ -81,7 +83,7 @@ export function ListePaiements({
   // Charger les paiements
   useEffect(() => {
     loadPaiements();
-  }, [user]);
+  }, [user, isAdmin]);
 
   const loadPaiements = async () => {
     if (!user?.id_structure) return;
@@ -90,10 +92,13 @@ export function ListePaiements({
       setLoading(true);
       setError('');
 
-      // Récupérer l'historique des reçus
+      // Récupérer l'historique des reçus. Isolation caissier : un ADMIN voit
+      // toute la structure, un caissier ne reçoit que SES reçus. Les stats
+      // affichées au-dessus étant dérivées de cette liste, elles suivent.
       const historique = await recuService.getHistoriqueRecus({
         id_structure: user.id_structure,
-        limite: 100
+        limite: 100,
+        id_utilisateur: isAdmin ? 0 : user.id
       });
 
       // Transformer les données pour l'affichage

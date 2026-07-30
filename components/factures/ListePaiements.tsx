@@ -30,6 +30,7 @@ import {
 import { printViaIframe } from '@/lib/generate-ticket-html';
 import { arrayToCsv, downloadCsv } from '@/lib/export-csv';
 import { useAuth } from '@/contexts/AuthContext';
+import { useUserProfile } from '@/hooks/useUserProfile';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { FilterHeaderPaiementsGlass } from './FilterHeaderPaiementsGlass';
@@ -119,6 +120,7 @@ export function ListePaiements({
   canViewMontants = true
 }: ListePaiementsProps) {
   const { user, structure } = useAuth();
+  const { isAdmin } = useUserProfile();
   const t = useTranslations('invoices');
   const tPayment = useTranslations('paymentReport');
   const { locale } = useLanguage();
@@ -156,15 +158,21 @@ export function ListePaiements({
       setLoading(true);
       setError('');
 
+      // Isolation caissier : un ADMIN voit toute la structure, un caissier ne
+      // reçoit du serveur que SES encaissements — agrégats ET liste de reçus,
+      // sans quoi les cartes et la liste afficheraient des périmètres différents.
+      const pidUtilisateur = isAdmin ? 0 : user.id;
+
       // Liste et agrégats sont chargés en parallèle sur les mêmes bornes.
       const [historique, rapportEncaissements] = await Promise.all([
         recuService.getHistoriqueRecus({
           id_structure: user.id_structure,
           date_debut: bornes.debut,
           date_fin: bornes.fin,
-          limite: LIMITE_LISTE
+          limite: LIMITE_LISTE,
+          id_utilisateur: pidUtilisateur
         }),
-        recuService.getRapportEncaissements(user.id_structure, bornes.debut, bornes.fin, 0)
+        recuService.getRapportEncaissements(user.id_structure, bornes.debut, bornes.fin, pidUtilisateur)
       ]);
 
       setRapport(rapportEncaissements);
@@ -194,7 +202,7 @@ export function ListePaiements({
       setLoading(false);
     }
     // `tPayment` est mémoïsé sur [locale, namespace] : stable entre les rendus.
-  }, [user, bornes, tPayment]);
+  }, [user, bornes, isAdmin, tPayment]);
 
   // Rechargement au montage et à chaque changement de période.
   useEffect(() => {
@@ -290,10 +298,12 @@ export function ListePaiements({
   const goToPage = (page: number) => setCurrentPage(page);
 
 
-  // Reset page on filter change
+  // Reset page quand les filtres OU la période changent : sans `bornes`, passer
+  // d'une période large à une période courte laissait `currentPage` sur une page
+  // désormais hors bornes, donc une liste vide sans pagination pour revenir.
   useEffect(() => {
     setCurrentPage(1);
-  }, [filtres]);
+  }, [filtres, bornes]);
 
   /**
    * Libellé, icône et couleur d'un mode de paiement.
