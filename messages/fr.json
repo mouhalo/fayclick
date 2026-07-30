@@ -1858,5 +1858,35 @@
     "insights": "Insights",
     "settings": "Paramètres",
     "logout": "Déconnexion"
+  },
+  "paymentReport": {
+    "title": "Encaissements par mode",
+    "subtitle": "Répartition des paiements encaissés",
+    "mode": "Mode",
+    "count": "Nb paiements",
+    "amount": "Montant",
+    "total": "Total",
+    "period": "Période",
+    "print": "Imprimer",
+    "exportCsv": "Export CSV",
+    "loading": "Chargement des encaissements...",
+    "empty": "Aucun encaissement sur cette période",
+    "error": "Impossible de charger les encaissements",
+    "listCapNote": "{count} paiements les plus récents",
+    "dateFrom": "Du",
+    "dateTo": "Au",
+    "modes": {
+      "cash": "Espèces",
+      "om": "Orange Money",
+      "wave": "Wave",
+      "free": "Free Money",
+      "other": "Autres"
+    },
+    "presets": {
+      "today": "Jour",
+      "week": "7 jours",
+      "month": "Mois",
+      "custom": "Personnalisé"
+    }
   }
 }

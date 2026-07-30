@@ -1858,5 +1858,35 @@
     "insights": "Insights",
     "settings": "Settings",
     "logout": "Logout"
+  },
+  "paymentReport": {
+    "title": "Collections by payment method",
+    "subtitle": "Breakdown of payments collected",
+    "mode": "Method",
+    "count": "Payments",
+    "amount": "Amount",
+    "total": "Total",
+    "period": "Period",
+    "print": "Print",
+    "exportCsv": "Export CSV",
+    "loading": "Loading collections...",
+    "empty": "No collections for this period",
+    "error": "Unable to load collections",
+    "listCapNote": "{count} most recent payments",
+    "dateFrom": "From",
+    "dateTo": "To",
+    "modes": {
+      "cash": "Cash",
+      "om": "Orange Money",
+      "wave": "Wave",
+      "free": "Free Money",
+      "other": "Other"
+    },
+    "presets": {
+      "today": "Day",
+      "week": "7 days",
+      "month": "Month",
+      "custom": "Custom"
+    }
   }
 }
