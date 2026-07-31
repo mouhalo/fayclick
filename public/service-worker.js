@@ -5,8 +5,8 @@
 // Build: 2026-07-04 - Isolation ventes par caissier sur Vente Flash (bump cache)
 // Build: 2026-02-01T21:12:32.816Z
 
-const CACHE_NAME = 'fayclick-v3.5-cache-20260730';
-const DYNAMIC_CACHE_NAME = 'fayclick-v3.5-dynamic-20260730';
+const CACHE_NAME = 'fayclick-v3.6-cache-20260731';
+const DYNAMIC_CACHE_NAME = 'fayclick-v3.6-dynamic-20260731';
 const OFFLINE_PAGE_URL = '/offline';
 
 // Nom de l'IndexedDB pour les requêtes en attente (Background Sync)

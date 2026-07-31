@@ -144,7 +144,7 @@ FayClick V2 is a Next.js-based Progressive Web App (PWA) designed as a "Super Ap
 #### Architecture React Context + localStorage
 - **AuthContext** centralisé avec état global réactif (user, structure, permissions)
 - **Hydratation sécurisée** depuis localStorage avec vérification d'intégrité
-- **Workflow complet** : login → `SELECT * FROM list_structures WHERE id_structure = ?` → calcul permissions → stockage sécurisé
+- **Workflow complet** : login → `SELECT get_une_structure(id_structure)` (retourne aussi les params de param_structure : wallet_paiement, credit_autorise, etc.) → calcul permissions → stockage sécurisé
 
 #### Hooks d'Authentification
 - **`useAuth()`** : Accès à l'état global d'authentification
@@ -163,7 +163,7 @@ FayClick V2 is a Next.js-based Progressive Web App (PWA) designed as a "Super Ap
 1. Utilisateur se connecte → AuthContext.login()
 2. AuthService.completeLogin() exécute :
    - login(credentials) → vérification identifiants
-   - fetchStructureDetails(id_structure) → SELECT * FROM list_structures...
+   - fetchStructureDetails(id_structure) → SELECT get_une_structure(id_structure) (PAS list_structures — la vue n'expose pas les params de param_structure)
    - getUserPermissions(user, structure) → calcul des droits
 3. Stockage sécurisé : user + structure + permissions
 4. Redirection automatique selon type de structure
@@ -354,8 +354,8 @@ SELECT * FROM get_my_factures1(pid_structure, pannee, pmois, pid_facture DEFAULT
 -- Droits utilisateur
 SELECT * FROM get_mes_droits(pid_structure, pid_profil);
 
--- Structures
-SELECT * FROM list_structures WHERE id_structure = ?;
+-- Structures (auth/params : get_une_structure ; list_structures = vue légère SANS les params de param_structure)
+SELECT get_une_structure(pid_structure);
 
 -- Abonnements
 SELECT calculer_montant_abonnement(type, date_debut);
