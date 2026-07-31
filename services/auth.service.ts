@@ -95,6 +95,7 @@ export class AuthService {
         inclure_tva: structureData.inclure_tva === true || structureData.inclure_tva === 't',
         taux_tva: structureData.taux_tva ? Number(structureData.taux_tva) : 18,
         live_autorise: structureData.live_autorise === true || structureData.live_autorise === 't',
+        wallet_paiement: structureData.wallet_paiement === true || structureData.wallet_paiement === 't',
       };
 
       console.log('✅ [AUTH] Détails structure récupérés:', {
@@ -631,6 +632,7 @@ export class AuthService {
           limiteCredit: authData.structure.limite_credit ?? 5000,
           acompteAutorise: authData.structure.acompte_autorise ?? false,
           prixEnGrosActif: authData.structure.prix_engros ?? false,
+          walletPaiement: authData.structure.wallet_paiement === true || (authData.structure.wallet_paiement as unknown) === 't',
         };
         localStorage.setItem(salesRulesKey, JSON.stringify(salesRules));
         console.log('✅ [AUTH] Sales rules synchronisées depuis DB:', salesRules);
