@@ -78,3 +78,7 @@ test-*.png
 
 # Claude Code runtime locks
 .claude/scheduled_tasks.lock
+
+# Fichiers contenant des identifiants (scratch/notes)
+.claude/agents/new_ftp_update.txt
+.claude/agents/base_données.txt
