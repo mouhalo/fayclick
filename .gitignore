@@ -29,6 +29,9 @@ yarn-error.log*
 .env*.local
 .env
 .env.production
+.env.fayclick-com
+.env.*
+!.env.example
 
 # vercel
 .vercel
