@@ -86,8 +86,7 @@ try {
   }
 
   const criticalFiles = [
-    '.htaccess',
-    'upload-logo.php'
+    '.htaccess'
   ];
 
   criticalFiles.forEach(file => {
