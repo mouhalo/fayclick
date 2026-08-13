@@ -80,5 +80,5 @@ test-*.png
 .claude/scheduled_tasks.lock
 
 # Fichiers contenant des identifiants (scratch/notes)
-.claude/agents/*ftp*.txt
+.claude/**/*ftp*.txt
 .claude/agents/base_données.txt
