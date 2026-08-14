@@ -165,7 +165,14 @@ export default function ModalImpressionDocuments({
         // (le service facture absorbe la remise par article dans d.prix net)
         const pctBD = numOrNull(d.remise_pct);
         const origineBD = numOrNull(d.prix_origine);
-        const prixOrigine = origineBD ?? (prod?.prix_vente && prod.prix_vente > d.prix ? prod.prix_vente : d.prix);
+        // Si le prix de la ligne correspond au prix en gros catalogue actuel (±1F
+        // d'arrondi), c'est une vente en gros sans remise : ne jamais la comparer au
+        // prix normal (sinon faux % — le lookup catalogue ignorait le prix en gros).
+        const estPrixGrosCatalogue = !!prod?.prix_grossiste && prod.prix_grossiste > 0
+          && Math.abs(prod.prix_grossiste - d.prix) <= 1;
+        const prixOrigine = origineBD ?? (estPrixGrosCatalogue
+          ? d.prix
+          : (prod?.prix_vente && prod.prix_vente > d.prix ? prod.prix_vente : d.prix));
         const remiseArtPct = pctBD ?? (prixOrigine > 0 ? ((prixOrigine - d.prix) / prixOrigine) * 100 : 0);
         const remiseDisplay = remiseArtPct > 0.5
           ? (Math.abs(remiseArtPct - Math.round(remiseArtPct)) < 0.5
