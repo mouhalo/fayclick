@@ -124,9 +124,14 @@ export function ModalCreerProforma({
       const pctBD = numOrNull(d.remise_pct);
       const origineBD = numOrNull(d.prix_origine);
       const prod = allProduits.find(p => p.id_produit === d.id_produit);
+      // Si le prix de la ligne correspond au prix en gros catalogue actuel (±1F
+      // d'arrondi), c'est une vente en gros sans remise : ne jamais la comparer au
+      // prix normal (sinon faux % — le lookup catalogue ignorait le prix en gros).
+      const estPrixGrosCatalogue = !!prod?.prix_grossiste && prod.prix_grossiste > 0
+        && Math.abs(prod.prix_grossiste - d.prix_unitaire) <= 1;
       // Persisté (Phase 2) : % saisi exact + prix d'origine figé à la vente.
       // Fallback (lignes historiques) : reconstitution lookup catalogue, 2 décimales.
-      const prixOrigine = origineBD ?? (prod?.prix_vente ?? d.prix_unitaire);
+      const prixOrigine = origineBD ?? (estPrixGrosCatalogue ? d.prix_unitaire : (prod?.prix_vente ?? d.prix_unitaire));
       const remisePct = pctBD ?? (prixOrigine > d.prix_unitaire
         ? Math.round(((prixOrigine - d.prix_unitaire) / prixOrigine) * 10000) / 100
         : 0);

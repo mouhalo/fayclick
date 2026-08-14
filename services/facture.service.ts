@@ -102,7 +102,13 @@ class FactureService {
         if (art.remise_pct !== undefined && remiseArt === 0) {
           return { ...art, prix_applique: prixOrigine, _pctEmis: art.remise_pct, _prixOrigineEmis: art.prix_origine ?? prixOrigine };
         }
-        if (remiseArt === 0) return { ...art, prix_applique: prixOrigine, _pctEmis: undefined as number | undefined, _prixOrigineEmis: undefined as number | undefined };
+        if (remiseArt === 0) {
+          // Aucune remise saisie (ligne en prix normal ou en prix en gros) : on émet
+          // explicitement 0, jamais undefined. Sinon le champ est omis dans articles_string,
+          // la BD stocke remise_pct=NULL, et l'affichage retombe sur un lookup du prix
+          // catalogue NORMAL qui ignore le prix en gros → faux % de remise à l'impression.
+          return { ...art, prix_applique: prixOrigine, _pctEmis: 0, _prixOrigineEmis: prixOrigine };
+        }
         let pctEquivalent = 0;
         if (remiseMode === '%') {
           pctEquivalent = Math.max(0, Math.min(100, remiseArt));
@@ -157,7 +163,9 @@ class FactureService {
       const articlesString = articlesAvecPrixNet
         .map(article => {
           const base = `${article.id_produit}-${article.quantity}-${article.prix_applique ?? article.prix_vente}`;
-          return article._pctEmis !== undefined && article._pctEmis > 0
+          // _pctEmis est toujours défini (0 explicite si pas de remise) — jamais omis,
+          // pour que la BD stocke remise_pct=0 plutôt que NULL sur les lignes en gros.
+          return article._pctEmis !== undefined
             ? `${base}-${article._pctEmis}-${article._prixOrigineEmis}`
             : base;
         })
@@ -491,7 +499,11 @@ class FactureService {
       if (art.remise_pct !== undefined && remiseArt === 0) {
         return { ...art, prix_applique: prixOrigine, _pctEmis: art.remise_pct, _prixOrigineEmis: art.prix_origine ?? prixOrigine };
       }
-      if (remiseArt === 0) return { ...art, prix_applique: prixOrigine, _pctEmis: undefined as number | undefined, _prixOrigineEmis: undefined as number | undefined };
+      if (remiseArt === 0) {
+        // Aucune remise saisie (ligne en prix normal ou en prix en gros) : on émet
+        // explicitement 0, jamais undefined (cf. createFacture — logique byte-identique).
+        return { ...art, prix_applique: prixOrigine, _pctEmis: 0, _prixOrigineEmis: prixOrigine };
+      }
       let pctEquivalent = 0;
       if (remiseMode === '%') {
         pctEquivalent = Math.max(0, Math.min(100, remiseArt));
@@ -509,7 +521,7 @@ class FactureService {
     return articlesAvecPrixNet
       .map(article => {
         const base = `${article.id_produit}-${article.quantity}-${article.prix_applique ?? article.prix_vente}`;
-        return article._pctEmis !== undefined && article._pctEmis > 0
+        return article._pctEmis !== undefined
           ? `${base}-${article._pctEmis}-${article._prixOrigineEmis}`
           : base;
       })
