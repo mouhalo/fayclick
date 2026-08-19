@@ -25,11 +25,21 @@ interface ModalEncaissementVenteFlashProps {
   onClose: () => void;
   montantTotal: number;
   walletPaiement?: boolean;
+  /** Montant cible de la tranche en cours (défaut = montantTotal → comportement actuel inchangé) */
+  montantAEncaisser?: number;
+  /** true dès qu'une tranche a déjà été encaissée sur la vente (bandeau "Reste à encaisser") */
+  trancheEnCours?: boolean;
+  /** Case "Paiement multimode" — contrôlée par le parent, jamais réinitialisée par resetModal() */
+  multiMode?: boolean;
+  onMultiModeChange?: (checked: boolean) => void;
+  /** Infos facture de la vente en cours (split démarré) pour le contexte wallet */
+  idFactureEnCours?: number;
+  numFactureEnCours?: string;
   onPaymentComplete: (method: PaymentMethod, transactionData: {
     transactionId: string;
     uuid: string;
     telephone?: string; // Numéro téléphone pour paiements wallet
-  }, monnaieARendre?: number) => void;
+  }, monnaieARendre?: number, montantEncaisse?: number) => void;
   onPaymentFailed?: (error: string) => void;
 }
 
@@ -41,12 +51,21 @@ export function ModalEncaissementVenteFlash({
   onClose,
   montantTotal,
   walletPaiement = false,
+  montantAEncaisser,
+  trancheEnCours = false,
+  multiMode = false,
+  onMultiModeChange,
+  idFactureEnCours,
+  numFactureEnCours,
   onPaymentComplete,
   onPaymentFailed
 }: ModalEncaissementVenteFlashProps) {
   const { isMobile, isMobileLarge } = useBreakpoint();
   const isCompact = isMobile || isMobileLarge;
   const t = useTranslations('venteFlash');
+
+  // Montant cible de CETTE tranche : restant dû en cours de split, sinon total de la vente
+  const montantCible = montantAEncaisser ?? montantTotal;
 
   // États principaux
   const [step, setStep] = useState<PaymentStep>('SELECT_METHOD');
@@ -88,12 +107,12 @@ export function ModalEncaissementVenteFlash({
     setError('');
   };
 
-  // Calculer la monnaie à rendre
+  // Calculer la monnaie à rendre (sur la tranche en cours, pas sur le total de la vente)
   useEffect(() => {
     const recu = parseFloat(montantRecu) || 0;
-    const monnaie = recu - montantTotal;
+    const monnaie = recu - montantCible;
     setMonnaieARendre(monnaie >= 0 ? monnaie : 0);
-  }, [montantRecu, montantTotal]);
+  }, [montantRecu, montantCible]);
 
   // Timer pour le paiement wallet
   useEffect(() => {
@@ -155,8 +174,14 @@ export function ModalEncaissementVenteFlash({
 
     const recu = parseFloat(montantRecu) || 0;
 
-    if (recu < montantTotal) {
-      setError(t('checkout.minAmount', { amount: montantTotal.toLocaleString('fr-FR') }));
+    // Mono-mode : le reçu doit couvrir tout le restant (comportement historique).
+    // Multimode : un montant partiel est admis (tranche), seul le solde est plafonné.
+    if (!multiMode && recu < montantCible) {
+      setError(t('checkout.minAmount', { amount: montantCible.toLocaleString('fr-FR') }));
+      return;
+    }
+    if (multiMode && recu <= 0) {
+      setError(t('checkout.montantRequis'));
       return;
     }
 
@@ -169,14 +194,15 @@ export function ModalEncaissementVenteFlash({
       if (!user) throw new Error('Utilisateur non connecté');
 
       const transactionId = `CASH-${user.id_structure}-${Date.now()}`;
+      const montantEncaisse = Math.min(recu, montantCible);
 
-      console.log('💵 [VF-PAIEMENT] CASH validé | Montant:', montantTotal, '| Monnaie:', monnaieARendre);
+      console.log('💵 [VF-PAIEMENT] CASH validé | Cible:', montantCible, '| Encaissé:', montantEncaisse, '| Monnaie:', monnaieARendre);
 
-      // Callback immédiat avec monnaie à rendre
+      // Callback immédiat avec monnaie à rendre + montant réellement encaissé sur cette tranche
       onPaymentComplete('CASH', {
         transactionId,
         uuid: 'face2face'
-      }, monnaieARendre);
+      }, monnaieARendre, montantEncaisse);
 
     } catch (err) {
       console.error('❌ [ENCAISSEMENT] Erreur CASH:', err);
@@ -204,12 +230,12 @@ export function ModalEncaissementVenteFlash({
 
       const transactionId = `${method}-${user.id_structure}-${Date.now()}`;
 
-      console.log(`📱 [VF-PAIEMENT] ${method} direct validé | Montant:`, montantTotal);
+      console.log(`📱 [VF-PAIEMENT] ${method} direct validé | Montant:`, montantCible);
 
       onPaymentComplete(method, {
         transactionId,
         uuid: 'face2face'
-      });
+      }, undefined, montantCible);
 
     } catch (err) {
       console.error(`❌ [ENCAISSEMENT] Erreur ${method} direct:`, err);
@@ -255,19 +281,19 @@ export function ModalEncaissementVenteFlash({
       const user = authService.getUser();
       if (!user) throw new Error('Utilisateur non connecté');
 
-      console.log(`📱 [VF-PAIEMENT] Initiation ${method} | Montant: ${montantTotal} | Tel: ${telephone}`);
+      console.log(`📱 [VF-PAIEMENT] Initiation ${method} | Montant: ${montantCible} | Tel: ${telephone}`);
 
       const paymentContext = {
         facture: {
-          id_facture: 0,
-          num_facture: 'VFLASH',
+          id_facture: idFactureEnCours || 0,
+          num_facture: numFactureEnCours || 'VFLASH',
           nom_client: 'CLIENT_ANONYME',
           tel_client: telephone.replace(/\s/g, ''),
-          montant_total: montantTotal,
-          montant_restant: montantTotal,
+          montant_total: montantCible,
+          montant_restant: montantCible,
           nom_structure: user.nom_structure
         },
-        montant_acompte: montantTotal
+        montant_acompte: montantCible
       };
 
       const response = await paymentWalletService.createPayment(method, paymentContext);
@@ -330,7 +356,7 @@ export function ModalEncaissementVenteFlash({
               transactionId,
               uuid: responseUuid,
               telephone: telFromResponse
-            });
+            }, undefined, montantCible);
             break;
 
           case 'FAILED':
@@ -402,7 +428,9 @@ export function ModalEncaissementVenteFlash({
                 <div>
                   <h2 className={`font-bold ${isCompact ? 'text-base' : 'text-lg'}`}>{t('checkout.title')}</h2>
                   <p className={`text-white/90 ${isCompact ? 'text-xs' : 'text-sm'}`}>
-                    {formatAmount(montantTotal)}
+                    {trancheEnCours
+                      ? t('checkout.remainingToCollect', { amount: montantCible.toLocaleString('fr-FR') })
+                      : formatAmount(montantTotal)}
                   </p>
                 </div>
               </div>
@@ -424,6 +452,20 @@ export function ModalEncaissementVenteFlash({
                 <p className={`text-center text-gray-600 ${textSize} mb-3`}>
                   {t('checkout.chooseMethod')}
                 </p>
+
+                {/* Case "Paiement multimode" — contrôlée par le parent, survit aux resetModal() entre tranches */}
+                {onMultiModeChange && (
+                  <label className={`flex items-center justify-center gap-2 cursor-pointer select-none ${textSize}`}>
+                    <input
+                      type="checkbox"
+                      checked={multiMode}
+                      onChange={(e) => onMultiModeChange(e.target.checked)}
+                      className="w-4 h-4 accent-green-600 cursor-pointer"
+                    />
+                    <span className="font-medium text-gray-700">{t('checkout.multiMode')}</span>
+                    <span className="text-gray-400">· {t('checkout.multiModeHint')}</span>
+                  </label>
+                )}
 
                 {/* Grille 3 colonnes Flip Cards */}
                 <div className={`grid grid-cols-3 ${isCompact ? 'gap-2' : 'gap-4'}`}>
@@ -466,7 +508,7 @@ export function ModalEncaissementVenteFlash({
                           value={montantRecu}
                           onChange={(e) => {
                             const val = e.target.value;
-                            const maxAllowed = montantTotal * 10; // Max 10x le total
+                            const maxAllowed = montantCible * 10; // Max 10x le montant de la tranche
                             if (val === '' || (parseFloat(val) >= 0 && parseFloat(val) <= maxAllowed)) {
                               setMontantRecu(val);
                             }
@@ -474,34 +516,37 @@ export function ModalEncaissementVenteFlash({
                           onKeyDown={(e) => {
                             if (e.key === 'Enter') {
                               e.preventDefault();
-                              if ((parseFloat(montantRecu) || 0) >= montantTotal) {
+                              const recu = parseFloat(montantRecu) || 0;
+                              if (multiMode ? recu > 0 : recu >= montantCible) {
                                 handleCashValidate();
                               }
                             }
                           }}
                           placeholder="Reçu"
                           min={0}
-                          max={montantTotal * 10}
+                          max={montantCible * 10}
                           className={`w-full ${isCompact ? 'py-1 px-1 text-[11px]' : 'py-2 px-3 text-base'} border border-green-300 rounded-lg text-center font-semibold mb-1`}
                           autoFocus={flippedCards.has('CASH')}
                         />
                         {/* Label monnaie toujours visible */}
                         <div className={`text-center font-bold ${isCompact ? 'text-[9px] mb-0.5' : 'text-xs mb-1'} ${
-                          parseFloat(montantRecu) >= montantTotal
+                          parseFloat(montantRecu) >= montantCible
                             ? 'text-amber-600'
                             : 'text-gray-400'
                         }`}>
-                          {parseFloat(montantRecu) >= montantTotal
+                          {parseFloat(montantRecu) >= montantCible
                             ? t('checkout.cashChange', { amount: monnaieARendre.toLocaleString('fr-FR') })
                             : montantRecu
-                              ? t('checkout.cashMissing', { amount: (montantTotal - (parseFloat(montantRecu) || 0)).toLocaleString('fr-FR') })
-                              : t('checkout.cashTotal', { amount: montantTotal.toLocaleString('fr-FR') })
+                              ? (multiMode
+                                  ? t('checkout.trancheAmount', { amount: (parseFloat(montantRecu) || 0).toLocaleString('fr-FR') })
+                                  : t('checkout.cashMissing', { amount: (montantCible - (parseFloat(montantRecu) || 0)).toLocaleString('fr-FR') }))
+                              : t('checkout.cashTotal', { amount: montantCible.toLocaleString('fr-FR') })
                           }
                         </div>
                         <motion.button
                           whileTap={{ scale: 0.95 }}
                           onClick={handleCashValidate}
-                          disabled={isProcessing || parseFloat(montantRecu) < montantTotal}
+                          disabled={isProcessing || (multiMode ? !(parseFloat(montantRecu) > 0) : parseFloat(montantRecu) < montantCible)}
                           className={`w-full ${isCompact ? 'py-1 text-[9px]' : 'py-1.5 text-sm'} bg-green-500 text-white font-bold rounded-lg disabled:opacity-50`}
                         >
                           {isProcessing ? '...' : 'OK'}
@@ -552,7 +597,7 @@ export function ModalEncaissementVenteFlash({
                         {walletPaiement ? (
                           <>
                             <div className={`text-center font-bold ${isCompact ? 'text-[10px] mb-1' : 'text-xs mb-2'} text-blue-700`}>
-                              {formatAmount(montantTotal)}
+                              {formatAmount(montantCible)}
                             </div>
                             <motion.button
                               whileTap={{ scale: 0.95 }}
@@ -646,7 +691,7 @@ export function ModalEncaissementVenteFlash({
                         {walletPaiement ? (
                           <>
                             <div className={`text-center font-bold ${isCompact ? 'text-[10px] mb-1' : 'text-xs mb-2'} text-orange-700`}>
-                              {formatAmount(montantTotal)}
+                              {formatAmount(montantCible)}
                             </div>
                             <motion.button
                               whileTap={{ scale: 0.95 }}

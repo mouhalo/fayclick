@@ -19,7 +19,6 @@ import { factureService } from '@/services/facture.service';
 import { authService } from '@/services/auth.service';
 import { encodeFactureParams } from '@/lib/url-encoder';
 import { ModalRecuGenereProps, RecuDetails, RecuUrls, TypePaiement } from '@/types/recu';
-import { WalletType } from '@/components/facture/ModalPaiementWalletNew';
 import { recuService } from '@/services/recu.service';
 import { generateTicketHTML, printViaIframe } from '@/lib/generate-ticket-html';
 
@@ -65,7 +64,8 @@ export function ModalRecuGenere({
   dateTimePaiement,
   referenceTransaction,
   typePaiement,
-  montantFactureTotal
+  montantFactureTotal,
+  recusPaiements
 }: ModalRecuGenereProps) {
   const { isMobile, isMobileLarge, isTablet, isDesktop } = useBreakpoint();
   const [recuDetails, setRecuDetails] = useState<RecuDetails | null>(null);
@@ -73,6 +73,21 @@ export function ModalRecuGenere({
   const [error, setError] = useState<string | null>(null);
   const [copiedUrl, setCopiedUrl] = useState(false);
   const [qrExpanded, setQrExpanded] = useState(false);
+
+  // Liste des paiements affichés : toutes les tranches (multimode) ou le paiement unique
+  const paiementsAffiches = useMemo(() => {
+    if (recusPaiements && recusPaiements.length > 0) {
+      return recusPaiements.map(r => {
+        const cfg = WALLET_CONFIG[r.methode_paiement as keyof typeof WALLET_CONFIG] || WALLET_CONFIG.CASH;
+        return { label: cfg.displayName, color: cfg.color, montant: r.montant_paye };
+      });
+    }
+    const cfg = WALLET_CONFIG[walletUsed] || WALLET_CONFIG.CASH;
+    return [{ label: cfg.displayName, color: cfg.color, montant: montantPaye }];
+  }, [recusPaiements, walletUsed, montantPaye]);
+
+  // Total réellement payé sur la facture (somme des tranches en multimode)
+  const totalPaye = paiementsAffiches.reduce((s, p) => s + p.montant, 0);
 
   // Générer les URLs pour le reçu
   const urls = useMemo((): RecuUrls => {
@@ -180,16 +195,21 @@ export function ModalRecuGenere({
     const datePaiement = new Date(recuDetails.paiement.date_paiement).toLocaleDateString('fr-FR');
 
     const isAcompte = typePaiement === 'ACOMPTE';
-    const montantRestant = montantFactureTotal ? montantFactureTotal - montantPaye : 0;
+    const montantRestant = montantFactureTotal ? montantFactureTotal - totalPaye : 0;
+
+    // En multimode, on liste chaque tranche "mode montant" séparée par " + "
+    const methodeTexte = paiementsAffiches.length > 1
+      ? paiementsAffiches.map(p => `${p.label} ${p.montant.toLocaleString('fr-FR')} F`).join(' + ')
+      : walletInfo.name;
 
     const message = encodeURIComponent(
       `🧾 *${isAcompte ? 'REÇU ACOMPTE' : 'REÇU DE PAIEMENT'}* ✅\n\n` +
       `📄 Facture: ${recuDetails.facture.num_facture}\n` +
       `🏪 ${recuDetails.facture.nom_structure}\n\n` +
-      `💰 *${isAcompte ? 'Acompte versé' : 'Montant payé'}: ${montantPaye?.toLocaleString('fr-FR')} FCFA*\n` +
+      `💰 *${isAcompte ? 'Acompte versé' : 'Montant payé'}: ${totalPaye.toLocaleString('fr-FR')} FCFA*\n` +
       (isAcompte && montantFactureTotal ? `💳 Total facture: ${montantFactureTotal.toLocaleString('fr-FR')} FCFA\n` : '') +
       (isAcompte && montantRestant > 0 ? `⚠️ Restant dû: ${montantRestant.toLocaleString('fr-FR')} FCFA\n\n` : '\n') +
-      `💳 Méthode: ${walletInfo.name}\n` +
+      `💳 Méthode: ${methodeTexte}\n` +
       `📅 Date: ${datePaiement}\n` +
       `🧾 N° Reçu: ${recuDetails.facture.numrecu}\n\n` +
       `🔗 Voir le reçu officiel:\n${urls.full || 'URL en cours de génération...'}\n\n` +
@@ -222,7 +242,15 @@ export function ModalRecuGenere({
 
     const walletInfo = WALLET_CONFIG[walletUsed] || WALLET_CONFIG.CASH;
     const isAcompte = typePaiement === 'ACOMPTE';
-    const montantRestant = montantFactureTotal ? montantFactureTotal - montantPaye : 0;
+    const montantRestant = montantFactureTotal ? montantFactureTotal - totalPaye : 0;
+
+    // Ticket multimode : une ligne "Paiement" par tranche (mode + montant)
+    const ticketPaiements = recusPaiements && recusPaiements.length > 0
+      ? recusPaiements.map(r => ({
+          mode: (WALLET_CONFIG[r.methode_paiement as keyof typeof WALLET_CONFIG] || WALLET_CONFIG.CASH).name,
+          montant: r.montant_paye
+        }))
+      : undefined;
 
     const html = generateTicketHTML({
       nomStructure: recuDetails.facture.nom_structure,
@@ -231,10 +259,11 @@ export function ModalRecuGenere({
       dateFacture: formatDateTime(recuDetails.paiement.date_paiement),
       nomClient: recuDetails.facture.nom_client,
       telClient: recuDetails.facture.tel_client,
-      montantNet: montantPaye,
-      acompte: isAcompte ? montantPaye : undefined,
+      montantNet: totalPaye,
+      acompte: isAcompte ? totalPaye : undefined,
       restant: isAcompte && montantRestant > 0 ? montantRestant : undefined,
       methodePaiement: walletInfo.name,
+      paiements: ticketPaiements,
       badge: isAcompte ? 'ACOMPTE' : 'PAYE',
     });
 
@@ -319,7 +348,6 @@ export function ModalRecuGenere({
   };
 
   const styles = getResponsiveStyles();
-  const walletInfo = WALLET_CONFIG[walletUsed] || WALLET_CONFIG.CASH;
 
   if (!isOpen) return null;
 
@@ -439,15 +467,17 @@ export function ModalRecuGenere({
 
                     {/* Informations de paiement */}
                     <div className={`border-t border-emerald-100 pt-1.5 ${styles.spacing}`}>
-                      <div className="flex items-center justify-between">
-                        <span className={`${styles.labelSize} text-gray-600 flex items-center gap-0.5`}>
-                          <CreditCard className="w-2.5 h-2.5" />
-                          Méthode
-                        </span>
-                        <span className={`${walletInfo.color} font-medium ${styles.valueSize}`}>
-                          {walletInfo.displayName}
-                        </span>
-                      </div>
+                      {paiementsAffiches.map((paiement, idx) => (
+                        <div key={idx} className="flex items-center justify-between">
+                          <span className={`${styles.labelSize} text-gray-600 flex items-center gap-0.5`}>
+                            <CreditCard className="w-2.5 h-2.5" />
+                            {paiementsAffiches.length > 1 ? `Paiement ${idx + 1}` : 'Méthode'}
+                          </span>
+                          <span className={`${paiement.color} font-medium ${styles.valueSize}`}>
+                            {paiement.label}{paiementsAffiches.length > 1 ? ` · ${paiement.montant.toLocaleString('fr-FR')} F` : ''}
+                          </span>
+                        </div>
+                      ))}
 
                       <div className="flex items-center justify-between">
                         <span className={`${styles.labelSize} text-gray-600 flex items-center gap-0.5`}>
@@ -466,7 +496,7 @@ export function ModalRecuGenere({
                         <span className={`${styles.montantSize} font-bold ${
                           typePaiement === 'ACOMPTE' ? 'text-orange-600' : 'text-emerald-600'
                         }`}>
-                          {montantPaye?.toLocaleString('fr-FR')} FCFA
+                          {totalPaye.toLocaleString('fr-FR')} FCFA
                         </span>
                       </div>
 
@@ -482,7 +512,7 @@ export function ModalRecuGenere({
                           <div className="flex items-center justify-between">
                             <span className={`${styles.labelSize} text-gray-600`}>Restant</span>
                             <span className={`font-bold text-red-600 ${styles.valueSize}`}>
-                              {(montantFactureTotal - montantPaye).toLocaleString('fr-FR')} FCFA
+                              {(montantFactureTotal - totalPaye).toLocaleString('fr-FR')} FCFA
                             </span>
                           </div>
 
@@ -491,13 +521,13 @@ export function ModalRecuGenere({
                             <div className="flex justify-between items-center mb-0.5">
                               <span className={`${styles.textSize} text-gray-600`}>Progression</span>
                               <span className={`${styles.textSize} font-medium text-orange-600`}>
-                                {Math.round((montantPaye / montantFactureTotal) * 100)}%
+                                {Math.round((totalPaye / montantFactureTotal) * 100)}%
                               </span>
                             </div>
                             <div className="w-full bg-gray-200 rounded-full h-1.5">
                               <div
                                 className="bg-gradient-to-r from-orange-500 to-amber-500 h-1.5 rounded-full transition-all duration-300"
-                                style={{ width: `${(montantPaye / montantFactureTotal) * 100}%` }}
+                                style={{ width: `${(totalPaye / montantFactureTotal) * 100}%` }}
                               />
                             </div>
                           </div>

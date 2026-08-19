@@ -1274,7 +1274,10 @@
         "methodRequired": "Please select a payment method",
         "genericPayment": "Payment error",
         "walletSave": "Error while saving wallet payment",
-        "dataIncomplete": "Incomplete payment data (UUID or transaction_id missing)"
+        "dataIncomplete": "Incomplete payment data (UUID or transaction_id missing)",
+        "multiMode": "Multi-mode payment",
+        "multiModeHint": "(several modes on the same invoice)",
+        "trancheRecorded": "Instalment collected — {amount} F left to pay"
       }
     },
     "qrcode": {
@@ -1413,7 +1416,10 @@
       "processing": "Processing...",
       "grossBadge": "WHOLESALE",
       "saleError": "Sale error",
-      "userNotConnected": "User not connected"
+      "userNotConnected": "User not connected",
+      "splitCancelConfirm": "Split payment in progress — the invoice will remain unpaid with the amount already collected. Cancel the sale?",
+      "splitTitle": "Split payment",
+      "splitBanner": "Invoice {num} — {amount} F remaining"
     },
     "tabs": {
       "itemCount": "{count} items",
@@ -1442,7 +1448,14 @@
       "omPhoneError": "Must start with 77 or 78",
       "wavePhoneError": "Invalid number",
       "paymentFailed": "Payment failed",
-      "openWave": "Open Wave"
+      "openWave": "Open Wave",
+      "remainingToCollect": "Remaining to collect: {amount} F",
+      "multiMode": "Multi-mode payment",
+      "multiModeHint": "keep checkout open",
+      "montantRequis": "Enter an amount",
+      "trancheAmount": "Instalment: {amount} F",
+      "trancheSuccess": "Instalment collected — {amount} F remaining",
+      "partialAbandon": "Pending payment: invoice {num} remains unpaid (settle it from Invoices › Unpaid)"
     },
     "receipt": {
       "paymentConfirmed": "Payment Confirmed",
@@ -1467,7 +1480,8 @@
       "modifyDateLocked": "Only today's sales can be edited",
       "modifyNotPaid": "Only paid sales can be edited",
       "modifyInvalidRemise": "The discount cannot exceed the subtotal",
-      "modifyEmptyArticles": "At least one item is required"
+      "modifyEmptyArticles": "At least one item is required",
+      "labelRestant": "Remaining"
     },
     "refresh": {
       "title": "Refreshing...",

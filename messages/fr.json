@@ -1274,7 +1274,10 @@
         "methodRequired": "Veuillez sélectionner un mode de paiement",
         "genericPayment": "Erreur lors du paiement",
         "walletSave": "Erreur lors de l'enregistrement du paiement wallet",
-        "dataIncomplete": "Données de paiement incomplètes (UUID ou transaction_id manquant)"
+        "dataIncomplete": "Données de paiement incomplètes (UUID ou transaction_id manquant)",
+        "multiMode": "Paiement multimode",
+        "multiModeHint": "(plusieurs modes sur la même facture)",
+        "trancheRecorded": "Tranche encaissée — reste {amount} F à payer"
       }
     },
     "qrcode": {
@@ -1413,7 +1416,10 @@
       "processing": "Traitement...",
       "grossBadge": "GROS",
       "saleError": "Erreur lors de la vente",
-      "userNotConnected": "Utilisateur non connecté"
+      "userNotConnected": "Utilisateur non connecté",
+      "splitCancelConfirm": "Paiement en plusieurs fois en cours — la facture restera impayée avec le montant déjà encaissé. Annuler la vente ?",
+      "splitTitle": "Paiement en plusieurs fois",
+      "splitBanner": "Facture {num} — reste {amount} F"
     },
     "tabs": {
       "itemCount": "{count} art.",
@@ -1442,7 +1448,14 @@
       "omPhoneError": "Doit commencer par 77 ou 78",
       "wavePhoneError": "Numéro invalide",
       "paymentFailed": "Le paiement a échoué",
-      "openWave": "Ouvrir Wave"
+      "openWave": "Ouvrir Wave",
+      "remainingToCollect": "Reste à encaisser : {amount} F",
+      "multiMode": "Paiement multimode",
+      "multiModeHint": "garder l'encaissement ouvert",
+      "montantRequis": "Saisissez un montant",
+      "trancheAmount": "Tranche : {amount} F",
+      "trancheSuccess": "Tranche encaissée — reste {amount} F",
+      "partialAbandon": "Paiement en attente : la facture {num} reste impayée (à solder depuis Factures › Impayées)"
     },
     "receipt": {
       "paymentConfirmed": "Paiement Confirmé",
@@ -1467,7 +1480,8 @@
       "modifyDateLocked": "Seules les ventes du jour sont modifiables",
       "modifyNotPaid": "Seules les ventes payées sont modifiables",
       "modifyInvalidRemise": "La remise ne peut pas dépasser le sous-total",
-      "modifyEmptyArticles": "Au moins un article est requis"
+      "modifyEmptyArticles": "Au moins un article est requis",
+      "labelRestant": "Reste à payer"
     },
     "refresh": {
       "title": "Rafraîchissement en cours...",

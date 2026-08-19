@@ -40,6 +40,17 @@ export interface ModalRecuGenereProps {
   referenceTransaction?: string;
   typePaiement?: TypePaiement;
   montantFactureTotal?: number; // Pour contexte dans les acomptes
+  // Paiement multimode : liste cumulée des reçus de la facture (réponse
+  // add_acompte_facture). Si fournie, le modal affiche une ligne par tranche
+  // (mode + montant) au lieu du wallet unique, et le ticket 80mm liste les tranches.
+  recusPaiements?: RecuPaiementLite[];
+}
+
+// Vue allégée d'un recus_paiement pour l'affichage consolidé multimode
+export interface RecuPaiementLite {
+  methode_paiement: string;
+  montant_paye: number;
+  numero_recu?: string;
 }
 
 // Informations de paiement pour le reçu
