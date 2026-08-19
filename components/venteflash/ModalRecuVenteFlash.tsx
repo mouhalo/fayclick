@@ -32,6 +32,10 @@ interface ModalRecuVenteFlashProps {
   monnaieARendre?: number;
   dateVente?: Date;
   detailFacture?: DetailProduit[];
+  /** Tranches de paiement (multimode) — si fournie, remplace l'affichage du mode unique */
+  paiementsDetail?: Array<{ methode: 'CASH' | 'OM' | 'WAVE'; montant: number }>;
+  /** Restant dû après encaissement (> 0 → vente partiellement payée, badge ACOMPTE) */
+  montantRestant?: number;
   /** Déclenche l'édition de cette vente (panier d'édition isolé). Met le timer en pause. */
   onModifier?: () => void;
   /** true si la vente est modifiable aujourd'hui (PAYEE + date du jour) */
@@ -48,6 +52,8 @@ export function ModalRecuVenteFlash({
   monnaieARendre = 0,
   dateVente = new Date(),
   detailFacture = [],
+  paiementsDetail,
+  montantRestant = 0,
   onModifier,
   modifiable = false
 }: ModalRecuVenteFlashProps) {
@@ -112,14 +118,20 @@ export function ModalRecuVenteFlash({
   };
 
   // Label méthode paiement
-  const getMethodeLabel = () => {
-    switch (methodePaiement) {
+  const getMethodeLabel = (methode: 'CASH' | 'OM' | 'WAVE') => {
+    switch (methode) {
       case 'CASH': return t('receipt.methodCash');
       case 'OM': return t('receipt.methodOM');
       case 'WAVE': return t('receipt.methodWave');
-      default: return methodePaiement;
+      default: return methode;
     }
   };
+
+  // Tranches à afficher : liste multimode si fournie, sinon mode unique
+  const paiementsAffiches: Array<{ methode: 'CASH' | 'OM' | 'WAVE'; montant: number }> =
+    paiementsDetail && paiementsDetail.length > 0
+      ? paiementsDetail
+      : [{ methode: methodePaiement, montant: montantTotal - montantRestant > 0 ? montantTotal - montantRestant : montantTotal }];
 
   // Impression ticket - Format unifie
   const handlePrint = () => {
@@ -144,10 +156,14 @@ export function ModalRecuVenteFlash({
       sousTotal: sousTotalLignes > 0 ? sousTotalLignes : undefined,
       remise: remiseGlobale > 0 ? remiseGlobale : undefined,
       montantNet: montantTotal,
-      methodePaiement: getMethodeLabel(),
+      methodePaiement: getMethodeLabel(methodePaiement),
+      paiements: paiementsAffiches.length > 0
+        ? paiementsAffiches.map(p => ({ mode: getMethodeLabel(p.methode), montant: p.montant }))
+        : undefined,
       monnaieARendre: monnaieARendre > 0 ? monnaieARendre : undefined,
+      restant: montantRestant > 0 ? montantRestant : undefined,
       nomCaissier: user?.username || 'Caissier',
-      badge: 'PAYE',
+      badge: montantRestant > 0 ? 'ACOMPTE' : 'PAYE',
     });
 
     printViaIframe(html);
@@ -167,6 +183,11 @@ export function ModalRecuVenteFlash({
     const sousTotalLignes = detailFacture.reduce((s, item) => s + (item.sous_total || 0), 0);
     const remiseGlobale = Math.max(0, sousTotalLignes - montantTotal);
 
+    // Ligne paiement : liste des tranches en multimode, mode unique sinon
+    const paiementTexte = paiementsAffiches.length > 1
+      ? paiementsAffiches.map(p => `${getMethodeLabel(p.methode)} ${p.montant.toLocaleString('fr-FR')} F`).join(' + ')
+      : getMethodeLabel(methodePaiement);
+
     const message = encodeURIComponent(
       `🧾 *REÇU DE PAIEMENT*\n\n` +
       `📍 ${nomStructure}\n` +
@@ -175,8 +196,9 @@ export function ModalRecuVenteFlash({
       detailsText +
       `${remiseGlobale > 0 ? `\n🎁 Remise: -${remiseGlobale.toLocaleString('fr-FR')} F` : ''}` +
       `\n💰 *TOTAL: ${montantTotal.toLocaleString('fr-FR')} FCFA*\n` +
-      `💳 Paiement: ${getMethodeLabel()}\n\n` +
-      `Merci de votre confiance ! 🙏`
+      `💳 Paiement: ${paiementTexte}\n` +
+      (montantRestant > 0 ? `⚠️ Restant dû: ${montantRestant.toLocaleString('fr-FR')} FCFA\n` : '') +
+      `\nMerci de votre confiance ! 🙏`
     );
     window.open(`https://wa.me/?text=${message}`, '_blank');
   };
@@ -272,13 +294,23 @@ export function ModalRecuVenteFlash({
                 <span className="text-gray-500">{t('receipt.labelClient')}</span>
                 <span className="text-gray-700">{t('receipt.anonymous')}</span>
               </div>
-              <div className="ticket-row">
-                <span className="text-gray-500">{t('receipt.labelPayment')}</span>
-                <span className={`font-semibold ${
-                  methodePaiement === 'CASH' ? 'text-green-600' :
-                  methodePaiement === 'OM' ? 'text-orange-600' : 'text-blue-600'
-                }`}>{getMethodeLabel()}</span>
-              </div>
+              {paiementsAffiches.map((paiement, idx) => (
+                <div key={idx} className="ticket-row">
+                  <span className="text-gray-500">{t('receipt.labelPayment')}{paiementsAffiches.length > 1 ? ` ${idx + 1}` : ''}</span>
+                  <span className={`font-semibold ${
+                    paiement.methode === 'CASH' ? 'text-green-600' :
+                    paiement.methode === 'OM' ? 'text-orange-600' : 'text-blue-600'
+                  }`}>
+                    {getMethodeLabel(paiement.methode)}{paiementsAffiches.length > 1 ? ` · ${paiement.montant.toLocaleString('fr-FR')} F` : ''}
+                  </span>
+                </div>
+              ))}
+              {montantRestant > 0 && (
+                <div className="ticket-row">
+                  <span className="text-orange-600 font-medium">{t('receipt.labelRestant')}</span>
+                  <span className="font-bold text-orange-600">{montantRestant.toLocaleString('fr-FR')} F</span>
+                </div>
+              )}
             </div>
 
             {/* Total - Compact */}

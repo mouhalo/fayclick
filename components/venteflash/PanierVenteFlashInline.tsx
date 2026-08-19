@@ -106,6 +106,17 @@ export function PanierVenteFlashInline({
   const [isExpanded, setIsExpanded] = useState(true);
   const [showEncaissementModal, setShowEncaissementModal] = useState(false);
 
+  // --- Paiement multimode : vente en cours d'encaissement en plusieurs tranches ---
+  // Non-null dès qu'une première tranche a été encaissée sans solder la vente.
+  // La facture est déjà créée en base ; les tranches suivantes ne font qu'un appel
+  // add_acompte_facture supplémentaire (jamais de nouvelle createFacture).
+  const [multiModeActif, setMultiModeActif] = useState(false);
+  const [venteEnCours, setVenteEnCours] = useState<{
+    idFacture: number;
+    numFacture: string;
+    montantRestant: number;
+  } | null>(null);
+
   // Mode remise : '%' (pourcentage) ou 'F' (valeur fixe)
   const [remiseMode, setRemiseMode] = useState<'%' | 'F'>(() => {
     if (typeof window !== 'undefined') {
@@ -124,6 +135,10 @@ export function PanierVenteFlashInline({
     montantTotal: number;
     methodePaiement: 'CASH' | 'OM' | 'WAVE';
     monnaieARendre: number;
+    /** Tranches cumulées (multimode) — vient de recus_paiement du dernier appel */
+    paiementsDetail?: Array<{ methode: 'CASH' | 'OM' | 'WAVE'; montant: number }>;
+    /** Restant dû après encaissement (> 0 si la vente n'est pas soldée) */
+    montantRestant?: number;
     detailFacture: Array<{
       id_detail?: number;
       nom_produit: string;
@@ -137,6 +152,10 @@ export function PanierVenteFlashInline({
   const sousTotal = getSousTotal();
   const montants = getMontantsFacture();
   const total = montants.montant_net;
+
+  // Pendant un split multimode la facture existe déjà : tout ce qui influence son
+  // montant (articles, quantités, remises) doit être figé jusqu'à la fin de la vente.
+  const encaissementEnCours = !!venteEnCours;
 
   // Changer le mode de remise et persister dans localStorage
   const handleRemiseModeChange = (mode: '%' | 'F') => {
@@ -188,6 +207,8 @@ export function PanierVenteFlashInline({
         montantTotal={recuData.montantTotal}
         methodePaiement={recuData.methodePaiement}
         monnaieARendre={recuData.monnaieARendre}
+        paiementsDetail={recuData.paiementsDetail}
+        montantRestant={recuData.montantRestant}
       />
     );
   }
@@ -196,6 +217,16 @@ export function PanierVenteFlashInline({
    * Vider le panier
    */
   const handleAnnuler = () => {
+    if (venteEnCours) {
+      // Split en cours : la facture partielle reste en base (id_etat = 1),
+      // on abandonne simplement l'enchaînement des tranches.
+      if (confirm(t('cart.splitCancelConfirm'))) {
+        setVenteEnCours(null);
+        setMultiModeActif(false);
+        clearPanier();
+      }
+      return;
+    }
     if (confirm(t('cart.emptyConfirm'))) {
       clearPanier();
     }
@@ -215,11 +246,16 @@ export function PanierVenteFlashInline({
   /**
    * Callback après validation du paiement dans le modal
    * IMPORTANT: Guard contre les appels multiples (polling peut rappeler plusieurs fois)
+   *
+   * Multimode : montantEncaisse = montant de la tranche (peut être < total).
+   * La facture n'est créée qu'à la 1ère tranche ; les suivantes enchaînent des
+   * add_acompte_facture sur la même facture (mécanisme d'acompte multi-tranches).
    */
   const handlePaymentComplete = async (
     method: PaymentMethod,
     transactionData: { transactionId: string; uuid: string; telephone?: string },
-    monnaieARendre?: number
+    monnaieARendre?: number,
+    montantEncaisse?: number
   ) => {
     // Guard contre les doublons - si déjà en cours, ignorer
     if (isProcessing) {
@@ -236,40 +272,54 @@ export function PanierVenteFlashInline({
     setIsProcessing(true);
     setShowEncaissementModal(false);
 
+    // Montant de cette tranche, plafonné au restant dû (jamais au-delà du net)
+    const restantAvant = venteEnCours ? venteEnCours.montantRestant : total;
+    const montantTranche = Math.max(0, Math.min(montantEncaisse ?? restantAvant, restantAvant));
+
     try {
-      console.log(`🛒 [VF-VENTE] === NOUVELLE VENTE ${method} ===`);
-      console.log(`🛒 [VF-VENTE] Articles: ${articles.length} | Total: ${total} FCFA`);
+      console.log(`🛒 [VF-VENTE] === ${venteEnCours ? 'TRANCHE SPLIT' : 'NOUVELLE VENTE'} ${method} ===`);
+      console.log(`🛒 [VF-VENTE] Articles: ${articles.length} | Tranche: ${montantTranche} FCFA | Restant avant: ${restantAvant} FCFA`);
 
-      // Étape 1 : Créer la facture
-      const factureResult = await factureService.createFacture(
-        articles,
-        {
-          nom_client_payeur: 'CLIENT_ANONYME',
-          tel_client: '000000000',
-          description: `Vente Flash - ${method}`
-        },
-        {
-          remise: remise || 0,
-          acompte: 0
-        },
-        false
-      );
+      // Étape 1 : Créer la facture — une seule fois, à la première tranche uniquement
+      let idFacture: number;
+      let numFacture: string;
 
-      if (!factureResult.success || !factureResult.id_facture) {
-        throw new Error(factureResult.message || 'Erreur création facture');
+      if (!venteEnCours) {
+        const factureResult = await factureService.createFacture(
+          articles,
+          {
+            nom_client_payeur: 'CLIENT_ANONYME',
+            tel_client: '000000000',
+            description: `Vente Flash - ${method}`
+          },
+          {
+            remise: remise || 0,
+            acompte: 0
+          },
+          false
+        );
+
+        if (!factureResult.success || !factureResult.id_facture) {
+          throw new Error(factureResult.message || 'Erreur création facture');
+        }
+
+        idFacture = factureResult.id_facture;
+        numFacture = `FAC-${idFacture}`;
+
+        console.log(`✅ [VF-VENTE] 1/2 Facture créée | ID: ${idFacture} | Num: ${numFacture}`);
+      } else {
+        idFacture = venteEnCours.idFacture;
+        numFacture = venteEnCours.numFacture;
+
+        console.log(`✅ [VF-VENTE] Facture existante réutilisée | ID: ${idFacture} | Num: ${numFacture}`);
       }
 
-      const idFacture = factureResult.id_facture;
-      const numFacture = `FAC-${idFacture}`;
-
-      console.log(`✅ [VF-VENTE] 1/2 Facture créée | ID: ${idFacture} | Num: ${numFacture}`);
-
-      // Étape 2 : Encaissement + Reçu automatique (nouvelle signature add_acompte_facture)
+      // Étape 2 : Encaissement de la tranche + Reçu automatique (nouvelle signature add_acompte_facture)
       const encaissementQuery = `
         SELECT * FROM add_acompte_facture(
           ${user.id_structure},
           ${idFacture},
-          ${total},
+          ${montantTranche},
           '${transactionData.transactionId}',
           '${transactionData.uuid}',
           '${method}',
@@ -277,7 +327,9 @@ export function PanierVenteFlashInline({
         )
       `;
 
-      const encaissementResults = await database.query(encaissementQuery);
+      const encaissementResults = await database.query<{
+        add_acompte_facture: string | Record<string, any>;
+      }>(encaissementQuery);
 
       if (!encaissementResults || encaissementResults.length === 0) {
         throw new Error('Erreur enregistrement encaissement');
@@ -296,20 +348,45 @@ export function PanierVenteFlashInline({
       }
 
       // Extraire les données du reçu créé automatiquement par PostgreSQL
-      const recuInfo = parsedEncaissement.recus_paiement?.[0];
+      const recuInfo = parsedEncaissement.recus_paiement?.[parsedEncaissement.recus_paiement.length - 1];
       const numeroRecu = recuInfo?.numero_recu || parsedEncaissement.paiement?.numero_recu;
 
       // Extraire les détails de la facture pour le ticket
       const detailFacture = parsedEncaissement.detail_facture || [];
 
-      console.log(`✅ [VF-VENTE] 2/2 Acompte + Reçu créés | ${method} | ID Reçu: ${recuInfo?.id_recu || 'N/A'} | N°: ${numeroRecu || 'N/A'} | Articles: ${detailFacture.length}`);
+      // Restant dû après cette tranche (source de vérité : la réponse PostgreSQL)
+      const nouveauRestant = typeof parsedEncaissement.facture?.nouveau_restant === 'number'
+        ? parsedEncaissement.facture.nouveau_restant
+        : Math.max(0, restantAvant - montantTranche);
+      const numFactureFinal = parsedEncaissement.facture?.num_facture || numFacture;
+
+      console.log(`✅ [VF-VENTE] 2/2 Acompte + Reçu créés | ${method} | Montant: ${montantTranche} | N° Reçu: ${numeroRecu || 'N/A'} | Restant: ${nouveauRestant} | Articles: ${detailFacture.length}`);
+
+      // --- Tranche partielle en multimode : la vente continue, pas de finalisation ---
+      // Le modal se rouvre automatiquement sur le montant restant (reset complet du
+      // modal via le cycle isOpen false→true : polling, timer et guard anti-doublon réinitialisés).
+      if (multiModeActif && nouveauRestant > 0) {
+        setVenteEnCours({
+          idFacture,
+          numFacture: numFactureFinal,
+          montantRestant: nouveauRestant
+        });
+        setShowEncaissementModal(true);
+        showToast('success', t('checkout.title'), t('checkout.trancheSuccess', { amount: nouveauRestant.toLocaleString('fr-FR') }));
+        return;
+      }
+
+      // --- Finalisation (comportement actuel) : vente soldée, ou multimode désactivé en cours de route ---
+      const montantPayeCumule = parsedEncaissement.recus_paiement?.length
+        ? parsedEncaissement.recus_paiement.reduce((s: number, r: { montant_paye?: number }) => s + (r.montant_paye || 0), 0)
+        : total;
 
       // Construire les données de vente AVANT de vider le panier (on a besoin des articles)
       const venteResultData: VenteFlashResultData = {
         id_facture: idFacture,
-        num_facture: parsedEncaissement.facture?.num_facture || numFacture,
+        num_facture: numFactureFinal,
         montant_total: total,
-        montant_paye: total,
+        montant_paye: montantPayeCumule,
         mt_remise: remise || 0,
         mode_paiement: method,
         details: articles.map(a => ({
@@ -337,12 +414,18 @@ export function PanierVenteFlashInline({
       }
 
       // Afficher le nouveau modal reçu ticket avec détails produits
+      // (ticket consolidé : recus_paiement cumulés du DERNIER appel contient toutes les tranches)
       setRecuData({
         idFacture,
-        numFacture: parsedEncaissement.facture?.num_facture || numFacture,
+        numFacture: numFactureFinal,
         montantTotal: total,
         methodePaiement: method as 'CASH' | 'OM' | 'WAVE',
         monnaieARendre: monnaieARendre || 0,
+        paiementsDetail: (parsedEncaissement.recus_paiement || []).map((r: { methode_paiement?: string; montant_paye?: number }) => ({
+          methode: (r.methode_paiement || method) as 'CASH' | 'OM' | 'WAVE',
+          montant: r.montant_paye || 0
+        })),
+        montantRestant: nouveauRestant,
         detailFacture: detailFacture.map((item: { id_detail?: number; nom_produit: string; quantite: number; prix: number; sous_total: number }) => ({
           id_detail: item.id_detail,
           nom_produit: item.nom_produit,
@@ -353,9 +436,18 @@ export function PanierVenteFlashInline({
       });
       setShowRecuModal(true);
 
+      // Vente terminée (soldée ou tranche mono-mode classique) : reset de l'état multimode
+      setVenteEnCours(null);
+      setMultiModeActif(false);
+
     } catch (error) {
       console.error('❌ [PANIER INLINE] Erreur:', error);
       showToast('error', t('toasts.error'), error instanceof Error ? error.message : t('cart.saleError'));
+      // Erreur pendant un split : la facture existe déjà en base, rouvrir le modal
+      // sur le même restant pour permettre de retenter la tranche
+      if (venteEnCours) {
+        setShowEncaissementModal(true);
+      }
     } finally {
       setIsProcessing(false);
     }
@@ -420,8 +512,9 @@ export function PanierVenteFlashInline({
                         {article.nom_produit}
                       </h4>
                       <button
-                        onClick={() => removeArticle(article.id_produit)}
-                        className="text-red-500 hover:bg-red-50 p-1 rounded-lg transition-colors flex-shrink-0"
+                      onClick={() => removeArticle(article.id_produit)}
+                      disabled={encaissementEnCours}
+                      className="text-red-500 hover:bg-red-50 p-1 rounded-lg transition-colors flex-shrink-0 disabled:opacity-40 disabled:cursor-not-allowed"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -441,7 +534,7 @@ export function PanierVenteFlashInline({
                       <div className="flex items-center gap-1">
                         <button
                           onClick={() => updateQuantity(article.id_produit, article.quantity - 1)}
-                          disabled={article.quantity <= 1}
+                          disabled={article.quantity <= 1 || encaissementEnCours}
                           className="w-7 h-7 bg-white border border-gray-300 rounded-lg flex items-center justify-center hover:bg-gray-100 disabled:opacity-50 transition-colors"
                         >
                           <Minus className="w-3 h-3" />
@@ -449,7 +542,8 @@ export function PanierVenteFlashInline({
                         <span className="w-8 text-center font-bold text-sm">{article.quantity}</span>
                         <button
                           onClick={() => updateQuantity(article.id_produit, article.quantity + 1)}
-                          className="w-7 h-7 bg-white border border-gray-300 rounded-lg flex items-center justify-center hover:bg-gray-100 transition-colors"
+                          disabled={encaissementEnCours}
+                          className="w-7 h-7 bg-white border border-gray-300 rounded-lg flex items-center justify-center hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                         >
                           <Plus className="w-3 h-3" />
                         </button>
@@ -472,7 +566,8 @@ export function PanierVenteFlashInline({
                           value={article.remise_article || 0}
                           onChange={(e) => updateRemiseArticle(article.id_produit, Number(e.target.value))}
                           onFocus={(e) => e.target.select()}
-                          className="w-14 h-5 text-center text-[10px] border border-gray-300 rounded focus:outline-none focus:border-green-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                          disabled={encaissementEnCours}
+                          className="w-14 h-5 text-center text-[10px] border border-gray-300 rounded focus:outline-none focus:border-green-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none disabled:bg-gray-100 disabled:text-gray-400"
                         />
                         <span className="text-[10px] text-gray-500">{remiseMode === '%' ? '%' : 'F'}</span>
                       </div>
@@ -501,7 +596,8 @@ export function PanierVenteFlashInline({
                     <div className="flex rounded-lg overflow-hidden border border-orange-300">
                       <button
                         onClick={() => handleRemiseModeChange('%')}
-                        className={`px-2 py-0.5 text-xs font-bold transition-colors ${
+                        disabled={encaissementEnCours}
+                        className={`px-2 py-0.5 text-xs font-bold transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
                           remiseMode === '%'
                             ? 'bg-orange-500 text-white'
                             : 'bg-white text-orange-500 hover:bg-orange-50'
@@ -511,7 +607,8 @@ export function PanierVenteFlashInline({
                       </button>
                       <button
                         onClick={() => handleRemiseModeChange('F')}
-                        className={`px-2 py-0.5 text-xs font-bold transition-colors ${
+                        disabled={encaissementEnCours}
+                        className={`px-2 py-0.5 text-xs font-bold transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
                           remiseMode === 'F'
                             ? 'bg-orange-500 text-white'
                             : 'bg-white text-orange-500 hover:bg-orange-50'
@@ -527,7 +624,8 @@ export function PanierVenteFlashInline({
                     max={remiseMode === '%' ? 100 : sousTotal}
                     value={remiseInput}
                     onChange={(e) => handleRemiseInputChange(Number(e.target.value))}
-                    className="w-full px-2 py-1.5 text-sm border border-orange-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    disabled={encaissementEnCours}
+                    className="w-full px-2 py-1.5 text-sm border border-orange-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 disabled:bg-gray-100 disabled:text-gray-400"
                     placeholder={remiseMode === '%' ? '0 %' : '0 F'}
                   />
                 </div>
@@ -550,6 +648,16 @@ export function PanierVenteFlashInline({
                   </div>
                 </div>
               </div>
+
+              {/* Bandeau split en cours : facture déjà créée, montants figés */}
+              {venteEnCours && (
+                <div className="bg-amber-50 border border-amber-300 rounded-xl p-2 flex items-center justify-between">
+                  <div className="text-[11px] leading-tight text-amber-800">
+                    <span className="font-bold block">{t('cart.splitTitle')}</span>
+                    <span>{t('cart.splitBanner', { num: venteEnCours.numFacture, amount: venteEnCours.montantRestant.toLocaleString('fr-FR') })}</span>
+                  </div>
+                </div>
+              )}
 
               {/* Boutons d'action */}
               <div className="grid grid-cols-2 gap-2">
@@ -611,8 +719,23 @@ export function PanierVenteFlashInline({
       {/* Modal Encaissement */}
       <ModalEncaissementVenteFlash
         isOpen={showEncaissementModal}
-        onClose={() => setShowEncaissementModal(false)}
+        onClose={() => {
+          setShowEncaissementModal(false);
+          // Fermeture pendant un split = abandon : la facture partielle reste en
+          // base (id_etat = 1), visible dans Factures › Impayées pour être soldée.
+          if (venteEnCours) {
+            showToast('warning', t('checkout.title'), t('checkout.partialAbandon', { num: venteEnCours.numFacture }));
+            setVenteEnCours(null);
+            setMultiModeActif(false);
+          }
+        }}
         montantTotal={total}
+        montantAEncaisser={venteEnCours ? venteEnCours.montantRestant : undefined}
+        trancheEnCours={!!venteEnCours}
+        multiMode={multiModeActif}
+        onMultiModeChange={setMultiModeActif}
+        idFactureEnCours={venteEnCours?.idFacture}
+        numFactureEnCours={venteEnCours?.numFacture}
         walletPaiement={salesRules.walletPaiement}
         onPaymentComplete={handlePaymentComplete}
       />
@@ -630,6 +753,8 @@ export function PanierVenteFlashInline({
           montantTotal={recuData.montantTotal}
           methodePaiement={recuData.methodePaiement}
           monnaieARendre={recuData.monnaieARendre}
+          paiementsDetail={recuData.paiementsDetail}
+          montantRestant={recuData.montantRestant}
           detailFacture={recuData.detailFacture}
         />
       )}

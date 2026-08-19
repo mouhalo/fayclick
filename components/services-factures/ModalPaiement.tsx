@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 import { useBreakpoint } from '@/hooks/useBreakpoint';
 import { useSalesRules } from '@/hooks/useSalesRules';
-import { FactureComplete, AjouterAcompteData } from '@/types/facture';
+import { FactureComplete, AjouterAcompteData, AjouterAcompteResponse } from '@/types/facture';
 import { factureService } from '@/services/facture.service';
 // recuService supprimé - le reçu est maintenant créé automatiquement par add_acompte_facture
 import { authService } from '@/services/auth.service';
@@ -54,6 +54,17 @@ export function ModalPaiement({
   const [error, setError] = useState<string>('');
   const [success, setSuccess] = useState(false);
 
+  // --- Paiement multimode (plusieurs tranches de modes différents sur la même facture) ---
+  // Décochée par défaut (comportement inchangé). Reste cochée entre les tranches d'une
+  // même session (le modal reste ouvert) et se réinitialise à la fermeture/réouverture.
+  const [multiModeActif, setMultiModeActif] = useState(false);
+  // Overrides issus de la dernière réponse add_acompte_facture : maintiennent
+  // mt_restant / mt_acompte à jour en mémoire SANS re-fetch tant que le modal reste ouvert.
+  const [restantOverride, setRestantOverride] = useState<number | null>(null);
+  const [acompteOverride, setAcompteOverride] = useState<number | null>(null);
+  // Reste dû après la dernière tranche partielle encaissée (bandeau de progression)
+  const [resteApresTranche, setResteApresTranche] = useState<number | null>(null);
+
   // États pour les nouveaux modals
   const [showChoixPaiement, setShowChoixPaiement] = useState(false);
   const [showQRCode, setShowQRCode] = useState(false);
@@ -70,6 +81,8 @@ export function ModalPaiement({
     referenceTransaction?: string;
     typePaiement?: 'COMPLET' | 'ACOMPTE';
     montantFactureTotal?: number;
+    /** Liste cumulée des reçus (multimode) — affichée par ModalRecuGenere tranche par tranche */
+    recusPaiements?: Array<{ methode_paiement: string; montant_paye: number; numero_recu?: string }>;
   }>({
     isOpen: false,
     factureId: null,
@@ -95,15 +108,21 @@ export function ModalPaiement({
       setShowConfirmationPaiement(false);
       setPendingPaymentMethod(null);
       setWalletPaymentData(null);
+      // Multimode : jamais persisté d'une session à l'autre (vente soldée/abandonnée → décoché)
+      setMultiModeActif(false);
+      setRestantOverride(null);
+      setAcompteOverride(null);
+      setResteApresTranche(null);
     }
   }, [isOpen, facture]);
 
-  // Calculs des montants
+  // Calculs des montants (les overrides multimode font foi sur les valeurs fraîches
+  // de add_acompte_facture tant que le modal n'a pas été refermé)
   const montants = useMemo(() => {
     if (!facture) return null;
 
     const montantSaisi = parseFloat(montantAcompte) || 0;
-    const montantRestant = facture.facture.mt_restant;
+    const montantRestant = restantOverride ?? facture.facture.mt_restant;
     const nouveauRestant = Math.max(0, montantRestant - montantSaisi);
     const estSoldee = nouveauRestant === 0;
 
@@ -114,7 +133,10 @@ export function ModalPaiement({
       estSoldee,
       pourcentagePaye: montantRestant > 0 ? (montantSaisi / montantRestant) * 100 : 0
     };
-  }, [facture, montantAcompte]);
+  }, [facture, montantAcompte, restantOverride]);
+
+  // Acompte cumulé affiché (override multimode si présent)
+  const acompteAffiche = acompteOverride ?? facture?.facture.mt_acompte ?? 0;
 
   // Validation
   const validation = useMemo(() => {
@@ -204,8 +226,84 @@ export function ModalPaiement({
     const year = now.getFullYear().toString();
     const hours = now.getHours().toString().padStart(2, '0');
     const minutes = now.getMinutes().toString().padStart(2, '0');
+    const seconds = now.getSeconds().toString().padStart(2, '0');
 
-    return `CASH-${facture?.facture.id_structure}-${day}${month}${year}${hours}${minutes}`;
+    return `CASH-${facture?.facture.id_structure}-${day}${month}${year}${hours}${minutes}${seconds}`;
+  };
+
+  /**
+   * Succès d'une tranche d'acompte (CASH, wallet direct ou wallet QR).
+   *
+   * Multimode activé + reste dû > 0 → le modal NE se ferme pas : les montants
+   * en mémoire sont rafraîchis depuis la réponse add_acompte_facture, le champ
+   * montant est vidé, retour à la sélection de méthode pour la tranche suivante.
+   * Aucun reçu intermédiaire : le reçu consolidé (recus_paiement cumulés) n'est
+   * affiché qu'à la finalisation.
+   *
+   * Sinon → comportement actuel : reçu + onSuccess + fermeture auto après 2s.
+   */
+  const handleAcompteSucces = (
+    response: AjouterAcompteResponse,
+    method: PaymentMethod,
+    transactionId: string,
+    montantVerse: number
+  ) => {
+    if (!facture) return;
+
+    const nouveauRestant = response.facture?.nouveau_restant;
+    const nouveauAcompte = response.facture?.nouveau_acompte;
+    const dernierRecu = response.recus_paiement?.[response.recus_paiement.length - 1];
+    const numeroRecu = dernierRecu?.numero_recu || response.paiement?.numero_recu;
+    const montantPayeCumule = response.recus_paiement?.length
+      ? response.recus_paiement.reduce((s, r) => s + (r.montant_paye || 0), 0)
+      : montantVerse;
+
+    setShowQRCode(false);
+
+    // --- Tranche partielle en multimode : enchaîner sans fermer ---
+    if (multiModeActif && typeof nouveauRestant === 'number' && nouveauRestant > 0) {
+      setRestantOverride(nouveauRestant);
+      setAcompteOverride(typeof nouveauAcompte === 'number' ? nouveauAcompte : null);
+      setResteApresTranche(nouveauRestant);
+      setMontantAcompte('');
+      setSelectedPaymentMethod(null);
+      setPendingPaymentMethod(null);
+      return;
+    }
+
+    // --- Finalisation (comportement actuel) ---
+    setSuccess(true);
+
+    // Le reçu est maintenant créé automatiquement par PostgreSQL
+    console.log('✅ [ACOMPTE] Acompte + Reçu créés automatiquement:', {
+      id_facture: facture.facture.id_facture,
+      numero_recu: numeroRecu,
+      montant_paye_cumule: montantPayeCumule,
+      tranches: response.recus_paiement?.length ?? 1
+    });
+
+    if (numeroRecu) {
+      setModalRecuAcompte({
+        isOpen: true,
+        factureId: facture.facture.id_facture,
+        walletUsed: method,
+        montantPaye: montantPayeCumule,
+        numeroRecu: numeroRecu,
+        referenceTransaction: transactionId,
+        typePaiement: 'ACOMPTE',
+        montantFactureTotal: facture.facture.montant,
+        recusPaiements: response.recus_paiement
+      });
+    }
+
+    if (onSuccess) {
+      onSuccess(response);
+    }
+
+    // Fermer automatiquement après 2 secondes
+    setTimeout(() => {
+      onClose();
+    }, 2000);
   };
 
   // Afficher le modal de confirmation avant traitement (nouveau flow)
@@ -309,41 +407,7 @@ export function ModalPaiement({
       const response = await factureService.addAcompte(acompteData);
 
       if (response.success) {
-        setSuccess(true);
-
-        // Le reçu est maintenant créé automatiquement par PostgreSQL
-        const recuData = response.recus_paiement?.[0];
-        const numeroRecu = recuData?.numero_recu || response.paiement?.numero_recu;
-
-        console.log('✅ [ACOMPTE-CASH] Acompte + Reçu créés automatiquement:', {
-          id_facture: facture.facture.id_facture,
-          id_recu: recuData?.id_recu,
-          numero_recu: numeroRecu,
-          montant_paye: recuData?.montant_paye || montants.montantSaisi
-        });
-
-        // Afficher le modal de reçu si disponible
-        if (numeroRecu) {
-          setModalRecuAcompte({
-            isOpen: true,
-            factureId: facture.facture.id_facture,
-            walletUsed: 'CASH',
-            montantPaye: montants.montantSaisi,
-            numeroRecu: numeroRecu,
-            referenceTransaction: transactionId,
-            typePaiement: 'ACOMPTE',
-            montantFactureTotal: facture.facture.montant
-          });
-        }
-
-        if (onSuccess) {
-          onSuccess(response);
-        }
-
-        // Fermer automatiquement après 2 secondes
-        setTimeout(() => {
-          onClose();
-        }, 2000);
+        handleAcompteSucces(response, 'CASH', transactionId, montants.montantSaisi);
       }
     } catch (error: unknown) {
       setError(error instanceof Error ? error.message : 'Erreur lors du paiement');
@@ -376,37 +440,7 @@ export function ModalPaiement({
       const response = await factureService.addAcompte(acompteData);
 
       if (response.success) {
-        setSuccess(true);
-
-        const recuData = response.recus_paiement?.[0];
-        const numeroRecu = recuData?.numero_recu || response.paiement?.numero_recu;
-
-        console.log(`✅ [WALLET-DIRECT] ${method} Acompte + Reçu créés:`, {
-          id_facture: facture.facture.id_facture,
-          numero_recu: numeroRecu,
-          montant_paye: montants.montantSaisi
-        });
-
-        if (numeroRecu) {
-          setModalRecuAcompte({
-            isOpen: true,
-            factureId: facture.facture.id_facture,
-            walletUsed: method,
-            montantPaye: montants.montantSaisi,
-            numeroRecu: numeroRecu,
-            referenceTransaction: transactionId,
-            typePaiement: 'ACOMPTE',
-            montantFactureTotal: facture.facture.montant
-          });
-        }
-
-        if (onSuccess) {
-          onSuccess(response);
-        }
-
-        setTimeout(() => {
-          onClose();
-        }, 2000);
+        handleAcompteSucces(response, method, transactionId, montants.montantSaisi);
       }
     } catch (error: unknown) {
       setError(error instanceof Error ? error.message : 'Erreur lors du paiement');
@@ -462,42 +496,7 @@ export function ModalPaiement({
       const response = await factureService.addAcompte(acompteData);
 
       if (response.success) {
-        setShowQRCode(false);
-        setSuccess(true);
-
-        // Le reçu est maintenant créé automatiquement par PostgreSQL
-        const recuData = response.recus_paiement?.[0];
-        const numeroRecu = recuData?.numero_recu || response.paiement?.numero_recu;
-
-        console.log('✅ [ACOMPTE-WALLET] Acompte + Reçu créés automatiquement:', {
-          id_facture: facture.facture.id_facture,
-          id_recu: recuData?.id_recu,
-          numero_recu: numeroRecu,
-          methode_paiement: recuData?.methode_paiement || selectedPaymentMethod
-        });
-
-        // Afficher le modal de reçu si disponible
-        if (numeroRecu) {
-          setModalRecuAcompte({
-            isOpen: true,
-            factureId: facture.facture.id_facture,
-            walletUsed: selectedPaymentMethod,
-            montantPaye: montants.montantSaisi,
-            numeroRecu: numeroRecu,
-            referenceTransaction: transaction_id,
-            typePaiement: 'ACOMPTE',
-            montantFactureTotal: facture.facture.montant
-          });
-        }
-
-        if (onSuccess) {
-          onSuccess(response);
-        }
-
-        // Fermer automatiquement le modal principal après 2 secondes
-        setTimeout(() => {
-          onClose();
-        }, 2000);
+        handleAcompteSucces(response, selectedPaymentMethod, transaction_id, montants.montantSaisi);
       }
     } catch (error: unknown) {
       console.error('❌ [WALLET] Erreur enregistrement acompte:', error);
@@ -551,7 +550,7 @@ export function ModalPaiement({
         nom_client: facture.facture.nom_client,
         tel_client: facture.facture.tel_client,
         montant_total: facture.facture.montant,
-        montant_restant: facture.facture.mt_restant,
+        montant_restant: montants.montantRestant, // override-aware (multimode)
         nom_structure: nomStructureFinal  // ✅ FALLBACK ROBUSTE
       },
       montant_acompte: montants.montantSaisi
@@ -740,13 +739,13 @@ export function ModalPaiement({
                     <div>
                       <p className={`text-gray-500 ${styles.subtitle}`}>Payé</p>
                       <p className={`text-emerald-600 font-bold ${styles.subtitle}`}>
-                        {facture.facture.mt_acompte.toLocaleString('fr-FR')} F
+                        {acompteAffiche.toLocaleString('fr-FR')} F
                       </p>
                     </div>
                     <div>
                       <p className={`text-gray-500 ${styles.subtitle}`}>Reste</p>
                       <p className={`text-amber-600 font-bold ${styles.subtitle}`}>
-                        {facture.facture.mt_restant.toLocaleString('fr-FR')} F
+                        {(montants?.montantRestant ?? facture.facture.mt_restant).toLocaleString('fr-FR')} F
                       </p>
                     </div>
                   </div>
@@ -765,7 +764,7 @@ export function ModalPaiement({
                     </div>
                     <div className="text-right flex-shrink-0">
                       <p className={`text-amber-600 font-bold ${isCompact ? 'text-sm' : 'text-base'}`}>
-                        {facture.facture.mt_restant.toLocaleString('fr-FR')} F
+                        {(montants?.montantRestant ?? facture.facture.mt_restant).toLocaleString('fr-FR')} F
                       </p>
                       <p className={`text-gray-400 ${styles.subtitle}`}>à payer</p>
                     </div>
@@ -833,6 +832,33 @@ export function ModalPaiement({
                     </div>
                   )}
                 </div>
+
+                {/* Bandeau tranche encaissée (multimode) — reste dû mis à jour en direct */}
+                {resteApresTranche !== null && !success && (
+                  <div className={`flex items-center gap-2 bg-emerald-50 border border-emerald-200 rounded-lg ${isCompact ? 'p-2' : 'p-3'}`}>
+                    <CheckCircle className={`${isCompact ? 'w-4 h-4' : 'w-5 h-5'} text-emerald-600 flex-shrink-0`} />
+                    <p className={`text-emerald-700 font-medium ${styles.subtitle}`}>
+                      Tranche encaissée — reste {resteApresTranche.toLocaleString('fr-FR')} F à payer
+                    </p>
+                  </div>
+                )}
+
+                {/* Case "Paiement multimode" — décochée par défaut, jamais persistée d'une facture à l'autre */}
+                <label className={`flex items-center gap-2 cursor-pointer select-none ${isCompact ? 'py-1' : 'py-0.5'}`}>
+                  <input
+                    type="checkbox"
+                    checked={multiModeActif}
+                    onChange={(e) => setMultiModeActif(e.target.checked)}
+                    disabled={loading}
+                    className="w-4 h-4 accent-blue-600 cursor-pointer"
+                  />
+                  <span className={`text-gray-700 font-medium ${styles.subtitle}`}>
+                    Paiement multimode
+                  </span>
+                  <span className={`text-gray-400 ${isCompact ? 'text-[10px]' : 'text-xs'}`}>
+                    (plusieurs modes sur la même facture)
+                  </span>
+                </label>
 
                 {/* Actions de paiement directes - Taille adaptée */}
                 {useIntegratedPaymentSelection && montants && montants.montantSaisi > 0 && (
@@ -995,6 +1021,7 @@ export function ModalPaiement({
             referenceTransaction={modalRecuAcompte.referenceTransaction}
             typePaiement={modalRecuAcompte.typePaiement}
             montantFactureTotal={modalRecuAcompte.montantFactureTotal}
+            recusPaiements={modalRecuAcompte.recusPaiements}
           />
         )}
       </motion.div>

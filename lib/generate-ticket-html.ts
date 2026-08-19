@@ -37,6 +37,11 @@ export interface TicketData {
   methodePaiement: string; // 'Especes', 'Orange Money', 'Wave', etc.
   monnaieARendre?: number;
 
+  // Paiement multimode : liste des tranches {mode, montant}.
+  // Si fournie (≥ 1 entrée), remplace la ligne "Paiement" unique par une
+  // ligne par tranche ; sinon comportement inchangé (rétrocompatible).
+  paiements?: Array<{ mode: string; montant: number }>;
+
   // Caissier
   nomCaissier?: string;
 
@@ -81,6 +86,13 @@ export function generateTicketHTML(data: TicketData): string {
   // Badge
   const badgeLabel = data.badge || 'PAYE';
   const badgeClass = badgeLabel === 'ACOMPTE' ? 'badge-acompte' : 'badge-success';
+
+  // Ligne(s) Paiement : une par tranche en multimode, sinon la ligne unique historique
+  const paiementsHTML = data.paiements && data.paiements.length > 0
+    ? data.paiements.map(p => `
+      <div class="row"><span class="label">Paiement</span><span class="val">${p.mode} ${p.montant.toLocaleString('fr-FR')} F</span></div>
+    `).join('')
+    : `<div class="row"><span class="label">Paiement</span><span class="val">${data.methodePaiement}</span></div>`;
 
   return `<!DOCTYPE html>
 <html>
@@ -162,7 +174,7 @@ export function generateTicketHTML(data: TicketData): string {
 
   ${articlesHTML}
 
-  <div class="row"><span class="label">Paiement</span><span class="val">${data.methodePaiement}</span></div>
+  ${paiementsHTML}
 
   <div class="total-section">
     ${data.articles && data.articles.length > 0 && remise > 0 ? `
