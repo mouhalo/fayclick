@@ -33,7 +33,6 @@ import MainMenu from '@/components/layout/MainMenu';
 import { useSalesRules } from '@/hooks/useSalesRules';
 import { useTranslations } from '@/hooks/useTranslations';
 import { useUserProfile } from '@/hooks/useUserProfile';
-import { useHasRight } from '@/hooks/useRights';
 import { recuService } from '@/services/recu.service';
 import { normalizeMethodePaiement, MODES_PAIEMENT_PRINCIPAUX } from '@/lib/payment-methods';
 import type { EncaissementParMode } from '@/types/rapport-encaissements';
@@ -97,9 +96,12 @@ export default function VenteFlashPage() {
   // ADMIN (id_profil === 1) : voit TOUTES les ventes + sélecteur de date.
   // CAISSIER : ne voit que SES ventes, date figée à aujourd'hui.
   const { isAdmin } = useUserProfile();
-  // Droit « VOIR CHIFFRE D'AFFAIRE » : conditionne l'affichage des MONTANTS
-  // d'encaissement (les compteurs de paiements restent visibles).
-  const canViewMontants = useHasRight("VOIR CHIFFRE D'AFFAIRE");
+  // Les montants par mode d'encaissement (Espèces/OM/Wave/Free) restent visibles
+  // pour TOUS les profils sur Vente Flash, y compris CAISSIER : le caissier en a
+  // besoin pour reporter ces montants dans son registre manuel de clôture de
+  // journée. Le masquage `canViewCA`/droit « VOIR CHIFFRE D'AFFAIRE » continue de
+  // s'appliquer ailleurs (Dashboard Commerce Desktop).
+  const canViewMontants = true;
 
   // Store multi-panier (desktop uniquement)
   const multiStore = usePanierVFMultiStore();

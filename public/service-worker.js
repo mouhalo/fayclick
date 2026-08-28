@@ -1,6 +1,6 @@
 // Service Worker FayClick V2 - PWA Complète
 // Version: 2.8.0 - 2026-02-01 - Intégration add_acompte_facture1 + photo produit
-// Build: 2026-07-30T18:15:48.032Z - Force upload fix for ftp-deploy size comparison bug
+// Build: 2026-08-27T20:36:50.792Z - Force upload fix for ftp-deploy size comparison bug
 // Build: 2026-07-24T14:49:37.320Z - Force upload fix for ftp-deploy size comparison bug
 // Build: 2026-07-04 - Isolation ventes par caissier sur Vente Flash (bump cache)
 // Build: 2026-02-01T21:12:32.816Z
