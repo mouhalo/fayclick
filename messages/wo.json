@@ -1337,7 +1337,9 @@
       "productNotFound": "Amul jumtukaay ak code-barre : {code}",
       "stockLabel": "Stock : {count}",
       "available": "Am na",
-      "outOfStock": "Jeex"
+      "outOfStock": "Jeex",
+      "autoAddLabel": "Auto",
+      "autoAddTitle": "Mode aj auto : aj direct ci panier bi (quantité 1, prix public), bañ modal bi"
     },
     "report": {
       "title": "Rapport Jaay Gaaw",

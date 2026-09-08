@@ -9,7 +9,7 @@ import { useState, useEffect, useRef, forwardRef, useImperativeHandle } from 're
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  ArrowLeft, ShoppingCart, Search, Zap, X, RefreshCw, Printer
+  ArrowLeft, ShoppingCart, Search, Zap, X, RefreshCw, Printer, Check
 } from 'lucide-react';
 import { usePanierStore } from '@/stores/panierStore';
 import { ScanCodeBarre } from '@/components/shared/ScanCodeBarre';
@@ -34,6 +34,10 @@ interface VenteFlashHeaderProps {
   onPrint?: () => void;
   /** Nombre total d'articles dans le panier actif (override le store interne) */
   externalTotalItems?: number;
+  /** Mode ajout auto : ajout direct au panier (qté 1, prix public) sans modal de quantité */
+  autoAddMode?: boolean;
+  /** Callback bascule du mode ajout auto (checkbox à côté du panier) */
+  onToggleAutoAdd?: (enabled: boolean) => void;
 }
 
 export const VenteFlashHeader = forwardRef<VenteFlashHeaderRef, VenteFlashHeaderProps>(({
@@ -42,7 +46,9 @@ export const VenteFlashHeader = forwardRef<VenteFlashHeaderRef, VenteFlashHeader
   onMultipleMatches,
   onRefresh,
   onPrint,
-  externalTotalItems
+  externalTotalItems,
+  autoAddMode = false,
+  onToggleAutoAdd
 }, ref) => {
   const router = useRouter();
   const t = useTranslations('venteFlash');
@@ -212,29 +218,58 @@ export const VenteFlashHeader = forwardRef<VenteFlashHeaderRef, VenteFlashHeader
           <h1 className="text-xl font-bold text-white">{t('header.title')}</h1>
         </div>
 
-        {/* Indicateur Panier (le panier est affiché en inline sous le header) */}
-        <div
-          className="
-            relative w-10 h-10 bg-white/20 backdrop-blur-sm rounded-full
-            flex items-center justify-center
-          "
-        >
-          <ShoppingCart className="w-5 h-5 text-white" />
-          {totalItems > 0 && (
-            <motion.span
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              className="
-                absolute -top-1 -right-1
-                w-5 h-5 bg-red-500 rounded-full
-                flex items-center justify-center
-                text-xs font-bold text-white
-                shadow-lg
-              "
+        {/* Mode ajout auto (checkbox) + Indicateur Panier */}
+        <div className="flex items-center gap-2">
+          {onToggleAutoAdd && (
+            <button
+              onClick={() => onToggleAutoAdd(!autoAddMode)}
+              title={t('header.autoAddTitle')}
+              className={`
+                flex items-center gap-1.5 h-8 px-2.5 rounded-full backdrop-blur-sm
+                transition-colors ${autoAddMode
+                  ? 'bg-yellow-300 hover:bg-yellow-200'
+                  : 'bg-white/20 hover:bg-white/30'}
+              `}
             >
-              {totalItems}
-            </motion.span>
+              {/* Case à cocher */}
+              <span
+                className={`
+                  w-4 h-4 rounded-[4px] border-2 flex items-center justify-center
+                  transition-colors ${autoAddMode ? 'bg-white border-white' : 'border-white/80'}
+                `}
+              >
+                {autoAddMode && <Check className="w-3 h-3 text-emerald-600" strokeWidth={3.5} />}
+              </span>
+              <span className={`text-xs font-bold ${autoAddMode ? 'text-emerald-800' : 'text-white'}`}>
+                {t('header.autoAddLabel')}
+              </span>
+            </button>
           )}
+
+          {/* Indicateur Panier (le panier est affiché en inline sous le header) */}
+          <div
+            className="
+              relative w-10 h-10 bg-white/20 backdrop-blur-sm rounded-full
+              flex items-center justify-center
+            "
+          >
+            <ShoppingCart className="w-5 h-5 text-white" />
+            {totalItems > 0 && (
+              <motion.span
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                className="
+                  absolute -top-1 -right-1
+                  w-5 h-5 bg-red-500 rounded-full
+                  flex items-center justify-center
+                  text-xs font-bold text-white
+                  shadow-lg
+                "
+              >
+                {totalItems}
+              </motion.span>
+            )}
+          </div>
         </div>
       </div>
 

@@ -52,6 +52,12 @@ import { generateTicketHTML, printViaIframe } from '@/lib/generate-ticket-html';
 import { ModifierFactureResponse, DetailFacture } from '@/types/facture';
 
 /**
+ * Clé localStorage du mode « ajout auto » (checkbox du header) : le choix du
+ * caissier persiste d'une session à l'autre pour ne pas le re-cocher chaque jour.
+ */
+const AUTO_ADD_STORAGE_KEY = 'vf_auto_add_mode';
+
+/**
  * Repli client : agrège les encaissements à partir des reçus déjà chargés,
  * quand l'appel à get_rapport_encaissements() échoue au moment d'imprimer.
  *
@@ -152,6 +158,17 @@ export default function VenteFlashPage() {
   const [vfQuantity, setVfQuantity] = useState(1);
   const [vfPrixType, setVfPrixType] = useState<'public' | 'gros'>('public');
   const quantityInputRef = useRef<HTMLInputElement>(null);
+  // Mode ajout auto : quand actif, un produit sélectionné/scanné est ajouté
+  // directement au panier (quantité 1, prix public) SANS ouvrir le modal de
+  // quantité — gain de temps pour le caissier quand il y a une file de clients.
+  const [autoAddMode, setAutoAddMode] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    try {
+      return window.localStorage.getItem(AUTO_ADD_STORAGE_KEY) === 'true';
+    } catch {
+      return false;
+    }
+  });
   const headerRef = useRef<VenteFlashHeaderRef>(null);
   // Garde-fou anti double-impression du rapport (l'appel est asynchrone).
   const printingRapportRef = useRef(false);
@@ -620,7 +637,20 @@ export default function VenteFlashPage() {
   }, [loadProduits, loadVentesJour, loadEncaissements]);
 
   /**
-   * Ouvrir le modal de quantité avant d'ajouter au panier
+   * Basculer le mode ajout auto (checkbox du header) + persistance locale
+   */
+  const handleToggleAutoAdd = useCallback((enabled: boolean) => {
+    setAutoAddMode(enabled);
+    try {
+      window.localStorage.setItem(AUTO_ADD_STORAGE_KEY, String(enabled));
+    } catch {
+      // localStorage indisponible (navigation privée) : le mode reste actif pour la session
+    }
+  }, []);
+
+  /**
+   * Ouvrir le modal de quantité avant d'ajouter au panier,
+   * OU ajouter directement si le mode ajout auto est activé
    */
   const handleAddToPanier = useCallback((produit: Produit) => {
     // Vérifier que le mot de passe a été changé
@@ -636,10 +666,23 @@ export default function VenteFlashPage() {
       return;
     }
 
+    // Mode Auto : ajout direct quantité 1 au prix public, sans modal.
+    // Même branchement que handleConfirmQuantity (desktop → multi-panier).
+    if (autoAddMode) {
+      if (isDesktop) {
+        multiStore.addArticle(produit, 1, produit.prix_vente);
+      } else {
+        addArticle(produit, 1, produit.prix_vente);
+      }
+      showToast('success', t('toasts.addedToCart'), t('toasts.addedToCartMsg', { qty: 1, name: produit.nom_produit }));
+      headerRef.current?.focusSearch();
+      return;
+    }
+
     setVfProduit(produit);
     setVfQuantity(1);
     setShowQuantityModal(true);
-  }, [showToast, user]);
+  }, [showToast, user, t, autoAddMode, isDesktop, addArticle, multiStore]);
 
   /**
    * Callback quand plusieurs produits partagent le même code-barres
@@ -1315,6 +1358,8 @@ export default function VenteFlashPage() {
           onRefresh={handleRefresh}
           onPrint={handlePrintRapport}
           externalTotalItems={isDesktop ? multiStore.getTotalItems() : undefined}
+          autoAddMode={autoAddMode}
+          onToggleAutoAdd={handleToggleAutoAdd}
         />
 
         {/* Section 2: Onglets multi-panier (desktop uniquement) */}

@@ -1337,7 +1337,9 @@
       "productNotFound": "No product found with barcode: {code}",
       "stockLabel": "Stock: {count}",
       "available": "Available",
-      "outOfStock": "Out of stock"
+      "outOfStock": "Out of stock",
+      "autoAddLabel": "Auto",
+      "autoAddTitle": "Auto-add mode: adds straight to the cart (qty 1, public price) without the quantity dialog"
     },
     "report": {
       "title": "Flash Sales Report",

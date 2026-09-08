@@ -1337,7 +1337,9 @@
       "productNotFound": "Aucun produit trouvé avec le code-barre: {code}",
       "stockLabel": "Stock: {count}",
       "available": "Disponible",
-      "outOfStock": "Rupture"
+      "outOfStock": "Rupture",
+      "autoAddLabel": "Auto",
+      "autoAddTitle": "Mode ajout auto : ajout direct au panier (quantité 1, prix public) sans le modal de saisie"
     },
     "report": {
       "title": "Rapport Ventes Flash",
