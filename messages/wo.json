@@ -1457,7 +1457,8 @@
       "montantRequis": "Bindal limu xaalis",
       "trancheAmount": "Tranche : {amount} F",
       "trancheSuccess": "Tranche jàpp na — des {amount} F",
-      "partialAbandon": "Paiement bi des na : facture {num} des na impayée"
+      "partialAbandon": "Paiement bi des na : facture {num} des na impayée",
+      "recoveryMode": "Encaissement bi arreter na : facture {num} am na déjà. Paye ci même facture bi, du créer facture bu bees."
     },
     "receipt": {
       "paymentConfirmed": "Paiement Nangu Nañu",

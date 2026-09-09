@@ -1457,7 +1457,8 @@
       "montantRequis": "Enter an amount",
       "trancheAmount": "Instalment: {amount} F",
       "trancheSuccess": "Instalment collected — {amount} F remaining",
-      "partialAbandon": "Pending payment: invoice {num} remains unpaid (settle it from Invoices › Unpaid)"
+      "partialAbandon": "Pending payment: invoice {num} remains unpaid (settle it from Invoices › Unpaid)",
+      "recoveryMode": "Checkout interrupted: internal invoice no. {num} already exists. Resume the payment on this same invoice, no new ticket will be created."
     },
     "receipt": {
       "paymentConfirmed": "Payment Confirmed",

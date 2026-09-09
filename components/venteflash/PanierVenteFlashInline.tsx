@@ -6,7 +6,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Trash2, Minus, Plus, ShoppingCart, CreditCard, XCircle, Receipt, ChevronDown
@@ -105,6 +105,10 @@ export function PanierVenteFlashInline({
   const [isProcessing, setIsProcessing] = useState(false);
   const [isExpanded, setIsExpanded] = useState(true);
   const [showEncaissementModal, setShowEncaissementModal] = useState(false);
+  // Garde-fou anti double-soumission d'encaissement : setIsProcessing est
+  // asynchrone (batching React), deux clics rapprochés passeraient tous deux
+  // le test `if (isProcessing)`. Le ref, lui, est posé de façon synchrone.
+  const encaissementEnCoursRef = useRef(false);
 
   // --- Paiement multimode : vente en cours d'encaissement en plusieurs tranches ---
   // Non-null dès qu'une première tranche a été encaissée sans solder la vente.
@@ -258,7 +262,7 @@ export function PanierVenteFlashInline({
     montantEncaisse?: number
   ) => {
     // Guard contre les doublons - si déjà en cours, ignorer
-    if (isProcessing) {
+    if (isProcessing || encaissementEnCoursRef.current) {
       console.warn('⚠️ [PANIER INLINE] handlePaymentComplete déjà en cours, ignoré');
       return;
     }
@@ -269,8 +273,15 @@ export function PanierVenteFlashInline({
       return;
     }
 
+    encaissementEnCoursRef.current = true;
     setIsProcessing(true);
     setShowEncaissementModal(false);
+
+    // Suivi local de la facture créée : si l'encaissement échoue APRÈS la création
+    // (timeout réseau sur add_acompte_facture...), la facture reste IMPAYEE en base.
+    // Le catch la rattache alors à venteEnCours → le retry enchaîne un acompte sur
+    // CETTE facture au lieu d'en recréer une nouvelle (facture fantôme évitée).
+    let factureDejaCreee: { idFacture: number; numFacture: string; montantRestant: number } | null = null;
 
     // Montant de cette tranche, plafonné au restant dû (jamais au-delà du net)
     const restantAvant = venteEnCours ? venteEnCours.montantRestant : total;
@@ -305,6 +316,9 @@ export function PanierVenteFlashInline({
 
         idFacture = factureResult.id_facture;
         numFacture = `FAC-${idFacture}`;
+
+        // Traçabilité pour le garde-fou du catch (réutilisation au retry)
+        factureDejaCreee = { idFacture, numFacture, montantRestant: restantAvant };
 
         console.log(`✅ [VF-VENTE] 1/2 Facture créée | ID: ${idFacture} | Num: ${numFacture}`);
       } else {
@@ -447,8 +461,18 @@ export function PanierVenteFlashInline({
       // sur le même restant pour permettre de retenter la tranche
       if (venteEnCours) {
         setShowEncaissementModal(true);
+      } else if (factureDejaCreee) {
+        // GARDE-FOU anti facture fantôme : la facture a été créée mais l'encaissement
+        // a échoué. On la réattache à venteEnCours (mécanisme multi-tranches) : le
+        // retry enchaîne add_acompte_facture sur CETTE facture, jamais une nouvelle
+        // createFacture qui laisserait l'ancienne IMPAYEE sans reçu dans la BD.
+        setVenteEnCours(factureDejaCreee);
+        setMultiModeActif(true);
+        setShowEncaissementModal(true);
+        showToast('warning', t('checkout.title'), t('checkout.recoveryMode', { num: factureDejaCreee.numFacture }));
       }
     } finally {
+      encaissementEnCoursRef.current = false;
       setIsProcessing(false);
     }
   };

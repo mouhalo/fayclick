@@ -1457,7 +1457,8 @@
       "montantRequis": "Saisissez un montant",
       "trancheAmount": "Tranche : {amount} F",
       "trancheSuccess": "Tranche encaissée — reste {amount} F",
-      "partialAbandon": "Paiement en attente : la facture {num} reste impayée (à solder depuis Factures › Impayées)"
+      "partialAbandon": "Paiement en attente : la facture {num} reste impayée (à solder depuis Factures › Impayées)",
+      "recoveryMode": "Encaissement interrompu : la facture n° interne {num} existe déjà. Reprenez le paiement sur cette même facture, aucun nouveau ticket ne sera créé."
     },
     "receipt": {
       "paymentConfirmed": "Paiement Confirmé",
