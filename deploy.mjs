@@ -15,7 +15,7 @@
  */
 
 import { spawn } from 'child_process';
-import { readFileSync, existsSync, statSync, readdirSync, rmSync } from 'fs';
+import { readFileSync, writeFileSync, existsSync, statSync, readdirSync, rmSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import FtpDeploy from 'ftp-deploy';
@@ -350,6 +350,34 @@ ${colors.green}✨ FayClick V2 - Déploiement Production${colors.reset}
     if (!existsSync(htaccessPath)) {
       Logger.warning('  .htaccess non trouvé dans out/, skip');
       return;
+    }
+
+    // Sécurisation sql_jsonpro : injecter la clé X-App-Key dans la copie uploadée
+    // (out/.htaccess, artifact de build gitigné). public/.htaccess (commité) n'est
+    // JAMAIS modifié, la clé vient de l'env locale (jamais d'un fichier commité).
+    const MARKER = '# X-App-Key sql_jsonpro (injecté au déploiement, clé hors dépôt)';
+    let htaccessContent = readFileSync(htaccessPath, 'utf-8');
+
+    // Idempotence : retirer toute occurrence précédente du bloc (marqueur + directive)
+    // pour éviter les doublons lors de déploiements répétés sans --build
+    htaccessContent = htaccessContent
+      .split('\n')
+      .filter(line =>
+        !line.includes('X-App-Key sql_jsonpro') &&
+        !/^\s*RequestHeader set X-App-Key\b/.test(line)
+      )
+      .join('\n');
+
+    const appKey = process.env.SQL_APP_KEY;
+    if (appKey) {
+      htaccessContent =
+        htaccessContent.replace(/\s*$/, '\n') +
+        `\n# Reverse proxy /api/sql : authentification auprès de sql_jsonpro\n${MARKER}\nRequestHeader set X-App-Key "${appKey}"\n`;
+      writeFileSync(htaccessPath, htaccessContent, 'utf-8');
+      Logger.success('  X-App-Key sql_jsonpro injectée dans le .htaccess uploadé');
+    } else {
+      // Clé absente : upload tel quel, comportement historique (serveur en tuilage)
+      Logger.info('  SQL_APP_KEY absente : .htaccess uploadé sans en-tête X-App-Key');
     }
 
     const client = new FtpClient();

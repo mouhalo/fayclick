@@ -23,6 +23,9 @@ export async function POST(request: NextRequest) {
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
+        // Sécurisation sql_jsonpro : clé X-App-Key injectée si disponible.
+        // Clé absente => appel sans en-tête (serveur en tuilage), jamais d'exception.
+        ...(process.env.SQL_APP_KEY ? { 'X-App-Key': process.env.SQL_APP_KEY } : {}),
       },
       body: JSON.stringify({
         application: body.application || 'fayclick',
