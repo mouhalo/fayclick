@@ -44,6 +44,15 @@ import SubscriptionHistory from '@/components/subscription/SubscriptionHistory';
 import CurrentSubscriptionStatus from '@/components/subscription/CurrentSubscriptionStatus';
 import subscriptionService from '@/services/subscription.service';
 import { HistoriqueAbonnement, CurrentSubscriptionState, EtatAbonnement } from '@/types/subscription.types';
+import { paymentWalletService } from '@/services/payment-wallet.service';
+import {
+  getPendingSubscription,
+  clearPendingSubscription,
+  finalizeSubscriptionRenewal,
+  derivePendingRef,
+  acquerirVerrouReprise,
+  libererVerrouReprise
+} from '@/lib/subscription-pending';
 
 interface StructureData {
   id_structure: number;
@@ -507,6 +516,7 @@ export default function StructureEditPage() {
   useEffect(() => {
     if (activeTab === 'subscription' && user?.id_structure) {
       loadSubscriptionHistory();
+      rattraperAbonnementEnAttente();
     }
   }, [activeTab, user?.id_structure]);
 
@@ -528,6 +538,67 @@ export default function StructureEditPage() {
       console.error('Erreur chargement historique:', error);
     } finally {
       setIsLoadingHistory(false);
+    }
+  };
+
+  /**
+   * Rattrape un renouvellement dont le paiement a été confirmé après l'expiration
+   * du polling (réconciliation batch OFMS).
+   */
+  const rattraperAbonnementEnAttente = async () => {
+    if (!user?.id_structure) return;
+
+    const enAttente = getPendingSubscription();
+    if (!enAttente || enAttente.idStructure !== user.id_structure) return;
+
+    // Les appels réseau ci-dessous laissent le temps à l'effet de se rejouer
+    // (changement d'onglet, StrictMode) : sans ce verrou, deux reprises
+    // concurrentes renouvelleraient l'abonnement deux fois.
+    if (!acquerirVerrouReprise()) return;
+
+    try {
+      const statut = await paymentWalletService.checkPaymentStatus(enAttente.uuid);
+
+      if (!paymentWalletService.isPaymentCompleted(statut)) {
+        return; // Toujours en attente : on garde la clé jusqu'à son expiration
+      }
+
+      console.log('🔁 [SUBSCRIPTION-RECOVERY] Paiement confirmé tardivement:', enAttente.uuid);
+
+      // Le renouvellement a-t-il déjà abouti (flux normal terminé sans purge) ?
+      // La référence étant dérivée de l'uuid, un rejeu porte la même valeur.
+      const refAttendue = derivePendingRef(enAttente.uuid, enAttente.idStructure);
+      const historique = await subscriptionService.getHistory({
+        id_structure: enAttente.idStructure,
+        limite: 10
+      });
+
+      if (historique.data?.some((abo) => abo.ref_abonnement === refAttendue)) {
+        console.log('ℹ️ [SUBSCRIPTION-RECOVERY] Renouvellement déjà enregistré:', refAttendue);
+        clearPendingSubscription();
+        return;
+      }
+
+      // Purge avant la tentative : au pire on perd un rattrapage,
+      // jamais on ne renouvelle deux fois.
+      clearPendingSubscription();
+
+      const response = await finalizeSubscriptionRenewal({
+        uuid: enAttente.uuid,
+        idStructure: enAttente.idStructure,
+        jours: enAttente.jours,
+        method: enAttente.method
+      });
+
+      if (response.success) {
+        handleSubscriptionSuccess();
+      } else {
+        console.error('❌ [SUBSCRIPTION-RECOVERY] Échec rattrapage:', response.message);
+      }
+    } catch (error) {
+      console.error('❌ [SUBSCRIPTION-RECOVERY] Erreur:', error);
+    } finally {
+      libererVerrouReprise();
     }
   };
 

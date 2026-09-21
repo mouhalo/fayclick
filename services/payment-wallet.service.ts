@@ -206,6 +206,27 @@ class PaymentWalletService {
   }
 
   /**
+   * Règle unique de détection d'un paiement réussi.
+   *
+   * Un paiement est réussi si :
+   * 1. completed_at existe (transaction terminée)
+   * 2. reference_externe existe (numéro de transaction attribué)
+   * 3. original_status n'est PAS 'FAILED'
+   * ...ou si l'API renvoie l'ancien format avec statut = 'COMPLETED'.
+   *
+   * Utilisée par le polling ET par la reprise d'un renouvellement d'abonnement
+   * confirmé tardivement (voir lib/subscription-pending.ts).
+   */
+  isPaymentCompleted(response: PaymentStatusResponse): boolean {
+    if (response.status !== 'success' || !response.data) return false;
+    if (response.data.metadata?.original_status === 'FAILED') return false;
+
+    if (response.data.completed_at && response.data.reference_externe) return true;
+
+    return response.data.statut === 'COMPLETED';
+  }
+
+  /**
    * Démarrer le polling du statut de paiement
    * @param uuid - UUID du paiement
    * @param onStatusUpdate - Callback appelé à chaque mise à jour
@@ -274,27 +295,11 @@ class PaymentWalletService {
             return;
           }
           
-          // Vérifier si le paiement est complété avec succès
-          // Un paiement est réussi si:
-          // 1. completed_at existe (transaction terminée)
-          // 2. reference_externe existe (numéro de transaction attribué)
-          // 3. original_status n'est PAS 'FAILED'
-          if (response.data.completed_at && 
-              response.data.reference_externe && 
-              response.data.metadata?.original_status !== 'FAILED') {
+          // Vérifier si le paiement est complété avec succès (règle partagée)
+          if (this.isPaymentCompleted(response)) {
             console.log('✅ Paiement détecté comme RÉUSSI');
             console.log('   - Reference:', response.data.reference_externe);
             console.log('   - UUID:', response.data.uuid);
-            clearTimeout(timeoutId);
-            this.stopPolling();
-            this.endPaymentSession('SUCCESS'); // 🏁 Terminer la session
-            onStatusUpdate('COMPLETED', response);
-            return;
-          }
-
-          // Si on a un statut explicite (ancien format)
-          if (response.data.statut === 'COMPLETED') {
-            console.log('✅ Paiement COMPLETED (ancien format)');
             clearTimeout(timeoutId);
             this.stopPolling();
             this.endPaymentSession('SUCCESS'); // 🏁 Terminer la session
@@ -468,10 +473,15 @@ class PaymentWalletService {
       console.log('💳 [SUBSCRIPTION] Création paiement abonnement:', params);
 
       // Générer référence unique pour l'abonnement
-      // ⚠️ IMPORTANT: Max 19 caractères pour compatibilité OM/WAVE/FREE
-      // Format: ABO-{id}-{timestamp_court} (ex: ABO-139-1759523454)
-      const timestamp = Date.now().toString().slice(-10); // 10 derniers chiffres
-      const reference = `ABO-${params.idStructure}-${timestamp}`;
+      // ⚠️ IMPORTANT: Max 17 caractères — OFMS tronque silencieusement au-delà,
+      // ce qui casse la corrélation du paiement (polling qui ne retrouve jamais la transaction)
+      // Format: ABO-{id}-{timestamp tronqué} (ex: ABO-1675-59523454 = 17 car.)
+      const LONGUEUR_MAX_REFERENCE = 17;
+      const prefixe = `ABO-${params.idStructure}-`;
+      const nbChiffres = Math.max(0, LONGUEUR_MAX_REFERENCE - prefixe.length);
+      // slice(-0) renverrait le timestamp entier : le slice(0, MAX) final borne dans tous les cas
+      const timestamp = Date.now().toString().slice(-nbChiffres);
+      const reference = `${prefixe}${timestamp}`.slice(0, LONGUEUR_MAX_REFERENCE);
 
       // Créer la requête de paiement
       const request: CreatePaymentRequest = {

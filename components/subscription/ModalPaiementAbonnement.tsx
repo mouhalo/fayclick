@@ -30,7 +30,10 @@ import {
   WALLET_CONFIG,
 } from '@/types/payment-wallet';
 import { paymentWalletService } from '@/services/payment-wallet.service';
-import subscriptionService from '@/services/subscription.service';
+import {
+  savePendingSubscription,
+  finalizeSubscriptionRenewal
+} from '@/lib/subscription-pending';
 
 interface ModalPaiementAbonnementProps {
   isOpen: boolean;
@@ -52,9 +55,14 @@ type ModalState =
   | 'CREATING_SUB'     // Création abonnement
   | 'SUCCESS'          // Abonnement créé
   | 'FAILED'           // Échec
-  | 'TIMEOUT';         // Timeout 90s
+  | 'TIMEOUT';         // Timeout 185s (couvre la réconciliation batch OFMS)
 
 const PRIX_JOUR = SUBSCRIPTION_PRICING.PRIX_JOUR; // 100 FCFA
+
+// Délai d'attente du paiement : 185 s pour couvrir la réconciliation batch côté OFMS.
+// Pilote à la fois le compte à rebours affiché et le timeout du polling — les deux
+// doivent rester alignés, sinon le minuteur UI coupe le polling prématurément.
+const DELAI_PAIEMENT_SECONDES = 185;
 
 export default function ModalPaiementAbonnement({
   isOpen,
@@ -78,7 +86,7 @@ export default function ModalPaiementAbonnement({
   const [omDeeplink, setOmDeeplink] = useState<string | null>(null);
   const [maxitUrl, setMaxitUrl] = useState<string | null>(null);
   const [paymentUuid, setPaymentUuid] = useState<string>('');
-  const [timeRemaining, setTimeRemaining] = useState(90);
+  const [timeRemaining, setTimeRemaining] = useState(DELAI_PAIEMENT_SECONDES);
   const [error, setError] = useState<string>('');
 
   // États UI
@@ -163,6 +171,17 @@ export default function ModalPaiementAbonnement({
       setPaymentUuid(paymentResponse.uuid);
       setQrCode(paymentWalletService.formatQRCode(paymentResponse.qrCode));
 
+      // Filet de sécurité : si le polling expire avant la confirmation OFMS,
+      // /settings pourra rattraper le renouvellement au prochain chargement.
+      const joursPayes = comptePrive ? 30 : nombreJours;
+      savePendingSubscription({
+        uuid: paymentResponse.uuid,
+        idStructure,
+        jours: joursPayes,
+        method,
+        timestamp: Date.now()
+      });
+
       if (method === 'OM') {
         setOmDeeplink(paymentResponse.om || null);
         setMaxitUrl(paymentResponse.maxit || null);
@@ -174,8 +193,8 @@ export default function ModalPaiementAbonnement({
       }
 
       setModalState('SHOWING_QR');
-      setTimeRemaining(90);
-      startPolling(paymentResponse.uuid, comptePrive ? 30 : nombreJours, method);
+      setTimeRemaining(DELAI_PAIEMENT_SECONDES);
+      startPolling(paymentResponse.uuid, joursPayes, method);
 
     } catch (err) {
       console.error('❌ [SUBSCRIPTION-MODAL] Erreur:', err);
@@ -214,7 +233,7 @@ export default function ModalPaiementAbonnement({
             break;
         }
       },
-      90000
+      DELAI_PAIEMENT_SECONDES * 1000
     );
   };
 
@@ -230,33 +249,11 @@ export default function ModalPaiementAbonnement({
     setModalState('CREATING_SUB');
 
     try {
-      // Déterminer le type effectif selon le nombre de jours
-      const typeAbonnement = jours <= 1 ? 'JOURNALIER' as const
-        : jours <= 7 ? 'HEBDOMADAIRE' as const
-        : jours <= 31 ? 'MENSUEL' as const
-        : jours <= 93 ? 'TRIMESTRIEL' as const
-        : jours <= 186 ? 'SEMESTRIEL' as const
-        : 'ANNUEL' as const;
+      console.log('🚀 [SUBSCRIPTION-MODAL] Enregistrement abonnement:', { uuid, jours, method });
 
-      // Générer ref_abonnement et numrecu (NOT NULL en BD)
-      const timestamp = new Date().toISOString().replace(/[-:T.Z]/g, '').substring(0, 14);
-      const refAbonnement = `ABO-${idStructure}-${timestamp}`;
-      const numRecu = `REC-${idStructure}-${timestamp}`;
-
-      console.log('🚀 [SUBSCRIPTION-MODAL] Enregistrement abonnement:', {
-        uuid, jours, method, typeAbonnement, refAbonnement, numRecu
-      });
-
-      // Appel avec nombre_jours + ref + recu
-      const response = await subscriptionService.renewSubscription({
-        id_structure: idStructure,
-        type_abonnement: typeAbonnement,
-        methode: method,
-        uuid_paiement: uuid,
-        nombre_jours: jours,
-        ref_abonnement: refAbonnement,
-        numrecu: numRecu
-      });
+      // Chemin partagé avec la reprise /settings : la clé localStorage est
+      // purgée à l'intérieur en cas de succès.
+      const response = await finalizeSubscriptionRenewal({ uuid, idStructure, jours, method });
 
       console.log('📋 [SUBSCRIPTION-MODAL] Reponse:', JSON.stringify(response, null, 2));
 
@@ -290,7 +287,7 @@ export default function ModalPaiementAbonnement({
     setOmDeeplink(null);
     setMaxitUrl(null);
     setPaymentUuid('');
-    setTimeRemaining(90);
+    setTimeRemaining(DELAI_PAIEMENT_SECONDES);
     setError('');
     setIsLoading(false);
     setCustomInput(false);
