@@ -11,7 +11,7 @@ import { useTranslations } from '@/hooks/useTranslations';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Phone, User, Search, CheckCircle, UserPlus, Loader2, ShoppingCart, AlertCircle, Banknote, ArrowLeft } from 'lucide-react';
 import { clientsService } from '@/services/clients.service';
-import { Client } from '@/types/client';
+import { Client, ClientWithStats } from '@/types/client';
 
 interface ModalRechercheClientProps {
   isOpen: boolean;
@@ -41,6 +41,8 @@ export function ModalRechercheClient({
     montant_total_achats: number;
     nombre_factures_impayees: number;
   } | null>(null);
+  const [searchResults, setSearchResults] = useState<ClientWithStats[]>([]);
+  const [showDropdown, setShowDropdown] = useState(false);
 
   // Champs du formulaire nouveau client
   const [newNom, setNewNom] = useState('');
@@ -63,9 +65,14 @@ export function ModalRechercheClient({
         setSearchMessage('');
         setClientData(null);
         setClientStats(null);
+        setShowDropdown(false);
+        setSearchResults([]);
       }
       return;
     }
+
+    // Masquer le dropdown précédent le temps de la nouvelle recherche
+    setShowDropdown(false);
 
     // Annuler le timer précédent
     if (searchTimerRef.current) {
@@ -81,7 +88,7 @@ export function ModalRechercheClient({
     if (!isPhone && query.length < 3) return;
 
     searchTimerRef.current = setTimeout(() => {
-      handleSearch(isPhone ? cleanedDigits : query);
+      handleSearch(isPhone ? cleanedDigits : query, isPhone);
     }, 400);
 
     return () => {
@@ -89,55 +96,50 @@ export function ModalRechercheClient({
     };
   }, [searchQuery, mode]);
 
-  const handleSearch = async (query: string) => {
+  const handleSearch = async (query: string, isPhone: boolean) => {
     try {
       setIsSearching(true);
       setSearchMessage('');
+      setSearchResults([]);
 
-      console.log('[MODAL] Recherche client:', query);
-      const response = await clientsService.checkOneClient(query);
+      console.log('[MODAL] Recherche client:', query, '| isPhone:', isPhone);
+      const response = await clientsService.getListeClients();
 
-      if (response.success && response.client) {
-        console.log('[MODAL] Client trouvé:', response.client.nom_client);
+      if (!response.success || !Array.isArray(response.clients)) {
+        setSearchMessage('Erreur lors de la recherche');
+        return;
+      }
 
-        setClientTrouve(true);
-        setClientData({
-          id_client: 0,
-          nom_client: response.client.nom_client,
-          tel_client: response.client.tel_client,
-          adresse: response.client.adresse,
-          date_creation: response.client.date_creation,
-          date_modification: response.client.date_modification
-        });
-
-        if (response.statistiques) {
-          setClientStats({
-            montant_restant: response.statistiques.montant_restant || 0,
-            nombre_total_ventes: response.statistiques.nombre_total_ventes || 0,
-            montant_total_achats: response.statistiques.montant_total_achats || 0,
-            nombre_factures_impayees: response.statistiques.nombre_factures_impayees || 0
-          });
+      const normalizedQuery = query.toLowerCase();
+      const matches = response.clients.filter((item) => {
+        if (isPhone) {
+          return (item.client.tel_client || '').replace(/\D/g, '').includes(query);
         }
+        return (item.client.nom_client || '').toLowerCase().includes(normalizedQuery);
+      }).slice(0, 8);
 
-        setSearchMessage('Client trouvé dans la base');
-      } else {
-        console.log('[MODAL] Client non trouvé → mode création');
+      if (matches.length === 0) {
+        console.log('[MODAL] Aucun client trouvé → mode création');
 
         setClientTrouve(false);
         setClientData(null);
         setClientStats(null);
 
         // Basculer en mode création avec pré-remplissage
-        const isPhone = isPhoneInput(query);
         if (isPhone) {
-          setNewTel(query.replace(/\D/g, ''));
+          setNewTel(query);
           setNewNom('');
         } else {
           setNewNom(query);
           setNewTel('');
         }
         setMode('create');
+        return;
       }
+
+      console.log(`[MODAL] ${matches.length} client(s) trouvé(s)`);
+      setSearchResults(matches);
+      setShowDropdown(true);
     } catch (error) {
       console.error('[MODAL] Erreur recherche:', error);
       setSearchMessage('Erreur lors de la recherche');
@@ -147,6 +149,31 @@ export function ModalRechercheClient({
     } finally {
       setIsSearching(false);
     }
+  };
+
+  const handleSelectFromDropdown = (item: ClientWithStats) => {
+    console.log('[MODAL] Client sélectionné depuis le dropdown:', item.client.nom_client);
+
+    setClientTrouve(true);
+    setClientData({
+      id_client: item.client.id_client,
+      nom_client: item.client.nom_client,
+      tel_client: item.client.tel_client,
+      adresse: item.client.adresse,
+      date_creation: item.client.date_creation,
+      date_modification: item.client.date_modification
+    });
+
+    setClientStats({
+      montant_restant: item.statistiques_factures?.montant_impaye || 0,
+      nombre_total_ventes: item.statistiques_factures?.nombre_factures || 0,
+      montant_total_achats: item.statistiques_factures?.montant_total_factures || 0,
+      nombre_factures_impayees: item.statistiques_factures?.nombre_factures_impayees || 0
+    });
+
+    setSearchMessage('');
+    setShowDropdown(false);
+    setSearchResults([]);
   };
 
   const handleConfirm = () => {
@@ -198,6 +225,8 @@ export function ModalRechercheClient({
     setSearchMessage('');
     setClientData(null);
     setClientStats(null);
+    setShowDropdown(false);
+    setSearchResults([]);
   };
 
   const handleCancel = () => {
@@ -211,6 +240,8 @@ export function ModalRechercheClient({
     setSearchMessage('');
     setClientData(null);
     setClientStats(null);
+    setShowDropdown(false);
+    setSearchResults([]);
     onClose();
   };
 
@@ -233,6 +264,8 @@ export function ModalRechercheClient({
       setSearchMessage('');
       setClientData(null);
       setClientStats(null);
+      setShowDropdown(false);
+      setSearchResults([]);
     }
   };
 
@@ -354,6 +387,39 @@ export function ModalRechercheClient({
                               : t('clientSearch.nameHint', { count: searchQuery.trim().length })
                             }
                           </p>
+                        )}
+
+                        {/* Dropdown multi-résultats */}
+                        {showDropdown && searchResults.length > 0 && (
+                          <motion.div
+                            initial={{ opacity: 0, y: -10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="mt-2 max-h-64 overflow-y-auto rounded-xl border border-gray-200 bg-white shadow-lg divide-y divide-gray-100"
+                          >
+                            {searchResults.map((item) => (
+                              <button
+                                key={item.client.id_client}
+                                type="button"
+                                onClick={() => handleSelectFromDropdown(item)}
+                                className="w-full text-left px-3 py-2.5 hover:bg-blue-50 transition-colors flex items-start gap-2.5"
+                              >
+                                <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center shrink-0 mt-0.5">
+                                  <User className="w-4 h-4 text-blue-600" />
+                                </div>
+                                <div className="min-w-0 flex-1">
+                                  <p className="font-semibold text-gray-900 text-sm truncate">
+                                    {item.client.nom_client}
+                                  </p>
+                                  <p className="text-xs text-gray-500">
+                                    {formatPhoneDisplay(item.client.tel_client)}
+                                  </p>
+                                  {item.client.adresse && (
+                                    <p className="text-xs text-gray-400 truncate">{item.client.adresse}</p>
+                                  )}
+                                </div>
+                              </button>
+                            ))}
+                          </motion.div>
                         )}
                       </div>
                     )}
