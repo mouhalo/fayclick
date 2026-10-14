@@ -12,6 +12,7 @@ import {
   ClientWithStats,
   ClientDetailComplet,
   ClientsApiResponse,
+  InfosClientsApiResponse,
   AddEditClientResponse,
   ClientFormData,
   StatistiquesGlobales,
@@ -208,6 +209,108 @@ export class ClientsService {
         throw error;
       }
       
+      throw new ClientsApiException(
+        'Impossible de récupérer la liste des clients',
+        500,
+        error
+      );
+    }
+  }
+
+  /**
+   * 🚀 Liste allégée des clients (id, nom, tél, adresse) pour la recherche caisse
+   * Utilise la fonction PostgreSQL get_list_infos_client : aucune facture ni
+   * statistique embarquée, réponse en quelques Ko au lieu de dizaines de Mo.
+   * Le filtrage nom/téléphone se fait côté client (dans le modal).
+   */
+  async getListeInfosClients(): Promise<InfosClientsApiResponse> {
+    try {
+      const user = authService.getUser();
+      if (!user) {
+        throw new ClientsApiException('Utilisateur non authentifié', 401);
+      }
+
+      // Clé de cache distincte de la liste complète
+      const cacheKey = `infos_clients_${user.id_structure}`;
+
+      const cachedData = this.cache.get(cacheKey);
+      if (cachedData && this.isCacheValid(cachedData)) {
+        console.log('📦 [CLIENTS] Infos clients récupérées depuis le cache');
+        return cachedData.data;
+      }
+
+      this.cleanExpiredCache();
+      SecurityService.secureLog('log', '⚡ [CLIENTS] Récupération infos clients (liste légère)', {
+        id_structure: user.id_structure,
+        timestamp: new Date().toISOString()
+      });
+
+      // ⚠️ La fonction attend 2 paramètres (id_structure, tel_client)
+      // Chaîne vide = tous les clients de la structure
+      const query = `SELECT * FROM get_list_infos_client(${user.id_structure}, '')`;
+
+      const results = await database.query(query);
+
+      const rawData = Array.isArray(results) && results.length > 0 ? results[0] : null;
+
+      if (!rawData) {
+        throw new ClientsApiException('Aucune donnée retournée par l\'API', 500);
+      }
+
+      let data;
+      try {
+        if (rawData.get_list_infos_client) {
+          const clientData = rawData.get_list_infos_client;
+          data = typeof clientData === 'string' ? JSON.parse(clientData) : clientData;
+        } else if (typeof rawData === 'string') {
+          data = JSON.parse(rawData);
+        } else {
+          data = rawData;
+        }
+      } catch (parseError) {
+        console.error('❌ [CLIENTS] Erreur parsing infos clients:', parseError);
+        throw new ClientsApiException('Erreur de format des données client', 500);
+      }
+
+      if (!data || data.success !== true || !Array.isArray(data.clients)) {
+        console.error('❌ [CLIENTS] Réponse invalide get_list_infos_client:', {
+          success: data?.success,
+          clients: Array.isArray(data?.clients) ? `array(${data.clients.length})` : data?.clients
+        });
+        throw new ClientsApiException(
+          data?.error || 'Erreur lors de la récupération des clients',
+          500
+        );
+      }
+
+      const transformedData: InfosClientsApiResponse = {
+        success: true,
+        structure_id: data.structure_id,
+        clients: data.clients,
+        nombre_clients: data.nombre_clients ?? data.clients.length,
+        filtre_telephone: data.filtre_telephone || null,
+        timestamp_generation: data.timestamp_generation || new Date().toISOString()
+      };
+
+      this.cache.set(cacheKey, {
+        data: transformedData,
+        timestamp: Date.now()
+      });
+
+      SecurityService.secureLog('log', '✅ [CLIENTS] Infos clients récupérées avec succès', {
+        nombre_clients: transformedData.nombre_clients,
+        structure_id: data.structure_id
+      });
+
+      return transformedData;
+
+    } catch (error) {
+      SecurityService.secureLog('error', '❌ [CLIENTS] Erreur récupération infos clients', error);
+
+      if (error instanceof ClientsApiException) {
+        throw error;
+      }
+
       throw new ClientsApiException(
         'Impossible de récupérer la liste des clients',
         500,

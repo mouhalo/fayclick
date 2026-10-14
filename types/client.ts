@@ -125,6 +125,27 @@ export interface ClientsApiResponse {
   timestamp_generation: string;
 }
 
+/**
+ * Client allégé (id, nom, tél, adresse) retourné par get_list_infos_client.
+ * Utilisé pour la recherche rapide au niveau de la caisse : sans factures ni
+ * statistiques, la réponse passe de plusieurs dizaines de Mo à quelques Ko.
+ */
+export interface ClientInfoLegere {
+  id_client: number;
+  nom_client: string;
+  tel_client: string;
+  adresse: string | null;
+}
+
+export interface InfosClientsApiResponse {
+  success: boolean;
+  structure_id: number;
+  clients: ClientInfoLegere[];
+  nombre_clients: number;
+  filtre_telephone: string | null;
+  timestamp_generation: string;
+}
+
 // Pour la création/édition de clients
 export interface AddEditClientResponse {
   result_id_client: number;

@@ -11,7 +11,7 @@ import { useTranslations } from '@/hooks/useTranslations';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Phone, User, Search, CheckCircle, UserPlus, Loader2, ShoppingCart, AlertCircle, Banknote, ArrowLeft } from 'lucide-react';
 import { clientsService } from '@/services/clients.service';
-import { Client, ClientWithStats } from '@/types/client';
+import { Client, ClientInfoLegere } from '@/types/client';
 
 interface ModalRechercheClientProps {
   isOpen: boolean;
@@ -34,14 +34,14 @@ export function ModalRechercheClient({
   const [isSearching, setIsSearching] = useState(false);
   const [clientTrouve, setClientTrouve] = useState(false);
   const [searchMessage, setSearchMessage] = useState('');
-  const [clientData, setClientData] = useState<Client | null>(null);
+  const [clientData, setClientData] = useState<(Partial<Client> & { id_client?: number; nom_client: string; tel_client: string }) | null>(null);
   const [clientStats, setClientStats] = useState<{
     montant_restant: number;
     nombre_total_ventes: number;
     montant_total_achats: number;
     nombre_factures_impayees: number;
   } | null>(null);
-  const [searchResults, setSearchResults] = useState<ClientWithStats[]>([]);
+  const [searchResults, setSearchResults] = useState<ClientInfoLegere[]>([]);
   const [showDropdown, setShowDropdown] = useState(false);
 
   // Champs du formulaire nouveau client
@@ -103,7 +103,7 @@ export function ModalRechercheClient({
       setSearchResults([]);
 
       console.log('[MODAL] Recherche client:', query, '| isPhone:', isPhone);
-      const response = await clientsService.getListeClients();
+      const response = await clientsService.getListeInfosClients();
 
       if (!response.success || !Array.isArray(response.clients)) {
         setSearchMessage('Erreur lors de la recherche');
@@ -113,9 +113,9 @@ export function ModalRechercheClient({
       const normalizedQuery = query.toLowerCase();
       const matches = response.clients.filter((item) => {
         if (isPhone) {
-          return (item.client.tel_client || '').replace(/\D/g, '').includes(query);
+          return (item.tel_client || '').replace(/\D/g, '').includes(query);
         }
-        return (item.client.nom_client || '').toLowerCase().includes(normalizedQuery);
+        return (item.nom_client || '').toLowerCase().includes(normalizedQuery);
       }).slice(0, 8);
 
       if (matches.length === 0) {
@@ -151,25 +151,19 @@ export function ModalRechercheClient({
     }
   };
 
-  const handleSelectFromDropdown = (item: ClientWithStats) => {
-    console.log('[MODAL] Client sélectionné depuis le dropdown:', item.client.nom_client);
+  const handleSelectFromDropdown = (item: ClientInfoLegere) => {
+    console.log('[MODAL] Client sélectionné depuis le dropdown:', item.nom_client);
 
     setClientTrouve(true);
     setClientData({
-      id_client: item.client.id_client,
-      nom_client: item.client.nom_client,
-      tel_client: item.client.tel_client,
-      adresse: item.client.adresse,
-      date_creation: item.client.date_creation,
-      date_modification: item.client.date_modification
+      id_client: item.id_client,
+      nom_client: item.nom_client,
+      tel_client: item.tel_client,
+      adresse: item.adresse || ''
     });
 
-    setClientStats({
-      montant_restant: item.statistiques_factures?.montant_impaye || 0,
-      nombre_total_ventes: item.statistiques_factures?.nombre_factures || 0,
-      montant_total_achats: item.statistiques_factures?.montant_total_factures || 0,
-      nombre_factures_impayees: item.statistiques_factures?.nombre_factures_impayees || 0
-    });
+    // Liste légère (get_list_infos_client) : pas de statistiques factures embarquées
+    setClientStats(null);
 
     setSearchMessage('');
     setShowDropdown(false);
@@ -398,7 +392,7 @@ export function ModalRechercheClient({
                           >
                             {searchResults.map((item) => (
                               <button
-                                key={item.client.id_client}
+                                key={item.id_client}
                                 type="button"
                                 onClick={() => handleSelectFromDropdown(item)}
                                 className="w-full text-left px-3 py-2.5 hover:bg-blue-50 transition-colors flex items-start gap-2.5"
@@ -408,13 +402,13 @@ export function ModalRechercheClient({
                                 </div>
                                 <div className="min-w-0 flex-1">
                                   <p className="font-semibold text-gray-900 text-sm truncate">
-                                    {item.client.nom_client}
+                                    {item.nom_client}
                                   </p>
                                   <p className="text-xs text-gray-500">
-                                    {formatPhoneDisplay(item.client.tel_client)}
+                                    {formatPhoneDisplay(item.tel_client)}
                                   </p>
-                                  {item.client.adresse && (
-                                    <p className="text-xs text-gray-400 truncate">{item.client.adresse}</p>
+                                  {item.adresse && (
+                                    <p className="text-xs text-gray-400 truncate">{item.adresse}</p>
                                   )}
                                 </div>
                               </button>
