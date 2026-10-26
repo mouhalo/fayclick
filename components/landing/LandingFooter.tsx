@@ -101,7 +101,7 @@ export default function LandingFooter() {
           <div className="h-px bg-white/[0.06] mb-6" />
           <div className="flex items-center justify-between">
             <div className="text-xs text-white/30">
-              © 2026 FayClick — Une solution <strong className="text-white/50">ICELABSOFT SARL</strong>
+              © {new Date().getFullYear()} FayClick — Une solution <strong className="text-white/50">ICELABSOFT SARL</strong>
             </div>
             <div className="text-xs text-white/30">
               Fait avec 💚 au Sénégal

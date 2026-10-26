@@ -216,7 +216,7 @@ export default function MobileHome() {
           className="text-center mb-2"
         >
           <motion.h1
-            className={`${styles.titleSize} font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-300 via-green-200 to-teal-300 mb-2`}
+            className={`${styles.titleSize} font-montserrat font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-300 via-green-200 to-teal-300 mb-2`}
             style={{
               textShadow: '0 0 30px rgba(16, 185, 129, 0.5), 0 0 60px rgba(16, 185, 129, 0.3)',
               filter: 'drop-shadow(0 0 10px rgba(16, 185, 129, 0.8))'
@@ -475,7 +475,7 @@ export default function MobileHome() {
           className="absolute bottom-6 text-center"
         >
           <div className="text-xs text-emerald-200/80 mb-2">
-            {t('mobile.footer')}{" "}
+            {t('mobile.footer', { year: new Date().getFullYear() })}{" "}
             <motion.a
               href="https://icelabsoft.com"
               target="_blank"

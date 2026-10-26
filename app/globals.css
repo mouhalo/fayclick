@@ -7,6 +7,8 @@
 
 /* Landing page heading font fallback */
 :root {
+  --font-inter: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-montserrat: 'Montserrat', system-ui, -apple-system, sans-serif;
   --font-landing-heading: 'Montserrat', system-ui, -apple-system, sans-serif;
 }
 

@@ -256,7 +256,7 @@
         "reports": "Rapports détaillés"
       },
       "footer": {
-        "copyright": "© 2025 FayClick - Tous droits réservés",
+        "copyright": "© {year} FayClick - Tous droits réservés",
         "developedBy": "Développé par"
       }
     },
@@ -272,7 +272,7 @@
         "analytics": "Analytics\nPro",
         "qrcode": "QR Code\nInstant"
       },
-      "footer": "© 2025 Développé par"
+      "footer": "© {year} Développé par"
     },
     "hero": {
       "title": "La Super App des Marchands Sénégalais",

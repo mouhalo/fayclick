@@ -256,7 +256,7 @@
         "reports": "Detailed reports"
       },
       "footer": {
-        "copyright": "© 2025 FayClick - All rights reserved",
+        "copyright": "© {year} FayClick - All rights reserved",
         "developedBy": "Developed by"
       }
     },
@@ -272,7 +272,7 @@
         "analytics": "Analytics\nPro",
         "qrcode": "QR Code\nInstant"
       },
-      "footer": "© 2025 Developed by"
+      "footer": "© {year} Developed by"
     },
     "hero": {
       "title": "The Super App for Senegalese Merchants",

@@ -256,7 +256,7 @@
         "reports": "Rapports yu mat sëkk"
       },
       "footer": {
-        "copyright": "© 2025 FayClick - Tous droits réservés",
+        "copyright": "© {year} FayClick - Tous droits réservés",
         "developedBy": "Mi ngi liggéeyoo ci"
       }
     },
@@ -272,7 +272,7 @@
         "analytics": "Analytics\nPro",
         "qrcode": "QR Code\nInstant"
       },
-      "footer": "© 2025 Mi ngi liggéeyoo ci"
+      "footer": "© {year} Mi ngi liggéeyoo ci"
     },
     "hero": {
       "title": "Super App u Jaaykat yi Senegaal",
