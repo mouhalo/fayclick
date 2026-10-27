@@ -325,7 +325,10 @@ class LogoUploadSimpleService {
         WHERE id_structure = ${id_structure}
       `;
 
-      const result = await databaseService.query('APPFAYCLICK', sql);
+      // Bug historique : les arguments étaient inversés (query('APPFAYCLICK', sql))
+      // — la requête réellement envoyée était la chaîne 'APPFAYCLICK', donc ce
+      // chargement échouait silencieusement depuis toujours.
+      const result = await databaseService.query(sql);
 
       if (result && result.length > 0 && result[0].logo_structure) {
         return result[0].logo_structure;

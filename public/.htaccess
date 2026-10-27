@@ -61,6 +61,11 @@ Header always set Content-Security-Policy "default-src 'self'; script-src 'self'
 # Activer le moteur de réécriture
 RewriteEngine On
 
+# VAGUE 2 (Evolution/Securisation.md) — /api/sql n'accepte que POST :
+# le front n'émet que des POST ; tout autre méthode est refusée avant proxy.
+RewriteCond %{REQUEST_METHOD} !^POST$
+RewriteRule ^api/sql$ - [F,L]
+
 # Reverse proxy /api/sql vers sql_jsonpro (résout CORS en production)
 RewriteRule ^api/sql$ https://api.icelabsoft.com/api/sql_jsonpro [P,L]
 

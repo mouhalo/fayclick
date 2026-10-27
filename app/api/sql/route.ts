@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { validateQuery, ALLOWED_APPLICATIONS } from '@/lib/sql-whitelist.mjs';
 
 const SQL_JSONPRO_URL = 'https://api.icelabsoft.com/api/sql_jsonpro';
 const TIMEOUT_MS = 35000; // Legèrement plus que le timeout client (30s)
@@ -11,6 +12,30 @@ export async function POST(request: NextRequest) {
     if (!body.query) {
       return NextResponse.json(
         { status: 'error', message: 'Le champ query est requis' },
+        { status: 400 }
+      );
+    }
+
+    // VAGUE 2 (Evolution/Securisation.md) — liste blanche SQL.
+    // Defense-in-depth : ce filtre protège le dev ; en prod (export statique),
+    // c'est sql_jsonpro qui doit appliquer la même liste (cf. lib/sql-whitelist.mjs).
+    const verdict = validateQuery(body.query);
+    if (!verdict.ok) {
+      console.error(
+        '[PROXY SQL] Requête refusée (liste blanche):', verdict.reason,
+        String(body.query).substring(0, 200)
+      );
+      return NextResponse.json(
+        { status: 'error', message: 'Requête non autorisée (liste blanche SQL)' },
+        { status: 403 }
+      );
+    }
+
+    // L'application doit faire partie des applications déclarées (config/env.ts)
+    const application = body.application || 'fayclick';
+    if (!ALLOWED_APPLICATIONS.has(application)) {
+      return NextResponse.json(
+        { status: 'error', message: 'Application non autorisée' },
         { status: 400 }
       );
     }
@@ -28,7 +53,7 @@ export async function POST(request: NextRequest) {
         ...(process.env.SQL_APP_KEY ? { 'X-App-Key': process.env.SQL_APP_KEY } : {}),
       },
       body: JSON.stringify({
-        application: body.application || 'fayclick',
+        application,
         query: body.query,
         params: body.params || [],
       }),

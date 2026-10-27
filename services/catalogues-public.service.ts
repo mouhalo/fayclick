@@ -169,9 +169,11 @@ class CataloguesPublicService {
       const database = (await import('./database.service')).default;
 
       // Requete legere — pas de JOIN sur produits (table inaccessible en direct)
+      // VAGUE 2 (Evolution/Securisation.md §3.1) : mobile_om retiré —
+      // la liste publique ne doit plus exposer les téléphones marchands.
       const query = `
         SELECT ls.id_structure, ls.code_structure, ls.nom_structure, ls.adresse,
-               ls.mobile_om, ls.id_localite, ls.actif, ls.logo, ls.createdat,
+               ls.id_localite, ls.actif, ls.logo, ls.createdat,
                ls.id_type, ls.type_structure
         FROM list_structures ls
         ORDER BY ls.nom_structure ASC
@@ -204,7 +206,10 @@ class CataloguesPublicService {
           code_structure: row.code_structure || '',
           nom_structure: row.nom_structure || '',
           adresse: row.adresse || null,
-          mobile_om: row.mobile_om || null,
+          // VAGUE 2 : plus alimenté — le champ reste dans le type pour compat,
+          // la recherche par téléphone marketplace est désactivée jusqu'à
+          // marketplace_public_list() côté backend.
+          mobile_om: null,
           id_localite: row.id_localite || null,
           actif: row.actif ?? true,
           logo: row.logo || null,

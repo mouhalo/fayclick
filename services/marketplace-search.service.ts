@@ -74,6 +74,10 @@ class MarketplaceSearchService {
           nom_structure: s.nom_structure,
           logo_structure: s.logo,
           type_structure: s.type_structure,
+          // VAGUE 2 : mobile_om n'est plus servi publiquement → null.
+          // La recherche par téléphone (branche isTel de search()) ne matche
+          // plus ; à réactiver via une fonction dédiée (ex. marketplace_search_by_tel)
+          // quand le backend livrera marketplace_public_list (mémo §3.1).
           telephone: s.mobile_om,
           adresse: s.adresse,
           total_produits: s.nb_produits_publics,

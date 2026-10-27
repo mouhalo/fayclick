@@ -10,6 +10,7 @@
     "start": "next start",
     "lint": "next lint",
     "i18n:check": "node scripts/check-i18n-keys.mjs",
+    "test:sql-whitelist": "node scripts/test-sql-whitelist.mjs",
     "clean:server": "node scripts/clean-server.mjs",
     "deploy": "node deploy.mjs",
     "deploy:force": "node deploy.mjs --force",
