@@ -10,7 +10,7 @@ const VersionTest = dynamic(() => import('@/components/debug/VersionTest'), {
 });
 
 // Import dynamique pour optimiser le chargement
-const MobileHome = dynamic(() => import('@/components/home/MobileHome'), {
+const MobileHome = dynamic(() => import('@/components/landing/mobile/MobileLandingPage'), {
   loading: () => <LoadingScreen />,
   ssr: false // Désactiver le SSR pour éviter les problèmes d'hydratation
 });
