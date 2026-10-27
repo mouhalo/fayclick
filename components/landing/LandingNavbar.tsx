@@ -92,15 +92,15 @@ export default function LandingNavbar({ activeSection }: LandingNavbarProps) {
             <LanguageSwitcher variant="dark" />
             <Link
               href="/login"
-              className="px-5 py-2 text-sm font-medium text-white/80 border border-white/20 rounded-full hover:bg-white/5 hover:border-white/30 transition-all duration-300"
+              className="px-5 h-11 flex items-center text-sm font-medium text-white/70 border border-white/20 rounded-lg hover:bg-white/5 hover:border-white/30 transition-all duration-300"
             >
-              Connexion
+              Se connecter
             </Link>
             <Link
               href="/register"
-              className="px-5 py-2 text-sm font-semibold text-white bg-emerald-500 rounded-full hover:bg-emerald-400 transition-all duration-300 shadow-lg shadow-emerald-500/25"
+              className="px-5 h-11 flex items-center text-sm font-bold text-white bg-primary-500 hover:bg-primary-600 rounded-lg transition-all duration-300 shadow-cta hover:scale-[1.03] active:scale-95"
             >
-              Créer mon compte
+              Créer ma boutique gratuite
             </Link>
           </div>
         </div>

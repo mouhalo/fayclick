@@ -3,13 +3,14 @@
 import { useState, useEffect, useRef } from 'react';
 import LandingNavbar from './LandingNavbar';
 import LandingHero from './LandingHero';
-import LandingCibles from './LandingCibles';
-import LandingFonctionnalites from './LandingFonctionnalites';
+import LandingTrio from './LandingTrio';
+import LandingPreuve from './LandingPreuve';
 import LandingTelechargements from './LandingTelechargements';
-import LandingSupport from './LandingSupport';
+import LandingAide from './LandingAide';
+import LandingCtaFinal from './LandingCtaFinal';
 import LandingFooter from './LandingFooter';
 
-const SECTION_IDS = ['hero', 'cibles', 'fonctionnalites', 'telechargements', 'support'];
+const SECTION_IDS = ['hero', 'fonctionnement', 'preuve', 'telecharger', 'aide'];
 
 export default function DesktopLandingPage() {
   const [activeSection, setActiveSection] = useState('hero');
@@ -37,13 +38,14 @@ export default function DesktopLandingPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-slate-900 scroll-smooth">
+    <div className="min-h-screen bg-slate-900 text-white scroll-smooth">
       <LandingNavbar activeSection={activeSection} />
       <LandingHero />
-      <LandingCibles />
-      <LandingFonctionnalites />
+      <LandingTrio />
+      <LandingPreuve />
       <LandingTelechargements />
-      <LandingSupport />
+      <LandingAide />
+      <LandingCtaFinal />
       <LandingFooter />
     </div>
   );
