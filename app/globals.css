@@ -838,7 +838,7 @@ html, body {
   /* Register Page Background */
   .reg_page {
     min-height: 100vh;
-    background: linear-gradient(135deg, #064e3b 0%, #065f46 40%, #047857 100%);
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 55%, #0c4a6e 100%);
     position: relative;
     overflow: hidden;
   }
@@ -890,15 +890,15 @@ html, body {
   }
 
   .reg_glass-input:focus {
-    border-color: #10b981;
-    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2), 0 0 20px rgba(16, 185, 129, 0.1);
+    border-color: #0ea5e9;
+    box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.2), 0 0 20px rgba(14, 165, 233, 0.1);
     background: rgba(255, 255, 255, 0.15);
   }
 
   /* Progress Bar */
   .reg_progress-bar {
     height: 3px;
-    background: linear-gradient(90deg, #10b981, #14b8a6);
+    background: linear-gradient(90deg, #0ea5e9, #10b981);
     border-radius: 2px;
     animation: reg_progress-glow 2s ease-in-out infinite;
     position: relative;
@@ -919,28 +919,28 @@ html, body {
 
   /* Buttons - Compact mobile, full desktop */
   .reg_btn-primary {
-    background: linear-gradient(135deg, #10b981, #14b8a6);
+    background: #0ea5e9;
     color: white;
     font-weight: 700;
     padding: 0.625rem 1.25rem;
     font-size: 0.875rem;
-    border-radius: 0.625rem;
+    border-radius: 0.5rem;
     border: none;
     cursor: pointer;
     transition: all 0.3s ease;
-    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+    box-shadow: 0 4px 15px rgba(14, 165, 233, 0.35);
   }
   @media (min-width: 768px) {
     .reg_btn-primary {
       padding: 0.875rem 1.5rem;
       font-size: 1rem;
-      border-radius: 0.75rem;
+      border-radius: 0.5rem;
     }
   }
 
   .reg_btn-primary:hover {
-    background: linear-gradient(135deg, #059669, #0d9488);
-    box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+    background: #0284c7;
+    box-shadow: 0 6px 20px rgba(14, 165, 233, 0.45);
     transform: translateY(-1px);
   }
 
@@ -1171,6 +1171,49 @@ html, body {
   /* Celebration Pulse */
   .reg_celebration-pulse {
     animation: reg_celebration-pulse 0.8s ease-in-out infinite;
+  }
+
+  /* ═══ Register un écran — barre de progression verticale ═══ */
+  .reg_vnode {
+    transition: all 0.35s ease;
+  }
+  .reg_vnode .vnum {
+    display: block;
+  }
+  .reg_vnode .vcheck {
+    display: none;
+  }
+  .reg_vnode.reg_vnode-active {
+    background: #0ea5e9;
+    border-color: #0ea5e9;
+    color: #fff;
+    box-shadow: 0 0 0 4px rgba(14, 165, 233, 0.18);
+  }
+  .reg_vnode.reg_vnode-done {
+    background: #10b981;
+    border-color: #10b981;
+    box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.18);
+  }
+  .reg_vnode.reg_vnode-active .vnum,
+  .reg_vnode.reg_vnode-done .vnum {
+    display: none;
+  }
+  .reg_vnode.reg_vnode-active .vcheck,
+  .reg_vnode.reg_vnode-done .vcheck {
+    display: block;
+  }
+  .reg_vseg-fill {
+    height: 0;
+    transition: height 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+    background: linear-gradient(to bottom, #38bdf8, #10b981);
+  }
+  .reg_extra {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .reg_extra.reg_extra-open {
+    max-height: 520px;
   }
 
   /* ===== LOGIN LOADING - MODAL GLASSMORPHISM ===== */
@@ -1766,4 +1809,22 @@ html, body {
   .text-white {
     color: #000 !important;
   }
+}
+
+/* ═══ Design system landing — chiffres mis en avant ═══
+   Montserrat extrabold, ≥ 2× la taille du texte descriptif
+   (stats, montants, compteurs) */
+.fc-stat {
+  font-family: var(--font-montserrat), 'Montserrat', sans-serif;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+/* ═══ Landing mobile — masque des barres de scroll horizontales (chips) ═══ */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
 }

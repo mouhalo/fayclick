@@ -77,6 +77,11 @@ const config: Config = {
         montserrat: ['var(--font-montserrat)', 'Montserrat', 'sans-serif'],
         sans: ['var(--font-inter)', 'Inter', 'system-ui', 'sans-serif'],
       },
+      // Ombres du design system landing (CTA bleu, cartes)
+      boxShadow: {
+        'cta': '0 8px 24px rgba(14, 165, 233, 0.35)',
+        'card': '0 4px 16px rgba(0, 0, 0, 0.3)',
+      },
       // Extensions d'animations du guide fayclick + glassmorphism
       animation: {
         'float-slow': 'float 6s ease-in-out infinite',
