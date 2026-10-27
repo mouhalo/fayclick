@@ -18,8 +18,10 @@ export default function SplashScreenProvider({ children }: SplashScreenProviderP
 
   const { isVisible, onAnimationComplete } = useSplashScreen({
     minDuration: showSplash ? 4000 : 0,
-    storageKey: null,
-    cacheValidity: 24 * 60 * 60 * 1000,
+    // Storytelling complet 1× par session (ensuite la page s'affiche directement)
+    storageKey: 'fc-splash-session',
+    storage: 'session',
+    cacheValidity: 8 * 60 * 60 * 1000,
   });
 
   if (!showSplash) {
@@ -31,6 +33,7 @@ export default function SplashScreenProvider({ children }: SplashScreenProviderP
       <SplashScreen
         isVisible={isVisible}
         onAnimationComplete={onAnimationComplete}
+        progressDurationMs={showSplash ? 4000 : 0}
       />
       <div
         className="transition-opacity duration-500"

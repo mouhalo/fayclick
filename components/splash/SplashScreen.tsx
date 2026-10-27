@@ -1,14 +1,38 @@
 'use client';
 
-import { motion, AnimatePresence } from 'framer-motion';
+import { useEffect, useState } from 'react';
+import { motion, AnimatePresence, useAnimation } from 'framer-motion';
 import Image from 'next/image';
+import { SPLASH_TIPS } from '@/components/landing/landing-data';
 
 interface SplashScreenProps {
   isVisible: boolean;
   onAnimationComplete?: () => void;
+  /** Durée du splash en ms — la barre de progression la suit (default 4000) */
+  progressDurationMs?: number;
 }
 
-export default function SplashScreen({ isVisible, onAnimationComplete }: SplashScreenProps) {
+// 1,1s d'affichage + 0,4s de crossfade par astuce (3 astuces ≈ 4,5s)
+const TIP_INTERVAL = 1500;
+
+export default function SplashScreen({ isVisible, onAnimationComplete, progressDurationMs = 4000 }: SplashScreenProps) {
+  const [tipIndex, setTipIndex] = useState(0);
+  const bounceControls = useAnimation();
+
+  // Rotation des micro-astuces (storytelling : l'attente devient de la valeur)
+  useEffect(() => {
+    if (!isVisible) return;
+    const timer = setInterval(() => setTipIndex((i) => i + 1), TIP_INTERVAL);
+    return () => clearInterval(timer);
+  }, [isVisible]);
+
+  // Micro-bounce de la mascotte à chaque changement d'astuce
+  useEffect(() => {
+    bounceControls.start({ scale: [1, 1.05, 1], transition: { duration: 0.4, ease: 'easeInOut' } });
+  }, [tipIndex, bounceControls]);
+
+  const tip = SPLASH_TIPS[tipIndex % SPLASH_TIPS.length];
+
   return (
     <AnimatePresence mode="wait" onExitComplete={onAnimationComplete}>
       {isVisible && (
@@ -96,63 +120,66 @@ export default function SplashScreen({ isVisible, onAnimationComplete }: SplashS
                 }}
               />
 
-              {/* Cercle conteneur avec bordure dorée */}
-              <motion.div
-                animate={{ y: [0, -8, 0] }}
-                transition={{
-                  duration: 2,
-                  repeat: Infinity,
-                  ease: 'easeInOut',
-                }}
-                className="relative w-[280px] h-[280px] rounded-full overflow-hidden"
-                style={{
-                  background: 'linear-gradient(145deg, #ffffff 0%, #f0f9ff 50%, #e0f2fe 100%)',
-                  boxShadow: `
-                    0 0 0 4px rgba(251, 191, 36, 0.8),
-                    0 0 0 8px rgba(251, 191, 36, 0.3),
-                    0 20px 60px rgba(0, 0, 0, 0.3),
-                    inset 0 -10px 30px rgba(0, 0, 0, 0.1)
-                  `
-                }}
-              >
-                {/* Reflet sur le cercle */}
-                <div
-                  className="absolute top-0 left-0 w-full h-1/2 rounded-t-full opacity-40"
-                  style={{
-                    background: 'linear-gradient(to bottom, rgba(255,255,255,0.8) 0%, transparent 100%)'
+              {/* Bloc mascotte : micro-bounce à chaque nouvelle astuce */}
+              <motion.div animate={bounceControls} className="relative w-[280px] h-[280px]">
+                {/* Cercle conteneur avec bordure dorée */}
+                <motion.div
+                  animate={{ y: [0, -8, 0] }}
+                  transition={{
+                    duration: 2,
+                    repeat: Infinity,
+                    ease: 'easeInOut',
                   }}
-                />
-
-                {/* Image de la mascotte centrée dans le cercle */}
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <Image
-                    src="/images/Mascotte_Animate_VF.webp"
-                    alt="FayClick Mascotte"
-                    width={260}
-                    height={260}
-                    priority
-                    className="object-contain"
+                  className="relative w-[280px] h-[280px] rounded-full overflow-hidden"
+                  style={{
+                    background: 'linear-gradient(145deg, #ffffff 0%, #f0f9ff 50%, #e0f2fe 100%)',
+                    boxShadow: `
+                      0 0 0 4px rgba(251, 191, 36, 0.8),
+                      0 0 0 8px rgba(251, 191, 36, 0.3),
+                      0 20px 60px rgba(0, 0, 0, 0.3),
+                      inset 0 -10px 30px rgba(0, 0, 0, 0.1)
+                    `
+                  }}
+                >
+                  {/* Reflet sur le cercle */}
+                  <div
+                    className="absolute top-0 left-0 w-full h-1/2 rounded-t-full opacity-40"
                     style={{
-                      marginTop: '-10px'
+                      background: 'linear-gradient(to bottom, rgba(255,255,255,0.8) 0%, transparent 100%)'
                     }}
                   />
-                </div>
-              </motion.div>
 
-              {/* Anneau doré animé autour du cercle */}
-              <motion.div
-                animate={{ rotate: 360 }}
-                transition={{
-                  duration: 20,
-                  repeat: Infinity,
-                  ease: 'linear',
-                }}
-                className="absolute inset-0 w-[280px] h-[280px] rounded-full"
-                style={{
-                  border: '2px dashed rgba(251, 191, 36, 0.4)',
-                  transform: 'scale(1.15)'
-                }}
-              />
+                  {/* Image de la mascotte centrée dans le cercle */}
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <Image
+                      src="/images/Mascotte_Animate_VF.webp"
+                      alt="FayClick Mascotte"
+                      width={260}
+                      height={260}
+                      priority
+                      className="object-contain"
+                      style={{
+                        marginTop: '-10px'
+                      }}
+                    />
+                  </div>
+                </motion.div>
+
+                {/* Anneau doré animé autour du cercle */}
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{
+                    duration: 20,
+                    repeat: Infinity,
+                    ease: 'linear',
+                  }}
+                  className="absolute inset-0 w-[280px] h-[280px] rounded-full"
+                  style={{
+                    border: '2px dashed rgba(251, 191, 36, 0.4)',
+                    transform: 'scale(1.15)'
+                  }}
+                />
+              </motion.div>
             </motion.div>
 
             {/* Slogan */}
@@ -162,43 +189,35 @@ export default function SplashScreen({ isVisible, onAnimationComplete }: SplashS
               transition={{ delay: 0.8, duration: 0.5 }}
               className="mt-4 text-white/90 text-lg font-medium tracking-wide"
             >
-              Votre Super App au Sénégal
+              La Super App de votre Commerce
             </motion.p>
 
-            {/* Indicateur de chargement */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 1, duration: 0.3 }}
-              className="mt-8 flex items-center gap-2"
-            >
-              {[0, 1, 2].map((i) => (
-                <motion.div
-                  key={i}
-                  animate={{
-                    scale: [1, 1.3, 1],
-                    opacity: [0.5, 1, 0.5],
-                  }}
-                  transition={{
-                    duration: 0.8,
-                    repeat: Infinity,
-                    delay: i * 0.2,
-                    ease: 'easeInOut',
-                  }}
-                  className="w-2.5 h-2.5 bg-white rounded-full"
-                />
-              ))}
-            </motion.div>
+            {/* Micro-astuces rotatives (remplace « Chargement... ») */}
+            <div className="mt-6 h-16 max-w-xs flex items-center justify-center px-6 text-center">
+              <AnimatePresence mode="wait">
+                <motion.p
+                  key={tipIndex}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8 }}
+                  transition={{ duration: 0.2 }}
+                  className="text-white/90 text-sm leading-relaxed"
+                >
+                  {tip}
+                </motion.p>
+              </AnimatePresence>
+            </div>
 
-            {/* Texte de chargement */}
-            <motion.p
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 1.2, duration: 0.3 }}
-              className="mt-3 text-white/70 text-sm"
-            >
-              Chargement...
-            </motion.p>
+            {/* Barre de progression fine (remplace les points de chargement) */}
+            <div className="mt-8 w-40 h-1.5 bg-white/25 rounded-full overflow-hidden">
+              <motion.div
+                initial={{ width: 0 }}
+                animate={{ width: '100%' }}
+                transition={{ duration: progressDurationMs / 1000, ease: 'linear' }}
+                className="h-full rounded-full"
+                style={{ background: 'linear-gradient(to right, #ffffff, #6ee7b7)' }}
+              />
+            </div>
           </div>
 
           {/* Version en bas */}
@@ -208,7 +227,7 @@ export default function SplashScreen({ isVisible, onAnimationComplete }: SplashS
             transition={{ delay: 1.5, duration: 0.5 }}
             className="absolute bottom-8 text-white/50 text-xs"
           >
-            Version 2.5.0
+            Version 3.7.0
           </motion.div>
         </motion.div>
       )}

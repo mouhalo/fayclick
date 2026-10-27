@@ -5,10 +5,12 @@ import { useState, useEffect, useCallback } from 'react';
 interface UseSplashScreenOptions {
   /** Durée minimale d'affichage du splash en ms (default: 3500) */
   minDuration?: number;
-  /** Clé localStorage pour ne pas réafficher le splash (default: null = toujours afficher) */
+  /** Clé de stockage pour ne pas réafficher le splash (default: null = toujours afficher) */
   storageKey?: string | null;
   /** Durée de validité du cache en ms (default: 24h) */
   cacheValidity?: number;
+  /** Où stocker la trace : localStorage (défaut) ou sessionStorage (1×/session) */
+  storage?: 'local' | 'session';
 }
 
 interface UseSplashScreenReturn {
@@ -28,6 +30,7 @@ export function useSplashScreen(options: UseSplashScreenOptions = {}): UseSplash
     minDuration = DEFAULT_MIN_DURATION,
     storageKey = null,
     cacheValidity = DEFAULT_CACHE_VALIDITY,
+    storage = 'local',
   } = options;
 
   // Vérifier le cache côté client uniquement
@@ -38,10 +41,12 @@ export function useSplashScreen(options: UseSplashScreenOptions = {}): UseSplash
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    // Vérifier si on doit afficher le splash (cache localStorage)
+    const store = storage === 'session' ? window.sessionStorage : window.localStorage;
+
+    // Vérifier si on doit afficher le splash (cache)
     if (storageKey) {
       try {
-        const cached = localStorage.getItem(storageKey);
+        const cached = store.getItem(storageKey);
         if (cached) {
           const { timestamp } = JSON.parse(cached);
           const isValid = Date.now() - timestamp < cacheValidity;
@@ -61,10 +66,10 @@ export function useSplashScreen(options: UseSplashScreenOptions = {}): UseSplash
     const timer = setTimeout(() => {
       setIsVisible(false);
 
-      // Sauvegarder dans localStorage si storageKey défini
+      // Sauvegarder dans le stockage choisi si storageKey défini
       if (storageKey) {
         try {
-          localStorage.setItem(storageKey, JSON.stringify({ timestamp: Date.now() }));
+          store.setItem(storageKey, JSON.stringify({ timestamp: Date.now() }));
         } catch {
           // Ignorer les erreurs de stockage
         }
@@ -72,7 +77,7 @@ export function useSplashScreen(options: UseSplashScreenOptions = {}): UseSplash
     }, minDuration);
 
     return () => clearTimeout(timer);
-  }, [storageKey, cacheValidity, minDuration]);
+  }, [storageKey, cacheValidity, minDuration, storage]);
 
   const hideSplash = useCallback(() => {
     setIsVisible(false);
