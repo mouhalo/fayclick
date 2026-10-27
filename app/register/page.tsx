@@ -10,8 +10,7 @@ import {
   Check,
   AlertCircle,
   Loader2,
-  ChevronRight,
-  ChevronLeft,
+  ChevronDown,
   Sparkles,
   Home,
   Tag,
@@ -51,11 +50,94 @@ const sanitizeForXML = (str: string): string => {
 
 const CONFETTI_COLORS = ['#10b981', '#f59e0b', '#ffffff', '#34d399', '#fbbf24', '#6ee7b7'];
 
+/* ═══ Paillettes maison (zéro dépendance réseau) ═══
+   Explosion localisée pour célébrer chaque niveau de la barre verticale. */
+const FX_COLORS = ['#38bdf8', '#0ea5e9', '#10b981', '#ffffff', '#fbbf24'];
+
+function ensureFxLayer(): HTMLElement {
+  let layer = document.getElementById('fx-layer');
+  if (!layer) {
+    layer = document.createElement('div');
+    layer.id = 'fx-layer';
+    layer.style.cssText = 'position:fixed;inset:0;z-index:9999;pointer-events:none;overflow:hidden;';
+    document.body.appendChild(layer);
+  }
+  return layer;
+}
+
+function spawnConfetti(x: number, y: number, count: number, variance: number) {
+  const layer = ensureFxLayer();
+  for (let i = 0; i < count; i++) {
+    const p = document.createElement('span');
+    const size = 4 + Math.random() * 5;
+    const angle = -Math.PI / 2 + (Math.random() - 0.5) * Math.PI * 0.9; // vers le haut ±80°
+    const dist = 40 + Math.random() * (variance || 90);
+    const dx = Math.cos(angle) * dist;
+    const dy = Math.sin(angle) * dist - 14; // légère retombée
+    const rot = (Math.random() - 0.5) * 540;
+    p.style.cssText =
+      'position:absolute;left:' + x + 'px;top:' + y + 'px;' +
+      'width:' + size + 'px;height:' + (Math.random() < 0.4 ? size * 0.4 : size) + 'px;' +
+      'background:' + FX_COLORS[(Math.random() * FX_COLORS.length) | 0] + ';' +
+      'border-radius:' + (Math.random() < 0.5 ? '50%' : '2px') + ';' +
+      'transform:translate(-50%,-50%);opacity:1;will-change:transform,opacity;' +
+      'transition:transform ' + (700 + Math.random() * 400) + 'ms cubic-bezier(.16,1,.3,1),' +
+      'opacity ' + (600 + Math.random() * 300) + 'ms ease-in;';
+    layer.appendChild(p);
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      p.style.transform = 'translate(' + (dx - size / 2) + 'px,' + (dy - size / 2) + 'px) rotate(' + rot + 'deg)';
+      p.style.opacity = '0';
+    }));
+    setTimeout(() => p.remove(), 1300);
+  }
+}
+
+function burstAt(el: HTMLElement | null, count = 40, variance = 80) {
+  if (!el) return;
+  const r = el.getBoundingClientRect();
+  spawnConfetti(r.left + r.width / 2, r.top + r.height / 2, count, variance);
+}
+
+function bigSideCelebration() {
+  for (let w = 0; w < 4; w++) {
+    setTimeout(() => {
+      spawnConfetti(0, window.innerHeight * 0.75, 10, 130);
+      spawnConfetti(window.innerWidth, window.innerHeight * 0.75, 10, 130);
+    }, w * 180);
+  }
+}
+
+/** Nœud de la barre verticale : numéro → coche bleue → coche verte. */
+function VNode({
+  nodeRef,
+  num,
+  active,
+  done,
+}: {
+  nodeRef: React.RefObject<HTMLDivElement | null>;
+  num: string;
+  active: boolean;
+  done: boolean;
+}) {
+  return (
+    <div
+      ref={nodeRef}
+      className={`reg_vnode w-7 h-7 rounded-full border border-white/20 text-white/40 flex items-center justify-center text-[11px] font-bold bg-white/5 ${
+        active ? 'reg_vnode-active' : ''
+      } ${done ? 'reg_vnode-done' : ''}`}
+    >
+      <span className="vnum">{num}</span>
+      <svg className="vcheck w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+        <path d="M20 6 9 17l-5-5" />
+      </svg>
+    </div>
+  );
+}
+
 export default function RegisterPage() {
   const router = useRouter();
   const t = useTranslations('register');
   const tCommon = useTranslations('common');
-  const [step, setStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [showCelebration, setShowCelebration] = useState(false);
@@ -121,15 +203,33 @@ export default function RegisterPage() {
   // Refs
   const businessNameRef = useRef<HTMLInputElement>(null);
   const addressRef = useRef<HTMLInputElement>(null);
+  const phoneNodeRef = useRef<HTMLDivElement>(null);
+  const nameNodeRef = useRef<HTMLDivElement>(null);
+  const addressNodeRef = useRef<HTMLDivElement>(null);
+  const termsNodeRef = useRef<HTMLDivElement>(null);
+  const extraNodeRef = useRef<HTMLDivElement>(null);
 
-  // Auto-focus on step change
+  // Refs synchronisées : les handlers de blur lisent l'état COMMITÉ
+  // (évite la closure périmée quand frappe + blur arrivent dans le même tick)
+  const formDataRef = useRef(formData);
+  formDataRef.current = formData;
+  const nameCheckStateRef = useRef(nameCheckState);
+  nameCheckStateRef.current = nameCheckState;
+
+  // Barre verticale : état des célébrations par niveau
+  const celebratedRef = useRef<boolean[]>([false, false, false, false]);
+  const wasAllValidRef = useRef(false);
+  const [celebrated, setCelebrated] = useState<boolean[]>([false, false, false, false]);
+  const [extraOpen, setExtraOpen] = useState(false);
+
+  // Auto-focus sur le téléphone au chargement
   useEffect(() => {
-    if (step === 1 && businessNameRef.current) {
-      setTimeout(() => businessNameRef.current?.focus(), 100);
-    } else if (step === 2 && addressRef.current) {
-      setTimeout(() => addressRef.current?.focus(), 100);
-    }
-  }, [step]);
+    const timer = setTimeout(() => {
+      const firstInput = document.querySelector<HTMLInputElement>('input[type="tel"], input[inputmode="tel"]');
+      firstInput?.focus();
+    }, 250);
+    return () => clearTimeout(timer);
+  }, []);
 
   // Check structure name with debouncing
   useEffect(() => {
@@ -267,62 +367,91 @@ export default function RegisterPage() {
     }));
   };
 
-  const validateStep = (currentStep: number): boolean => {
-    switch (currentStep) {
-      case 1:
-        if (!formData.businessName || formData.businessName.trim().length < VALIDATION_RULES.BUSINESS_NAME_MIN_LENGTH) {
-          setError(t('errors.businessNameRequired', { min: VALIDATION_RULES.BUSINESS_NAME_MIN_LENGTH }));
-          return false;
-        }
-        if (nameCheckState.exists) {
-          setError(t('errors.businessNameTaken'));
-          return false;
-        }
-        if (!formData.phoneOM || !validatePhoneForPays(formData.phoneOM, countryCode)) {
-          const pays = getPaysByCode(countryCode);
-          setError(t('errors.phoneInvalidForCountry', { country: pays?.nom_fr || t('errors.countryFallback') }));
-          return false;
-        }
-        if (countryCode !== 'SN') {
-          if (!emailGmail || !isEmailValid) {
-            setError(t('errors.emailGmailRequiredOutsideSN'));
-            return false;
-          }
-        }
-        break;
-      case 2:
-        if (!formData.address || formData.address.trim().length === 0) {
-          setError(t('errors.addressRequired'));
-          return false;
-        }
-        if (formData.address.length > VALIDATION_RULES.ADDRESS_MAX_LENGTH) {
-          setError(t('errors.addressTooLong', { max: VALIDATION_RULES.ADDRESS_MAX_LENGTH }));
-          return false;
-        }
-        if (!formData.acceptTerms) {
-          setError(t('errors.termsRequired'));
-          return false;
-        }
-        break;
-    }
-    return true;
+  // ═══ Progression verticale : niveaux remplis ═══
+  const phoneValidForCountry = validatePhoneForPays(formData.phoneOM, countryCode);
+  const emailValidIfNeeded = countryCode === 'SN' || (emailGmail.length > 0 && isEmailValid);
+  const phoneFilled = formData.phoneOM.length > 0 && phoneValidForCountry;
+  const nameFilled = businessNameValidation.isValid;
+  const addressFilled = formData.address.trim().length > 0 && formData.address.length <= VALIDATION_RULES.ADDRESS_MAX_LENGTH;
+  const termsFilled = formData.acceptTerms;
+  const isFormValid = phoneFilled && nameFilled && addressFilled && termsFilled && emailValidIfNeeded;
+
+  // Célèbre un niveau une seule fois (tant que le champ reste rempli)
+  const celebrateLevel = (index: number, nodeEl: HTMLDivElement | null) => {
+    if (!nodeEl || celebratedRef.current[index]) return;
+    celebratedRef.current[index] = true;
+    burstAt(nodeEl);
+    setCelebrated([...celebratedRef.current]);
   };
 
-  const nextStep = () => {
-    if (validateStep(step)) {
-      setError('');
-      setStep(2);
+  // Réarme la célébration d'un niveau si son champ redevient vide
+  useEffect(() => {
+    const levels = [phoneFilled, nameFilled, addressFilled, termsFilled];
+    levels.forEach((filled, i) => {
+      if (!filled && celebratedRef.current[i]) {
+        celebratedRef.current[i] = false;
+        setCelebrated([...celebratedRef.current]);
+      }
+    });
+  }, [phoneFilled, nameFilled, addressFilled, termsFilled]);
+
+  // Filet de sécurité (autofill) + grande célébration à la complétion
+  useEffect(() => {
+    const levels = [
+      { filled: phoneFilled, node: phoneNodeRef.current },
+      { filled: nameFilled, node: nameNodeRef.current },
+      { filled: addressFilled, node: addressNodeRef.current },
+      { filled: termsFilled, node: termsNodeRef.current },
+    ];
+    const activeTag = document.activeElement?.tagName;
+    const typingInAField = ['INPUT', 'TEXTAREA', 'SELECT'].includes(activeTag || '');
+    levels.forEach((lvl, i) => {
+      if (lvl.filled && !celebratedRef.current[i] && !typingInAField) {
+        celebrateLevel(i, lvl.node);
+      }
+    });
+
+    if (isFormValid && !wasAllValidRef.current) {
+      wasAllValidRef.current = true;
+      setTimeout(bigSideCelebration, 250); // laisse les nœuds passer au vert d'abord
+    }
+    if (!isFormValid) wasAllValidRef.current = false;
+  }, [phoneFilled, nameFilled, addressFilled, termsFilled, isFormValid]);
+
+  // Paillettes après chaque niveau : au moment où l'on quitte le champ.
+  // Lit les refs synchronisées (état commité) plutôt que les closures de render.
+  const handlePhoneBlur = () => {
+    const { phoneOM: phone, countryCode: code } = formDataRef.current;
+    if (phone.length > 0 && validatePhoneForPays(phone, code)) celebrateLevel(0, phoneNodeRef.current);
+  };
+  const handleNameBlur = () => {
+    const name = formDataRef.current.businessName.trim();
+    const okLength =
+      name.length >= VALIDATION_RULES.BUSINESS_NAME_MIN_LENGTH &&
+      name.length <= VALIDATION_RULES.BUSINESS_NAME_MAX_LENGTH;
+    if (okLength && nameCheckStateRef.current.exists !== true) celebrateLevel(1, nameNodeRef.current);
+  };
+  const handleAddressBlur = () => {
+    const address = formDataRef.current.address.trim();
+    if (address.length > 0 && address.length <= VALIDATION_RULES.ADDRESS_MAX_LENGTH) {
+      celebrateLevel(2, addressNodeRef.current);
     }
   };
-
-  const prevStep = () => {
-    setError('');
-    setStep(1);
+  // Entrée valide le niveau : ferme le clavier et déclenche le blur
+  const handleFieldKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      (document.activeElement as HTMLElement | null)?.blur();
+    }
+  };
+  const handleTermsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    handleChange(e);
+    if (e.target.checked) celebrateLevel(3, termsNodeRef.current);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validateStep(2)) return;
+    if (isLoading || !isFormValid) return;
 
     setIsLoading(true);
     setError('');
@@ -429,47 +558,23 @@ export default function RegisterPage() {
       fileName: '',
       uploadProgress: 0
     });
-    setStep(1);
+    celebratedRef.current = [false, false, false, false];
+    setCelebrated([false, false, false, false]);
+    wasAllValidRef.current = false;
+    setExtraOpen(false);
     setError('');
   };
-
-  // Animation variants for framer-motion
-  const slideVariants = {
-    enter: (dir: number) => ({
-      x: dir > 0 ? 300 : -300,
-      opacity: 0
-    }),
-    center: {
-      x: 0,
-      opacity: 1,
-      transition: { type: 'spring', stiffness: 300, damping: 30 }
-    },
-    exit: (dir: number) => ({
-      x: dir < 0 ? 300 : -300,
-      opacity: 0,
-      transition: { duration: 0.2 }
-    })
-  };
-
-  const [direction, setDirection] = useState(0);
-
-  // Step 1 validation for button
-  const phoneValidForCountry = validatePhoneForPays(formData.phoneOM, countryCode);
-  const emailValidIfNeeded = countryCode === 'SN' || (emailGmail.length > 0 && isEmailValid);
-  const isStep1Valid = businessNameValidation.isValid && !nameCheckState.checking &&
-    phoneValidForCountry && emailValidIfNeeded;
 
   return (
     <>
       <div className="reg_page">
-        {/* Floating Orbs */}
-        <div className="reg_orb" style={{ top: '-10%', right: '-5%', width: '300px', height: '300px', background: 'rgba(16, 185, 129, 0.3)', animationDelay: '0s' }} />
-        <div className="reg_orb" style={{ bottom: '-15%', left: '-10%', width: '350px', height: '350px', background: 'rgba(20, 184, 166, 0.25)', animationDelay: '5s' }} />
-        <div className="reg_orb" style={{ top: '40%', left: '60%', width: '200px', height: '200px', background: 'rgba(52, 211, 153, 0.2)', animationDelay: '10s' }} />
-        <div className="reg_orb" style={{ top: '20%', left: '-5%', width: '250px', height: '250px', background: 'rgba(5, 150, 105, 0.2)', animationDelay: '15s' }} />
+        {/* Floating Orbs — 2 bleus + 1 émeraude */}
+        <div className="reg_orb" style={{ top: '-10%', right: '-5%', width: '300px', height: '300px', background: 'rgba(14, 165, 233, 0.25)', animationDelay: '0s' }} />
+        <div className="reg_orb" style={{ top: '35%', left: '-12%', width: '280px', height: '280px', background: 'rgba(14, 165, 233, 0.18)', animationDelay: '6s' }} />
+        <div className="reg_orb" style={{ bottom: '-15%', left: '25%', width: '250px', height: '250px', background: 'rgba(16, 185, 129, 0.2)', animationDelay: '12s' }} />
 
-        {/* Header - Glass sticky */}
-        <header className="sticky top-0 z-50" style={{ background: 'rgba(6, 78, 59, 0.8)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+        {/* Header - simple (la progression est dans le formulaire) */}
+        <header className="sticky top-0 z-50" style={{ background: 'rgba(15, 23, 42, 0.85)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
           <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
             {/* Logo & Back */}
             <div className="flex items-center gap-3">
@@ -479,315 +584,287 @@ export default function RegisterPage() {
                 style={{ background: 'rgba(255,255,255,0.1)' }}
                 title={t('backToHome')}
               >
-                <Home className="w-5 h-5 text-green-200" />
+                <Home className="w-5 h-5 text-sky-200" />
               </button>
               <LogoFayclick className="w-10 h-10" />
               <div className="hidden sm:block">
                 <h1 className="text-lg font-bold text-white">{t('title')}</h1>
-                <p className="text-xs text-green-200/70">{t('subtitle')}</p>
+                <p className="text-xs text-sky-200/70">{t('subtitle')}</p>
               </div>
             </div>
 
-            {/* Progress + Language */}
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-green-200 hidden sm:block">
-                  {step}/2
-                </span>
-                <div className="flex gap-1.5">
-                  {[1, 2].map((s) => (
-                    <div
-                      key={s}
-                      className="w-2.5 h-2.5 rounded-full transition-all duration-300"
-                      style={{
-                        backgroundColor: s <= step ? '#10b981' : 'rgba(255,255,255,0.2)',
-                        transform: s === step ? 'scale(1.2)' : 'scale(1)'
-                      }}
-                    />
-                  ))}
-                </div>
-              </div>
-              <LanguageSwitcher variant="compact" />
-            </div>
-          </div>
-
-          {/* Progress Bar */}
-          <div style={{ width: '100%', height: '3px', background: 'rgba(255,255,255,0.1)' }}>
-            <div
-              className="reg_progress-bar"
-              style={{ width: `${(step / 2) * 100}%` }}
-            />
+            <LanguageSwitcher variant="compact" />
           </div>
         </header>
 
-        {/* Main Content */}
-        <main className="max-w-lg mx-auto px-4 py-3 md:py-10 relative z-10">
-          <form onSubmit={step === 2 ? handleSubmit : (e) => { e.preventDefault(); nextStep(); }}>
+        {/* Main Content — un seul écran */}
+        <main className="max-w-lg mx-auto px-4 py-6 md:py-10 relative z-10">
+          <form onSubmit={handleSubmit}>
 
             {/* Glass Card */}
             <div className="reg_glass-card p-2.5 md:p-8 mb-2 md:mb-4">
-              <AnimatePresence mode="wait" custom={direction}>
-                {step === 1 ? (
-                  <motion.div
-                    key="step1"
-                    custom={direction}
-                    variants={slideVariants}
-                    initial="enter"
-                    animate="center"
-                    exit="exit"
-                    className="space-y-3 md:space-y-6"
-                  >
-                    {/* Welcome */}
-                    <div className="text-center space-y-1.5 md:space-y-3">
-                      <motion.div
-                        initial={{ scale: 0 }}
-                        animate={{ scale: 1 }}
-                        transition={{ type: 'spring', delay: 0.1 }}
-                        className="inline-flex items-center justify-center w-12 h-12 md:w-16 md:h-16 rounded-full text-2xl md:text-3xl shadow-lg"
-                        style={{ background: 'linear-gradient(135deg, #10b981, #14b8a6)' }}
-                      >
-                        🏪
-                      </motion.div>
-                      <h2 className="text-xl md:text-3xl font-bold text-white">
-                        {t('step1.heading')}
-                      </h2>
-                      <p className="text-green-200/70 max-w-md mx-auto text-xs md:text-sm">
-                        {t('step1.helperText')}
-                      </p>
-                    </div>
+              {/* Welcome */}
+              <div className="text-center space-y-1.5 md:space-y-3 mb-6 md:mb-9">
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ type: 'spring', delay: 0.1 }}
+                  className="inline-flex items-center justify-center w-12 h-12 md:w-16 md:h-16 rounded-2xl text-2xl md:text-3xl shadow-lg"
+                  style={{ background: 'linear-gradient(135deg, #0ea5e9, #38bdf8)' }}
+                >
+                  🏪
+                </motion.div>
+                <h2 className="text-xl md:text-3xl font-bold text-white">
+                  {t('singleStep.title')}
+                </h2>
+                <p className="text-sky-200/70 max-w-md mx-auto text-xs md:text-sm">
+                  {t('singleStep.subtitle')}
+                </p>
+              </div>
 
-                    {/* Business Name */}
-                    <div className="space-y-1.5 md:space-y-3">
-                      <label className="block text-green-100 font-semibold text-sm">
-                        {t('step1.businessNameLabelStrong')} <span className="text-red-400">*</span>
-                      </label>
-                      <div className="relative">
-                        <input
-                          ref={businessNameRef}
-                          type="text"
-                          name="businessName"
-                          value={formData.businessName}
-                          onChange={handleChange}
-                          className={`reg_glass-input text-lg font-bold uppercase pr-12 ${
-                            businessNameValidation.status === 'valid'
-                              ? 'reg_valid-pulse'
-                              : businessNameValidation.status === 'duplicate'
-                              ? 'reg_error-shake'
-                              : ''
-                          }`}
-                          style={{
-                            borderColor: businessNameValidation.status === 'valid'
-                              ? '#10b981'
-                              : businessNameValidation.status === 'duplicate'
-                              ? '#ef4444'
-                              : undefined
-                          }}
-                          placeholder={t('step1.businessNamePlaceholderExample')}
-                          maxLength={VALIDATION_RULES.BUSINESS_NAME_MAX_LENGTH}
-                          required
-                        />
-                        <div className="absolute right-4 top-1/2 -translate-y-1/2">
-                          {nameCheckState.checking ? (
-                            <Loader2 className="w-5 h-5 text-green-300 animate-spin" />
-                          ) : formData.businessName && (
-                            <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring' }}>
-                              {businessNameValidation.isValid ? (
-                                <Check className="w-5 h-5 text-emerald-400" />
-                              ) : (
-                                <AlertCircle className="w-5 h-5 text-red-400" />
-                              )}
-                            </motion.div>
+              {/* ═══ STEP 1 : Téléphone ═══ */}
+              <div className="flex gap-4" onBlur={handlePhoneBlur} onKeyDown={handleFieldKeyDown}>
+                <div className="flex flex-col items-center shrink-0">
+                  <VNode nodeRef={phoneNodeRef} num="1" active={phoneFilled} done={isFormValid} />
+                  <div className="w-0.5 flex-1 min-h-3 bg-white/10 rounded-full overflow-hidden">
+                    <div className="reg_vseg-fill w-full" style={{ height: phoneFilled ? '100%' : undefined }} />
+                  </div>
+                </div>
+                <div className="flex-1 pb-7">
+                  <label className="flex items-center gap-2 text-white/80 font-semibold text-sm mb-1.5">
+                    <Phone className="w-4 h-4 text-sky-400" />
+                    {t('step1.phoneLabel')} <span className="text-red-400">*</span>
+                  </label>
+                  <CountryPhoneInput
+                    value={formData.phoneOM}
+                    countryCode={countryCode}
+                    onPhoneChange={handlePhoneChange}
+                    onCountryChange={handleCountryChange}
+                    error={
+                      formData.phoneOM && !validatePhoneForPays(formData.phoneOM, countryCode)
+                        ? `Numéro invalide pour ${getPaysByCode(countryCode)?.nom_fr}`
+                        : undefined
+                    }
+                  />
+
+                  {/* Email Gmail conditionnel — pays ≠ SN */}
+                  <AnimatePresence initial={false}>
+                    {countryCode !== 'SN' && (
+                      <motion.div
+                        key="email-field"
+                        initial={{ opacity: 0, height: 0, marginTop: 0 }}
+                        animate={{ opacity: 1, height: 'auto', marginTop: 12 }}
+                        exit={{ opacity: 0, height: 0, marginTop: 0 }}
+                        transition={{ duration: 0.25, ease: 'easeOut' }}
+                        style={{ overflow: 'hidden' }}
+                      >
+                        <div className="space-y-1.5">
+                          <label className="flex items-center gap-2 text-white/80 font-semibold text-sm">
+                            <Mail className="w-4 h-4 text-sky-400" />
+                            {t('step2.emailGmailLabel')} <span className="text-red-400">*</span>
+                          </label>
+                          <input
+                            type="email"
+                            name="emailGmail"
+                            value={emailGmail}
+                            onChange={handleEmailGmailChange}
+                            onBlur={() => setEmailTouched(true)}
+                            className="reg_glass-input"
+                            placeholder={t('step2.emailGmailPlaceholder')}
+                            autoComplete="email"
+                            inputMode="email"
+                            required
+                            aria-required="true"
+                            aria-invalid={emailTouched && !isEmailValid}
+                          />
+                          {emailTouched && emailGmail && !isEmailValid && (
+                            <p className="text-red-400 text-xs flex items-center gap-1">
+                              <AlertCircle className="w-3.5 h-3.5" />
+                              {t('step2.emailGmailRequired')}
+                            </p>
+                          )}
+                          {emailGmail && isEmailValid && (
+                            <p className="text-emerald-400 text-xs flex items-center gap-1">
+                              <Check className="w-3.5 h-3.5" />
+                              {t('step2.emailGmailValid')}
+                            </p>
                           )}
                         </div>
-                      </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              </div>
 
-                      {/* Validation Message */}
-                      <AnimatePresence mode="wait">
-                        {formData.businessName && (
-                          <motion.div
-                            initial={{ opacity: 0, y: -10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -10 }}
-                            className={`flex items-center gap-2 text-sm font-medium ${
-                              businessNameValidation.status === 'valid'
-                                ? 'text-emerald-400'
-                                : 'text-red-400'
-                            }`}
-                          >
-                            {businessNameValidation.status === 'valid' ? (
-                              <Sparkles className="w-4 h-4" />
-                            ) : (
-                              <AlertCircle className="w-4 h-4" />
-                            )}
-                            {businessNameValidation.message}
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-
-                      <div className="flex justify-between text-xs text-green-300/50">
-                        <span>{VALIDATION_RULES.BUSINESS_NAME_MIN_LENGTH}-{VALIDATION_RULES.BUSINESS_NAME_MAX_LENGTH} caractères</span>
-                        <span className={formData.businessName.length > VALIDATION_RULES.BUSINESS_NAME_MAX_LENGTH * 0.8 ? 'text-orange-400 font-semibold' : ''}>
-                          {formData.businessName.length}/{VALIDATION_RULES.BUSINESS_NAME_MAX_LENGTH}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Phone OM — multi-pays CEDEAO */}
-                    <div className="space-y-1.5 md:space-y-3">
-                      <label className="flex items-center gap-2 text-green-100 font-semibold text-sm">
-                        <Phone className="w-4 h-4 text-emerald-400" />
-                        Votre N°Tél avec WhatsApp <span className="text-red-400">*</span>
-                      </label>
-                      <CountryPhoneInput
-                        value={formData.phoneOM}
-                        countryCode={countryCode}
-                        onPhoneChange={handlePhoneChange}
-                        onCountryChange={handleCountryChange}
-                        error={
-                          formData.phoneOM && !validatePhoneForPays(formData.phoneOM, countryCode)
-                            ? `Numéro invalide pour ${getPaysByCode(countryCode)?.nom_fr}`
-                            : undefined
-                        }
-                      />
-                    </div>
-
-                    {/* Email Gmail conditionnel — pays ≠ SN */}
-                    <AnimatePresence initial={false}>
-                      {countryCode !== 'SN' && (
-                        <motion.div
-                          key="email-field"
-                          initial={{ opacity: 0, height: 0, marginTop: 0 }}
-                          animate={{ opacity: 1, height: 'auto', marginTop: 12 }}
-                          exit={{ opacity: 0, height: 0, marginTop: 0 }}
-                          transition={{ duration: 0.25, ease: 'easeOut' }}
-                          style={{ overflow: 'hidden' }}
-                        >
-                          <div className="space-y-1.5 md:space-y-3">
-                            <label className="flex items-center gap-2 text-green-100 font-semibold text-sm">
-                              <Mail className="w-4 h-4 text-emerald-400" />
-                              {t('step2.emailGmailLabel')} <span className="text-red-400">*</span>
-                            </label>
-                            <input
-                              type="email"
-                              name="emailGmail"
-                              value={emailGmail}
-                              onChange={handleEmailGmailChange}
-                              onBlur={() => setEmailTouched(true)}
-                              className="reg_glass-input"
-                              placeholder={t('step2.emailGmailPlaceholder')}
-                              autoComplete="email"
-                              inputMode="email"
-                              required
-                              aria-required="true"
-                              aria-invalid={emailTouched && !isEmailValid}
-                            />
-                            {emailTouched && emailGmail && !isEmailValid && (
-                              <p className="text-red-400 text-xs flex items-center gap-1">
-                                <AlertCircle className="w-3.5 h-3.5" />
-                                {t('step2.emailGmailRequired')}
-                              </p>
-                            )}
-                            {emailGmail && isEmailValid && (
-                              <p className="text-emerald-400 text-xs flex items-center gap-1">
-                                <Check className="w-3.5 h-3.5" />
-                                {t('step2.emailGmailValid')}
-                              </p>
-                            )}
-                            <p className="text-xs text-green-300/50">
-                              {t('step2.otpInfo')}
-                            </p>
-                          </div>
+              {/* ═══ STEP 2 : Nom commercial ═══ */}
+              <div className="flex gap-4" onBlur={handleNameBlur} onKeyDown={handleFieldKeyDown}>
+                <div className="flex flex-col items-center shrink-0">
+                  <VNode nodeRef={nameNodeRef} num="2" active={nameFilled} done={isFormValid} />
+                  <div className="w-0.5 flex-1 min-h-3 bg-white/10 rounded-full overflow-hidden">
+                    <div className="reg_vseg-fill w-full" style={{ height: nameFilled ? '100%' : undefined }} />
+                  </div>
+                </div>
+                <div className="flex-1 pb-7">
+                  <label className="block text-white/80 font-semibold text-sm mb-1.5">
+                    {t('step1.businessNameLabelStrong')} <span className="text-red-400">*</span>
+                  </label>
+                  <div className="relative">
+                    <input
+                      ref={businessNameRef}
+                      type="text"
+                      name="businessName"
+                      value={formData.businessName}
+                      onChange={handleChange}
+                      className={`reg_glass-input text-base md:text-lg font-bold uppercase pr-12 ${
+                        businessNameValidation.status === 'valid'
+                          ? 'reg_valid-pulse'
+                          : businessNameValidation.status === 'duplicate'
+                          ? 'reg_error-shake'
+                          : ''
+                      }`}
+                      style={{
+                        borderColor: businessNameValidation.status === 'valid'
+                          ? '#10b981'
+                          : businessNameValidation.status === 'duplicate'
+                          ? '#ef4444'
+                          : undefined
+                      }}
+                      placeholder={t('step1.businessNamePlaceholderExample')}
+                      maxLength={VALIDATION_RULES.BUSINESS_NAME_MAX_LENGTH}
+                      required
+                    />
+                    <div className="absolute right-4 top-1/2 -translate-y-1/2">
+                      {nameCheckState.checking ? (
+                        <Loader2 className="w-5 h-5 text-sky-300 animate-spin" />
+                      ) : formData.businessName && (
+                        <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring' }}>
+                          {businessNameValidation.isValid ? (
+                            <Check className="w-5 h-5 text-emerald-400" />
+                          ) : (
+                            <AlertCircle className="w-5 h-5 text-red-400" />
+                          )}
                         </motion.div>
                       )}
-                    </AnimatePresence>
-
-                    {/* Benefits Grid - Masqué sur très petits écrans */}
-                    <div className="hidden sm:grid grid-cols-2 gap-3 pt-2">
-                      {[
-                        { icon: '🚀', text: t('step1.benefits.free') },
-                        { icon: '💰', text: t('step1.benefits.instant') },
-                        { icon: '🔒', text: t('step1.benefits.secure') },
-                        { icon: '📱', text: t('step1.benefits.qrcode') }
-                      ].map((benefit, index) => (
-                        <motion.div
-                          key={index}
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: 0.2 + index * 0.1 }}
-                          className="flex items-center gap-2 p-3 rounded-xl"
-                          style={{
-                            background: 'rgba(255,255,255,0.06)',
-                            border: '1px solid rgba(255,255,255,0.1)'
-                          }}
-                        >
-                          <span className="text-xl">{benefit.icon}</span>
-                          <span className="text-xs font-medium text-green-100/80">{benefit.text}</span>
-                        </motion.div>
-                      ))}
                     </div>
-                  </motion.div>
-                ) : (
-                  <motion.div
-                    key="step2"
-                    custom={direction}
-                    variants={slideVariants}
-                    initial="enter"
-                    animate="center"
-                    exit="exit"
-                    className="space-y-2 md:space-y-6"
+                  </div>
+
+                  {/* Validation Message */}
+                  <AnimatePresence mode="wait">
+                    {formData.businessName && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        className={`flex items-center gap-2 text-sm font-medium mt-1.5 ${
+                          businessNameValidation.status === 'valid'
+                            ? 'text-emerald-400'
+                            : 'text-red-400'
+                        }`}
+                      >
+                        {businessNameValidation.status === 'valid' ? (
+                          <Sparkles className="w-4 h-4" />
+                        ) : (
+                          <AlertCircle className="w-4 h-4" />
+                        )}
+                        {businessNameValidation.message}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  <div className="flex justify-between text-xs text-white/40 mt-1">
+                    <span>{VALIDATION_RULES.BUSINESS_NAME_MIN_LENGTH}-{VALIDATION_RULES.BUSINESS_NAME_MAX_LENGTH} caractères</span>
+                    <span className={formData.businessName.length > VALIDATION_RULES.BUSINESS_NAME_MAX_LENGTH * 0.8 ? 'text-orange-400 font-semibold' : ''}>
+                      {formData.businessName.length}/{VALIDATION_RULES.BUSINESS_NAME_MAX_LENGTH}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* ═══ STEP 3 : Adresse ═══ */}
+              <div className="flex gap-4" onBlur={handleAddressBlur} onKeyDown={handleFieldKeyDown}>
+                <div className="flex flex-col items-center shrink-0">
+                  <VNode nodeRef={addressNodeRef} num="3" active={addressFilled} done={isFormValid} />
+                  <div className="w-0.5 flex-1 min-h-3 bg-white/10 rounded-full overflow-hidden">
+                    <div className="reg_vseg-fill w-full" style={{ height: addressFilled ? '100%' : undefined }} />
+                  </div>
+                </div>
+                <div className="flex-1 pb-7">
+                  <label className="flex items-center gap-1.5 text-white/80 font-semibold text-sm mb-1.5">
+                    <MapPin className="w-4 h-4 text-sky-400" />
+                    {t('step3Extended.addressLabel')} <span className="text-red-400">*</span>
+                  </label>
+                  <input
+                    ref={addressRef}
+                    type="text"
+                    name="address"
+                    value={formData.address}
+                    onChange={handleChange}
+                    className="reg_glass-input"
+                    placeholder={t('step3Extended.addressPlaceholderExample')}
+                    maxLength={VALIDATION_RULES.ADDRESS_MAX_LENGTH}
+                    required
+                  />
+                  <div className="text-xs text-white/40 text-right mt-1">
+                    {formData.address.length}/{VALIDATION_RULES.ADDRESS_MAX_LENGTH}
+                  </div>
+                </div>
+              </div>
+
+              {/* ═══ STEP 4 : Conditions ═══ */}
+              <div className="flex gap-4">
+                <div className="flex flex-col items-center shrink-0">
+                  <VNode nodeRef={termsNodeRef} num="4" active={termsFilled} done={isFormValid} />
+                  <div className="w-0.5 flex-1 min-h-3 bg-white/10 rounded-full overflow-hidden">
+                    <div className="reg_vseg-fill w-full" style={{ height: termsFilled ? '100%' : undefined }} />
+                  </div>
+                </div>
+                <div className="flex-1 pb-7">
+                  <label className="flex items-start gap-3 min-h-[48px] cursor-pointer select-none group">
+                    <input
+                      type="checkbox"
+                      name="acceptTerms"
+                      checked={formData.acceptTerms}
+                      onChange={handleTermsChange}
+                      className="mt-0.5 w-5 h-5 rounded accent-sky-500 cursor-pointer flex-shrink-0"
+                      required
+                    />
+                    <span className="text-sm leading-relaxed text-white/70 group-hover:text-white">
+                      J&apos;accepte les{' '}
+                      <a href="/terms" target="_blank" className="text-sky-300 hover:text-sky-200 font-semibold underline">
+                        conditions générales
+                      </a>{' '}
+                      et la{' '}
+                      <a href="/privacy" target="_blank" className="text-sky-300 hover:text-sky-200 font-semibold underline">
+                        politique de confidentialité
+                      </a>{' '}
+                      de FayClick.
+                    </span>
+                  </label>
+                </div>
+              </div>
+
+              {/* ═══ STEP 5 : « En dire plus ? » — fin de la barre ═══ */}
+              <div className="flex gap-4">
+                <div className="flex flex-col items-center shrink-0">
+                  <VNode nodeRef={extraNodeRef} num="+" active={false} done={extraOpen} />
+                </div>
+                <div className="flex-1">
+                  <button
+                    type="button"
+                    onClick={() => setExtraOpen(o => !o)}
+                    className="flex items-center gap-2 h-12 text-sm font-semibold text-sky-300 hover:text-sky-200 active:text-sky-200 transition-colors"
                   >
-                    {/* Step Title - compact mobile */}
-                    <div className="text-center space-y-0.5 md:space-y-2">
-                      <h2 className="text-base md:text-3xl font-bold text-white">
-                        {t('step3Extended.heading')}
-                      </h2>
-                      <p className="hidden md:block text-green-200/70 text-sm">
-                        {t('step3Extended.helperText')}
-                      </p>
-                    </div>
+                    {t('singleStep.enDirePlus')}
+                    <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${extraOpen ? 'rotate-180' : ''}`} />
+                  </button>
 
-                    {/* Address */}
-                    <div className="space-y-1 md:space-y-2">
-                      <label className="flex items-center gap-1.5 text-green-100 font-semibold text-xs md:text-sm">
-                        <MapPin className="w-3.5 h-3.5 md:w-4 md:h-4 text-emerald-400" />
-                        Adresse <span className="text-red-400">*</span>
-                      </label>
-                      <input
-                        ref={addressRef}
-                        type="text"
-                        name="address"
-                        value={formData.address}
-                        onChange={handleChange}
-                        className="reg_glass-input"
-                        placeholder={t('step3Extended.addressPlaceholderExample')}
-                        maxLength={VALIDATION_RULES.ADDRESS_MAX_LENGTH}
-                        required
-                      />
-                      <div className="hidden md:block text-xs text-green-300/40 text-right">
-                        {formData.address.length}/{VALIDATION_RULES.ADDRESS_MAX_LENGTH}
-                      </div>
-                    </div>
-
-                    {/* Logo Upload */}
-                    <div className="space-y-1 md:space-y-2">
-                      <label className="flex items-center gap-1.5 text-green-100 font-semibold text-xs md:text-sm">
-                        <Upload className="w-3.5 h-3.5 md:w-4 md:h-4 text-emerald-400" />
-                        {t('step3Extended.logoLabel')} <span className="text-green-300/40 text-[10px] md:text-xs font-normal">({tCommon('optional')})</span>
-                      </label>
-                      <LogoUpload
-                        onUploadComplete={handleLogoUploadComplete}
-                        onUploadProgress={handleLogoUploadProgress}
-                        onFileSelect={handleLogoFileSelect}
-                        registerMode={true}
-                        structureName={formData.nomStructure || 'fayclick'}
-                      />
-                    </div>
-
-                    {/* Code Parrainage */}
-                    <div className="space-y-1 md:space-y-2">
-                      <label className="flex items-center gap-1.5 text-green-100 font-semibold text-xs md:text-sm">
-                        <Tag className="w-3.5 h-3.5 md:w-4 md:h-4 text-orange-400" />
-                        {t('step3Extended.promoCodeLabel')} <span className="text-green-300/40 text-[10px] md:text-xs font-normal">({tCommon('optional')})</span>
+                  {/* Contenu dépliable */}
+                  <div className={`reg_extra ${extraOpen ? 'reg_extra-open' : ''}`}>
+                    <div className="pb-6">
+                      <label className="flex items-center gap-1.5 text-white/80 font-semibold text-sm mb-1.5">
+                        <Tag className="w-4 h-4 text-orange-400" />
+                        {t('step3Extended.promoCodeLabel')}{' '}
+                        <span className="text-white/40 text-xs font-normal">({tCommon('optional')})</span>
                       </label>
                       <input
                         type="text"
@@ -798,39 +875,27 @@ export default function RegisterPage() {
                         placeholder={t('step3Extended.promoCodePlaceholder')}
                         maxLength={11}
                       />
-                      <p className="hidden md:block text-xs text-green-300/40">
+                      <p className="text-xs text-white/40 mt-1">
                         {t('step3Extended.promoCodeHelp')}
                       </p>
                     </div>
-
-                    {/* Terms - compact mobile */}
-                    <div className="p-2 md:p-4 rounded-lg md:rounded-xl" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
-                      <label className="flex items-start gap-2 md:gap-3 cursor-pointer group">
-                        <input
-                          type="checkbox"
-                          name="acceptTerms"
-                          checked={formData.acceptTerms}
-                          onChange={handleChange}
-                          className="mt-0.5 md:mt-1 w-4 h-4 md:w-5 md:h-5 rounded border-green-600 text-emerald-500 focus:ring-emerald-500 cursor-pointer flex-shrink-0"
-                          style={{ accentColor: '#10b981' }}
-                          required
-                        />
-                        <span className="text-[11px] md:text-sm leading-snug md:leading-relaxed text-green-100/80 group-hover:text-green-100">
-                          J&apos;accepte les{' '}
-                          <a href="/terms" target="_blank" className="text-emerald-400 hover:text-emerald-300 font-semibold underline">
-                            conditions générales
-                          </a>{' '}
-                          et la{' '}
-                          <a href="/privacy" target="_blank" className="text-emerald-400 hover:text-emerald-300 font-semibold underline">
-                            politique de confidentialité
-                          </a>{' '}
-                          de FayClick.
-                        </span>
+                    <div className="pb-6">
+                      <label className="flex items-center gap-1.5 text-white/80 font-semibold text-sm mb-1.5">
+                        <Upload className="w-4 h-4 text-sky-400" />
+                        {t('step3Extended.logoLabel')}{' '}
+                        <span className="text-white/40 text-xs font-normal">({tCommon('optional')})</span>
                       </label>
+                      <LogoUpload
+                        onUploadComplete={handleLogoUploadComplete}
+                        onUploadProgress={handleLogoUploadProgress}
+                        onFileSelect={handleLogoFileSelect}
+                        registerMode={true}
+                        structureName={formData.businessName || 'fayclick'}
+                      />
                     </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+                  </div>
+                </div>
+              </div>
             </div>
 
             {/* Error Message */}
@@ -849,60 +914,34 @@ export default function RegisterPage() {
               )}
             </AnimatePresence>
 
-            {/* Navigation Buttons */}
-            <div className="flex gap-3">
-              {step > 1 && (
-                <motion.button
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  type="button"
-                  onClick={() => { prevStep(); setDirection(-1); }}
-                  className="reg_btn-secondary flex-1 flex items-center justify-center gap-2"
-                >
-                  <ChevronLeft className="w-5 h-5" />
-                  {tCommon('previous')}
-                </motion.button>
+            {/* Bouton de soumission unique */}
+            <motion.button
+              whileTap={{ scale: 0.98 }}
+              type="submit"
+              disabled={!isFormValid || isLoading}
+              className="reg_btn-primary w-full h-14 flex items-center justify-center gap-2"
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  {t('submit.creating')}
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-5 h-5" />
+                  {t('submit.create')}
+                </>
               )}
-
-              <motion.button
-                whileTap={{ scale: 0.98 }}
-                type="submit"
-                disabled={
-                  (step === 1 && !isStep1Valid) ||
-                  (step === 2 && isLoading)
-                }
-                className={`reg_btn-primary ${step === 1 ? 'w-full' : 'flex-1'} flex items-center justify-center gap-2`}
-                onClick={() => step === 1 && setDirection(1)}
-              >
-                {step === 2 ? (
-                  isLoading ? (
-                    <>
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                      {t('submit.creating')}
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles className="w-5 h-5" />
-                      {t('submit.create')}
-                    </>
-                  )
-                ) : (
-                  <>
-                    {tCommon('next')}
-                    <ChevronRight className="w-5 h-5" />
-                  </>
-                )}
-              </motion.button>
-            </div>
+            </motion.button>
 
             {/* Login link */}
-            <div className="text-center mt-3 md:mt-6 pb-4">
-              <p className="text-green-200/50 text-sm">
+            <div className="text-center mt-4 md:mt-6 pb-4">
+              <p className="text-white/50 text-sm">
                 {t('loginLink.text')}{' '}
                 <button
                   type="button"
                   onClick={() => router.push('/login')}
-                  className="text-emerald-400 hover:text-emerald-300 font-semibold underline"
+                  className="text-sky-300 hover:text-sky-200 font-semibold underline"
                 >
                   {t('loginLink.action')}
                 </button>
@@ -914,7 +953,7 @@ export default function RegisterPage() {
 
       {/* Celebration Overlay */}
       {showCelebration && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center" style={{ background: 'rgba(6, 78, 59, 0.9)' }}>
+        <div className="fixed inset-0 z-[60] flex items-center justify-center" style={{ background: 'rgba(15, 23, 42, 0.9)' }}>
           {/* Confetti CSS */}
           {confettiPieces.map((piece) => (
             <div
@@ -972,7 +1011,7 @@ export default function RegisterPage() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 1.6 }}
-              className="text-green-200 mt-2"
+              className="text-sky-200 mt-2"
             >
               {t('celebration.subtitle')}
             </motion.p>
