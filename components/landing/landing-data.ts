@@ -3,89 +3,120 @@
 export const WHATSAPP_NUMBER = '221781043505';
 export const WHATSAPP_MESSAGE = "Bonjour, j'aimerais en savoir plus sur FayClick.";
 
-export interface CibleCard {
-  icon: string;
+// ─── Trio de bénéfices (règle des 3 — refonte enrôlement) ───
+export interface TrioBenefit {
+  icon: 'zap' | 'smartphone' | 'package';
+  colorClass: 'emerald' | 'sky' | 'teal';
   problem: string;
-  problemDesc: string;
-  solutionTitle: string;
-  solutionDesc: string;
-}
-
-export const CIBLES_DATA: CibleCard[] = [
-  {
-    icon: '📒',
-    problem: '"Je note tout dans un cahier"',
-    problemDesc: 'Ventes perdues, stocks imprécis, clients oubliés. Le cahier ne calcule pas vos bénéfices.',
-    solutionTitle: 'Dashboard intelligent',
-    solutionDesc: 'Tout est automatique : ventes, stocks, bénéfices en temps réel sur votre téléphone.',
-  },
-  {
-    icon: '💸',
-    problem: '"Les clients paient quand ils veulent"',
-    problemDesc: 'Crédits non suivis, impayés oubliés, pas de relance automatique.',
-    solutionTitle: 'Suivi des impayés + relance SMS',
-    solutionDesc: 'Chaque crédit est tracé. Relancez vos clients en un clic par SMS.',
-  },
-  {
-    icon: '🏪',
-    problem: '"Je ne sais pas ce qui me reste en stock"',
-    problemDesc: 'Ruptures de stock imprévues, commandes tardives, pertes de ventes.',
-    solutionTitle: 'Gestion de stock en temps réel',
-    solutionDesc: 'Stock mis à jour à chaque vente. Alertes de rupture automatiques.',
-  },
-  {
-    icon: '🌙',
-    problem: '"Je vends en ligne même quand je ferme"',
-    problemDesc: "Boutique fermée = zéro vente. Pas de visibilité en dehors des heures d'ouverture.",
-    solutionTitle: 'Catalogue & Marketplace 24/7',
-    solutionDesc: 'FayClick expose vos produits dans son marketplace pour vous permettre de vendre H24.',
-  },
-];
-
-export interface FeatureCard {
-  icon: string;
-  colorClass: string;
   title: string;
   description: string;
 }
 
-export const FEATURES_DATA: FeatureCard[] = [
-  { icon: '⚡', colorClass: 'emerald', title: 'Vente Flash', description: 'Encaissez en 3 secondes. Client anonyme, paiement CASH immédiat, reçu automatique.' },
-  { icon: '📱', colorClass: 'amber', title: 'Wave, OM & Free Money', description: 'Acceptez les paiements mobile money directement. Vos clients paient par QR code.' },
-  { icon: '📦', colorClass: 'blue', title: 'Gestion des Stocks', description: 'Stock mis à jour à chaque vente. Inventaire, alertes de rupture, historique des mouvements.' },
-  { icon: '👥', colorClass: 'purple', title: 'Fichier Clients', description: "Historique d'achats, crédits en cours, relance SMS en un clic. Fidélisez sans effort." },
-  { icon: '📊', colorClass: 'teal', title: 'Tableau de Bord', description: "CA du jour, top produits, top clients, graphiques. Vos chiffres en un coup d'œil." },
-  { icon: '🧾', colorClass: 'rose', title: 'Factures & Reçus', description: 'Factures professionnelles, reçus tickets 80mm, bons de livraison. Impression ou partage WhatsApp.' },
-  { icon: '🛍️', colorClass: 'yellow', title: 'Catalogue & Marketplace', description: 'Exposez vos produits en ligne 24/7. Vos clients commandent même quand la boutique est fermée.' },
-  { icon: '🔐', colorClass: 'emerald', title: 'Coffre-Fort KALPE', description: 'Soldes OM, Wave et Free centralisés. Retirez votre argent quand vous voulez.' },
-  { icon: '📷', colorClass: 'violet', title: 'Scan Code-Barres', description: 'Scannez vos produits avec la caméra du téléphone. Ajout au panier instantané.' },
+export const TRIO_BENEFITS: TrioBenefit[] = [
+  {
+    icon: 'zap',
+    colorClass: 'emerald',
+    problem: '« À la caisse, les clients attendent et tout se mélange… »',
+    title: 'Encaissez en 3 secondes',
+    description:
+      'Sélectionnez les produits, encaissez en espèces ou mobile money, le reçu part tout seul. Même dans la foule du marché.',
+  },
+  {
+    icon: 'smartphone',
+    colorClass: 'sky',
+    problem: "« Certains clients n'ont pas d'espèces sur eux… »",
+    title: 'Vos clients paient comme ils veulent',
+    description:
+      'Wave, Orange Money, Free Money ou espèces : tout est compté, tout est tracé, sans calcul mental.',
+  },
+  {
+    icon: 'package',
+    colorClass: 'teal',
+    problem: '« Je note tout dans un cahier et je perds le compte… »',
+    title: 'Vos chiffres, sans le cahier',
+    description:
+      "Le stock se met à jour à chaque vente, les alertes arrivent avant la rupture, et votre journée s'affiche toute seule.",
+  },
 ];
 
-export interface VideoTutorial {
-  number: string;
-  title: string;
-  subtitle: string;
-  colorClass: string;
-  src: string;
+// ─── Fonctionnalités secondaires (chips compacts) ───
+export const SECONDARY_FEATURES = [
+  'Fichier clients',
+  'Factures & reçus',
+  'Marketplace 24/7',
+  'Coffre-Fort KALPE',
+  'Scan Code-Barres',
+  'Relance SMS',
+];
+
+// ─── FAQ (remplace les vidéos tutoriels, fichiers absents) ───
+export interface FaqItem {
+  question: string;
+  answer: string;
 }
 
-export const VIDEOS_DATA: VideoTutorial[] = [
-  { number: '01', title: 'Créer un compte gratuitement', subtitle: 'Inscription en 2 minutes', colorClass: 'emerald', src: '/videos/1.mp4' },
-  { number: '02', title: 'Démarrer avec FayClick', subtitle: "Premier pas dans l'application", colorClass: 'emerald', src: '/videos/2.mp4' },
-  { number: '03', title: 'Ajouter vos produits et stocks', subtitle: 'Catalogue et inventaire', colorClass: 'emerald', src: '/videos/3.mp4' },
-  { number: '04', title: 'Effectuer une Vente', subtitle: 'Panier et encaissement', colorClass: 'emerald', src: '/videos/4.mp4' },
-  { number: '05', title: 'Fidéliser vos clients', subtitle: 'Fichier clients et historique', colorClass: 'emerald', src: '/videos/5.mp4' },
-  { number: '06', title: 'Accepter des Paiements Wave/OM/Free', subtitle: 'Mobile money intégré', colorClass: 'amber', src: '/videos/6.mp4' },
-  { number: '07', title: 'Suivre vos clients et les impayés', subtitle: 'Crédits et relances SMS', colorClass: 'emerald', src: '/videos/7.mp4' },
-  { number: '08', title: 'Voir Stats et Inventaires', subtitle: 'Dashboard et rapports', colorClass: 'emerald', src: '/videos/8.mp4' },
-  { number: '09', title: 'Renouveler son abonnement', subtitle: "Gestion de l'abonnement", colorClass: 'violet', src: '/videos/9.mp4' },
+export const FAQ_DATA: FaqItem[] = [
+  {
+    question: 'Combien ça coûte ?',
+    answer:
+      'Créer votre boutique et encaisser vos premières ventes est gratuit. Des options payantes (coffre-fort KALPE, relances SMS avancées) arriveront plus tard — vous ne serez jamais facturé sans le savoir.',
+  },
+  {
+    question: 'Faut-il internet tout le temps ?',
+    answer:
+      'Non. FayClick fonctionne hors ligne : vos ventes sont enregistrées sur votre téléphone et synchronisées dès que la connexion revient.',
+  },
+  {
+    question: 'Puis-je accepter Wave sans compte marchand ?',
+    answer:
+      "Oui. Notez le paiement mobile money de votre client comme n'importe quel encaissement : Wave, Orange Money ou Free Money. L'argent arrive sur votre compte mobile money habituel.",
+  },
+  {
+    question: 'Mes données sont-elles en sécurité ?',
+    answer:
+      'Oui. Vos données sont chiffrées et sauvegardées chaque jour. Elles restent les vôtres et sont exportables à tout moment.',
+  },
+  {
+    question: 'Ça marche sur mon téléphone ?',
+    answer:
+      'Si vous pouvez ouvrir fayclick.com dans votre navigateur, oui. Pas de téléchargement lourd : FayClick est une web-app qui tourne même sur les petits forfaits et les téléphones modestes.',
+  },
+  {
+    question: 'Comment être accompagné ?',
+    answer:
+      'Notre équipe répond sur WhatsApp 24/7 au +221 78 104 35 05, en français comme en wolof. Nous pouvons même configurer votre première boutique avec vous.',
+  },
 ];
 
-export const PWA_ADVANTAGES = [
-  { title: 'Pas de téléchargement', desc: 'Pas besoin de Play Store ni App Store. Ouvrez fayclick.com et travaillez.' },
-  { title: 'Toujours à jour', desc: 'Mises à jour automatiques. Pas de version obsolète sur votre téléphone.' },
-  { title: 'Zéro espace disque', desc: 'Ne prend pas de place sur votre téléphone. Idéal pour les appareils avec peu de mémoire.' },
-  { title: 'Multi-appareil', desc: 'Téléphone, tablette, ordinateur — un seul compte, toutes vos données synchronisées.' },
+// ─── Levée d'objections ───
+export interface ObjectionCard {
+  icon: 'gift' | 'globe' | 'whatsapp';
+  colorClass: 'emerald' | 'sky' | 'green';
+  title: string;
+  description: string;
+}
+
+export const OBJECTIONS_DATA: ObjectionCard[] = [
+  {
+    icon: 'gift',
+    colorClass: 'emerald',
+    title: 'Gratuit au départ',
+    description:
+      'Créez votre boutique et encaissez vos premières ventes sans payer. Les options avancées arrivent plus tard, sans surprise.',
+  },
+  {
+    icon: 'globe',
+    colorClass: 'sky',
+    title: 'Sans téléchargement',
+    description:
+      "Ouvrez fayclick.com dans votre navigateur, c'est tout. Installable en un clic si vous voulez l'écran d'accueil.",
+  },
+  {
+    icon: 'whatsapp',
+    colorClass: 'green',
+    title: 'Support WhatsApp 24/7',
+    description: 'Une question ? Notre équipe répond jour et nuit, en français comme en wolof.',
+  },
 ];
 
 export const BROWSER_GUIDES = [
@@ -126,32 +157,80 @@ export const BROWSER_GUIDES = [
   },
 ];
 
+// ─── Témoignages (preuve sociale) ───
+export interface Testimonial {
+  initials: string;
+  name: string;
+  location: string;
+  quote: string;
+}
+
+export const TESTIMONIALS: Testimonial[] = [
+  {
+    initials: 'AD',
+    name: 'Aminata D.',
+    location: 'Boutique Sandaga, Dakar',
+    quote: '« Avant, je notais tout dans un cahier. Maintenant je sais exactement combien j\'ai gagné chaque jour. »',
+  },
+  {
+    initials: 'MS',
+    name: 'Moussa S.',
+    location: 'Marché HLM, Dakar',
+    quote: '« Mes clients paient par Wave, je sors mon téléphone, la vente est enregistrée. Même la nuit. »',
+  },
+  {
+    initials: 'FN',
+    name: 'Fatou N.',
+    location: 'Castors, Dakar',
+    quote: '« Le stock se met à jour tout seul. Je sais ce qu\'il faut commander avant que ce soit fini. »',
+  },
+];
+
+// ─── Badges gamification détournés en preuve sociale ───
+export interface GamificationBadge {
+  icon: 'trophy' | 'package-check' | 'shield-check';
+  colorClass: 'emerald' | 'sky' | 'teal';
+  label: string;
+  holder: string;
+}
+
+export const GAMIFICATION_BADGES: GamificationBadge[] = [
+  { icon: 'trophy', colorClass: 'emerald', label: 'Vendeur du Mois', holder: 'Cheikh Boutique — Marché HLM' },
+  { icon: 'package-check', colorClass: 'sky', label: 'Stock Parfait', holder: 'Modou Électronique — Castors' },
+  { icon: 'shield-check', colorClass: 'teal', label: 'Zéro Impayé', holder: 'Awa Cosmétiques — Grand Yoff' },
+];
+
+// ─── Micro-astuces du splash (storytelling de chargement) ───
+export const SPLASH_TIPS = [
+  "💡 Astuce : notez chaque vente le jour même — vos bénéfices se calculent tout seuls.",
+  '🚀 Plus de 1 386 marchands sénégalais encaissent déjà avec FayClick.',
+  "💡 Astuce : relancez un client qui vous doit de l'argent, en un seul clic.",
+];
+
+// ─── Navigation ───
 export const NAV_LINKS = [
-  { label: 'Accueil', href: '#hero' },
-  { label: 'Cibles', href: '#cibles' },
-  { label: 'Fonctionnalités', href: '#fonctionnalites' },
-  { label: 'Télécharger', href: '#telechargements' },
-  { label: 'Support', href: '#support' },
+  { label: 'Fonctionnement', href: '#fonctionnement' },
+  { label: 'Preuve', href: '#preuve' },
+  { label: 'Télécharger', href: '#telecharger' },
+  { label: 'Aide', href: '#aide' },
 ];
 
 export const FOOTER_NAV = [
-  { label: 'Accueil', href: '#hero' },
-  { label: 'Fonctionnalités', href: '#fonctionnalites' },
-  { label: 'Télécharger', href: '#telechargements' },
-  { label: 'Tutoriels', href: '#support' },
+  { label: 'Fonctionnement', href: '#fonctionnement' },
+  { label: 'Preuve', href: '#preuve' },
+  { label: 'Aide', href: '#aide' },
   { label: 'Marketplace', href: '/catalogues' },
 ];
 
 export const FOOTER_LEGAL = [
-  { label: "Conditions d'utilisation", href: '#' },
-  { label: 'Politique de confidentialité', href: '#' },
-  { label: 'Mentions légales', href: '#' },
+  { label: "Conditions d'utilisation", href: '/terms' },
+  { label: 'Politique de confidentialité', href: '/privacy' },
 ];
 
 export const PROFILS_CIBLES = ['Boutiquiers', 'Commerçants de marché', 'Vendeurs ambulants', 'Grossistes'];
 
 export const STATS_DATA = [
-  { value: '500+', label: 'Marchands actifs' },
-  { value: '24/7', label: 'Support WhatsApp' },
+  { value: '1386+', label: 'Marchands actifs' },
+  { value: '45 000+', label: 'Ventes enregistrées' },
   { value: '100%', label: 'Gratuit au départ' },
 ];
