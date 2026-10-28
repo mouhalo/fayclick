@@ -82,3 +82,6 @@ test-*.png
 # Fichiers contenant des identifiants (scratch/notes)
 .claude/**/*ftp*.txt
 .claude/agents/base_données.txt
+
+# Chatbot IA — clé Groq côté serveur (jamais commitée)
+public/api/chatbot-config.php
