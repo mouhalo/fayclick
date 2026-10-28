@@ -1557,6 +1557,19 @@
       "label": "Add",
       "ariaLabel": "Add a product"
     },
+    "stockFaible": {
+      "badgeLabel": "stock < {seuil}",
+      "badgeTitle": "Show products with stock below {seuil}",
+      "removeFilter": "Remove low stock filter",
+      "settingsButton": "Set the low stock threshold",
+      "modalTitle": "Low stock threshold",
+      "modalSubtitle": "Saved on this device",
+      "inputLabel": "Alert when stock is below",
+      "inputHint": "Products with fewer than {seuil} units will be flagged",
+      "inputInvalid": "Enter a whole number greater than 0",
+      "cancel": "Cancel",
+      "save": "Save"
+    },
     "stockModal": {
       "stockLabel": "Stock: {count}",
       "pricePublic": "Public: {price} F",
