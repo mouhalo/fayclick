@@ -19,11 +19,12 @@ zéro coût) et n'appelle le proxy que pour le reste.
 
 1. Créer une clé sur https://console.groq.com/keys (idéalement dédiée au chatbot).
 2. Éditer `public/api/chatbot-config.php` : remplacer `REMPLACER_PAR_LA_CLE_GROQ`.
-3. ⚠️ **Ne jamais committer ni déployer ce fichier** : il est gitignoré.
-4. Uploader **manuellement** `chatbot-config.php` via FTP dans `/public_html/api/`
-   (à côté de `chatbot.php`, qui lui est déployé normalement par `npm run deploy`).
-   - `v2.fayclick.net` : `/api/chatbot-config.php` (test)
-   - `fayclick.com` : `/public_html/api/chatbot-config.php` (prod)
+3. ⚠️ **Ne jamais committer ce fichier** : il est gitignoré.
+4. Le fichier est copié dans `out/` au build et **déployé automatiquement**
+   par `npm run deploy` (vérifié en prod le 2026-10-28 : `/api/chatbot.php` renvoie
+   502 tant que la clé est le placeholder). Remplir le fichier puis redéployer
+   suffit — ou, pour un déploiement ciblé, uploader uniquement
+   `public/api/chatbot-config.php` via FTP dans `/public_html/api/`.
 
 ## Vérification
 
