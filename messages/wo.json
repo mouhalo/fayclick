@@ -1557,6 +1557,19 @@
       "label": "Yokk",
       "ariaLabel": "Yokk ab jumtukaay"
     },
+    "stockFaible": {
+      "badgeLabel": "stock < {seuil}",
+      "badgeTitle": "Wone jumtukaay yi seen stock des na {seuil}",
+      "removeFilter": "Dindi filtre stock bu néew",
+      "settingsButton": "Taxawal seuil stock bu néew",
+      "modalTitle": "Seuil stock bu néew",
+      "modalSubtitle": "Dañu ko denc ci appareil bii",
+      "inputLabel": "Xamal ma bu stock bi desee",
+      "inputHint": "Jumtukaay yu am lu yées {seuil} dañuy feeñ",
+      "inputInvalid": "Bindal benn limu mat bu ëpp 0",
+      "cancel": "Bañ",
+      "save": "Denc"
+    },
     "stockModal": {
       "stockLabel": "Stock : {count}",
       "pricePublic": "Public : {price} F",

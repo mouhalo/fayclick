@@ -1557,6 +1557,19 @@
       "label": "Ajouter",
       "ariaLabel": "Ajouter un produit"
     },
+    "stockFaible": {
+      "badgeLabel": "stock < {seuil}",
+      "badgeTitle": "Afficher les produits dont le stock est inférieur à {seuil}",
+      "removeFilter": "Retirer le filtre stock faible",
+      "settingsButton": "Régler le seuil de stock faible",
+      "modalTitle": "Seuil de stock faible",
+      "modalSubtitle": "Enregistré sur cet appareil",
+      "inputLabel": "Alerter quand le stock est inférieur à",
+      "inputHint": "Les produits avec moins de {seuil} unités seront signalés",
+      "inputInvalid": "Saisissez un nombre entier supérieur à 0",
+      "cancel": "Annuler",
+      "save": "Enregistrer"
+    },
     "stockModal": {
       "stockLabel": "Stock: {count}",
       "pricePublic": "Public: {price} F",

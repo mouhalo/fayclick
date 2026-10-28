@@ -5,7 +5,7 @@
 
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -22,7 +22,8 @@ import {
   CheckSquare,
   X,
   Loader2,
-  ShoppingCart
+  ShoppingCart,
+  Settings2
 } from 'lucide-react';
 import { authService } from '@/services/auth.service';
 import { produitsService, ProduitsApiException } from '@/services/produits.service';
@@ -57,6 +58,9 @@ import { PanierSidePanel } from '@/components/panier/PanierSidePanel';
 import { ModalAbonnementExpire, useModalAbonnementExpire } from '@/components/subscription/ModalAbonnementExpire';
 import { ModalLimiteProduitsAtteinte, useModalLimiteProduitsAtteinte } from '@/components/produits/ModalLimiteProduitsAtteinte';
 import { QuotaProduitsBadge } from '@/components/produits/QuotaProduitsBadge';
+import { StockFaibleBadge } from '@/components/produits/StockFaibleBadge';
+import { ModalSeuilStockFaible } from '@/components/produits/ModalSeuilStockFaible';
+import { useSeuilStockFaible } from '@/hooks/useSeuilStockFaible';
 import { ModalEnrolementProduits } from '@/components/visual-recognition';
 import { ModalOptionsAjout } from '@/components/produits/ModalOptionsAjout';
 import { ProduitsFilterPanel } from '@/components/produits/ProduitsFilterPanel';
@@ -205,6 +209,45 @@ export default function ProduitsCommercePage() {
 
   // Règles de vente (prix en gros, etc.)
   const salesRules = useSalesRules();
+
+  // Seuil "stock faible" (préférence locale) : compteur + filtre rapide stock < seuil
+  const { seuil: seuilStockFaible, setSeuil: setSeuilStockFaible } = useSeuilStockFaible(user?.id_structure);
+  const [showSeuilModal, setShowSeuilModal] = useState(false);
+  const nbStockFaible = useMemo(
+    () => produits.filter(p => (p.niveau_stock || 0) < seuilStockFaible).length,
+    [produits, seuilStockFaible]
+  );
+  const filtreStockFaibleActif = filtres.stockOperator === '<' && filtres.stockValue === seuilStockFaible;
+
+  const handleToggleStockFaible = () => {
+    setFiltres(filtreStockFaibleActif
+      ? { stockOperator: undefined, stockValue: undefined }
+      : { stockOperator: '<', stockValue: seuilStockFaible });
+    setCurrentPage(1);
+  };
+
+  const handleSaveSeuilStockFaible = (nouveauSeuil: number) => {
+    setSeuilStockFaible(nouveauSeuil);
+    // Garder le filtre affiché cohérent avec le nouveau seuil
+    if (filtreStockFaibleActif) {
+      setFiltres({ stockValue: nouveauSeuil });
+      setCurrentPage(1);
+    }
+  };
+
+  const boutonSeuilStockFaible = (variant: 'light' | 'dark') => (
+    <button
+      type="button"
+      onClick={() => setShowSeuilModal(true)}
+      title={t('stockFaible.settingsButton')}
+      aria-label={t('stockFaible.settingsButton')}
+      className={`w-9 h-9 rounded-xl flex items-center justify-center transition-colors ${
+        variant === 'dark' ? 'bg-white/20 hover:bg-white/30 text-white' : 'bg-gray-100 hover:bg-gray-200 text-gray-600'
+      }`}
+    >
+      <Settings2 className="w-5 h-5" />
+    </button>
+  );
 
   // Stores panier (3 modes : facture / proforma / bon de commande)
   // Le mode actif est lu via DocumentModeContext (source de verite unique partagee
@@ -1030,6 +1073,15 @@ export default function ProduitsCommercePage() {
     filtres.prixOperator && filtres.prixValue !== undefined,
   ].filter(Boolean).length;
 
+  // Filtres appliqués, au format du panneau (pour qu'il reflète badge stock faible / nettoyage stock)
+  const filtresAvancesActifs = {
+    categorie: filtres.nom_categorie,
+    stockOperator: filtres.stockOperator,
+    stockValue: filtres.stockValue,
+    prixOperator: filtres.prixOperator,
+    prixValue: filtres.prixValue,
+  };
+
   // Handlers pour la vue tableau
   const handleProduitClickTable = (produit: Produit) => {
     // Clic sur une ligne du tableau = Éditer le produit
@@ -1162,6 +1214,7 @@ export default function ProduitsCommercePage() {
           onApplyFilters={handleApplyAdvancedFilters}
           onResetFilters={handleClearFilters}
           activeFiltersCount={activeFiltersCount}
+          filtresActifs={filtresAvancesActifs}
         />
       </div>
 
@@ -1191,8 +1244,14 @@ export default function ProduitsCommercePage() {
 
       {/* Contenu principal */}
       <div className={`transition-all duration-300 ${showPanierSide && isDesktopView ? 'pr-[400px]' : ''}`}>
-        {/* Badge quota produits - toujours visible */}
-        <div className="mb-3 flex justify-end">
+        {/* Badges stock faible + quota produits - toujours visibles */}
+        <div className="mb-3 flex flex-wrap justify-end gap-2">
+          <StockFaibleBadge
+            count={nbStockFaible}
+            seuil={seuilStockFaible}
+            actif={filtreStockFaibleActif}
+            onClick={handleToggleStockFaible}
+          />
           <QuotaProduitsBadge
             current={produits.length}
             max={maxProduitsAutorises}
@@ -1352,6 +1411,7 @@ export default function ProduitsCommercePage() {
           onShowLogoutModal={() => setShowLogoutModal(true)}
           onShowProfilModal={() => window.dispatchEvent(new Event('openProfileModal'))}
           isTablet={!isDesktopLarge}
+          headerActions={boutonSeuilStockFaible('light')}
         >
           {renderContent()}
 
@@ -1695,6 +1755,12 @@ export default function ProduitsCommercePage() {
           maxCount={maxProduitsAutorises}
           onCleanStock={handleCleanStockFilter}
         />
+        <ModalSeuilStockFaible
+          isOpen={showSeuilModal}
+          onClose={() => setShowSeuilModal(false)}
+          seuil={seuilStockFaible}
+          onSave={handleSaveSeuilStockFaible}
+        />
         {produitPartage && user && <ModalPartagerProduit isOpen={!!produitPartage} onClose={() => setProduitPartage(null)} produit={produitPartage} idStructure={user.id_structure} />}
       </>
     );
@@ -1713,6 +1779,7 @@ export default function ProduitsCommercePage() {
           onBack={handleRetour}
           showBackButton={true}
           backgroundGradient="bg-gradient-to-r from-green-500 to-green-600"
+          rightContent={boutonSeuilStockFaible('dark')}
           filterContent={
             <ProduitsFilterHeader
               ref={filterHeaderRef}
@@ -1745,6 +1812,7 @@ export default function ProduitsCommercePage() {
             onApplyFilters={handleApplyAdvancedFilters}
             onResetFilters={handleClearFilters}
             activeFiltersCount={activeFiltersCount}
+            filtresActifs={filtresAvancesActifs}
           />
         </div>
 
@@ -1771,8 +1839,15 @@ export default function ProduitsCommercePage() {
         {/* Contenu principal */}
         <div className={`p-5 pb-24 transition-all duration-300 ${showPanierSide && isDesktopView ? 'pr-[400px]' : ''}`}>
 
-          {/* Badge quota produits - toujours visible */}
-          <div className="mb-3 flex justify-end">
+          {/* Badges stock faible + quota produits - toujours visibles */}
+          <div className="mb-3 flex flex-wrap justify-end gap-2">
+            <StockFaibleBadge
+              count={nbStockFaible}
+              seuil={seuilStockFaible}
+              actif={filtreStockFaibleActif}
+              onClick={handleToggleStockFaible}
+              variant="dark"
+            />
             <QuotaProduitsBadge
               current={produits.length}
               max={maxProduitsAutorises}
@@ -2464,6 +2539,12 @@ export default function ProduitsCommercePage() {
         currentCount={produits.length}
         maxCount={maxProduitsAutorises}
         onCleanStock={handleCleanStockFilter}
+      />
+      <ModalSeuilStockFaible
+        isOpen={showSeuilModal}
+        onClose={() => setShowSeuilModal(false)}
+        seuil={seuilStockFaible}
+        onSave={handleSaveSeuilStockFaible}
       />
 
       {/* Modal partage produit (Online Seller) */}

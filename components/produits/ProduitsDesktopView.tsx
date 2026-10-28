@@ -14,6 +14,8 @@ interface ProduitsDesktopViewProps {
   onShowLogoutModal: () => void;
   onShowProfilModal: () => void;
   isTablet: boolean;
+  /** Actions affichées à droite de la barre du haut */
+  headerActions?: ReactNode;
 }
 
 export default function ProduitsDesktopView({
@@ -23,6 +25,7 @@ export default function ProduitsDesktopView({
   onShowLogoutModal,
   onShowProfilModal,
   isTablet,
+  headerActions,
 }: ProduitsDesktopViewProps) {
   const router = useRouter();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(isTablet);
@@ -64,6 +67,11 @@ export default function ProduitsDesktopView({
               <p className="text-xs text-gray-500">{user.nom_structure}</p>
             </div>
           </div>
+          {headerActions && (
+            <div className="flex items-center gap-2">
+              {headerActions}
+            </div>
+          )}
         </header>
 
         {/* Contenu (injecte depuis page.tsx) */}

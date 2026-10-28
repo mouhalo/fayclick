@@ -11,9 +11,11 @@ interface ProduitsFilterPanelProps {
   onApplyFilters: (filtres: FiltreAvance) => void;
   onResetFilters: () => void;
   activeFiltersCount: number;
+  /** Filtres actuellement appliqués (pour refléter un filtre posé depuis l'extérieur, ex. badge stock faible) */
+  filtresActifs?: FiltreAvance;
 }
 
-export function ProduitsFilterPanel({ isOpen, produits, onApplyFilters, onResetFilters, activeFiltersCount }: ProduitsFilterPanelProps) {
+export function ProduitsFilterPanel({ isOpen, produits, onApplyFilters, onResetFilters, activeFiltersCount, filtresActifs }: ProduitsFilterPanelProps) {
   const [categorie, setCategorie] = useState<string>('');
   const [stockOperator, setStockOperator] = useState<ComparisonOperator | ''>('');
   const [stockValue, setStockValue] = useState<string>('');
@@ -30,6 +32,23 @@ export function ProduitsFilterPanel({ isOpen, produits, onApplyFilters, onResetF
       setPrixValue('');
     }
   }, [activeFiltersCount]);
+
+  // Refléter les filtres appliqués depuis l'extérieur du panneau
+  useEffect(() => {
+    if (!filtresActifs) return;
+    setCategorie(filtresActifs.categorie ?? '');
+    setStockOperator(filtresActifs.stockOperator ?? '');
+    setStockValue(filtresActifs.stockValue !== undefined ? String(filtresActifs.stockValue) : '');
+    setPrixOperator(filtresActifs.prixOperator ?? '');
+    setPrixValue(filtresActifs.prixValue !== undefined ? String(filtresActifs.prixValue) : '');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    filtresActifs?.categorie,
+    filtresActifs?.stockOperator,
+    filtresActifs?.stockValue,
+    filtresActifs?.prixOperator,
+    filtresActifs?.prixValue,
+  ]);
 
   const categories = useMemo(() => {
     const cats = new Set<string>();
