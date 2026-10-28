@@ -20,7 +20,7 @@ const DesktopHome = dynamic(() => import('@/components/landing/DesktopLandingPag
   ssr: false
 });
 
-const FloatingWhatsAppButton = dynamic(() => import('@/components/ui/FloatingWhatsAppButton'), {
+const ChatbotWidget = dynamic(() => import('@/components/chatbot/ChatbotWidget'), {
   ssr: false
 });
 
@@ -51,8 +51,8 @@ export default function Home() {
       {/* Composant de test pour la gestion de versions - développement uniquement */}
       {process.env.NODE_ENV === 'development' && <VersionTest />}
 
-      {/* Bouton WhatsApp flottant */}
-      <FloatingWhatsAppButton />
+      {/* Assistant IA — accueille, répond et guide vers l'inscription */}
+      <ChatbotWidget />
     </Suspense>
   );
 }

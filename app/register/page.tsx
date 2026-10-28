@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect, useRef, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, useRef, useMemo, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Phone,
@@ -134,17 +134,55 @@ function VNode({
   );
 }
 
-export default function RegisterPage() {
+export default function RegisterPageWrapper() {
+  return (
+    <Suspense fallback={<RegisterFallback />}>
+      <RegisterPage />
+    </Suspense>
+  );
+}
+
+function RegisterFallback() {
+  return (
+    <div className="reg_page flex items-center justify-center">
+      <div className="text-white/70 flex items-center gap-2">
+        <Loader2 className="w-5 h-5 animate-spin" />
+        Chargement…
+      </div>
+    </div>
+  );
+}
+
+function RegisterPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const t = useTranslations('register');
   const tCommon = useTranslations('common');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [showCelebration, setShowCelebration] = useState(false);
 
+  // Pré-remplissage depuis le chatbot : /register?nom=<Nom>&source=chatbot
+  const prefillName = (searchParams?.get('nom') ?? '')
+    .replace(/[^\p{L}\p{N}\s&.'-]/gu, '')
+    .trim()
+    .toUpperCase()
+    .slice(0, VALIDATION_RULES.BUSINESS_NAME_MAX_LENGTH);
+  const registerSource = searchParams?.get('source') ?? '';
+
+  // Traçage de la source d'inscription (mesure de conversion du chatbot)
+  useEffect(() => {
+    if (!registerSource) return;
+    try {
+      localStorage.setItem('fayclick-register-source', registerSource);
+    } catch {
+      // stockage indisponible : sans gravité
+    }
+  }, [registerSource]);
+
   // Form data - COMMERCE forcé (structureTypeId=2)
   const [formData, setFormData] = useState<RegistrationFormData>({
-    businessName: '',
+    businessName: prefillName,
     structureTypeId: 2,       // COMMERCE forcé
     serviceType: 'SERVICES',  // Forcé
     phoneOM: '',

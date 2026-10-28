@@ -361,6 +361,24 @@
       "statsShops": "{count} boutiques"
     }
   },
+  "chatbot": {
+    "title": "Assistant FayClick",
+    "status": "en ligne",
+    "langHint": "Répond en français, wolof et anglais",
+    "close": "Fermer",
+    "bubble": "Ouvrir l'assistant",
+    "placeholder": "Écrivez votre message…",
+    "send": "Envoyer",
+    "human": "Parler à un humain (WhatsApp 24/7)",
+    "welcome": "👋 <b>Salut ! Je suis l'assistant FayClick.</b><br>Prêt à découvrir comment encaisser plus facilement et garder le contrôle de votre commerce ?",
+    "collectName": "🎉 Génial ! Comment s'appelle votre boutique ? <span style=\"color:rgba(255,255,255,0.4)\">(ex : Chez Awa)</span>",
+    "collectDone": "Parfait, <b>{name}</b> est un très beau nom ! 👌<br><br>Votre formulaire d'inscription va s'ouvrir <b>déjà rempli</b> :",
+    "ctaRegister": "Créer ma boutique gratuite →",
+    "qCreate": "Créer ma boutique gratuite",
+    "qFree": "C'est gratuit ?",
+    "qHow": "Comment ça marche ?",
+    "aiError": "Je n'arrive pas à joindre mon cerveau 🤖 — parlons sur WhatsApp, un humain vous répond en moins d'une minute."
+  },
   "publicFacture": {
     "loading": "Chargement de la facture...",
     "errorTitle": "Erreur",

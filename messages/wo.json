@@ -361,6 +361,24 @@
       "statsShops": "{count} bitig"
     }
   },
+  "chatbot": {
+    "title": "Assistant FayClick",
+    "status": "ci ligne",
+    "langHint": "Day tontu ci français, wolof ak anglais",
+    "close": "Tëj",
+    "bubble": "Ubbil assistant bi",
+    "placeholder": "Bindal sa message…",
+    "send": "Yonnee",
+    "human": "Wax ak nit (WhatsApp 24/7)",
+    "welcome": "👋 <b>Salaam ! Man maa assistant FayClick.</b><br>Nga pare ngir xam naka lay fat bu yomb te topp sa liggéey ?",
+    "collectName": "🎉 Baax na lool ! Naka sa boutique di tude ? <span style=\"color:rgba(255,255,255,0.4)\">(ex : Chez Awa)</span>",
+    "collectDone": "Baax na, <b>{name}</b> tur bu rafet la ! 👌<br><br>Sa formulaire d'inscription dina ubbi <b>nekk ci bind</b> :",
+    "ctaRegister": "Defal sa boutique mbaam →",
+    "qCreate": "Defal sa boutique mbaam",
+    "qFree": "Baaxul pey?",
+    "qHow": "Naka lay dox?",
+    "aiError": "Mën maa joïe sama xel leegi 🤖 — wax na ci WhatsApp, nit dina la tontu ci minute bu leen."
+  },
   "publicFacture": {
     "loading": "Àngi jël facture bi...",
     "errorTitle": "Njuumte",

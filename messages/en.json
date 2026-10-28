@@ -361,6 +361,24 @@
       "statsShops": "{count} shops"
     }
   },
+  "chatbot": {
+    "title": "FayClick Assistant",
+    "status": "online",
+    "langHint": "Replies in French, Wolof and English",
+    "close": "Close",
+    "bubble": "Open assistant",
+    "placeholder": "Type your message…",
+    "send": "Send",
+    "human": "Talk to a human (WhatsApp 24/7)",
+    "welcome": "👋 <b>Hi! I'm the FayClick assistant.</b><br>Ready to discover how to take payments more easily and stay in control of your business?",
+    "collectName": "🎉 Great! What's your shop called? <span style=\"color:rgba(255,255,255,0.4)\">(e.g. Chez Awa)</span>",
+    "collectDone": "Perfect, <b>{name}</b> is a beautiful name! 👌<br><br>Your registration form will open <b>already filled in</b>:",
+    "ctaRegister": "Create my free shop →",
+    "qCreate": "Create my free shop",
+    "qFree": "Is it free?",
+    "qHow": "How does it work?",
+    "aiError": "I can't reach my brain right now 🤖 — let's talk on WhatsApp, a human will answer within a minute."
+  },
   "publicFacture": {
     "loading": "Loading invoice...",
     "errorTitle": "Error",
