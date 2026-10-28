@@ -2,11 +2,12 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Printer, FileText, Truck, RotateCcw, Receipt, Sparkles, File, ClipboardList } from 'lucide-react';
+import { X, Printer, FileText, Truck, RotateCcw, Receipt, Sparkles, File, ClipboardList, PenTool } from 'lucide-react';
 import { FactureComplete } from '@/types/facture';
 import { ConfigFacture, InfoFacture } from '@/types/auth';
 import { Produit } from '@/types/produit';
 import { produitsService } from '@/services/produits.service';
+import { ModalSignature } from '@/components/ui/ModalSignature';
 import { formatAmount, formatDate, escapeHtml } from '@/lib/utils';
 import { numOrNull } from '@/lib/numeric-utils';
 
@@ -21,6 +22,7 @@ interface Props {
   configFacture?: ConfigFacture;
   infoFacture?: InfoFacture;
   logo?: string;
+  cachet?: string;
   nomStructure: string;
   inclureTva?: boolean;
   tauxTva?: number;
@@ -52,13 +54,18 @@ const FIELD_LABELS: Record<string, string> = {
 };
 
 export default function ModalImpressionDocuments({
-  isOpen, onClose, facture, comptePrive, configFacture, infoFacture, logo, nomStructure, inclureTva = false, tauxTva = 18, onOpenRecu
+  isOpen, onClose, facture, comptePrive, configFacture, infoFacture, logo, cachet, nomStructure, inclureTva = false, tauxTva = 18, onOpenRecu
 }: Props) {
   const [selectedDoc, setSelectedDoc] = useState<DocumentType | null>(null);
   const [selectedFormat, setSelectedFormat] = useState<FormatType>('personnalise');
   const [avecTva, setAvecTva] = useState(inclureTva);
   const [produits, setProduits] = useState<Produit[]>([]);
   const printFrameRef = useRef<HTMLIFrameElement>(null);
+
+  // Signature manuscrite (non persistée, comme le modal Prestataire) + cachet converti en base64 pour l'impression
+  const [signatureData, setSignatureData] = useState<string | null>(null);
+  const [showSignatureModal, setShowSignatureModal] = useState(false);
+  const cachetBase64Ref = useRef<string | null>(null);
 
   // Charger les produits pour reconstituer le prix d'origine et déduire la remise par ligne
   useEffect(() => {
@@ -99,8 +106,49 @@ export default function ModalImpressionDocuments({
     return `<div style="display:flex;width:100%;">${cells}</div>`;
   };
 
+  // Convertir le cachet (URL) en base64 pour une impression fiable (pattern ModalFacturePrestataire)
+  const loadImageAsBase64 = async (url: string): Promise<string | null> => {
+    try {
+      const response = await fetch(url, { mode: 'cors' });
+      if (response.ok) {
+        const blob = await response.blob();
+        return new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.onerror = () => resolve(null);
+          reader.readAsDataURL(blob);
+        });
+      }
+    } catch {
+      console.log('Fetch CORS failed, trying Image approach...');
+    }
+
+    return new Promise((resolve) => {
+      const img = new window.Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        try {
+          const canvas = document.createElement('canvas');
+          canvas.width = img.width;
+          canvas.height = img.height;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.drawImage(img, 0, 0);
+            resolve(canvas.toDataURL('image/png'));
+          } else {
+            resolve(null);
+          }
+        } catch {
+          resolve(null);
+        }
+      };
+      img.onerror = () => resolve(null);
+      img.src = url;
+    });
+  };
+
   // Générer le HTML du document pour impression
-  const generateDocumentHTML = (docType: DocumentType, format: FormatType, produitsForLookup: Produit[]): string => {
+  const generateDocumentHTML = (docType: DocumentType, format: FormatType, produitsForLookup: Produit[], cachetSrc: string | null = null): string => {
     const title = DOCUMENT_TITLES[docType];
     const useCustom = format === 'personnalise' && configFacture;
 
@@ -200,6 +248,18 @@ export default function ModalImpressionDocuments({
 
     const colCount = isBL ? 3 : (isFacture ? 6 : 5);
 
+    // Bloc signature + cachet superposés (pattern facture Prestataire)
+    const signatureBlockHtml = (cachetSrc || signatureData) ? `
+  <div style="margin-top:20px;display:flex;justify-content:flex-end;">
+    <div style="text-align:center;">
+      <div style="position:relative;width:110px;height:65px;">
+        ${cachetSrc ? `<img src="${cachetSrc}" alt="Cachet" style="position:absolute;left:0;top:0;width:100%;height:100%;object-fit:contain;z-index:1;" />` : ''}
+        ${signatureData ? `<img src="${signatureData}" alt="Signature" style="position:absolute;left:0;top:0;width:100%;height:100%;object-fit:contain;z-index:2;" />` : ''}
+      </div>
+      <p style="margin:4px 0 0;font-size:10px;color:#555;">Signature & Cachet</p>
+    </div>
+  </div>` : '';
+
     return `<!DOCTYPE html>
 <html><head><meta charset="utf-8"><title>${title}${isProforma ? '' : ` ${escapeHtml(f.num_facture)}`}</title>
 <style>
@@ -268,6 +328,7 @@ export default function ModalImpressionDocuments({
       </tr>` : ''}
     </tfoot>`}
   </table>
+  ${signatureBlockHtml}
   ${footerHtml}
   ${isProforma ? `<div style="text-align:center;margin-top:20px;padding:10px;border:1px dashed #999;font-size:12px;color:#555;">
     <strong>Validité :</strong> Cette proforma est valable 30 jours à compter de la date d'émission.
@@ -288,7 +349,16 @@ export default function ModalImpressionDocuments({
         prods = [];
       }
     }
-    const html = generateDocumentHTML(docType, format, prods);
+    // Convertir le cachet en base64 une seule fois (impression sans requête réseau dans l'iframe)
+    let cachetSrc: string | null = null;
+    if (cachet) {
+      if (!cachetBase64Ref.current) {
+        cachetBase64Ref.current = await loadImageAsBase64(cachet);
+      }
+      cachetSrc = cachetBase64Ref.current;
+    }
+
+    const html = generateDocumentHTML(docType, format, prods, cachetSrc);
     const iframe = printFrameRef.current;
     if (!iframe) return;
 
@@ -362,6 +432,46 @@ export default function ModalImpressionDocuments({
                   </div>
                 </label>
               )}
+
+              {/* Signature & Cachet (structures.cachet + signature manuscrite) */}
+              <div className="p-3 rounded-xl border-2 border-gray-100 flex items-center justify-between gap-3">
+                <motion.button
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setShowSignatureModal(true)}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors text-sm font-medium flex-shrink-0 ${
+                    signatureData
+                      ? 'bg-green-500 text-white hover:bg-green-600'
+                      : 'bg-blue-500 text-white hover:bg-blue-600'
+                  }`}
+                >
+                  <PenTool className="w-4 h-4" />
+                  {signatureData ? 'Modifier' : 'Signer'}
+                </motion.button>
+
+                {(() => {
+                  if (!cachet && !signatureData) {
+                    return (
+                      <div className="text-xs text-gray-400 italic text-right">
+                        Signature & Cachet apparaîtront ici
+                      </div>
+                    );
+                  }
+                  return (
+                    <div className="flex flex-col items-center">
+                      <p className="text-xs text-gray-500 mb-1 font-medium">Aperçu</p>
+                      <div className="relative w-24 h-16">
+                        {cachet && (
+                          <img src={cachet} alt="Cachet" className="absolute inset-0 w-full h-full object-contain z-0" />
+                        )}
+                        {signatureData && (
+                          <img src={signatureData} alt="Signature" className="absolute inset-0 w-full h-full object-contain z-10" />
+                        )}
+                      </div>
+                      <p className="text-[10px] text-gray-400 mt-1">Signature & Cachet</p>
+                    </div>
+                  );
+                })()}
+              </div>
 
               {/* Séparateur */}
               <div className="flex items-center gap-3 py-1">
@@ -486,6 +596,15 @@ export default function ModalImpressionDocuments({
           <iframe ref={printFrameRef} style={{ display: 'none' }} title="print-frame" />
         </motion.div>
       )}
+
+      {/* Modal de signature manuscrite — hors du backdrop (pattern ModalFacturePrestataire) :
+          sinon un clic/coup de crayon sur le canvas remonte au backdrop (onClick={onClose})
+          et referme tout le modal d'impression */}
+      <ModalSignature
+        isOpen={showSignatureModal}
+        onClose={() => setShowSignatureModal(false)}
+        onSave={(signature) => setSignatureData(signature)}
+      />
     </AnimatePresence>
   );
 }

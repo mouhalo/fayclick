@@ -809,6 +809,7 @@ export default function FacturesGlassPage() {
             configFacture={structure?.config_facture}
             infoFacture={structure?.info_facture}
             logo={structure?.logo}
+            cachet={structure?.cachet}
             nomStructure={structure?.nom_structure || ''}
             inclureTva={structure?.inclure_tva}
             tauxTva={structure?.taux_tva}
@@ -1027,6 +1028,7 @@ export default function FacturesGlassPage() {
           configFacture={structure?.config_facture}
           infoFacture={structure?.info_facture}
           logo={structure?.logo}
+          cachet={structure?.cachet}
           nomStructure={structure?.nom_structure || ''}
           inclureTva={structure?.inclure_tva}
           tauxTva={structure?.taux_tva}

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ArrowLeft, 
@@ -25,12 +25,14 @@ import {
   FileText,
   ChevronDown,
   Percent,
-  Network
+  Network,
+  Stamp
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import databaseService from '@/services/database.service';
 import { authService } from '@/services/auth.service';
+import logoUploadSimpleService from '@/services/logo-upload-simple.service';
 import PopMessage from '@/components/ui/PopMessage';
 import { StructureDetails, CompleteAuthData, InfoFacture, ConfigFacture } from '@/types/auth';
 import LogoUpload from '@/components/ui/LogoUpload';
@@ -261,6 +263,12 @@ export default function StructureEditPage() {
   const [infoFactureOpen, setInfoFactureOpen] = useState(false);
   const [isSavingInfoFacture, setIsSavingInfoFacture] = useState(false);
 
+  // États cachet de la structure (colonne structures.cachet)
+  const [cachetUrl, setCachetUrl] = useState<string | undefined>(undefined);
+  const [cachetUploading, setCachetUploading] = useState(false);
+  const [cachetProgress, setCachetProgress] = useState(0);
+  const cachetInputRef = useRef<HTMLInputElement>(null);
+
   // États TVA (compte_prive uniquement)
   const [inclureTva, setInclureTva] = useState(false);
   const [tauxTva, setTauxTva] = useState(18);
@@ -306,6 +314,9 @@ export default function StructureEditPage() {
             const parsed = typeof rawInfoFacture === 'string' ? JSON.parse(rawInfoFacture) : rawInfoFacture;
             setInfoFacture({ ...DEFAULT_INFO_FACTURE, ...parsed });
           }
+
+          // Initialiser le cachet depuis la DB (structures.cachet)
+          setCachetUrl((structureData.cachet as string) || undefined);
 
           // Initialiser TVA depuis la DB
           setInclureTva(structureData.inclure_tva === true || structureData.inclure_tva === 't' as unknown);
@@ -687,6 +698,52 @@ export default function StructureEditPage() {
       showMessage('error', 'Erreur de connexion lors de la sauvegarde');
     } finally {
       setIsSavingInfoFacture(false);
+    }
+  };
+
+  // Upload du cachet de la structure (immédiat, comme le logo)
+  const handleCachetSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user?.id_structure || cachetUploading) return;
+    setCachetUploading(true);
+    setCachetProgress(0);
+    try {
+      const result = await logoUploadSimpleService.uploadCachet(
+        file,
+        user.id_structure,
+        (p) => setCachetProgress(p.progress),
+        structure.nom_structure || 'fayclick'
+      );
+      if (result.success && result.url) {
+        setCachetUrl(result.url);
+        showMessage('success', 'Cachet enregistré');
+        // Propager structures.cachet vers le contexte auth (utilisé à l'impression)
+        await refreshAuth();
+      } else {
+        showMessage('error', result.error || 'Erreur lors de l\'upload du cachet');
+      }
+    } catch (error) {
+      console.error('Erreur upload cachet:', error);
+      showMessage('error', 'Erreur de connexion lors de l\'upload du cachet');
+    } finally {
+      setCachetUploading(false);
+      if (cachetInputRef.current) cachetInputRef.current.value = '';
+    }
+  };
+
+  const handleCachetRemove = async () => {
+    if (!user?.id_structure || cachetUploading) return;
+    setCachetUploading(true);
+    try {
+      await logoUploadSimpleService.removeCachet(user.id_structure);
+      setCachetUrl(undefined);
+      showMessage('success', 'Cachet supprimé');
+      await refreshAuth();
+    } catch (error) {
+      console.error('Erreur suppression cachet:', error);
+      showMessage('error', 'Impossible de supprimer le cachet');
+    } finally {
+      setCachetUploading(false);
     }
   };
 
@@ -1396,6 +1453,61 @@ export default function StructureEditPage() {
                                 </div>
                               </div>
                             ))}
+
+                            {/* Cachet de la structure */}
+                            <div>
+                              <label className="block text-sm font-semibold text-gray-700 mb-1">Cachet de la structure</label>
+                              <div className="flex items-center gap-2">
+                                <Stamp className="h-5 w-5 text-blue-400 flex-shrink-0" />
+                                {cachetUrl ? (
+                                  <div className="flex-1 flex items-center gap-2">
+                                    <div className="h-14 w-20 rounded-lg border border-gray-200 bg-gray-50 flex items-center justify-center overflow-hidden flex-shrink-0">
+                                      <img src={cachetUrl} alt="Cachet" className="max-w-full max-h-full object-contain" />
+                                    </div>
+                                    <button
+                                      type="button"
+                                      onClick={() => cachetInputRef.current?.click()}
+                                      disabled={cachetUploading}
+                                      className="px-3 py-1.5 text-xs font-medium rounded-lg border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors disabled:opacity-60"
+                                    >
+                                      Remplacer
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={handleCachetRemove}
+                                      disabled={cachetUploading}
+                                      className="px-3 py-1.5 text-xs font-medium rounded-lg border border-red-200 bg-red-50 text-red-600 hover:bg-red-100 transition-colors disabled:opacity-60"
+                                    >
+                                      Supprimer
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    onClick={() => cachetInputRef.current?.click()}
+                                    disabled={cachetUploading}
+                                    className="flex-1 px-4 py-2.5 rounded-lg border border-dashed border-gray-300 bg-gray-50 text-sm text-gray-600 hover:border-blue-400 hover:text-blue-600 transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
+                                  >
+                                    {cachetUploading ? (
+                                      <>
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                        Upload... {cachetProgress > 0 ? `${cachetProgress}%` : ''}
+                                      </>
+                                    ) : (
+                                      'Choisir une image (PNG, JPG)'
+                                    )}
+                                  </button>
+                                )}
+                                <input
+                                  ref={cachetInputRef}
+                                  type="file"
+                                  accept="image/png,image/jpeg,image/gif,image/webp"
+                                  onChange={handleCachetSelect}
+                                  className="hidden"
+                                />
+                              </div>
+                              <p className="text-xs text-gray-400 mt-1">Affiché sur vos factures avec la signature (option « Signer » à l&apos;impression)</p>
+                            </div>
 
                             <button
                               onClick={saveInfoFacture}

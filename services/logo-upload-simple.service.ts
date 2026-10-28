@@ -167,6 +167,114 @@ class LogoUploadSimpleService {
   }
 
   /**
+   * Upload du cachet de la structure avec sauvegarde BD
+   * Comme uploadLogo mais : compression sans conversion JPEG forcée (préserve la
+   * transparence des cachets PNG) et persistance via save_my_cachet → structures.cachet
+   */
+  async uploadCachet(
+    file: File,
+    id_structure: number,
+    onProgress?: (progress: UploadProgress) => void,
+    structureName: string = 'fayclick'
+  ): Promise<UploadResult> {
+    try {
+      console.log('🖋️ [CACHET-UPLOAD] Début upload:', file.name);
+
+      // 1. Validation rapide
+      this.updateProgress(onProgress, 'compressing', 10, 'Validation...');
+      const validation = this.quickValidate(file);
+      if (!validation.isValid) {
+        throw new Error(validation.error || 'Fichier invalide');
+      }
+
+      // 2. Compression en préservant le format d'origine (transparence PNG)
+      this.updateProgress(onProgress, 'compressing', 30, 'Compression...');
+      const compressedFile = await this.compressCachet(file);
+
+      // 3. Nom de fichier unique préfixé cachet-
+      const filename = this.generateFilename(file.name, 'cachet');
+
+      // 4. Upload serveur (même endpoint que les logos)
+      this.updateProgress(onProgress, 'uploading', 60, 'Upload serveur...');
+      const fileUrl = await this.uploadToFTP(compressedFile, filename, structureName);
+
+      // 5. Sauvegarde URL en base (structures.cachet)
+      this.updateProgress(onProgress, 'uploading', 85, 'Sauvegarde...');
+      await this.saveCachetToDatabase(id_structure, fileUrl);
+
+      this.updateProgress(onProgress, 'success', 100, 'Upload terminé!');
+      console.log('🎉 [CACHET-UPLOAD] Upload réussi pour structure:', id_structure);
+
+      return {
+        success: true,
+        url: fileUrl,
+        filename: filename
+      };
+
+    } catch (error) {
+      console.error('❌ [CACHET-UPLOAD] Erreur upload:', error);
+      this.updateProgress(onProgress, 'error', 0, `Erreur: ${error instanceof Error ? error.message : 'Upload échoué'}`);
+
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Erreur inconnue'
+      };
+    }
+  }
+
+  /**
+   * Supprimer le cachet de la structure (URL vide → NULL en base)
+   */
+  async removeCachet(id_structure: number): Promise<void> {
+    await this.saveCachetToDatabase(id_structure, '');
+  }
+
+  /**
+   * Compression cachet : pas de fileType forcé pour préserver la transparence (PNG)
+   */
+  private async compressCachet(file: File): Promise<File> {
+    try {
+      return await imageCompression(file, {
+        maxSizeMB: 0.3,
+        maxWidthOrHeight: 800,
+        useWebWorker: true
+      });
+    } catch (error) {
+      console.error('❌ [CACHET-UPLOAD] Erreur compression:', error);
+      throw new Error('Impossible de compresser l\'image');
+    }
+  }
+
+  /**
+   * Sauvegarde URL cachet en base PostgreSQL
+   * Utilise la fonction save_my_cachet(pid_structure, purl) — purl vide = suppression
+   */
+  private async saveCachetToDatabase(id_structure: number, cachetUrl: string): Promise<void> {
+    try {
+      const sql = `SELECT save_my_cachet(${id_structure}, '${cachetUrl}')`;
+
+      console.log('💾 [CACHET-UPLOAD] Appel fonction PostgreSQL:', sql);
+      const result = await databaseService.query(sql);
+
+      // Vérifier le résultat de la fonction (JSON string)
+      if (result && result.length > 0) {
+        const functionResult = result[0].save_my_cachet;
+        if (typeof functionResult === 'string') {
+          const parsed = JSON.parse(functionResult);
+          if (!parsed.success) {
+            throw new Error(parsed.message || 'Erreur lors de la sauvegarde');
+          }
+        }
+      }
+
+      console.log('✅ [CACHET-UPLOAD] URL cachet sauvegardée en BD pour structure:', id_structure);
+    } catch (error) {
+      console.error('❌ [CACHET-UPLOAD] Erreur sauvegarde BD:', error);
+      throw new Error('Impossible de sauvegarder le cachet');
+    }
+  }
+
+  /**
    * Validation rapide
    */
   private quickValidate(file: File): { isValid: boolean; error?: string } {
@@ -223,7 +331,7 @@ class LogoUploadSimpleService {
    * @param originalName - Nom original du fichier
    * @param uploadType - Type d'upload: 'logo' ou 'photo'
    */
-  private generateFilename(originalName: string, uploadType: 'logo' | 'photo' = 'logo'): string {
+  private generateFilename(originalName: string, uploadType: 'logo' | 'photo' | 'cachet' = 'logo'): string {
     const timestamp = Date.now();
     const randomHash = Math.random().toString(36).substring(2, 10);
     const extension = originalName.split('.').pop()?.toLowerCase() || 'png';
@@ -232,7 +340,7 @@ class LogoUploadSimpleService {
     const cleanExtension = ['png', 'jpg', 'jpeg', 'gif', 'webp'].includes(extension) ? extension : 'jpg';
 
     // Préfixe selon le type d'upload
-    const prefix = uploadType === 'photo' ? 'produit' : 'logo';
+    const prefix = uploadType === 'photo' ? 'produit' : uploadType === 'cachet' ? 'cachet' : 'logo';
 
     return `${prefix}-${timestamp}-${randomHash}.${cleanExtension}`;
   }
