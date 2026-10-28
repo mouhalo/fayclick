@@ -212,7 +212,7 @@ export default function ChatbotWidget() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 16, scale: 0.96 }}
             transition={{ duration: 0.25, ease: 'easeOut' }}
-            className="fixed z-50 flex flex-col rounded-2xl overflow-hidden bg-slate-900 border border-white/10 shadow-[0_20px_60px_rgba(0,0,0,0.5)]"
+            className="fixed z-50 flex flex-col rounded-2xl overflow-hidden bg-slate-900 text-white border border-white/10 shadow-[0_20px_60px_rgba(0,0,0,0.5)]"
             style={{
               right: 20,
               bottom: isStickyVisible ? 104 : 20,
@@ -256,7 +256,7 @@ export default function ChatbotWidget() {
                     className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-[13px] leading-relaxed ${
                       m.from === 'user'
                         ? 'rounded-br-md text-white bg-primary-500'
-                        : 'rounded-bl-md bg-white/[0.07] border border-white/10'
+                        : 'rounded-bl-md text-white bg-slate-800 border border-white/10'
                     }`}
                   >
                     {m.isHtml ? <span dangerouslySetInnerHTML={{ __html: m.text }} /> : <span className="whitespace-pre-line">{m.text}</span>}
@@ -273,7 +273,7 @@ export default function ChatbotWidget() {
               ))}
               {typing && (
                 <div className="flex justify-start">
-                  <div className="flex gap-1.5 px-3 py-2.5 rounded-2xl rounded-bl-md bg-white/[0.07] border border-white/10">
+                  <div className="flex gap-1.5 px-3 py-2.5 rounded-2xl rounded-bl-md bg-slate-800 border border-white/10">
                     {[0, 1, 2].map((i) => (
                       <span key={i} className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />
                     ))}
